@@ -1,0 +1,6 @@
+github.com/Andoryuuta/binio v0.0.0-20160731013325-2c89946fb8c3 h1:N8pCiqpJAHyOO8lx/F7HzyQ/qjwatmmW0zHTt0e/SeU=
+github.com/Andoryuuta/binio v0.0.0-20160731013325-2c89946fb8c3/go.mod h1:4WK1jUpH8NFdDiv7IJcBfyCIOMqKjZ15kcw5eBKALvc=
+github.com/Andoryuuta/byteframe v0.0.0-20191219124302-41f4085eb4c0 h1:2pVgen9rh18IxSWxOa80bObcpyfrS6d5bJtZeCUN7rY=
+github.com/Andoryuuta/byteframe v0.0.0-20191219124302-41f4085eb4c0/go.mod h1:koVyx+gN3TfE70rpOidywETVODk87304YpwW69Y27J4=
+github.com/julienschmidt/httprouter v1.3.0 h1:U0609e9tgbseu3rBINet9P48AI/D3oJs4dN7jwJOQ1U=
+github.com/julienschmidt/httprouter v1.3.0/go.mod h1:JR6WtHb+2LUe8TCKY3cZOxFyyO8IZAc4RVcycCCAKdM=

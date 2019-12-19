@@ -68,6 +68,9 @@ class PacketCrypto(object):
                 t_idx = data[i] ^ SHARED_CRYPT_KEY[shared_buf_idx]
                 dec_key_byte = DECRYPT_KEY[t_idx]
                 shared_buf_idx = ((unk_derived_cryptkey_rot >> 10) ^ dec_key_byte) & 0xFF
+                print('t_idx: {:X}'.format(t_idx))
+                print('i & 7: {:X}'.format(i & 7))
+                
 
                 # Update the checksum accumulators.
                 accumulator_0 = (accumulator_0 + ((t_idx << (i & 7)) & 0xFFFFFFFF))
@@ -90,8 +93,91 @@ class PacketCrypto(object):
         return (output_data, combined_check, check_0, check_1, check_2)
 
 
-
+"""
 with open(sys.argv[1], 'rb') as f:
     (output_data, combined_check, check_0, check_1, check_2) = PacketCrypto._general_crypt(f.read(), int(sys.argv[2], 16), 1)
     hexdump(output_data)
     print("cc {:x}, c0 {:x}, c1 {:x}, c2 {:x}".format(combined_check, check_0, check_1, check_2))
+"""
+
+from construct import *
+
+Binary8Header = Struct(
+    "server_type" / Bytes(3),
+    "entry_count" / Int16ub,
+    "body_size" / Int16ub,
+    "checksum" / Int32ub,
+)
+
+BINARY8_KEY = bytes([0x01, 0x23, 0x34, 0x45, 0x56, 0xAB, 0xCD, 0xEF])
+def decode_binary8(data, unk_key_byte):
+    cur_key = ((54323 * unk_key_byte) + 1) & 0xFFFFFFFF
+
+    output_data = bytearray()
+    for i in range(len(data)):
+        tmp = (data[i] ^ (cur_key >> 13)) & 0xFF
+        output_data.append(tmp ^ BINARY8_KEY[i&7])
+        cur_key = ((54323 * cur_key) + 1) & 0xFFFFFFFF
+
+    return output_data
+
+def encode_binary8(data, unk_key_byte):
+    cur_key = ((54323 * unk_key_byte) + 1) & 0xFFFFFFFF
+
+    output_data = bytearray()
+    for i in range(len(data)):
+        output_data.append(data[i] ^ (BINARY8_KEY[i&7] ^ ((cur_key >> 13) & 0xFF)))
+        cur_key = ((54323 * cur_key) + 1) & 0xFFFFFFFF
+
+    return output_data
+
+
+SUM32_TABLE_0 = bytes([0x35, 0x7A, 0xAA, 0x97, 0x53, 0x66, 0x12])
+SUM32_TABLE_1 = bytes([0x7A, 0xAA, 0x97, 0x53, 0x66, 0x12, 0xDE, 0xDE, 0x35])
+# BROKEN!!!: 
+def calc_sum32(data):
+    t0_i = len(data)
+    t1_i = data[(len(data) >> 1)+1]
+    out = bytearray(4)
+    for i in range(len(data)):
+        tmp = (SUM32_TABLE_1[t1_i % 9] ^ SUM32_TABLE_0[t0_i % 7]) ^ data[i]
+        out[i%4] = (out[i%4] + tmp) & 0xFF
+
+        t0_i += 1
+        t1_i += 1
+
+
+    return Int32ul.parse(out)
+
+def read_binary8_part(stream):
+    # Read the header and decrypt the header first to get the size.
+    enc_bytes = bytearray(stream.read(12))
+    dec_header_bytes = decode_binary8(enc_bytes[1:], enc_bytes[0])
+    header = Binary8Header.parse(dec_header_bytes)
+
+    # Then read the body, append to the header, and decrypt the full thing.
+    body_bytes = stream.read(header.body_size)
+    enc_bytes.extend(body_bytes)
+    dec_bytes = decode_binary8(enc_bytes[1:], enc_bytes[0])
+
+    reenc_bytes = encode_binary8(dec_bytes, enc_bytes[0])
+
+    import zlib
+    print("Good: {}".format(zlib.crc32(enc_bytes[1:]) == zlib.crc32(reenc_bytes)))
+    print("calc_sum32: {:X}".format(calc_sum32(dec_bytes[11:])))
+    print("header checksum: {:X}".format(header.checksum))
+
+    # Then return the parsed header and just the raw body data.
+    return (header, dec_bytes[11:])
+
+"""
+with open('tw_server_list_resp.bin', 'rb') as f:
+    (header, data) = read_binary8_part(f)
+    from hexdump import hexdump
+    hexdump(data[:16])
+    print(len(data))
+"""
+
+with open('dec_bin8_data_dump.bin', 'rb') as f:
+    print("calc_sum32: {:X}".format(calc_sum32(f.read())))
+    print("want: 74EF4928")

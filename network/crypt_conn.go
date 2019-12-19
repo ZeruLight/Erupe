@@ -69,10 +69,40 @@ func (cc *CryptConn) ReadPacket() ([]byte, error) {
 	}
 
 	_ = combinedCheck
-	/*
-		fmt.Printf("cc %X, c0 %X, c1 %X, c2 %X\n", combinedCheck, check0, check1, check2)
-		fmt.Printf("cc %X, c0 %X, c1 %X, c2 %X\n", cph.PrevPacketCombinedCheck, cph.Check0, cph.Check1, cph.Check2)
-		fmt.Printf("cph: %+v\n", cph)
-	*/
 	return out, nil
+}
+
+// SendPacket encrypts and sends a packet.
+func (cc *CryptConn) SendPacket(data []byte) error {
+	keyRotDelta := byte(3)
+
+	if keyRotDelta != 0 {
+		cc.sendKeyRot = (uint32(keyRotDelta) * (cc.sendKeyRot + 1))
+	}
+
+	// Encrypt the data
+	encData, combinedCheck, check0, check1, check2 := crypto.Encrypt(data, cc.sendKeyRot, nil)
+
+	header := &CryptPacketHeader{}
+	header.Pf0 = byte(((uint(len(encData)) >> 12) & 0xF3) | 3)
+	header.KeyRotDelta = keyRotDelta
+	header.PacketNum = uint16(cc.sentPackets)
+	header.DataSize = uint16(len(encData))
+	header.PrevPacketCombinedCheck = cc.prevSendPacketCombinedCheck
+	header.Check0 = check0
+	header.Check1 = check1
+	header.Check2 = check2
+
+	headerBytes, err := header.Encode()
+	if err != nil {
+		return err
+	}
+
+	cc.conn.Write(headerBytes)
+	cc.conn.Write(encData)
+
+	cc.sentPackets++
+	cc.prevSendPacketCombinedCheck = combinedCheck
+
+	return nil
 }

@@ -2,16 +2,14 @@ package main
 
 import (
 	"fmt"
-	"io"
-	_ "time"
-
-	"github.com/Andoryuuta/Erupe/network"
+	"time"
 )
 
 func main() {
 	fmt.Println("Starting!")
 
 	go serveLauncherHTML(":80")
+	go doEntranceServer(":53310")
 	go doSignServer(":53312")
 
 	for {

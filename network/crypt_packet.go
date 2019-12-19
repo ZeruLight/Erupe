@@ -65,3 +65,26 @@ func NewCryptPacketHeader(data []byte) (*CryptPacketHeader, error) {
 
 	return &c, nil
 }
+
+// Encode encodes the CryptPacketHeader into raw bytes.
+func (c *CryptPacketHeader) Encode() ([]byte, error) {
+	buf := bytes.NewBuffer([]byte{})
+	var data = []interface{}{
+		c.Pf0,
+		c.KeyRotDelta,
+		c.PacketNum,
+		c.DataSize,
+		c.PrevPacketCombinedCheck,
+		c.Check0,
+		c.Check1,
+		c.Check2,
+	}
+	for _, v := range data {
+		err := binary.Write(buf, binary.BigEndian, v)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return buf.Bytes(), nil
+}

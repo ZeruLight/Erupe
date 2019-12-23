@@ -1,4 +1,5 @@
 from hexdump import hexdump
+import io
 import sys
 
 ENCRYPT_KEY = b'\x90\x51\x26\x25\x04\xBF\xCF\x4C\x92\x02\x52\x7A\x70\x1A\x41\x88\x8C\xC2\xCE\xB8\xF6\x57\x7E\xBA\x83\x63\x2C\x24\x9A\x67\x86\x0C\xBE\x72\xFD\xB6\x7B\x79\xB0\x22\x5A\x60\x5C\x4F\x49\xE2\x0E\xF5\x3A\x81\xAE\x11\x6B\xF0\xA1\x01\xE8\x65\x8D\x5B\xDC\xCC\x93\x18\xB3\xAB\x77\xF7\x8E\xEC\xEF\x05\x00\xCA\x4E\xA7\xBC\xB5\x10\xC6\x6C\xC0\xC4\xE5\x87\x3F\xC1\x82\x29\x96\x45\x73\x07\xCB\x43\xF9\xF3\x08\x89\xD0\x99\x6A\x3B\x37\x19\xD4\x40\xEA\xD7\x85\x16\x66\x1E\x9C\x39\xBB\xEE\x4A\x03\x8A\x36\x2D\x13\x1D\x56\x48\xC7\x0D\x59\xB2\x44\xA3\xFE\x8B\x32\x1B\x84\xA0\x2E\x62\x17\x42\xB9\x9B\x2B\x75\xD8\x1C\x3C\x4D\x76\x27\x6E\x28\xD3\x33\xC3\x21\xAF\x34\x23\xDD\x68\x9F\xF1\xAD\xE1\xB4\xE7\xA6\x74\x15\x4B\xFA\x3D\x5F\x7C\xDA\x2F\x0A\xE3\x7D\xC8\xB7\x12\x6F\x9E\xA9\x14\x53\x97\x8F\x64\xF4\xF8\xA2\xA4\x2A\xD2\x47\x9D\x71\xC5\xE9\x06\x98\x20\x54\x80\xAA\xF2\xAC\x50\xD6\x7F\xD9\xC9\xCD\x69\x46\x6D\x30\xB1\x58\x0B\x55\xD1\x5D\xD5\xBD\x31\xDE\xA5\xE4\x91\x0F\x61\x38\xDF\xA8\xE6\x3E\x1F\x35\xED\xDB\x94\xEB\x09\x5E\x95\xFB\xFC\xE0\x78\xFF'
@@ -109,6 +110,42 @@ Binary8Header = Struct(
     "checksum" / Int32ub,
 )
 
+EntranceListComplete = Struct(
+    Embedded(Binary8Header),
+    "servers" / Array(this.entry_count,
+        Struct(
+            "host_ip_4byte" / Int32ub,
+            "unk_1" / Int16ub, # Server ID maybe?
+            "unk_2" / Int16ub,
+            "channel_count" / Int16ub,
+            "unk_4" / Byte,
+            "unk_5" / Byte,
+            "unk_6" / Byte,
+            "name" / Bytes(66), # Shift-JIS.
+            "unk_trailer" / Int32ub, # THIS ONLY EXISTS IF Binary8Header.type == "SV2", NOT "SVR"!
+            "channels" / Array(this.channel_count,
+                Struct(
+                    "port" / Int16ub,
+                    "unk_1" / Int16ub, # Channel ID maybe?
+                    "max_players" / Int16ub,
+                    "current_players" / Int16ub,
+                    "unk_4" / Int16ub,
+                    "unk_5" / Int16ub,
+                    "unk_6" / Int16ub,
+                    "unk_7" / Int16ub,
+                    "unk_8" / Int16ub,
+                    "unk_9" / Int16ub,
+                    "unk_10" / Int16ub,
+                    "unk_11" / Int16ub,
+                    "unk_12" / Int16ub,
+                    "unk_13" / Int16ub,
+                )
+            ),
+        )
+    ),
+)
+
+
 BINARY8_KEY = bytes([0x01, 0x23, 0x34, 0x45, 0x56, 0xAB, 0xCD, 0xEF])
 def decode_binary8(data, unk_key_byte):
     cur_key = ((54323 * unk_key_byte) + 1) & 0xFFFFFFFF
@@ -134,7 +171,24 @@ def encode_binary8(data, unk_key_byte):
 
 SUM32_TABLE_0 = bytes([0x35, 0x7A, 0xAA, 0x97, 0x53, 0x66, 0x12])
 SUM32_TABLE_1 = bytes([0x7A, 0xAA, 0x97, 0x53, 0x66, 0x12, 0xDE, 0xDE, 0x35])
-# BROKEN!!!: 
+def calc_sum32(data):
+    length = len(data)
+
+    t0_i = length & 0xFF
+    t1_i = data[length >> 1]
+
+    out = bytearray(4)
+    for i in range(len(data)):
+        t0_i += 1
+        t1_i += 1
+
+        tmp = (SUM32_TABLE_1[t1_i % 9] ^ SUM32_TABLE_0[t0_i % 7]) ^ data[i]
+        out[i & 3] = (out[i & 3] + tmp) & 0xFF
+
+    return Int32ub.parse(out)
+
+"""
+# WARNING: Possibly broken?: 
 def calc_sum32(data):
     t0_i = len(data)
     t1_i = data[(len(data) >> 1)+1]
@@ -147,7 +201,8 @@ def calc_sum32(data):
         t1_i += 1
 
 
-    return Int32ul.parse(out)
+    return Int32ub.parse(out)
+"""
 
 def read_binary8_part(stream):
     # Read the header and decrypt the header first to get the size.
@@ -160,24 +215,121 @@ def read_binary8_part(stream):
     enc_bytes.extend(body_bytes)
     dec_bytes = decode_binary8(enc_bytes[1:], enc_bytes[0])
 
-    reenc_bytes = encode_binary8(dec_bytes, enc_bytes[0])
-
-    import zlib
-    print("Good: {}".format(zlib.crc32(enc_bytes[1:]) == zlib.crc32(reenc_bytes)))
-    print("calc_sum32: {:X}".format(calc_sum32(dec_bytes[11:])))
-    print("header checksum: {:X}".format(header.checksum))
-
     # Then return the parsed header and just the raw body data.
-    return (header, dec_bytes[11:])
+    return (enc_bytes[0], header, dec_bytes[11:], dec_bytes)
+
+def write_binary8_part(key, server_type, entry_count, payload):
+    body = Binary8Header.build(dict(
+        server_type=server_type,
+        entry_count=entry_count,
+        body_size=len(payload),
+        checksum=calc_sum32(payload),
+    ))
+
+    temp = bytearray()
+    temp.extend(body)
+    temp.extend(payload)
+
+    out = bytearray()
+    out.append(key)
+    out.extend(encode_binary8(temp, key))
+
+    return out
+
+
+def pad_bytes_to_len(b, length):
+    out = bytearray(b)
+    diff = length-len(out)
+    out.extend(bytearray(diff))
+    return bytes(out)
+
+
+
+def make_custom_entrance_server_resp():
+    # Get the userinfo_data
+    with open('tw_server_list_resp.bin', 'rb') as f:
+        (key, header, data, raw_dec_bytes) = read_binary8_part(f)
+        userinfo_data = f.read()
+
+
+    data = EntranceListComplete.build(dict(
+        server_type = b'SV2',
+        entry_count = 1,
+        body_size = 0xFFFF,
+        checksum = 0xFFFFFFFF,
+        servers = [dict(
+            host_ip_4byte = 0x0100007F, #0x7F000001,#3377555739,
+            unk_1 = 16,
+            unk_2 = 0,
+            channel_count = 1,
+            unk_4 = 3,
+            unk_5 = 0,
+            unk_6 = 2,
+            name = pad_bytes_to_len("AErupe Server @localhost".encode('shift-jis'), 66),
+            unk_trailer = 0,
+            channels = [dict(
+                port = 54001,
+                unk_1 = 16,
+                max_players = 100,
+                current_players = 0,
+                unk_4 = 0,
+                unk_5 = 0,
+                unk_6 = 0,
+                unk_7 = 0,
+                unk_8 = 0,
+                unk_9 = 0,
+                unk_10 = 319,
+                unk_11 = 248,#254,
+                unk_12 = 159,#255,
+                unk_13 = 12345
+            )],
+        )]
+    ))
+
+    print(data)
+
+    reencoded = write_binary8_part(0, b'SV2', 1, data[11:])
+    with open('custom_entrance_server_resp.bin', 'wb') as f:
+        f.write(reencoded)
+        f.write(userinfo_data)
+
+
+    with open('custom_entrance_server_resp.bin', 'rb') as f:
+        (key, header, data, raw_dec_bytes) = read_binary8_part(f)
+        print(EntranceListComplete.parse(raw_dec_bytes[0:]))
+
+
+
+
+make_custom_entrance_server_resp()
+
 
 """
 with open('tw_server_list_resp.bin', 'rb') as f:
-    (header, data) = read_binary8_part(f)
-    from hexdump import hexdump
-    hexdump(data[:16])
-    print(len(data))
+    (key, header, data, raw_dec_bytes) = read_binary8_part(f)
+    print(EntranceListComplete.parse(raw_dec_bytes[0:]))
+"""
+
+"""
+with open('tw_server_list_resp.bin', 'rb') as f:
+    filedata = f.read()
+
+    rdr = io.BytesIO(filedata)
+
+    (key, header, data, raw_dec_bytes) = read_binary8_part(rdr)
+    userinfo_data = rdr.read()
+
+    reencoded = write_binary8_part(key, header.server_type, header.entry_count, data)
+
+
+    hexdump(reencoded[:16])
+    hexdump(filedata[:16])
+
+"""
+
 """
 
 with open('dec_bin8_data_dump.bin', 'rb') as f:
     print("calc_sum32: {:X}".format(calc_sum32(f.read())))
     print("want: 74EF4928")
+"""

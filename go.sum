@@ -2,5 +2,9 @@ github.com/Andoryuuta/binio v0.0.0-20160731013325-2c89946fb8c3 h1:N8pCiqpJAHyOO8
 github.com/Andoryuuta/binio v0.0.0-20160731013325-2c89946fb8c3/go.mod h1:4WK1jUpH8NFdDiv7IJcBfyCIOMqKjZ15kcw5eBKALvc=
 github.com/Andoryuuta/byteframe v0.0.0-20191219124302-41f4085eb4c0 h1:2pVgen9rh18IxSWxOa80bObcpyfrS6d5bJtZeCUN7rY=
 github.com/Andoryuuta/byteframe v0.0.0-20191219124302-41f4085eb4c0/go.mod h1:koVyx+gN3TfE70rpOidywETVODk87304YpwW69Y27J4=
+github.com/BurntSushi/toml v0.3.1 h1:WXkYYl6Yr3qBf1K79EBnL4mak0OimBfB0XUf9Vl28OQ=
+github.com/BurntSushi/toml v0.3.1/go.mod h1:xHWCNGjB5oqiDr8zfno3MHue2Ht5sIBksp03qcyfWMU=
+github.com/golang-migrate/migrate v3.5.4+incompatible h1:R7OzwvCJTCgwapPCiX6DyBiu2czIUMDCB118gFTKTUA=
+github.com/golang-migrate/migrate v3.5.4+incompatible/go.mod h1:IsVUlFN5puWOmXrqjgGUfIRIbU7mr8oNBE2tyERd9Wk=
 github.com/julienschmidt/httprouter v1.3.0 h1:U0609e9tgbseu3rBINet9P48AI/D3oJs4dN7jwJOQ1U=
 github.com/julienschmidt/httprouter v1.3.0/go.mod h1:JR6WtHb+2LUe8TCKY3cZOxFyyO8IZAc4RVcycCCAKdM=

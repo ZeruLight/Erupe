@@ -31,7 +31,7 @@ func handleEntranceServerConnection(conn net.Conn) {
 
 		fmt.Printf("Got entrance server command:\n%s\n", hex.Dump(pkt))
 
-		data, err := ioutil.ReadFile("tw_server_list_resp.bin")
+		data, err := ioutil.ReadFile("custom_entrance_server_resp.bin")//("tw_server_list_resp.bin")
 		if err != nil {
 			print(err)
 			return

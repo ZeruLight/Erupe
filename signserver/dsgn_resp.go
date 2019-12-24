@@ -1,27 +1,6 @@
-package main
+package signserver
 
-import (
-	"fmt"
-	"io"
-	"net"
-
-	"github.com/Andoryuuta/Erupe/network"
-	"github.com/Andoryuuta/byteframe"
-)
-
-/*
-var conf *config.Config
-
-func init() {
-	c, err := config.LoadConfig("config.toml")
-	if err != nil {
-		panic(err)
-	}
-
-	conf = c
-
-}
-*/
+import "github.com/Andoryuuta/byteframe"
 
 func paddedString(x string, size uint) []byte {
 	out := make([]byte, size)
@@ -42,6 +21,12 @@ func uint16PascalString(bf *byteframe.ByteFrame, x string) {
 	bf.WriteNullTerminatedBytes([]byte(x))
 }
 
+func makeSignInFailureResp(respID RespID) []byte {
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint8(uint8(respID))
+	return bf.Data()
+}
+
 func makeSignInResp(username string) []byte {
 	bf := byteframe.NewByteFrame()
 
@@ -51,7 +36,7 @@ func makeSignInResp(username string) []byte {
 
 	bf.WriteUint8(1)                                   // resp_code
 	bf.WriteUint8(0)                                   // file/patch server count
-	bf.WriteUint8(1)                                   // entrance server count
+	bf.WriteUint8(4)                                   // entrance server count
 	bf.WriteUint8(1)                                   // character count
 	bf.WriteUint32(0xFFFFFFFF)                         // login_token_number
 	bf.WriteBytes(paddedString("logintokenstrng", 16)) // login_token (16 byte padded string)
@@ -61,6 +46,9 @@ func makeSignInResp(username string) []byte {
 
 	// Array(this.entrance_server_count, PascalString(Byte, "utf8")),
 	uint8PascalString(bf, "localhost:53310")
+	uint8PascalString(bf, "")
+	uint8PascalString(bf, "")
+	uint8PascalString(bf, "mhf-n.capcom.com.tw")
 
 	///////////////////////////
 	// Characters:
@@ -87,6 +75,8 @@ func makeSignInResp(username string) []byte {
 	bf.WriteUint32(469153291) // character ID 469153291
 	bf.WriteUint16(30)        // Exp, HR[x] is split by 0, 1, 30, 50, 99, 299, 998, 999
 
+	//44.204
+
 	/*
 		0=大劍/Big sword
 		1=重弩/Heavy crossbow
@@ -108,7 +98,7 @@ func makeSignInResp(username string) []byte {
 
 	bf.WriteUint32(1576761172) // Last login date, unix timestamp in seconds.
 	bf.WriteUint8(1)           // Sex, 0=male, 1=female.
-	bf.WriteUint8(0)           // Is new character, 1 replaces character name with ?????.
+	bf.WriteUint8(1)           // Is new character, 1 replaces character name with ?????.
 	grMode := uint8(0)
 	bf.WriteUint8(1)                          // GR level if grMode == 0
 	bf.WriteUint8(grMode)                     // GR mode.
@@ -144,52 +134,4 @@ func makeSignInResp(username string) []byte {
 	bf.WriteUint32(0)
 
 	return bf.Data()
-}
-
-func handleSignServerConnection(conn net.Conn) {
-	// Client initalizes the connection with a one-time buffer of 8 NULL bytes.
-	nullInit := make([]byte, 8)
-	n, err := io.ReadFull(conn, nullInit)
-	if err != nil {
-		fmt.Println(err)
-		return
-	} else if n != len(nullInit) {
-		fmt.Println("io.ReadFull couldn't read the full 8 byte init.")
-		return
-	}
-
-	cc := network.NewCryptConn(conn)
-	for {
-		pkt, err := cc.ReadPacket()
-		if err != nil {
-			return
-		}
-
-		bf := byteframe.NewByteFrameFromBytes(pkt)
-		loginType := string(bf.ReadNullTerminatedBytes())
-		username := string(bf.ReadNullTerminatedBytes())
-		password := string(bf.ReadNullTerminatedBytes())
-		unk := string(bf.ReadNullTerminatedBytes())
-		fmt.Printf("Got signin, type: %s, username: %s, password %s, unk: %s", loginType, username, password, unk)
-
-		resp := makeSignInResp(username)
-		cc.SendPacket(resp)
-
-	}
-}
-
-func doSignServer(listenAddr string) {
-	l, err := net.Listen("tcp", listenAddr)
-	if err != nil {
-		panic(err)
-	}
-	defer l.Close()
-
-	for {
-		conn, err := l.Accept()
-		if err != nil {
-			panic(err)
-		}
-		go handleSignServerConnection(conn)
-	}
 }

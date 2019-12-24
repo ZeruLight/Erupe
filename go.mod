@@ -7,5 +7,7 @@ require (
 	github.com/Andoryuuta/byteframe v0.0.0-20191219124302-41f4085eb4c0
 	github.com/BurntSushi/toml v0.3.1
 	github.com/golang-migrate/migrate v3.5.4+incompatible // indirect
+	github.com/gorilla/handlers v1.4.2
 	github.com/julienschmidt/httprouter v1.3.0
+	github.com/lib/pq v1.3.0
 )

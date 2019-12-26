@@ -3,6 +3,7 @@ package channelserver
 import (
 	"encoding/hex"
 	"fmt"
+	"io/ioutil"
 	"net"
 	"sync"
 
@@ -50,6 +51,9 @@ func (s *Session) Start() {
 	}()
 }
 
+var loadDataCount int
+var getPaperDataCount int
+
 func (s *Session) handlePacketGroup(pktGroup []byte) {
 	defer func() {
 		if r := recover(); r != nil {
@@ -60,31 +64,168 @@ func (s *Session) handlePacketGroup(pktGroup []byte) {
 	bf := byteframe.NewByteFrameFromBytes(pktGroup)
 	opcode := network.PacketID(bf.ReadUint16())
 
-	fmt.Printf("Opcode: %s\n", opcode)
-	fmt.Printf("Data:\n%s\n", hex.Dump(pktGroup))
-
-	// Get the packet parser and handler for this opcode.
-	mhfPkt := mhfpacket.MHFPacketFromOpcode(opcode)
-	if mhfPkt == nil {
-		fmt.Println("Got opcode which we don't know how to parse, can't parse anymore for this group")
-		return
+	if opcode != network.MSG_SYS_END {
+		fmt.Printf("Opcode: %s\n", opcode)
+		fmt.Printf("Data:\n%s\n", hex.Dump(pktGroup))
 	}
 
-	// Parse and handle the packet
-	mhfPkt.Parse(bf)
-	handlerTable[opcode](s, mhfPkt)
+	switch opcode {
+	case network.MSG_MHF_ENUMERATE_EVENT:
+		fallthrough
+	case network.MSG_MHF_ENUMERATE_QUEST:
+		fallthrough
+	case network.MSG_MHF_ENUMERATE_RANKING:
+		fallthrough
+	case network.MSG_MHF_READ_MERCENARY_W:
+		fallthrough
+	case network.MSG_MHF_GET_ETC_POINTS:
+		fallthrough
+	case network.MSG_MHF_READ_GUILDCARD:
+		fallthrough
+	case network.MSG_MHF_READ_BEAT_LEVEL:
+		fallthrough
+	case network.MSG_MHF_GET_EARTH_STATUS:
+		fallthrough
+	case network.MSG_MHF_GET_EARTH_VALUE:
+		fallthrough
+	case network.MSG_MHF_GET_WEEKLY_SCHEDULE:
+		fallthrough
+	case network.MSG_MHF_LIST_MEMBER:
+		fallthrough
+	case network.MSG_MHF_LOAD_PLATE_DATA:
+		fallthrough
+	case network.MSG_MHF_LOAD_PLATE_BOX:
+		fallthrough
+	case network.MSG_MHF_LOAD_FAVORITE_QUEST:
+		fallthrough
+	case network.MSG_MHF_LOAD_PARTNER:
+		fallthrough
+	case network.MSG_MHF_GET_TOWER_INFO:
+		fallthrough
+	case network.MSG_MHF_LOAD_OTOMO_AIROU:
+		fallthrough
+	case network.MSG_MHF_LOAD_DECO_MYSET:
+		fallthrough
+	case network.MSG_MHF_LOAD_HUNTER_NAVI:
+		fallthrough
+	case network.MSG_MHF_GET_UD_SCHEDULE:
+		fallthrough
+	case network.MSG_MHF_GET_UD_INFO:
+		fallthrough
+	case network.MSG_MHF_GET_UD_MONSTER_POINT:
+		fallthrough
+	case network.MSG_MHF_GET_RAND_FROM_TABLE:
+		fallthrough
+	case network.MSG_MHF_ACQUIRE_MONTHLY_REWARD:
+		fallthrough
+	case network.MSG_MHF_GET_RENGOKU_RANKING_RANK:
+		fallthrough
+	case network.MSG_MHF_LOAD_PLATE_MYSET:
+		fallthrough
+	case network.MSG_MHF_LOAD_RENGOKU_DATA:
+		fallthrough
+	case network.MSG_MHF_ENUMERATE_SHOP:
+		fallthrough
+	case network.MSG_MHF_LOAD_SCENARIO_DATA:
+		fallthrough
+	case network.MSG_MHF_GET_BOOST_TIME_LIMIT:
+		fallthrough
+	case network.MSG_MHF_GET_BOOST_RIGHT:
+		fallthrough
+	case network.MSG_MHF_GET_REWARD_SONG:
+		fallthrough
+	case network.MSG_MHF_GET_GACHA_POINT:
+		fallthrough
+	case network.MSG_MHF_GET_KOURYOU_POINT:
+		fallthrough
+	case network.MSG_MHF_GET_ENHANCED_MINIDATA:
+
+		ackHandle := bf.ReadUint32()
+
+		data, err := ioutil.ReadFile(fmt.Sprintf("bin_resp/%s_resp.bin", opcode.String()))
+		if err != nil {
+			panic(err)
+		}
+
+		bfw := byteframe.NewByteFrame()
+		bfw.WriteUint16(uint16(network.MSG_SYS_ACK))
+		bfw.WriteUint32(ackHandle)
+		bfw.WriteBytes(data)
+		s.cryptConn.SendPacket(bfw.Data())
+
+	case network.MSG_MHF_INFO_FESTA:
+		ackHandle := bf.ReadUint32()
+		_ = bf.ReadUint32()
+
+		data, err := ioutil.ReadFile(fmt.Sprintf("bin_resp/%s_resp.bin", opcode.String()))
+		if err != nil {
+			panic(err)
+		}
+
+		bfw := byteframe.NewByteFrame()
+		bfw.WriteUint16(uint16(network.MSG_SYS_ACK))
+		bfw.WriteUint32(ackHandle)
+		bfw.WriteBytes(data)
+		s.cryptConn.SendPacket(bfw.Data())
+
+	case network.MSG_MHF_LOADDATA:
+		ackHandle := bf.ReadUint32()
+
+		data, err := ioutil.ReadFile(fmt.Sprintf("bin_resp/%s_resp%d.bin", opcode.String(), loadDataCount))
+		if err != nil {
+			panic(err)
+		}
+
+		bfw := byteframe.NewByteFrame()
+		bfw.WriteUint16(uint16(network.MSG_SYS_ACK))
+		bfw.WriteUint32(ackHandle)
+		bfw.WriteBytes(data)
+		s.cryptConn.SendPacket(bfw.Data())
+
+		loadDataCount++
+		if loadDataCount > 1 {
+			loadDataCount = 0
+		}
+	case network.MSG_MHF_GET_PAPER_DATA:
+		ackHandle := bf.ReadUint32()
+
+		data, err := ioutil.ReadFile(fmt.Sprintf("bin_resp/%s_resp%d.bin", opcode.String(), getPaperDataCount))
+		if err != nil {
+			panic(err)
+		}
+
+		bfw := byteframe.NewByteFrame()
+		bfw.WriteUint16(uint16(network.MSG_SYS_ACK))
+		bfw.WriteUint32(ackHandle)
+		bfw.WriteBytes(data)
+		s.cryptConn.SendPacket(bfw.Data())
+
+		getPaperDataCount++
+		if getPaperDataCount > 7 {
+			getPaperDataCount = 0
+		}
+	default:
+		// Get the packet parser and handler for this opcode.
+		mhfPkt := mhfpacket.FromOpcode(opcode)
+		if mhfPkt == nil {
+			fmt.Println("Got opcode which we don't know how to parse, can't parse anymore for this group")
+			return
+		}
+
+		// Parse and handle the packet
+		mhfPkt.Parse(bf)
+		handlerTable[opcode](s, mhfPkt)
+		break
+	}
 
 	// If there is more data on the stream that the .Parse method didn't read, then read another packet off it.
 	remainingData := bf.DataFromCurrent()
-	if len(remainingData) >= 2 && (opcode == network.MSG_SYS_TIME || opcode == network.MSG_MHF_INFO_FESTA) {
+	if len(remainingData) >= 2 && (opcode == network.MSG_SYS_TIME || opcode == network.MSG_MHF_INFO_FESTA || opcode == network.MSG_SYS_EXTEND_THRESHOLD) {
 		s.handlePacketGroup(remainingData)
 	}
 }
 
 /*
-var loadDataCount int
-var getPaperDataCount int
-
 func handlePacket(cc *network.CryptConn, pkt []byte) {
 	defer func() {
 		if r := recover(); r != nil {

@@ -1,0 +1,24 @@
+package mhfpacket
+
+import (
+	"github.com/Andoryuuta/Erupe/network"
+	"github.com/Andoryuuta/byteframe"
+)
+
+// MsgMhfLoadScenarioData represents the MSG_MHF_LOAD_SCENARIO_DATA
+type MsgMhfLoadScenarioData struct{}
+
+// Opcode returns the ID associated with this packet type.
+func (m *MsgMhfLoadScenarioData) Opcode() network.PacketID {
+	return network.MSG_MHF_LOAD_SCENARIO_DATA
+}
+
+// Parse parses the packet from binary
+func (m *MsgMhfLoadScenarioData) Parse(bf *byteframe.ByteFrame) error {
+	panic("Not implemented")
+}
+
+// Build builds a binary packet from the current data.
+func (m *MsgMhfLoadScenarioData) Build(bf *byteframe.ByteFrame) error {
+	panic("Not implemented")
+}

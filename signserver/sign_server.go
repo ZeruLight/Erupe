@@ -23,6 +23,7 @@ type Server struct {
 	sessions   map[int]*Session
 	db         *sql.DB
 	listenAddr string
+	listener   net.Listener
 }
 
 // NewServer creates a new Server type.
@@ -36,16 +37,23 @@ func NewServer(config *Config) *Server {
 	return s
 }
 
-// Listen listens for new connections and accepts/serves them.
-func (s *Server) Listen() {
+// Start starts the server in a new goroutine.
+func (s *Server) Start() error {
 	l, err := net.Listen("tcp", s.listenAddr)
 	if err != nil {
-		panic(err)
+		return err
 	}
-	defer l.Close()
+	s.listener = l
+	//defer l.Close()
 
+	go s.acceptClients()
+
+	return nil
+}
+
+func (s *Server) acceptClients() {
 	for {
-		conn, err := l.Accept()
+		conn, err := s.listener.Accept()
 		if err != nil {
 			panic(err)
 		}

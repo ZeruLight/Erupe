@@ -1,0 +1,24 @@
+package mhfpacket
+
+import (
+	"github.com/Andoryuuta/Erupe/network"
+	"github.com/Andoryuuta/byteframe"
+)
+
+// MsgMhfCreateMercenary represents the MSG_MHF_CREATE_MERCENARY
+type MsgMhfCreateMercenary struct{}
+
+// Opcode returns the ID associated with this packet type.
+func (m *MsgMhfCreateMercenary) Opcode() network.PacketID {
+	return network.MSG_MHF_CREATE_MERCENARY
+}
+
+// Parse parses the packet from binary
+func (m *MsgMhfCreateMercenary) Parse(bf *byteframe.ByteFrame) error {
+	panic("Not implemented")
+}
+
+// Build builds a binary packet from the current data.
+func (m *MsgMhfCreateMercenary) Build(bf *byteframe.ByteFrame) error {
+	panic("Not implemented")
+}

@@ -3,11 +3,11 @@ package channelserver
 import (
 	"encoding/hex"
 	"fmt"
-	"io/ioutil"
 	"net"
 	"sync"
 
 	"github.com/Andoryuuta/Erupe/network"
+	"github.com/Andoryuuta/Erupe/network/mhfpacket"
 	"github.com/Andoryuuta/byteframe"
 )
 
@@ -44,12 +44,44 @@ func (s *Session) Start() {
 				return
 			}
 
-			handlePacket(s.cryptConn, pkt)
+			s.handlePacketGroup(pkt)
 
 		}
 	}()
 }
 
+func (s *Session) handlePacketGroup(pktGroup []byte) {
+	defer func() {
+		if r := recover(); r != nil {
+			fmt.Println("Recovered from panic.")
+		}
+	}()
+
+	bf := byteframe.NewByteFrameFromBytes(pktGroup)
+	opcode := network.PacketID(bf.ReadUint16())
+
+	fmt.Printf("Opcode: %s\n", opcode)
+	fmt.Printf("Data:\n%s\n", hex.Dump(pktGroup))
+
+	// Get the packet parser and handler for this opcode.
+	mhfPkt := mhfpacket.MHFPacketFromOpcode(opcode)
+	if mhfPkt == nil {
+		fmt.Println("Got opcode which we don't know how to parse, can't parse anymore for this group")
+		return
+	}
+
+	// Parse and handle the packet
+	mhfPkt.Parse(bf)
+	handlerTable[opcode](s, mhfPkt)
+
+	// If there is more data on the stream that the .Parse method didn't read, then read another packet off it.
+	remainingData := bf.DataFromCurrent()
+	if len(remainingData) >= 2 && (opcode == network.MSG_SYS_TIME || opcode == network.MSG_MHF_INFO_FESTA) {
+		s.handlePacketGroup(remainingData)
+	}
+}
+
+/*
 var loadDataCount int
 var getPaperDataCount int
 
@@ -259,3 +291,4 @@ func handlePacket(cc *network.CryptConn, pkt []byte) {
 		handlePacket(cc, remainingData)
 	}
 }
+*/

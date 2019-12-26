@@ -1,0 +1,24 @@
+package mhfpacket
+
+import (
+	"github.com/Andoryuuta/Erupe/network"
+	"github.com/Andoryuuta/byteframe"
+)
+
+// MsgMhfGetBoostTimeLimit represents the MSG_MHF_GET_BOOST_TIME_LIMIT
+type MsgMhfGetBoostTimeLimit struct{}
+
+// Opcode returns the ID associated with this packet type.
+func (m *MsgMhfGetBoostTimeLimit) Opcode() network.PacketID {
+	return network.MSG_MHF_GET_BOOST_TIME_LIMIT
+}
+
+// Parse parses the packet from binary
+func (m *MsgMhfGetBoostTimeLimit) Parse(bf *byteframe.ByteFrame) error {
+	panic("Not implemented")
+}
+
+// Build builds a binary packet from the current data.
+func (m *MsgMhfGetBoostTimeLimit) Build(bf *byteframe.ByteFrame) error {
+	panic("Not implemented")
+}

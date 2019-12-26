@@ -1,0 +1,24 @@
+package mhfpacket
+
+import (
+	"github.com/Andoryuuta/Erupe/network"
+	"github.com/Andoryuuta/byteframe"
+)
+
+// MsgMhfLoadPlateBox represents the MSG_MHF_LOAD_PLATE_BOX
+type MsgMhfLoadPlateBox struct{}
+
+// Opcode returns the ID associated with this packet type.
+func (m *MsgMhfLoadPlateBox) Opcode() network.PacketID {
+	return network.MSG_MHF_LOAD_PLATE_BOX
+}
+
+// Parse parses the packet from binary
+func (m *MsgMhfLoadPlateBox) Parse(bf *byteframe.ByteFrame) error {
+	panic("Not implemented")
+}
+
+// Build builds a binary packet from the current data.
+func (m *MsgMhfLoadPlateBox) Build(bf *byteframe.ByteFrame) error {
+	panic("Not implemented")
+}

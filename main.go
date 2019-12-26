@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/Andoryuuta/Erupe/channelserver"
+	_ "github.com/Andoryuuta/Erupe/network/mhfpacket"
 	"github.com/Andoryuuta/Erupe/signserver"
 	_ "github.com/lib/pq"
 )
@@ -37,9 +38,11 @@ func main() {
 			DB:         db,
 			ListenAddr: ":53312",
 		})
-	go signServer.Listen()
+	err = signServer.Start()
+	if err != nil {
+		panic(err)
+	}
 
-	//go doChannelServer(":54001")
 	channelServer := channelserver.NewServer(
 		&channelserver.Config{
 			DB:         db,

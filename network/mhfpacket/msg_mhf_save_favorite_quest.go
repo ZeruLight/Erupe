@@ -21,7 +21,7 @@ func (m *MsgMhfSaveFavoriteQuest) Opcode() network.PacketID {
 func (m *MsgMhfSaveFavoriteQuest) Parse(bf *byteframe.ByteFrame) error {
 	m.AckHandle = bf.ReadUint32()
 	m.DataSize = bf.ReadUint16()
-	m.Data = bf.ReadBytes(m.DataSize)
+	m.Data = bf.ReadBytes(uint(m.DataSize))
 }
 
 // Build builds a binary packet from the current data.

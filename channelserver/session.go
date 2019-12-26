@@ -118,8 +118,6 @@ func (s *Session) handlePacketGroup(pktGroup []byte) {
 		fallthrough
 	case network.MSG_MHF_ACQUIRE_MONTHLY_REWARD:
 		fallthrough
-	case network.MSG_MHF_GET_RENGOKU_RANKING_RANK:
-		fallthrough
 	case network.MSG_MHF_LOAD_PLATE_MYSET:
 		fallthrough
 	case network.MSG_MHF_LOAD_RENGOKU_DATA:

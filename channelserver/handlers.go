@@ -855,7 +855,15 @@ func handleMsgMhfGetRengokuBinary(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfEnumerateRengokuRanking(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfGetRengokuRankingRank(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfGetRengokuRankingRank(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfGetRengokuRankingRank)
+
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint16(uint16(network.MSG_SYS_ACK))
+	bf.WriteUint32(pkt.AckHandle)
+	bf.WriteBytes([]byte{0x01, 0x00, 0x00, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
+	s.cryptConn.SendPacket(bf.Data())
+}
 
 func handleMsgMhfAcquireExchangeShop(s *Session, p mhfpacket.MHFPacket) {}
 

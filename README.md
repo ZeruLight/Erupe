@@ -23,3 +23,9 @@ Place a copy of the original TW launcher html/js/css in `./www/g6_launcher/`, an
 Manually extract the binary response from a pcap, strip the header, and decrypt the ~50 packets that are used in `./channelserver/session.go`, and place them in `./bin_resp/{OPCODE}_resp.bin`.
 
 
+# Use
+Add to hosts:
+```
+127.0.0.1 mhfg.capcom.com.tw
+127.0.0.1 mhf-n.capcom.com.tw
+```

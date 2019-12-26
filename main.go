@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/Andoryuuta/Erupe/channelserver"
 	"github.com/Andoryuuta/Erupe/signserver"
 	_ "github.com/lib/pq"
 )
@@ -38,7 +39,17 @@ func main() {
 		})
 	go signServer.Listen()
 
-	go doChannelServer(":54001")
+	//go doChannelServer(":54001")
+	channelServer := channelserver.NewServer(
+		&channelserver.Config{
+			DB:         db,
+			ListenAddr: ":54001",
+		})
+
+	err = channelServer.Start()
+	if err != nil {
+		panic(err)
+	}
 
 	for {
 		time.Sleep(1 * time.Second)

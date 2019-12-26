@@ -24,6 +24,7 @@ func (m *MsgMhfReadMercenaryW) Parse(bf *byteframe.ByteFrame) error {
 	m.Unk0 = bf.ReadUint8()
 	m.Unk1 = bf.ReadUint8()
 	m.Unk2 = bf.ReadUint16()
+	return nil
 }
 
 // Build builds a binary packet from the current data.

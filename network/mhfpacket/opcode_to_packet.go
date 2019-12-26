@@ -2,8 +2,8 @@ package mhfpacket
 
 import "github.com/Andoryuuta/Erupe/network"
 
-// MHFPacketFromOpcode gets a packet struct that fulfills the MHFPacket interface by it's opcode.
-func MHFPacketFromOpcode(opcode network.PacketID) MHFPacket {
+// FromOpcode gets a packet struct that fulfills the MHFPacket interface by it's opcode.
+func FromOpcode(opcode network.PacketID) MHFPacket {
 	switch opcode {
 	case network.MSG_HEAD:
 		return &MsgHead{}
@@ -284,7 +284,7 @@ func MHFPacketFromOpcode(opcode network.PacketID) MHFPacket {
 	case network.MSG_SYS_INFOKYSERVER:
 		return &MsgSysInfokyserver{}
 	case network.MSG_MHF_GET_CA_UNIQUE_ID:
-		return &MsgMhfGetCaUniqueId{}
+		return &MsgMhfGetCaUniqueID{}
 	case network.MSG_MHF_SET_CA_ACHIEVEMENT:
 		return &MsgMhfSetCaAchievement{}
 	case network.MSG_MHF_CARAVAN_MY_SCORE:

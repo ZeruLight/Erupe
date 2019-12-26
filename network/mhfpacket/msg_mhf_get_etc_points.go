@@ -6,7 +6,9 @@ import (
 )
 
 // MsgMhfGetEtcPoints represents the MSG_MHF_GET_ETC_POINTS
-type MsgMhfGetEtcPoints struct{}
+type MsgMhfGetEtcPoints struct {
+	AckHandle uint32
+}
 
 // Opcode returns the ID associated with this packet type.
 func (m *MsgMhfGetEtcPoints) Opcode() network.PacketID {
@@ -15,6 +17,7 @@ func (m *MsgMhfGetEtcPoints) Opcode() network.PacketID {
 
 // Parse parses the packet from binary
 func (m *MsgMhfGetEtcPoints) Parse(bf *byteframe.ByteFrame) error {
+	m.AckHandle = bf.ReadUint32()
 	return nil
 }
 

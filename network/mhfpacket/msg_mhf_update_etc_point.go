@@ -22,6 +22,7 @@ func (m *MsgMhfUpdateEtcPoint) Parse(bf *byteframe.ByteFrame) error {
 	m.AckHandle = bf.ReadUint32()
 	m.Unk0 = bf.ReadUint8()
 	m.Unk1 = bf.ReadUint16()
+	return nil
 }
 
 // Build builds a binary packet from the current data.

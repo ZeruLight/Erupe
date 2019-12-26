@@ -15,10 +15,10 @@ func (m *MsgSysEnd) Opcode() network.PacketID {
 
 // Parse parses the packet from binary
 func (m *MsgSysEnd) Parse(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+	return nil
 }
 
 // Build builds a binary packet from the current data.
 func (m *MsgSysEnd) Build(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+	return nil
 }

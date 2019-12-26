@@ -15,10 +15,10 @@ func (m *MsgMhfGetEtcPoints) Opcode() network.PacketID {
 
 // Parse parses the packet from binary
 func (m *MsgMhfGetEtcPoints) Parse(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+	return nil
 }
 
 // Build builds a binary packet from the current data.
 func (m *MsgMhfGetEtcPoints) Build(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+	return nil
 }

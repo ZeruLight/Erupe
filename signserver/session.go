@@ -47,6 +47,8 @@ func (session *Session) handlePacket(pkt []byte) error {
 	bf := byteframe.NewByteFrameFromBytes(pkt)
 	reqType := string(bf.ReadNullTerminatedBytes())
 	switch reqType {
+	case "DLTSKEYSIGN:100":
+		fallthrough
 	case "DSGN:100":
 		session.handleDSGNRequest(bf)
 		break

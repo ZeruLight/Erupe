@@ -30,7 +30,7 @@ func main() {
 	}
 
 	// Finally start our server(s).
-	go serveLauncherHTML(":80")
+	go serveLauncherHTML(":80", false)
 	go doEntranceServer(":53310")
 
 	signServer := signserver.NewServer(

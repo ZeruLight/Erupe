@@ -64,6 +64,8 @@ func (s *Server) acceptClients() {
 }
 
 func (s *Server) handleConnection(sid int, conn net.Conn) {
+	fmt.Println("Got connection to sign server")
+
 	// Client initalizes the connection with a one-time buffer of 8 NULL bytes.
 	nullInit := make([]byte, 8)
 	_, err := io.ReadFull(conn, nullInit)

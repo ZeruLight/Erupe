@@ -1,10 +1,9 @@
-package main
+package entranceserver
 
 import (
 	"encoding/hex"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net"
 
 	"github.com/Andoryuuta/Erupe/network"
@@ -31,17 +30,40 @@ func handleEntranceServerConnection(conn net.Conn) {
 
 		fmt.Printf("Got entrance server command:\n%s\n", hex.Dump(pkt))
 
-		data, err := ioutil.ReadFile("custom_entrance_server_resp.bin")//("tw_server_list_resp.bin")
-		if err != nil {
-			print(err)
-			return
-		}
+		data := makeResp([]ServerInfo{
+			ServerInfo{
+				IP:                 net.ParseIP("127.0.0.1"),
+				Unk2:               0,
+				Type:               1,
+				Season:             0,
+				Unk6:               3,
+				Name:               "AErupe Server in Go! @localhost",
+				AllowedClientFlags: 4096,
+				Channels: []ChannelInfo{
+					ChannelInfo{
+						Port:           54001,
+						MaxPlayers:     100,
+						CurrentPlayers: 3,
+						Unk4:           0,
+						Unk5:           0,
+						Unk6:           0,
+						Unk7:           0,
+						Unk8:           0,
+						Unk9:           0,
+						Unk10:          319,
+						Unk11:          248,
+						Unk12:          159,
+						Unk13:          12345,
+					},
+				},
+			},
+		})
 		cc.SendPacket(data)
 
 	}
 }
 
-func doEntranceServer(listenAddr string) {
+func DoEntranceServer(listenAddr string) {
 	l, err := net.Listen("tcp", listenAddr)
 	if err != nil {
 		panic(err)

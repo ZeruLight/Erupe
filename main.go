@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/Andoryuuta/Erupe/channelserver"
-	_ "github.com/Andoryuuta/Erupe/network/mhfpacket"
 	"github.com/Andoryuuta/Erupe/signserver"
+	"github.com/Andoryuuta/Erupe/entranceserver"
 	_ "github.com/lib/pq"
 )
 
@@ -31,7 +31,7 @@ func main() {
 
 	// Finally start our server(s).
 	go serveLauncherHTML(":80", false)
-	go doEntranceServer(":53310")
+	go entranceserver.DoEntranceServer(":53310")
 
 	signServer := signserver.NewServer(
 		&signserver.Config{

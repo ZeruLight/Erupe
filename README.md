@@ -21,9 +21,7 @@ Originally based on the TW version, but (slowly) transitioning to JP.
 
 5. Open psql shell and manually insert an account into the users table.
 
-6. Run `test.py` with python 3 to generate an entrance server response binary because the code isn't ported to Go yet. (**This requires a binary response that is not included in the repo**)
-
-7. Manually extract the binary response from a pcap, strip the header, and decrypt the ~50 packets that are used in `./channelserver/session.go`, and place them in `./bin_resp/{OPCODE}_resp.bin`. (**These are not included in the repo**)
+6. Manually extract the binary response from a pcap, strip the header, and decrypt the ~50 packets that are used in `./channelserver/session.go`, and place them in `./bin_resp/{OPCODE}_resp.bin`. (**These are not included in the repo**)
 
 
 

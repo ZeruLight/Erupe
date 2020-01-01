@@ -73,7 +73,7 @@ func makeSignInResp(username string) []byte {
 			return v>>5
 	*/
 	bf.WriteUint32(469153291) // character ID 469153291
-	bf.WriteUint16(30)        // Exp, HR[x] is split by 0, 1, 30, 50, 99, 299, 998, 999
+	bf.WriteUint16(999)       // Exp, HR[x] is split by 0, 1, 30, 50, 99, 299, 998, 999
 
 	//44.204
 
@@ -98,7 +98,7 @@ func makeSignInResp(username string) []byte {
 
 	bf.WriteUint32(1576761172) // Last login date, unix timestamp in seconds.
 	bf.WriteUint8(1)           // Sex, 0=male, 1=female.
-	bf.WriteUint8(1)           // Is new character, 1 replaces character name with ?????.
+	bf.WriteUint8(0)           // Is new character, 1 replaces character name with ?????.
 	grMode := uint8(0)
 	bf.WriteUint8(1)                          // GR level if grMode == 0
 	bf.WriteUint8(grMode)                     // GR mode.

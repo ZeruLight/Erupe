@@ -43,7 +43,7 @@ func handleEntranceServerConnection(conn net.Conn) {
 					ChannelInfo{
 						Port:           54001,
 						MaxPlayers:     100,
-						CurrentPlayers: 3,
+						CurrentPlayers: 0,
 						Unk4:           0,
 						Unk5:           0,
 						Unk6:           0,

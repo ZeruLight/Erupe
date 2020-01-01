@@ -54,7 +54,7 @@ func encodeServerInfo(serverInfos []ServerInfo) []byte {
 	bf := byteframe.NewByteFrame()
 
 	for serverIdx, si := range serverInfos {
-		bf.WriteUint32(binary.LittleEndian.Uint32(si.IP))
+		bf.WriteUint32(binary.LittleEndian.Uint32(si.IP.To4()))
 		bf.WriteUint16(16 + uint16(serverIdx))
 		bf.WriteUint16(si.Unk2)
 		bf.WriteUint16(uint16(len(si.Channels)))

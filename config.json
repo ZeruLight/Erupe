@@ -1,0 +1,51 @@
+{
+    "host_ip": "127.0.0.1",
+
+    "database": {
+        "host": "localhost",
+        "port": 5432,
+        "user": "postgres",
+        "password": "admin",
+        "database": "erupe"
+    },
+    "launcher": {
+        "port": 80
+    },
+    "sign": {
+        "port": 53312
+    },
+    "channel": {
+        "port": 54001
+    },
+    "entrance": {
+        "port": 53310,
+        "entries": [
+            {
+                "name": "AErupe server 1",
+                "ip": "127.0.0.1",
+                "unk2": 0,
+                "type": 1,
+                "season": 0,
+                "unk6": 3,
+                "allowedclientflags": "4096",
+                "channels": [
+                    {
+                        "port": 54001,
+                        "MaxPlayers": 100,
+                        "CurrentPlayers": 0,
+                        "Unk4": 0,
+                        "Unk5": 0,
+                        "Unk6": 0,
+                        "Unk7": 0,
+                        "Unk8": 0,
+                        "Unk9": 0,
+                        "Unk10": 319,
+                        "Unk11": 248,
+                        "Unk12": 159,
+                        "Unk13": 12345
+                    }
+                ]
+            }
+        ]
+    }
+}

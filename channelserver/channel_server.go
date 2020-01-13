@@ -5,21 +5,27 @@ import (
 	"fmt"
 	"net"
 	"sync"
+
+	"github.com/Andoryuuta/Erupe/config"
+	"go.uber.org/zap"
 )
 
 // Config struct allows configuring the server.
 type Config struct {
-	DB         *sql.DB
-	ListenAddr string
+	Logger      *zap.Logger
+	DB          *sql.DB
+	ErupeConfig *config.Config
 }
 
 // Server is a MHF channel server.
 type Server struct {
 	sync.Mutex
+	logger      *zap.Logger
+	db          *sql.DB
+	erupeConfig *config.Config
 	acceptConns chan net.Conn
 	deleteConns chan net.Conn
 	sessions    map[net.Conn]*Session
-	db          *sql.DB
 	listenAddr  string
 	listener    net.Listener // Listener that is created when Server.Start is called.
 }
@@ -27,23 +33,23 @@ type Server struct {
 // NewServer creates a new Server type.
 func NewServer(config *Config) *Server {
 	s := &Server{
+		logger:      config.Logger,
+		db:          config.DB,
+		erupeConfig: config.ErupeConfig,
 		acceptConns: make(chan net.Conn),
 		deleteConns: make(chan net.Conn),
 		sessions:    make(map[net.Conn]*Session),
-		db:          config.DB,
-		listenAddr:  config.ListenAddr,
 	}
 	return s
 }
 
 // Start starts the server in a new goroutine.
 func (s *Server) Start() error {
-	l, err := net.Listen("tcp", s.listenAddr)
+	l, err := net.Listen("tcp", fmt.Sprintf(":%d", s.erupeConfig.Channel.Port))
 	if err != nil {
 		return err
 	}
 	s.listener = l
-	//defer l.Close()
 
 	go s.acceptClients()
 	go s.manageSessions()

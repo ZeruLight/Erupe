@@ -27,7 +27,7 @@ func makeSignInFailureResp(respID RespID) []byte {
 	return bf.Data()
 }
 
-func makeSignInResp(username string) []byte {
+func (session *Session) makeSignInResp(username string) []byte {
 	bf := byteframe.NewByteFrame()
 
 	// delete me:

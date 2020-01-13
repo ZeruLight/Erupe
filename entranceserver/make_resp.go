@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"net"
 
+	"github.com/Andoryuuta/Erupe/config"
 	"github.com/Andoryuuta/byteframe"
 )
 
@@ -16,45 +17,11 @@ func paddedString(x string, size uint) []byte {
 	return out
 }
 
-// ServerInfo represents an entry in the serverlist.
-type ServerInfo struct {
-	IP     net.IP
-	Unk2   uint16
-	Type   uint8  // Server type. 0=?, 1=open, 2=cities, 3=newbie, 4=bar
-	Season uint8  // Server activity. 0 = green, 1 = orange, 2 = blue
-	Unk6   uint8  // Something to do with server recommendation on 0, 3, and 5.
-	Name   string // Server name, 66 byte null terminated Shift-JIS.
-
-	// 4096(PC, PS3/PS4)?, 8258(PC, PS3/PS4)?, 8192 == nothing?
-	// THIS ONLY EXISTS IF Binary8Header.type == "SV2", NOT "SVR"!
-	AllowedClientFlags uint32
-
-	Channels []ChannelInfo
-}
-
-// ChannelInfo represents an entry in a server's channel list.
-type ChannelInfo struct {
-	Port uint16
-	//ChannelIndex uint16
-	MaxPlayers     uint16
-	CurrentPlayers uint16
-	Unk4           uint16
-	Unk5           uint16
-	Unk6           uint16
-	Unk7           uint16
-	Unk8           uint16
-	Unk9           uint16
-	Unk10          uint16
-	Unk11          uint16
-	Unk12          uint16
-	Unk13          uint16
-}
-
-func encodeServerInfo(serverInfos []ServerInfo) []byte {
+func encodeServerInfo(serverInfos []config.EntranceServerInfo) []byte {
 	bf := byteframe.NewByteFrame()
 
 	for serverIdx, si := range serverInfos {
-		bf.WriteUint32(binary.LittleEndian.Uint32(si.IP.To4()))
+		bf.WriteUint32(binary.LittleEndian.Uint32(net.ParseIP(si.IP).To4()))
 		bf.WriteUint16(16 + uint16(serverIdx))
 		bf.WriteUint16(si.Unk2)
 		bf.WriteUint16(uint16(len(si.Channels)))
@@ -103,7 +70,7 @@ func makeHeader(data []byte, respType string, entryCount uint16, key byte) []byt
 	return bf.Data()
 }
 
-func makeResp(servers []ServerInfo) []byte {
+func makeResp(servers []config.EntranceServerInfo) []byte {
 	rawServerData := encodeServerInfo(servers)
 
 	bf := byteframe.NewByteFrame()

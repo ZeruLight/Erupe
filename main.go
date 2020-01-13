@@ -7,11 +7,11 @@ import (
 	"os/signal"
 	"syscall"
 
-	"github.com/Andoryuuta/Erupe/channelserver"
 	"github.com/Andoryuuta/Erupe/config"
-	"github.com/Andoryuuta/Erupe/entranceserver"
-	"github.com/Andoryuuta/Erupe/launcherserver"
-	"github.com/Andoryuuta/Erupe/signserver"
+	"github.com/Andoryuuta/Erupe/server/channelserver"
+	"github.com/Andoryuuta/Erupe/server/entranceserver"
+	"github.com/Andoryuuta/Erupe/server/launcherserver"
+	"github.com/Andoryuuta/Erupe/server/signserver"
 	_ "github.com/lib/pq"
 	"go.uber.org/zap"
 )

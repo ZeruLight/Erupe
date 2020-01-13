@@ -6,6 +6,7 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/Andoryuuta/Erupe/config"
 	"github.com/Andoryuuta/Erupe/server/channelserver"
@@ -113,7 +114,10 @@ func main() {
 	<-c
 
 	logger.Info("Trying to shutdown gracefully.")
+	channelServer.Shutdown()
 	signServer.Shutdown()
 	entranceServer.Shutdown()
 	launcherServer.Shutdown()
+
+	time.Sleep(5 * time.Second)
 }

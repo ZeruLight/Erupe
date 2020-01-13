@@ -10,11 +10,13 @@ import (
 	"github.com/Andoryuuta/Erupe/network"
 	"github.com/Andoryuuta/Erupe/network/mhfpacket"
 	"github.com/Andoryuuta/byteframe"
+	"go.uber.org/zap"
 )
 
 // Session holds state for the channel server connection.
 type Session struct {
 	sync.Mutex
+	logger    *zap.Logger
 	server    *Server
 	rawConn   net.Conn
 	cryptConn *network.CryptConn
@@ -23,6 +25,7 @@ type Session struct {
 // NewSession creates a new Session type.
 func NewSession(server *Server, conn net.Conn) *Session {
 	s := &Session{
+		logger:    server.logger,
 		server:    server,
 		rawConn:   conn,
 		cryptConn: network.NewCryptConn(conn),
@@ -33,15 +36,15 @@ func NewSession(server *Server, conn net.Conn) *Session {
 // Start starts the session packet read&handle loop.
 func (s *Session) Start() {
 	go func() {
-		fmt.Println("Channel server got connection!")
+		s.logger.Info("Channel server got connection!")
+
 		// Unlike the sign and entrance server,
 		// the client DOES NOT initalize the channel connection with 8 NULL bytes.
 
 		for {
 			pkt, err := s.cryptConn.ReadPacket()
 			if err != nil {
-				fmt.Println(err)
-				fmt.Println("Error on channel server readpacket")
+				s.logger.Warn("Error on channel server readpacket", zap.Error(err))
 				return
 			}
 

@@ -26,8 +26,9 @@ type Server struct {
 	acceptConns chan net.Conn
 	deleteConns chan net.Conn
 	sessions    map[net.Conn]*Session
-	listenAddr  string
 	listener    net.Listener // Listener that is created when Server.Start is called.
+
+	isShuttingDown bool
 }
 
 // NewServer creates a new Server type.
@@ -57,13 +58,30 @@ func (s *Server) Start() error {
 	return nil
 }
 
+// Shutdown tries to shut down the server gracefully.
+func (s *Server) Shutdown() {
+	s.Lock()
+	s.isShuttingDown = true
+	s.Unlock()
+
+	s.listener.Close()
+	close(s.acceptConns)
+}
+
 func (s *Server) acceptClients() {
 	for {
 		conn, err := s.listener.Accept()
 		if err != nil {
-			// TODO(Andoryuuta): Implement shutdown logic to end this goroutine cleanly here.
-			fmt.Println(err)
-			continue
+			s.Lock()
+			shutdown := s.isShuttingDown
+			s.Unlock()
+
+			if shutdown {
+				break
+			} else {
+				s.logger.Warn("Error accepting client", zap.Error(err))
+				continue
+			}
 		}
 		s.acceptConns <- conn
 	}
@@ -73,6 +91,17 @@ func (s *Server) manageSessions() {
 	for {
 		select {
 		case newConn := <-s.acceptConns:
+			// Gracefully handle acceptConns channel closing.
+			if newConn == nil {
+				s.Lock()
+				shutdown := s.isShuttingDown
+				s.Unlock()
+
+				if shutdown {
+					return
+				}
+			}
+
 			session := NewSession(s, newConn)
 
 			s.Lock()

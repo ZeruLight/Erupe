@@ -2,7 +2,6 @@ package launcherserver
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"net/http"
 	"os"
@@ -12,13 +11,14 @@ import (
 	"github.com/Andoryuuta/Erupe/config"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )
 
 // Config struct allows configuring the server.
 type Config struct {
 	Logger                   *zap.Logger
-	DB                       *sql.DB
+	DB                       *sqlx.DB
 	ErupeConfig              *config.Config
 	UseOriginalLauncherFiles bool
 }
@@ -28,7 +28,7 @@ type Server struct {
 	sync.Mutex
 	logger                   *zap.Logger
 	erupeConfig              *config.Config
-	db                       *sql.DB
+	db                       *sqlx.DB
 	httpServer               *http.Server
 	useOriginalLauncherFiles bool
 	isShuttingDown           bool

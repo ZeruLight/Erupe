@@ -21,17 +21,17 @@
         "port": 53310,
         "entries": [
             {
-                "name": "AErupe server 1",
+                "name": "AErupe server noob",
                 "ip": "127.0.0.1",
                 "unk2": 0,
-                "type": 1,
+                "type": 3,
                 "season": 0,
-                "unk6": 3,
+                "unk6": 0,
                 "allowedclientflags": "4096",
                 "channels": [
                     {
                         "port": 54001,
-                        "MaxPlayers": 100,
+                        "MaxPlayers": 10,
                         "CurrentPlayers": 0,
                         "Unk4": 0,
                         "Unk5": 0,
@@ -42,6 +42,32 @@
                         "Unk10": 319,
                         "Unk11": 248,
                         "Unk12": 159,
+                        "Unk13": 12345
+                    }
+                ]
+            },
+            {
+                "name": "AErupe server open",
+                "ip": "127.0.0.1",
+                "unk2": 0,
+                "type": 1,
+                "season": 0,
+                "unk6": 0,
+                "allowedclientflags": 0,
+                "channels": [
+                    {
+                        "port": 54001,
+                        "MaxPlayers": 10,
+                        "CurrentPlayers": 0,
+                        "Unk4": 0,
+                        "Unk5": 0,
+                        "Unk6": 0,
+                        "Unk7": 0,
+                        "Unk8": 0,
+                        "Unk9": 0,
+                        "Unk10": 318,
+                        "Unk11": 251,
+                        "Unk12": 155,
                         "Unk13": 12345
                     }
                 ]

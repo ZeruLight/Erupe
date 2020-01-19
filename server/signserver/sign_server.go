@@ -1,7 +1,6 @@
 package signserver
 
 import (
-	"database/sql"
 	"fmt"
 	"io"
 	"net"
@@ -9,13 +8,14 @@ import (
 
 	"github.com/Andoryuuta/Erupe/config"
 	"github.com/Andoryuuta/Erupe/network"
+	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )
 
 // Config struct allows configuring the server.
 type Config struct {
 	Logger      *zap.Logger
-	DB          *sql.DB
+	DB          *sqlx.DB
 	ErupeConfig *config.Config
 }
 
@@ -26,7 +26,7 @@ type Server struct {
 	erupeConfig    *config.Config
 	sid            int
 	sessions       map[int]*Session
-	db             *sql.DB
+	db             *sqlx.DB
 	listener       net.Listener
 	isShuttingDown bool
 }

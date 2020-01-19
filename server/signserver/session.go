@@ -95,6 +95,25 @@ func (s *Session) handleDSGNRequest(bf *byteframe.ByteFrame) error {
 	case err == sql.ErrNoRows:
 		s.logger.Info("Account not found", zap.String("reqUsername", reqUsername))
 		serverRespBytes = makeSignInFailureResp(SIGN_EAUTH)
+
+		// HACK(Andoryuuta): Create a new account if it doesn't exit.
+		s.logger.Info("Creating account", zap.String("reqUsername", reqUsername), zap.String("reqPassword", reqPassword))
+		err = s.server.registerDBAccount(reqUsername, reqPassword)
+		if err != nil {
+			s.logger.Info("Error on creating new account", zap.Error(err))
+			serverRespBytes = makeSignInFailureResp(SIGN_EABORT)
+			break
+		}
+
+		var id int
+		err = s.server.db.QueryRow("SELECT id FROM users WHERE username = $1", reqUsername).Scan(&id)
+		if err != nil {
+			s.logger.Info("Error on querying account id", zap.Error(err))
+			serverRespBytes = makeSignInFailureResp(SIGN_EABORT)
+			break
+		}
+
+		serverRespBytes = s.makeSignInResp(id)
 		break
 	case err != nil:
 		serverRespBytes = makeSignInFailureResp(SIGN_EABORT)
@@ -103,7 +122,7 @@ func (s *Session) handleDSGNRequest(bf *byteframe.ByteFrame) error {
 	default:
 		if reqPassword == password {
 			s.logger.Info("Passwords match!")
-			serverRespBytes = s.makeSignInResp(reqUsername)
+			serverRespBytes = s.makeSignInResp(id)
 		} else {
 			s.logger.Info("Passwords don't match!")
 			serverRespBytes = makeSignInFailureResp(SIGN_EPASS)

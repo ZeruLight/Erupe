@@ -6,7 +6,11 @@ import (
 )
 
 // MsgMhfSavePartner represents the MSG_MHF_SAVE_PARTNER
-type MsgMhfSavePartner struct{}
+type MsgMhfSavePartner struct {
+	AckHandle      uint32
+	DataSize       uint16
+	RawDataPayload []byte
+}
 
 // Opcode returns the ID associated with this packet type.
 func (m *MsgMhfSavePartner) Opcode() network.PacketID {
@@ -15,7 +19,10 @@ func (m *MsgMhfSavePartner) Opcode() network.PacketID {
 
 // Parse parses the packet from binary
 func (m *MsgMhfSavePartner) Parse(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+	m.AckHandle = bf.ReadUint32()
+	m.DataSize = bf.ReadUint16()
+	m.RawDataPayload = bf.ReadBytes(uint(m.DataSize))
+	return nil
 }
 
 // Build builds a binary packet from the current data.

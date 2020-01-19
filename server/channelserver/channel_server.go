@@ -1,19 +1,21 @@
 package channelserver
 
 import (
-	"database/sql"
 	"fmt"
 	"net"
 	"sync"
 
 	"github.com/Andoryuuta/Erupe/config"
+	"github.com/Andoryuuta/Erupe/network/mhfpacket"
+	"github.com/Andoryuuta/byteframe"
+	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )
 
 // Config struct allows configuring the server.
 type Config struct {
 	Logger      *zap.Logger
-	DB          *sql.DB
+	DB          *sqlx.DB
 	ErupeConfig *config.Config
 }
 
@@ -21,7 +23,7 @@ type Config struct {
 type Server struct {
 	sync.Mutex
 	logger      *zap.Logger
-	db          *sql.DB
+	db          *sqlx.DB
 	erupeConfig *config.Config
 	acceptConns chan net.Conn
 	deleteConns chan net.Conn
@@ -29,6 +31,9 @@ type Server struct {
 	listener    net.Listener // Listener that is created when Server.Start is called.
 
 	isShuttingDown bool
+
+	gameObjectLock  sync.Mutex
+	gameObjectCount uint32
 }
 
 // NewServer creates a new Server type.
@@ -115,5 +120,24 @@ func (s *Server) manageSessions() {
 			delete(s.sessions, delConn)
 			s.Unlock()
 		}
+	}
+}
+
+// BroadcastMHF queues a MHFPacket to be sent to all sessions.
+func (s *Server) BroadcastMHF(pkt mhfpacket.MHFPacket, ignoredSession *Session) {
+	// Make the header
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint16(uint16(pkt.Opcode()))
+
+	// Build the packet onto the byteframe.
+	pkt.Build(bf)
+
+	// Broadcast the data.
+	for _, session := range s.sessions {
+		if session == ignoredSession {
+			continue
+		}
+		// Enqueue in a non-blocking way that drops the packet if the connections send buffer channel is full.
+		session.QueueSendNonBlocking(bf.Data())
 	}
 }

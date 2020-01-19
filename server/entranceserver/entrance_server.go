@@ -1,7 +1,6 @@
 package entranceserver
 
 import (
-	"database/sql"
 	"encoding/hex"
 	"fmt"
 	"io"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/Andoryuuta/Erupe/config"
 	"github.com/Andoryuuta/Erupe/network"
+	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )
 
@@ -18,7 +18,7 @@ type Server struct {
 	sync.Mutex
 	logger         *zap.Logger
 	erupeConfig    *config.Config
-	db             *sql.DB
+	db             *sqlx.DB
 	listener       net.Listener
 	isShuttingDown bool
 }
@@ -26,7 +26,7 @@ type Server struct {
 // Config struct allows configuring the server.
 type Config struct {
 	Logger      *zap.Logger
-	DB          *sql.DB
+	DB          *sqlx.DB
 	ErupeConfig *config.Config
 }
 

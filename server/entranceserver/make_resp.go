@@ -2,6 +2,9 @@ package entranceserver
 
 import (
 	"encoding/binary"
+	"fmt"
+	"io/ioutil"
+	"log"
 	"net"
 
 	"github.com/Andoryuuta/Erupe/config"
@@ -32,6 +35,7 @@ func encodeServerInfo(serverInfos []config.EntranceServerInfo) []byte {
 		bf.WriteUint32(si.AllowedClientFlags)
 
 		for channelIdx, ci := range si.Channels {
+			fmt.Println("Channel idx", channelIdx)
 			bf.WriteUint16(ci.Port)
 			bf.WriteUint16(16 + uint16(channelIdx))
 			bf.WriteUint16(ci.MaxPlayers)
@@ -71,6 +75,7 @@ func makeHeader(data []byte, respType string, entryCount uint16, key byte) []byt
 }
 
 func makeResp(servers []config.EntranceServerInfo) []byte {
+	fmt.Printf("%+v\n", servers)
 	rawServerData := encodeServerInfo(servers)
 
 	bf := byteframe.NewByteFrame()
@@ -80,6 +85,11 @@ func makeResp(servers []config.EntranceServerInfo) []byte {
 	// Is it for the friends list at the world selection screen?
 	// If so, how does it work without the entrance server connection being authenticated?
 	bf.WriteBytes(makeHeader([]byte{}, "USR", 0, 0x00))
+
+	err := ioutil.WriteFile("go_entrance_resp.bin", bf.Data(), 0644)
+	if err != nil {
+		log.Fatal(err)
+	}
 
 	return bf.Data()
 

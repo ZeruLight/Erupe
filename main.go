@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"fmt"
 	"os"
 	"os/signal"
@@ -13,9 +12,17 @@ import (
 	"github.com/Andoryuuta/Erupe/server/entranceserver"
 	"github.com/Andoryuuta/Erupe/server/launcherserver"
 	"github.com/Andoryuuta/Erupe/server/signserver"
+	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"go.uber.org/zap"
 )
+
+// Temporary DB auto clean on startup for quick development & testing.
+func cleanDB(db *sqlx.DB) {
+	_ = db.MustExec("DELETE FROM characters")
+	_ = db.MustExec("DELETE FROM sign_sessions")
+	_ = db.MustExec("DELETE FROM users")
+}
 
 func main() {
 	zapLogger, _ := zap.NewDevelopment()
@@ -40,7 +47,7 @@ func main() {
 		erupeConfig.Database.Database,
 	)
 
-	db, err := sql.Open("postgres", connectString)
+	db, err := sqlx.Open("postgres", connectString)
 	if err != nil {
 		logger.Fatal("Failed to open sql database", zap.Error(err))
 	}
@@ -50,7 +57,11 @@ func main() {
 	if err != nil {
 		logger.Fatal("Failed to ping database", zap.Error(err))
 	}
-	logger.Info("Connected to database.")
+	logger.Info("Connected to database")
+
+	logger.Info("Cleaning DB")
+	cleanDB(db)
+	logger.Info("Done cleaning DB")
 
 	// Now start our server(s).
 
@@ -119,5 +130,5 @@ func main() {
 	entranceServer.Shutdown()
 	launcherServer.Shutdown()
 
-	time.Sleep(5 * time.Second)
+	time.Sleep(1 * time.Second)
 }

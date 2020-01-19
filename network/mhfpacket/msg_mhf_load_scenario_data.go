@@ -6,7 +6,9 @@ import (
 )
 
 // MsgMhfLoadScenarioData represents the MSG_MHF_LOAD_SCENARIO_DATA
-type MsgMhfLoadScenarioData struct{}
+type MsgMhfLoadScenarioData struct {
+	AckHandle uint32
+}
 
 // Opcode returns the ID associated with this packet type.
 func (m *MsgMhfLoadScenarioData) Opcode() network.PacketID {
@@ -15,7 +17,8 @@ func (m *MsgMhfLoadScenarioData) Opcode() network.PacketID {
 
 // Parse parses the packet from binary
 func (m *MsgMhfLoadScenarioData) Parse(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+	m.AckHandle = bf.ReadUint32()
+	return nil
 }
 
 // Build builds a binary packet from the current data.

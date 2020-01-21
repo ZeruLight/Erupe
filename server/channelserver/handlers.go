@@ -152,9 +152,9 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 		fmt.Println("Got chat message!")
 
 		resp := &mhfpacket.MsgSysCastedBinary{
-			CharID:          s.charID,
-			Type0:           1,
-			Type1:           1,
+			CharID:         s.charID,
+			Type0:          1,
+			Type1:          1,
 			RawDataPayload: pkt.RawDataPayload,
 		}
 		s.server.BroadcastMHF(resp, s)
@@ -1435,7 +1435,7 @@ func handleMsgMhfGetEquipSkinHist(s *Session, p mhfpacket.MHFPacket) {}
 func handleMsgMhfUpdateEquipSkinHist(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfGetUdTacticsFollower(s *Session, p mhfpacket.MHFPacket) {
-	pkt := p.(*mhfpacket.MsgMhfGetUdTacticsFollowe)
+	pkt := p.(*mhfpacket.MsgMhfGetUdTacticsFollower)
 	doSizedAckResp(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
 }
 

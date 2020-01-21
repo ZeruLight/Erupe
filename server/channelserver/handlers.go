@@ -372,7 +372,9 @@ func handleMsgSysAuthTerminal(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgSysReserve5C(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgSysRightsReload(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysRightsReload(s *Session, p mhfpacket.MHFPacket) {
+
+}
 
 func handleMsgSysReserve5E(s *Session, p mhfpacket.MHFPacket) {}
 
@@ -1432,7 +1434,10 @@ func handleMsgMhfGetEquipSkinHist(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfUpdateEquipSkinHist(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfGetUdTacticsFollower(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfGetUdTacticsFollower(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfGetUdTacticsFollowe)
+	doSizedAckResp(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
+}
 
 func handleMsgMhfSetUdTacticsFollower(s *Session, p mhfpacket.MHFPacket) {}
 

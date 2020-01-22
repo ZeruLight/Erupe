@@ -32,8 +32,8 @@ type Server struct {
 
 	isShuttingDown bool
 
-	gameObjectLock  sync.Mutex
-	gameObjectCount uint32
+	stagesLock sync.RWMutex
+	stages     map[string]*Stage
 }
 
 // NewServer creates a new Server type.
@@ -45,7 +45,12 @@ func NewServer(config *Config) *Server {
 		acceptConns: make(chan net.Conn),
 		deleteConns: make(chan net.Conn),
 		sessions:    make(map[net.Conn]*Session),
+		stages:      make(map[string]*Stage),
 	}
+
+	// Default town stage that clients try to enter without creating.
+	s.stages["sl1Ns200p0a0u0"] = &Stage{}
+
 	return s
 }
 

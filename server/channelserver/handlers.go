@@ -9,6 +9,7 @@ import (
 
 	"github.com/Andoryuuta/Erupe/network/mhfpacket"
 	"github.com/Andoryuuta/byteframe"
+	"go.uber.org/zap"
 	"golang.org/x/text/encoding/japanese"
 	"golang.org/x/text/transform"
 )
@@ -285,7 +286,25 @@ func handleMsgSysGetStageBinary(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgSysEnumerateClient(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgSysEnumerateStage(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysEnumerateStage(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgSysEnumerateStage)
+
+	// Read-lock the stages.
+	s.server.stagesLock.RLock()
+	defer s.server.stagesLock.RUnlock()
+
+	// Build the response
+	resp := byteframe.NewByteFrame()
+	resp.WriteUint16(uint16(len(s.server.stages)))
+	for sid := range s.server.stages {
+		// Couldn't find the parsing code in the client, unk purpose & sizes:
+		resp.WriteBytes([]byte{0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x04, 0x00})
+		resp.WriteUint8(uint8(len(sid)))
+		resp.WriteBytes([]byte(sid))
+	}
+
+	doSizedAckResp(s, pkt.AckHandle, resp.Data())
+}
 
 func handleMsgSysCreateMutex(s *Session, p mhfpacket.MHFPacket) {}
 
@@ -322,11 +341,21 @@ func handleMsgSysNotifyRegister(s *Session, p mhfpacket.MHFPacket) {}
 func handleMsgSysCreateObject(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysCreateObject)
 
+	// Get the current stage.
+	s.server.stagesLock.RLock()
+	defer s.server.stagesLock.RUnlock()
+	stage, ok := s.server.stages[s.stageID]
+	if !ok {
+		s.logger.Fatal("StageID not in the stages map!", zap.String("stageID", s.stageID))
+	}
+
+	// Lock the stage.
+	stage.Lock()
+	defer stage.Unlock()
+
 	// Make a new object ID.
-	s.server.gameObjectLock.Lock()
-	objID := s.server.gameObjectCount
-	s.server.gameObjectCount++
-	s.server.gameObjectLock.Unlock()
+	objID := stage.gameObjectCount
+	stage.gameObjectCount++
 
 	resp := byteframe.NewByteFrame()
 	resp.WriteUint32(0)     // Unk, is this echoed back from pkt.Unk0?

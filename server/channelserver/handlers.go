@@ -46,6 +46,33 @@ func doSizedAckResp(s *Session, ackHandle uint32, data []byte) {
 	s.QueueAck(ackHandle, bfw.Data())
 }
 
+func updateRights(s *Session) {
+	update := &mhfpacket.MsgSysUpdateRight{
+		Unk0: 0,
+		Unk1: 0x4E,
+		Rights: []mhfpacket.ClientRight{
+			{
+				ID:        1,
+				Timestamp: 0,
+			},
+			{
+				ID:        2,
+				Timestamp: 0x5dfa14c0,
+			},
+			{
+				ID:        3,
+				Timestamp: 0x5dfa14c0,
+			},
+			{
+				ID:        6,
+				Timestamp: 0x5de70510,
+			},
+		},
+		UnkSize: 0,
+	}
+	s.QueueSendMHF(update)
+}
+
 func fixedSizeShiftJIS(text string, size int) []byte {
 	r := bytes.NewBuffer([]byte(text))
 	encoded, err := ioutil.ReadAll(transform.NewReader(r, japanese.ShiftJIS.NewEncoder()))
@@ -522,6 +549,9 @@ func handleMsgMhfEntryRookieGuild(s *Session, p mhfpacket.MHFPacket) {}
 func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateQuest)
 	stubEnumerateNoResults(s, pkt.AckHandle)
+
+	// Update the client's rights as well:
+	updateRights(s)
 }
 
 func handleMsgMhfEnumerateEvent(s *Session, p mhfpacket.MHFPacket) {
@@ -537,6 +567,9 @@ func handleMsgMhfEnumeratePrice(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfEnumerateRanking(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateRanking)
 	stubEnumerateNoResults(s, pkt.AckHandle)
+
+	// Update the client's rights as well:
+	updateRights(s)
 }
 
 func handleMsgMhfEnumerateOrder(s *Session, p mhfpacket.MHFPacket) {
@@ -1012,30 +1045,7 @@ func handleMsgMhfGetBoostTime(s *Session, p mhfpacket.MHFPacket) {
 	doSizedAckResp(s, pkt.AckHandle, []byte{})
 
 	// Update the client's rights as well:
-	update := &mhfpacket.MsgSysUpdateRight{
-		Unk0: 0,
-		Unk1: 0x4E,
-		Rights: []mhfpacket.ClientRight{
-			{
-				ID:        1,
-				Timestamp: 0,
-			},
-			{
-				ID:        2,
-				Timestamp: 0x5dfa14c0,
-			},
-			{
-				ID:        3,
-				Timestamp: 0x5dfa14c0,
-			},
-			{
-				ID:        6,
-				Timestamp: 0x5de70510,
-			},
-		},
-		UnkSize: 0,
-	}
-	s.QueueSendMHF(update)
+	updateRights(s)
 }
 
 func handleMsgMhfPostBoostTime(s *Session, p mhfpacket.MHFPacket) {}
@@ -1608,9 +1618,16 @@ func handleMsgMhfUpdateForceGuildRank(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfResetTitle(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgSysReserve202(s *Session, p mhfpacket.MHFPacket) {}
+// "Enumrate_guild_msg_board"
+func handleMsgSysReserve202(s *Session, p mhfpacket.MHFPacket) {
+}
 
-func handleMsgSysReserve203(s *Session, p mhfpacket.MHFPacket) {}
+// "Is_update_guild_msg_board"
+func handleMsgSysReserve203(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgSysReserve203)
+	resp := make([]byte, 8) // Unk resp.
+	s.QueueAck(pkt.AckHandle, resp)
+}
 
 func handleMsgSysReserve204(s *Session, p mhfpacket.MHFPacket) {}
 

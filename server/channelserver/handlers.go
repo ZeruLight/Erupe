@@ -257,7 +257,7 @@ func handleMsgSysCreateStage(s *Session, p mhfpacket.MHFPacket) {
 
 	s.server.stagesLock.Lock()
 	s.server.stages[stripNullTerminator(s.stageID)] = &Stage{}
-	s.server.stagesLock.Lock()
+	s.server.stagesLock.Unlock()
 
 	resp := make([]byte, 8) // Unk resp.
 	s.QueueAck(pkt.AckHandle, resp)

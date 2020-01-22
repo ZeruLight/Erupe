@@ -651,7 +651,20 @@ func handleMsgMhfCheckMonthlyItem(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfAcquireMonthlyItem(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfCheckWeeklyStamp(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfCheckWeeklyStamp(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfCheckWeeklyStamp)
+
+	resp := byteframe.NewByteFrame()
+	resp.WriteUint16(0x0100)
+	resp.WriteUint16(0x000E)
+	resp.WriteUint16(0x0001)
+	resp.WriteUint16(0x0000)
+	resp.WriteUint16(0x0001)
+	resp.WriteUint32(0)
+	resp.WriteUint32(0x5dddcbb3) // Timestamp
+
+	s.QueueAck(pkt.AckHandle, resp.Data())
+}
 
 func handleMsgMhfExchangeWeeklyStamp(s *Session, p mhfpacket.MHFPacket) {}
 

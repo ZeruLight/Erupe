@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"strings"
 	"time"
 
 	"github.com/Andoryuuta/Erupe/network/mhfpacket"
@@ -87,6 +88,11 @@ func fixedSizeShiftJIS(text string, size int) []byte {
 	// Null terminate it.
 	out[len(out)-1] = 0
 	return out
+}
+
+// TODO(Andoryuuta): Fix/move/remove me!
+func stripNullTerminator(x string) string {
+	return strings.SplitN(x, "\x00", 2)[0]
 }
 
 func handleMsgHead(s *Session, p mhfpacket.MHFPacket) {}
@@ -344,7 +350,7 @@ func handleMsgSysCreateObject(s *Session, p mhfpacket.MHFPacket) {
 	// Get the current stage.
 	s.server.stagesLock.RLock()
 	defer s.server.stagesLock.RUnlock()
-	stage, ok := s.server.stages[s.stageID]
+	stage, ok := s.server.stages[stripNullTerminator(s.stageID)]
 	if !ok {
 		s.logger.Fatal("StageID not in the stages map!", zap.String("stageID", s.stageID))
 	}

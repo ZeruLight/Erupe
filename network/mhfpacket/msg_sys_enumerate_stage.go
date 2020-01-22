@@ -10,7 +10,7 @@ type MsgSysEnumerateStage struct {
 	AckHandle     uint32
 	Unk0          uint8 // Hardcoded 1 in the binary
 	StageIDLength uint8
-	StageID       string
+	StageID       string // NULL terminated string.
 }
 
 // Opcode returns the ID associated with this packet type.

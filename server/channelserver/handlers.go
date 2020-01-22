@@ -252,7 +252,16 @@ func handleMsgSysRecordLog(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgSysEcho(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgSysCreateStage(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysCreateStage(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgSysCreateStage)
+
+	s.server.stagesLock.Lock()
+	s.server.stages[stripNullTerminator(s.stageID)] = &Stage{}
+	s.server.stagesLock.Lock()
+
+	resp := make([]byte, 8) // Unk resp.
+	s.QueueAck(pkt.AckHandle, resp)
+}
 
 func handleMsgSysStageDestruct(s *Session, p mhfpacket.MHFPacket) {}
 

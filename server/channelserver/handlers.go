@@ -287,7 +287,13 @@ func handleMsgSysLockStage(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgSysUnlockStage(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgSysReserveStage(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysReserveStage(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgSysReserveStage)
+
+	fmt.Printf("Got reserve stage req, Unk0:%v, StageID:%q\n", pkt.Unk0, pkt.StageID)
+
+	s.QueueAck(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
+}
 
 func handleMsgSysUnreserveStage(s *Session, p mhfpacket.MHFPacket) {}
 

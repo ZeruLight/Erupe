@@ -8,8 +8,8 @@ import (
 // MsgSysCreateStage represents the MSG_SYS_CREATE_STAGE
 type MsgSysCreateStage struct {
 	AckHandle     uint32
-	Unk0          uint8
-	Unk1          uint8
+	Unk0          uint8 // Likely only has 1 and 2 as values.
+	PlayerCount   uint8
 	StageIDLength uint8
 	StageID       string // NULL terminated string.
 }
@@ -23,7 +23,7 @@ func (m *MsgSysCreateStage) Opcode() network.PacketID {
 func (m *MsgSysCreateStage) Parse(bf *byteframe.ByteFrame) error {
 	m.AckHandle = bf.ReadUint32()
 	m.Unk0 = bf.ReadUint8()
-	m.Unk1 = bf.ReadUint8()
+	m.PlayerCount = bf.ReadUint8()
 	m.StageIDLength = bf.ReadUint8()
 	m.StageID = string(bf.ReadBytes(uint(m.StageIDLength)))
 	return nil

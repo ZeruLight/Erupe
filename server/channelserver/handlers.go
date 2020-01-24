@@ -562,7 +562,16 @@ func handleMsgSysSetUserBinary(s *Session, p mhfpacket.MHFPacket) {
 }
 
 func handleMsgSysGetUserBinary(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgSysGetUserBinary)
+	
+	resp := bf.NewByteFrame()
+	if pkt.BinaryType == 1 {
+		// Stub name response with character ID
+		resp.WriteBytes([]byte(fmt.Sprintf("CID%d", s.charID)))
+		resp.WriteUint8(0) // NULL terminator.
+	}
 
+	doSizedAckResp(s, pkt.AckHandle, resp.Data())
 }
 
 func handleMsgSysNotifyUserBinary(s *Session, p mhfpacket.MHFPacket) {}

@@ -300,20 +300,31 @@ func handleMsgSysEnterStage(s *Session, p mhfpacket.MHFPacket) {
 	// Confirm the stage entry.
 	s.QueueAck(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
 
-	// TODO(Andoryuuta): Notify existing stage clients that this new client has entered.
-	insertUserPkt := &mhfpacket.MsgSysInsertUser{
+	// Notify existing stage clients that this new client has entered.
+	s.logger.Info("Sending MsgSysInsertUser & MsgSysNotifyUserBinary")
+	s.stage.BroadcastMHF(&mhfpacket.MsgSysInsertUser{
 		CharID: s.charID,
-	}
-	s.stage.BroadcastMHF(insertUserPkt, s)
+	}, s)
 
-	// Just the first user binary type (name) for right now.
-	notifyUserBinary1Pkt := &mhfpacket.MsgSysNotifyUserBinary{
+	s.stage.BroadcastMHF(&mhfpacket.MsgSysNotifyUserBinary{
 		CharID:     s.charID,
 		BinaryType: 1,
-	}
-	s.stage.BroadcastMHF(notifyUserBinary1Pkt, s)
+	}, s)
+
+	// Just the first user binary type (name) for right now.
+	/*
+		s.stage.BroadcastMHF(&mhfpacket.MsgSysNotifyUserBinary{
+			CharID:     s.charID,
+			BinaryType: 2,
+		}, s)
+		s.stage.BroadcastMHF(&mhfpacket.MsgSysNotifyUserBinary{
+			CharID:     s.charID,
+			BinaryType: 3,
+		}, s)
+	*/
 
 	// TODO(Andoryuuta): Notify this client about all of the existing clients in the stage.
+	s.logger.Info("Notifying entree about existing stage clients")
 	s.stage.RLock()
 	clientNotif := byteframe.NewByteFrame()
 	for session := range s.stage.clients {
@@ -328,8 +339,26 @@ func handleMsgSysEnterStage(s *Session, p mhfpacket.MHFPacket) {
 		}).Build(clientNotif)
 	}
 	s.stage.RUnlock()
-
+	clientNotif.WriteUint16(0x0010) // End it.
 	s.QueueSend(clientNotif.Data())
+
+	// Notify the client to duplicate the existing objects.
+	s.logger.Info("Notifying entree about existing stage objects")
+	clientDupObjNotif := byteframe.NewByteFrame()
+	s.stage.RLock()
+	for _, obj := range s.stage.objects {
+		(&mhfpacket.MsgSysDuplicateObject{
+			ObjID:       obj.id,
+			X:           obj.x,
+			Y:           obj.y,
+			Z:           obj.z,
+			Unk0:        0,
+			OwnerCharID: obj.ownerCharID,
+		}).Build(clientDupObjNotif)
+	}
+	s.stage.RUnlock()
+	clientDupObjNotif.WriteUint16(0x0010) // End it.
+	s.QueueSend(clientDupObjNotif.Data())
 }
 
 func handleMsgSysBackStage(s *Session, p mhfpacket.MHFPacket) {}

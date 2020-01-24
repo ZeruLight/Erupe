@@ -27,5 +27,9 @@ func (m *MsgSysPositionObject) Parse(bf *byteframe.ByteFrame) error {
 
 // Build builds a binary packet from the current data.
 func (m *MsgSysPositionObject) Build(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+	bf.WriteUint32(m.ObjID)
+	bf.WriteFloat32(m.X)
+	bf.WriteFloat32(m.Y)
+	bf.WriteFloat32(m.Z)
+	return nil
 }

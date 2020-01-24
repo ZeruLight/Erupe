@@ -532,7 +532,9 @@ func handleMsgSysSetUserBinary(s *Session, p mhfpacket.MHFPacket) {
 	//pkt := p.(*mhfpacket.MsgSysSetUserBinary)
 }
 
-func handleMsgSysGetUserBinary(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysGetUserBinary(s *Session, p mhfpacket.MHFPacket) {
+
+}
 
 func handleMsgSysNotifyUserBinary(s *Session, p mhfpacket.MHFPacket) {}
 

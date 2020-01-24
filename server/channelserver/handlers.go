@@ -2,6 +2,7 @@ package channelserver
 
 import (
 	"bytes"
+	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -310,18 +311,14 @@ func handleMsgSysEnterStage(s *Session, p mhfpacket.MHFPacket) {
 		CharID:     s.charID,
 		BinaryType: 1,
 	}, s)
-
-	// Just the first user binary type (name) for right now.
-	/*
-		s.stage.BroadcastMHF(&mhfpacket.MsgSysNotifyUserBinary{
-			CharID:     s.charID,
-			BinaryType: 2,
-		}, s)
-		s.stage.BroadcastMHF(&mhfpacket.MsgSysNotifyUserBinary{
-			CharID:     s.charID,
-			BinaryType: 3,
-		}, s)
-	*/
+	s.stage.BroadcastMHF(&mhfpacket.MsgSysNotifyUserBinary{
+		CharID:     s.charID,
+		BinaryType: 2,
+	}, s)
+	s.stage.BroadcastMHF(&mhfpacket.MsgSysNotifyUserBinary{
+		CharID:     s.charID,
+		BinaryType: 3,
+	}, s)
 
 	// TODO(Andoryuuta): Notify this client about all of the existing clients in the stage.
 	s.logger.Info("Notifying entree about existing stage clients")
@@ -569,6 +566,18 @@ func handleMsgSysGetUserBinary(s *Session, p mhfpacket.MHFPacket) {
 		// Stub name response with character ID
 		resp.WriteBytes([]byte(fmt.Sprintf("CID%d", s.charID)))
 		resp.WriteUint8(0) // NULL terminator.
+	} else if pkt.BinaryType == 2 {
+		data, err := base64.StdEncoding.DecodeString("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBn8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAAAAAAAAAAAAAwAAAAAAAAAAAAAABAAAAAAAAAAAAAAABQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==")
+		if err != nil {
+			panic(err)
+		}
+		resp.WriteBytes(data)
+	} else if pkt.BinaryType == 3 {
+		data, err := base64.StdEncoding.DecodeString("AQAAA2ea5P8ATgEA/wEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBn8AAAAAAAAAAAABAKAMAAAAAAAAAAAAACgAAAAAAAAAAAABAsQOAAAAAAAAAAABA6UMAAAAAAAAAAABBKAMAAAAAAAAAAABBToNAAAAAAAAAAAAAAMAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAgACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD/////AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
+		if err != nil {
+			panic(err)
+		}
+		resp.WriteBytes(data)
 	}
 
 	doSizedAckResp(s, pkt.AckHandle, resp.Data())

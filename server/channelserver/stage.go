@@ -27,9 +27,10 @@ type Stage struct {
 // NewStage creates a new stage with intialized values.
 func NewStage(ID string) *Stage {
 	s := &Stage{
-		id: ID,
-		objects: make(map[uint32]*StageObject),
-		clients: make(map[*Session]uint32),
+		id:              ID,
+		objects:         make(map[uint32]*StageObject),
+		clients:         make(map[*Session]uint32),
+		gameObjectCount: 1,
 	}
 
 	return s

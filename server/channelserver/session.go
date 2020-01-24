@@ -116,7 +116,7 @@ func (s *Session) handlePacketGroup(pktGroup []byte) {
 	// This shouldn't be needed, but it's better to recover and let the connection die than to panic the server.
 	defer func() {
 		if r := recover(); r != nil {
-			fmt.Println("Recovered from panic.")
+			fmt.Println("Recovered from panic ", r)
 		}
 	}()
 

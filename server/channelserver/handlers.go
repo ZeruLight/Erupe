@@ -301,8 +301,35 @@ func handleMsgSysEnterStage(s *Session, p mhfpacket.MHFPacket) {
 	s.QueueAck(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
 
 	// TODO(Andoryuuta): Notify existing stage clients that this new client has entered.
-	// TODO(Andoryuuta): Notify this client about all of the existing clients in the stage.
+	insertUserPkt := &mhfpacket.MsgSysInsertUser{
+		CharID: s.charID,
+	}
+	s.stage.BroadcastMHF(insertUserPkt, s)
 
+	// Just the first user binary type (name) for right now.
+	notifyUserBinary1Pkt := &mhfpacket.MsgSysNotifyUserBinary{
+		CharID:     s.charID,
+		BinaryType: 1,
+	}
+	s.stage.BroadcastMHF(notifyUserBinary1Pkt, s)
+
+	// TODO(Andoryuuta): Notify this client about all of the existing clients in the stage.
+	s.stage.RLock()
+	clientNotif := byteframe.NewByteFrame()
+	for session := range s.stage.clients {
+		(&mhfpacket.MsgSysInsertUser{
+			CharID: session.charID,
+		}).Build(clientNotif)
+
+		// Just the first user binary type (name) for right now.
+		(&mhfpacket.MsgSysNotifyUserBinary{
+			CharID:     session.charID,
+			BinaryType: 1,
+		}).Build(clientNotif)
+	}
+	s.stage.RUnlock()
+
+	s.QueueSend(clientNotif.Data())
 }
 
 func handleMsgSysBackStage(s *Session, p mhfpacket.MHFPacket) {}

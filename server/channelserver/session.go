@@ -29,7 +29,7 @@ type Session struct {
 // NewSession creates a new Session type.
 func NewSession(server *Server, conn net.Conn) *Session {
 	s := &Session{
-		logger:      server.logger,
+		logger:      server.logger.Named(conn.RemoteAddr().String()),
 		server:      server,
 		rawConn:     conn,
 		cryptConn:   network.NewCryptConn(conn),

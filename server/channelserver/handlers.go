@@ -320,7 +320,7 @@ func handleMsgSysEnterStage(s *Session, p mhfpacket.MHFPacket) {
 		BinaryType: 3,
 	}, s)
 
-	// TODO(Andoryuuta): Notify this client about all of the existing clients in the stage.
+	// Notify the entree client about all of the existing clients in the stage.
 	s.logger.Info("Notifying entree about existing stage clients")
 	s.stage.RLock()
 	clientNotif := byteframe.NewByteFrame()
@@ -329,10 +329,17 @@ func handleMsgSysEnterStage(s *Session, p mhfpacket.MHFPacket) {
 			CharID: session.charID,
 		}).Build(clientNotif)
 
-		// Just the first user binary type (name) for right now.
 		(&mhfpacket.MsgSysNotifyUserBinary{
 			CharID:     session.charID,
 			BinaryType: 1,
+		}).Build(clientNotif)
+		(&mhfpacket.MsgSysNotifyUserBinary{
+			CharID:     session.charID,
+			BinaryType: 2,
+		}).Build(clientNotif)
+		(&mhfpacket.MsgSysNotifyUserBinary{
+			CharID:     session.charID,
+			BinaryType: 3,
 		}).Build(clientNotif)
 	}
 	s.stage.RUnlock()

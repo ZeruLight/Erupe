@@ -20,5 +20,6 @@ func (m *MsgSysCleanupObject) Parse(bf *byteframe.ByteFrame) error {
 
 // Build builds a binary packet from the current data.
 func (m *MsgSysCleanupObject) Build(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+	// This packet has no data.
+	return nil
 }

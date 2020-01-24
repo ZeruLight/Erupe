@@ -49,7 +49,8 @@ func NewServer(config *Config) *Server {
 	}
 
 	// Default town stage that clients try to enter without creating.
-	s.stages["sl1Ns200p0a0u0"] = &Stage{}
+	stage := NewStage("sl1Ns200p0a0u0")
+	s.stages[stage.id] = stage
 
 	return s
 }

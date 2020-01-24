@@ -10,7 +10,7 @@ type MsgSysEnterStage struct {
 	AckHandle     uint32
 	UnkBool       uint8
 	StageIDLength uint8
-	StageID       []byte
+	StageID       string
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -23,7 +23,7 @@ func (m *MsgSysEnterStage) Parse(bf *byteframe.ByteFrame) error {
 	m.AckHandle = bf.ReadUint32()
 	m.UnkBool = bf.ReadUint8()
 	m.StageIDLength = bf.ReadUint8()
-	m.StageID = bf.ReadBytes(uint(m.StageIDLength))
+	m.StageID = string(bf.ReadBytes(uint(m.StageIDLength)))
 	return nil
 }
 

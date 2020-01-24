@@ -256,7 +256,8 @@ func handleMsgSysCreateStage(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysCreateStage)
 
 	s.server.stagesLock.Lock()
-	s.server.stages[stripNullTerminator(s.stageID)] = &Stage{}
+	stage := NewStage(stripNullTerminator(pkt.StageID))
+	s.server.stages[stage.id] = stage
 	s.server.stagesLock.Unlock()
 
 	resp := make([]byte, 8) // Unk resp.
@@ -268,13 +269,40 @@ func handleMsgSysStageDestruct(s *Session, p mhfpacket.MHFPacket) {}
 func handleMsgSysEnterStage(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysEnterStage)
 
+	// Remove this session from old stage clients list and put myself in the new one.
+	s.server.stagesLock.Lock()
+	newStage, gotNewStage := s.server.stages[stripNullTerminator(pkt.StageID)]
+	s.server.stagesLock.Unlock()
+
+	// Remove from old stage.
+	if s.stage != nil {
+		s.stage.Lock()
+		delete(s.stage.clients, s)
+		s.stage.Unlock()
+	}
+
+	// Add the new stage.
+	if gotNewStage {
+		newStage.Lock()
+		newStage.clients[s] = s.charID
+		newStage.Unlock()
+	}
+
+	// Save our new stage ID and pointer to the new stage itself.
 	s.Lock()
-	s.stageID = string(pkt.StageID)
+	s.stageID = string(stripNullTerminator(pkt.StageID))
+	s.stage = newStage
 	s.Unlock()
 
-	//TODO: Send MSG_SYS_CLEANUP_OBJECT here before the client changes stages.
+	// Tell the client to cleanup it's current stage objects.
+	s.QueueSendMHF(&mhfpacket.MsgSysCleanupObject{})
 
+	// Confirm the stage entry.
 	s.QueueAck(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
+
+	// TODO(Andoryuuta): Notify existing stage clients that this new client has entered.
+	// TODO(Andoryuuta): Notify this client about all of the existing clients in the stage.
+
 }
 
 func handleMsgSysBackStage(s *Session, p mhfpacket.MHFPacket) {}
@@ -292,6 +320,8 @@ func handleMsgSysReserveStage(s *Session, p mhfpacket.MHFPacket) {
 
 	fmt.Printf("Got reserve stage req, Unk0:%v, StageID:%q\n", pkt.Unk0, pkt.StageID)
 
+	// TODO(Andoryuuta): Add proper player-slot reservations for stages.
+
 	s.QueueAck(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
 }
 
@@ -305,7 +335,31 @@ func handleMsgSysSetStageBinary(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgSysGetStageBinary(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgSysEnumerateClient(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysEnumerateClient(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgSysEnumerateClient)
+
+	// Read-lock the stages map.
+	s.server.stagesLock.RLock()
+
+	stage, ok := s.server.stages[stripNullTerminator(pkt.StageID)]
+	if !ok {
+		s.logger.Fatal("Can't enumerate clients for stage that doesn't exist!", zap.String("stageID", pkt.StageID))
+	}
+
+	// Unlock the stages map.
+	s.server.stagesLock.RUnlock()
+
+	// Read-lock the stage and make the response with all of the charID's in the stage.
+	resp := byteframe.NewByteFrame()
+	stage.RLock()
+	resp.WriteUint16(uint16(len(stage.clients))) // Client count
+	for session := range stage.clients {
+		resp.WriteUint32(session.charID) // Client represented by charID
+	}
+	stage.RUnlock()
+
+	doSizedAckResp(s, pkt.AckHandle, resp.Data())
+}
 
 func handleMsgSysEnumerateStage(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysEnumerateStage)
@@ -362,27 +416,47 @@ func handleMsgSysNotifyRegister(s *Session, p mhfpacket.MHFPacket) {}
 func handleMsgSysCreateObject(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysCreateObject)
 
-	// Get the current stage.
-	s.server.stagesLock.RLock()
-	defer s.server.stagesLock.RUnlock()
-	stage, ok := s.server.stages[stripNullTerminator(s.stageID)]
-	if !ok {
+	// Make sure we have a stage.
+	if s.stage == nil {
 		s.logger.Fatal("StageID not in the stages map!", zap.String("stageID", s.stageID))
 	}
 
 	// Lock the stage.
-	stage.Lock()
-	defer stage.Unlock()
+	s.stage.Lock()
 
-	// Make a new object ID.
-	objID := stage.gameObjectCount
-	stage.gameObjectCount++
+	// Make a new stage object and insert it into the stage.
+	objID := s.stage.gameObjectCount
+	s.stage.gameObjectCount++
 
+	newObj := &StageObject{
+		id:          objID,
+		ownerCharID: s.charID,
+		x:           pkt.X,
+		y:           pkt.Y,
+		z:           pkt.Z,
+	}
+
+	s.stage.objects[objID] = newObj
+
+	// Unlock the stage.
+	s.stage.Unlock()
+
+	// Response to our requesting client.
 	resp := byteframe.NewByteFrame()
 	resp.WriteUint32(0)     // Unk, is this echoed back from pkt.Unk0?
 	resp.WriteUint32(objID) // New local obj handle.
-
 	s.QueueAck(pkt.AckHandle, resp.Data())
+
+	// Duplicate the object creation to all sessions in the same stage.
+	dupObjUpdate := &mhfpacket.MsgSysDuplicateObject{
+		ObjID:       objID,
+		X:           pkt.X,
+		Y:           pkt.Y,
+		Z:           pkt.Z,
+		Unk0:        0,
+		OwnerCharID: s.charID,
+	}
+	s.stage.BroadcastMHF(dupObjUpdate, s)
 }
 
 func handleMsgSysDeleteObject(s *Session, p mhfpacket.MHFPacket) {}
@@ -391,6 +465,8 @@ func handleMsgSysPositionObject(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysPositionObject)
 	fmt.Printf("Moved object %v to (%f,%f,%f)\n", pkt.ObjID, pkt.X, pkt.Y, pkt.Z)
 
+	// One of the few packets we can just re-broadcast directly.
+	s.stage.BroadcastMHF(pkt, s)
 }
 
 func handleMsgSysRotateObject(s *Session, p mhfpacket.MHFPacket) {}

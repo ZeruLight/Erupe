@@ -22,6 +22,7 @@ type Session struct {
 	sendPackets chan []byte
 
 	stageID string
+	stage   *Stage
 	charID  uint32
 }
 

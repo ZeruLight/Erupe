@@ -9,7 +9,8 @@
         "database": "erupe"
     },
     "launcher": {
-        "port": 80
+        "port": 80,
+        "UseOriginalLauncherFiles": false
     },
     "sign": {
         "port": 53312

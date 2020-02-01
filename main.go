@@ -71,7 +71,7 @@ func main() {
 			Logger:                   logger.Named("launcher"),
 			ErupeConfig:              erupeConfig,
 			DB:                       db,
-			UseOriginalLauncherFiles: false,
+			UseOriginalLauncherFiles: erupeConfig.Launcher.UseOriginalLauncherFiles,
 		})
 	err = launcherServer.Start()
 	if err != nil {

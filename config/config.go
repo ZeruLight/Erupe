@@ -30,6 +30,7 @@ type Database struct {
 // Launcher holds the launcher server config.
 type Launcher struct {
 	Port int
+	UseOriginalLauncherFiles bool
 }
 
 // Sign holds the sign server config.

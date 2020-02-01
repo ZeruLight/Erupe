@@ -295,7 +295,7 @@ func handleMsgSysEnterStage(s *Session, p mhfpacket.MHFPacket) {
 	s.stage = newStage
 	s.Unlock()
 
-	// Tell the client to cleanup it's current stage objects.
+	// Tell the client to cleanup its current stage objects.
 	s.QueueSendMHF(&mhfpacket.MsgSysCleanupObject{})
 
 	// Confirm the stage entry.
@@ -325,22 +325,33 @@ func handleMsgSysEnterStage(s *Session, p mhfpacket.MHFPacket) {
 	s.stage.RLock()
 	clientNotif := byteframe.NewByteFrame()
 	for session := range s.stage.clients {
-		(&mhfpacket.MsgSysInsertUser{
+		var cur mhfpacket.MHFPacket
+		cur = &mhfpacket.MsgSysInsertUser{
 			CharID: session.charID,
-		}).Build(clientNotif)
+		}
+		clientNotif.WriteUint16(uint16(cur.Opcode()))
+		cur.Build(clientNotif)
 
-		(&mhfpacket.MsgSysNotifyUserBinary{
+		cur = &mhfpacket.MsgSysNotifyUserBinary{
 			CharID:     session.charID,
 			BinaryType: 1,
-		}).Build(clientNotif)
-		(&mhfpacket.MsgSysNotifyUserBinary{
+		}
+		clientNotif.WriteUint16(uint16(cur.Opcode()))
+		cur.Build(clientNotif)
+
+		cur = &mhfpacket.MsgSysNotifyUserBinary{
 			CharID:     session.charID,
 			BinaryType: 2,
-		}).Build(clientNotif)
-		(&mhfpacket.MsgSysNotifyUserBinary{
+		}
+		clientNotif.WriteUint16(uint16(cur.Opcode()))
+		cur.Build(clientNotif)
+
+		cur = &mhfpacket.MsgSysNotifyUserBinary{
 			CharID:     session.charID,
 			BinaryType: 3,
-		}).Build(clientNotif)
+		}
+		clientNotif.WriteUint16(uint16(cur.Opcode()))
+		cur.Build(clientNotif)
 	}
 	s.stage.RUnlock()
 	clientNotif.WriteUint16(0x0010) // End it.
@@ -351,14 +362,16 @@ func handleMsgSysEnterStage(s *Session, p mhfpacket.MHFPacket) {
 	clientDupObjNotif := byteframe.NewByteFrame()
 	s.stage.RLock()
 	for _, obj := range s.stage.objects {
-		(&mhfpacket.MsgSysDuplicateObject{
+		cur := &mhfpacket.MsgSysDuplicateObject{
 			ObjID:       obj.id,
 			X:           obj.x,
 			Y:           obj.y,
 			Z:           obj.z,
 			Unk0:        0,
 			OwnerCharID: obj.ownerCharID,
-		}).Build(clientDupObjNotif)
+		}
+		clientDupObjNotif.WriteUint16(uint16(cur.Opcode()))
+		cur.Build(clientDupObjNotif)
 	}
 	s.stage.RUnlock()
 	clientDupObjNotif.WriteUint16(0x0010) // End it.

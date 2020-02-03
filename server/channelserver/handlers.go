@@ -655,7 +655,14 @@ func handleMsgMhfLoaddata(s *Session, p mhfpacket.MHFPacket) {
 	doSizedAckResp(s, pkt.AckHandle, data)
 }
 
-func handleMsgMhfListMember(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfListMember(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfListMember)
+
+	resp := byteframe.NewByteFrame()
+	resp.WriteUint32(0) // Members count. (Unsure of what kind of members these actually are, guild, party, COG subscribers, etc.)
+
+	doSizedAckResp(s, pkt.AckHandle, resp.Data())
+}
 
 func handleMsgMhfOprMember(s *Session, p mhfpacket.MHFPacket) {}
 
@@ -757,7 +764,16 @@ func handleMsgMhfOperateGuild(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfOperateGuildMember(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfInfoGuild)
+
+	// REALLY large/complex format... stubbing it out here for simplicity.
+	resp := byteframe.NewByteFrame()
+	resp.WriteUint32(0) // Count
+	resp.WriteUint8(0)  // Unk, read if count == 0.
+
+	doSizedAckResp(s, pkt.AckHandle, resp.Data())
+}
 
 func handleMsgMhfEnumerateGuild(s *Session, p mhfpacket.MHFPacket) {}
 
@@ -765,7 +781,10 @@ func handleMsgMhfUpdateGuild(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfArrangeGuildMember(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfEnumerateGuildMember(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfEnumerateGuildMember(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfEnumerateGuildMember)
+	stubEnumerateNoResults(s, pkt.AckHandle)
+}
 
 func handleMsgMhfEnumerateCampaign(s *Session, p mhfpacket.MHFPacket) {}
 
@@ -868,9 +887,23 @@ func handleMsgMhfChargeFesta(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfAcquireFesta(s *Session, p mhfpacket.MHFPacket) {}
 
+// state festa (U)ser
 func handleMsgMhfStateFestaU(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfStateFestaG(s *Session, p mhfpacket.MHFPacket) {}
+// state festa (G)uild
+func handleMsgMhfStateFestaG(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfStateFestaG)
+
+	resp := byteframe.NewByteFrame()
+	resp.WriteUint32(0)
+	resp.WriteUint32(0)
+	resp.WriteUint32(0xFFFFFFFF)
+	resp.WriteUint32(0)
+	resp.WriteBytes([]byte{0x00, 0x00, 0x00}) // Not parsed.
+	resp.WriteUint8(0)
+
+	doSizedAckResp(s, pkt.AckHandle, resp.Data())
+}
 
 func handleMsgMhfEnumerateFestaMember(s *Session, p mhfpacket.MHFPacket) {}
 

@@ -5,7 +5,6 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
-	"log"
 	"strings"
 	"time"
 
@@ -633,12 +632,28 @@ func handleMsgMhfSavedata(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSavedata)
 	err := ioutil.WriteFile(fmt.Sprintf("savedata\\%d.bin", time.Now().Unix()), pkt.RawDataPayload, 0644)
 	if err != nil {
-		log.Fatal(err)
+		s.logger.Fatal("Error dumping savedata", zap.Error(err))
 	}
+
+	_, err = s.server.db.Exec("UPDATE characters SET is_new_character=false, savedata=$1 WHERE id=$2", pkt.RawDataPayload, s.charID)
+	if err != nil {
+		s.logger.Fatal("Failed to update savedata in db", zap.Error(err))
+	}
+
 	s.QueueAck(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
 }
 
-func handleMsgMhfLoaddata(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfLoaddata(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfLoaddata)
+
+	var data []byte
+	err := s.server.db.QueryRow("SELECT savedata FROM characters WHERE id = $1", s.charID).Scan(&data)
+	if err != nil {
+		s.logger.Fatal("Failed to get savedata from db", zap.Error(err))
+	}
+
+	doSizedAckResp(s, pkt.AckHandle, data)
+}
 
 func handleMsgMhfListMember(s *Session, p mhfpacket.MHFPacket) {}
 

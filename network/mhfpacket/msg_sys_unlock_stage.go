@@ -15,7 +15,8 @@ func (m *MsgSysUnlockStage) Opcode() network.PacketID {
 
 // Parse parses the packet from binary
 func (m *MsgSysUnlockStage) Parse(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+	// No data
+	return nil
 }
 
 // Build builds a binary packet from the current data.

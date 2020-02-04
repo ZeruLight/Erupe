@@ -24,6 +24,7 @@ type Session struct {
 	stageID string
 	stage   *Stage
 	charID  uint32
+	logKey  []byte
 }
 
 // NewSession creates a new Session type.

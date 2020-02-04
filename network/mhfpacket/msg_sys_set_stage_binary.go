@@ -7,8 +7,8 @@ import (
 
 // MsgSysSetStageBinary represents the MSG_SYS_SET_STAGE_BINARY
 type MsgSysSetStageBinary struct {
-	Unk0           uint8
-	BinaryType     uint8  // Index
+	BinaryType0    uint8
+	BinaryType1    uint8  // Index
 	StageIDLength  uint8  // <= 0x20
 	DataSize       uint16 // <= 0x400
 	StageID        string
@@ -22,8 +22,8 @@ func (m *MsgSysSetStageBinary) Opcode() network.PacketID {
 
 // Parse parses the packet from binary
 func (m *MsgSysSetStageBinary) Parse(bf *byteframe.ByteFrame) error {
-	m.Unk0 = bf.ReadUint8()
-	m.BinaryType = bf.ReadUint8()
+	m.BinaryType0 = bf.ReadUint8()
+	m.BinaryType1 = bf.ReadUint8()
 	m.StageIDLength = bf.ReadUint8()
 	m.DataSize = bf.ReadUint16()
 	m.StageID = string(bf.ReadBytes(uint(m.StageIDLength)))

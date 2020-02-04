@@ -2,6 +2,7 @@ package channelserver
 
 import (
 	"bytes"
+	"crypto/rand"
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
@@ -246,7 +247,26 @@ func handleMsgSysCastedBinary(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgSysGetFile(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgSysIssueLogkey(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysIssueLogkey(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgSysIssueLogkey)
+
+	// Make a random log key for this session.
+	logKey := make([]byte, 8)
+	_, err := rand.Read(logKey)
+	if err != nil {
+		panic(err)
+	}
+
+	s.Lock()
+	s.logKey = logKey
+	s.Unlock()
+
+	// Issue it.
+	resp := byteframe.NewByteFrame()
+	resp.WriteBytes(logKey)
+	resp.WriteBytes([]byte{0x8E, 0x8E}) // Unk
+	doSizedAckResp(s, pkt.AckHandle, resp.Data())
+}
 
 func handleMsgSysRecordLog(s *Session, p mhfpacket.MHFPacket) {}
 
@@ -383,7 +403,11 @@ func handleMsgSysMoveStage(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgSysLeaveStage(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgSysLockStage(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysLockStage(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgSysLockStage)
+	// TODO(Andoryuuta): What does this packet _actually_ do?
+	s.QueueAck(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
+}
 
 func handleMsgSysUnlockStage(s *Session, p mhfpacket.MHFPacket) {}
 
@@ -403,9 +427,56 @@ func handleMsgSysSetStagePass(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgSysWaitStageBinary(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgSysSetStageBinary(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysSetStageBinary(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgSysSetStageBinary)
 
-func handleMsgSysGetStageBinary(s *Session, p mhfpacket.MHFPacket) {}
+	// Try to get the stage
+	stageID := stripNullTerminator(pkt.StageID)
+	s.server.stagesLock.Lock()
+	stage, gotStage := s.server.stages[stageID]
+	s.server.stagesLock.Unlock()
+
+	// If we got the stage, lock and set the data.
+	if gotStage {
+		stage.Lock()
+		stage.rawBinaryData[stageBinaryKey{pkt.BinaryType0, pkt.BinaryType1}] = pkt.RawDataPayload
+		stage.Unlock()
+	} else {
+		s.logger.Warn("Failed to get stage", zap.String("StageID", stageID))
+	}
+	s.logger.Debug("handleMsgSysSetStageBinary Done!")
+}
+
+func handleMsgSysGetStageBinary(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgSysGetStageBinary)
+
+	// Try to get the stage
+	stageID := stripNullTerminator(pkt.StageID)
+	s.server.stagesLock.Lock()
+	stage, gotStage := s.server.stages[stageID]
+	s.server.stagesLock.Unlock()
+
+	// If we got the stage, lock and try to get the data.
+	var stageBinary []byte
+	var gotBinary bool
+	if gotStage {
+		stage.Lock()
+		stageBinary, gotBinary = stage.rawBinaryData[stageBinaryKey{pkt.BinaryType0, pkt.BinaryType1}]
+		stage.Unlock()
+	} else {
+		s.logger.Warn("Failed to get stage", zap.String("StageID", stageID))
+	}
+
+	if gotBinary {
+		doSizedAckResp(s, pkt.AckHandle, stageBinary)
+	} else {
+		s.logger.Warn("Failed to get stage binary", zap.Uint8("BinaryType0", pkt.BinaryType0), zap.Uint8("pkt.BinaryType1", pkt.BinaryType1))
+		s.logger.Warn("Sending blank stage binary")
+		doSizedAckResp(s, pkt.AckHandle, []byte{})
+	}
+
+	s.logger.Debug("MsgSysGetStageBinary Done!")
+}
 
 func handleMsgSysEnumerateClient(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysEnumerateClient)
@@ -431,6 +502,8 @@ func handleMsgSysEnumerateClient(s *Session, p mhfpacket.MHFPacket) {
 	stage.RUnlock()
 
 	doSizedAckResp(s, pkt.AckHandle, resp.Data())
+
+	s.logger.Debug("MsgSysEnumerateClient Done!")
 }
 
 func handleMsgSysEnumerateStage(s *Session, p mhfpacket.MHFPacket) {

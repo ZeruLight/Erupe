@@ -15,13 +15,19 @@ type StageObject struct {
 	x, y, z     float32
 }
 
+type stageBinaryKey struct {
+	id0 uint8
+	id1 uint8
+}
+
 // Stage holds stage-specific information
 type Stage struct {
 	sync.RWMutex
-	id              string                  // Stage ID string
-	gameObjectCount uint32                  // Total count of objects ever created for this stage. Used for ObjID generation.
-	objects         map[uint32]*StageObject // Map of ObjID -> StageObject
-	clients         map[*Session]uint32     // Map of session -> charID
+	id              string                    // Stage ID string
+	gameObjectCount uint32                    // Total count of objects ever created for this stage. Used for ObjID generation.
+	objects         map[uint32]*StageObject   // Map of ObjID -> StageObject
+	clients         map[*Session]uint32       // Map of session -> charID
+	rawBinaryData   map[stageBinaryKey][]byte // Raw binary data set by the client.
 }
 
 // NewStage creates a new stage with intialized values.
@@ -30,6 +36,7 @@ func NewStage(ID string) *Stage {
 		id:              ID,
 		objects:         make(map[uint32]*StageObject),
 		clients:         make(map[*Session]uint32),
+		rawBinaryData:   make(map[stageBinaryKey][]byte),
 		gameObjectCount: 1,
 	}
 

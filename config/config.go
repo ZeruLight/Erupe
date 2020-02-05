@@ -10,6 +10,7 @@ import (
 // Config holds the global server-wide config.
 type Config struct {
 	HostIP string `mapstructure:"host_ip"`
+	BinPath string `mapstructure:"bin_path"`
 
 	Database Database
 	Launcher Launcher

@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -245,18 +246,35 @@ func handleMsgSysTime(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgSysCastedBinary(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgSysGetFile(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysGetFile(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgSysGetFile)
+
+	if !pkt.IsScenario {
+		// Get quest file.
+		data, err := ioutil.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("quests/%s.bin", stripNullTerminator(pkt.Filename))))
+		if err != nil {
+			panic(err)
+		}
+
+		doSizedAckResp(s, pkt.AckHandle, data)
+	} else {
+		s.logger.Fatal("scenario getfile not implemented.")
+	}
+
+}
 
 func handleMsgSysIssueLogkey(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysIssueLogkey)
 
 	// Make a random log key for this session.
-	logKey := make([]byte, 8)
+	logKey := make([]byte, 16)
 	_, err := rand.Read(logKey)
 	if err != nil {
 		panic(err)
 	}
 
+	// TODO(Andoryuuta): In the offical client, the log key index is off by one,
+	// cutting off the last byte in _most uses_. Find and document these accordingly.
 	s.Lock()
 	s.logKey = logKey
 	s.Unlock()
@@ -264,7 +282,6 @@ func handleMsgSysIssueLogkey(s *Session, p mhfpacket.MHFPacket) {
 	// Issue it.
 	resp := byteframe.NewByteFrame()
 	resp.WriteBytes(logKey)
-	resp.WriteBytes([]byte{0x8E, 0x8E}) // Unk
 	doSizedAckResp(s, pkt.AckHandle, resp.Data())
 }
 
@@ -425,7 +442,48 @@ func handleMsgSysUnreserveStage(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgSysSetStagePass(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgSysWaitStageBinary(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysWaitStageBinary(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgSysWaitStageBinary)
+	defer s.logger.Debug("MsgSysWaitStageBinary Done!")
+
+	// Try to get the stage
+	stageID := stripNullTerminator(pkt.StageID)
+	s.server.stagesLock.Lock()
+	stage, gotStage := s.server.stages[stageID]
+	s.server.stagesLock.Unlock()
+
+	// If we got the stage, lock and try to get the data.
+	var stageBinary []byte
+	var gotBinary bool
+	if gotStage {
+		for {
+			stage.Lock()
+			stageBinary, gotBinary = stage.rawBinaryData[stageBinaryKey{pkt.BinaryType0, pkt.BinaryType1}]
+			stage.Unlock()
+
+			if gotBinary {
+				doSizedAckResp(s, pkt.AckHandle, stageBinary)
+				break
+			} else {
+				// Couldn't get binary, sleep for some time and try again.
+				time.Sleep(2 * time.Second)
+				continue
+			}
+
+			// TODO(Andoryuuta): Figure out what the game sends on timeout and implement it!
+			/*
+				if timeout {
+					s.logger.Warn("Failed to get stage binary", zap.Uint8("BinaryType0", pkt.BinaryType0), zap.Uint8("pkt.BinaryType1", pkt.BinaryType1))
+					s.logger.Warn("Sending blank stage binary")
+					doSizedAckResp(s, pkt.AckHandle, []byte{})
+					return
+				}
+			*/
+		}
+	} else {
+		s.logger.Warn("Failed to get stage", zap.String("StageID", stageID))
+	}
+}
 
 func handleMsgSysSetStageBinary(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysSetStageBinary)
@@ -495,14 +553,22 @@ func handleMsgSysEnumerateClient(s *Session, p mhfpacket.MHFPacket) {
 	// Read-lock the stage and make the response with all of the charID's in the stage.
 	resp := byteframe.NewByteFrame()
 	stage.RLock()
-	resp.WriteUint16(uint16(len(stage.clients))) // Client count
-	for session := range stage.clients {
-		resp.WriteUint32(session.charID) // Client represented by charID
+
+	// TODO(Andoryuuta): Add proper player-slot reservations for stages.
+	if len(stage.clients) >= 1 {
+		resp.WriteUint16(uint16(len(stage.clients))) // Client count
+		for session := range stage.clients {
+			resp.WriteUint32(session.charID) // Client represented by charID
+		}
+	} else {
+		// Just give our client.
+		resp.WriteUint16(1)
+		resp.WriteUint32(s.charID)
 	}
+
 	stage.RUnlock()
 
 	doSizedAckResp(s, pkt.AckHandle, resp.Data())
-
 	s.logger.Debug("MsgSysEnumerateClient Done!")
 }
 
@@ -524,6 +590,7 @@ func handleMsgSysEnumerateStage(s *Session, p mhfpacket.MHFPacket) {
 	}
 
 	doSizedAckResp(s, pkt.AckHandle, resp.Data())
+	s.logger.Debug("handleMsgSysEnumerateStage Done!")
 }
 
 func handleMsgSysCreateMutex(s *Session, p mhfpacket.MHFPacket) {}
@@ -890,12 +957,28 @@ func handleMsgMhfEnumerateEvent(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfEnumeratePrice(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumeratePrice)
-	stubEnumerateNoResults(s, pkt.AckHandle)
+	resp := byteframe.NewByteFrame()
+	resp.WriteUint16(0) // Entry type 1 count
+	resp.WriteUint16(0) // Entry type 2 count
+
+	doSizedAckResp(s, pkt.AckHandle, resp.Data())
 }
 
 func handleMsgMhfEnumerateRanking(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateRanking)
-	stubEnumerateNoResults(s, pkt.AckHandle)
+
+	resp := byteframe.NewByteFrame()
+	resp.WriteUint32(0)
+	resp.WriteUint32(0)
+	resp.WriteUint32(0)
+	resp.WriteUint32(0)
+	resp.WriteUint32(0)
+	resp.WriteUint8(0)
+	resp.WriteUint8(0)  // Some string length following this field.
+	resp.WriteUint16(0) // Entry type 1 count
+	resp.WriteUint8(0)  // Entry type 2 count
+
+	doSizedAckResp(s, pkt.AckHandle, resp.Data())
 
 	// Update the client's rights as well:
 	updateRights(s)

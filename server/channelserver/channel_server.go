@@ -19,6 +19,12 @@ type Config struct {
 	ErupeConfig *config.Config
 }
 
+// Map key type for a user binary part.
+type userBinaryPartID struct {
+	charID uint32
+	index  uint8
+}
+
 // Server is a MHF channel server.
 type Server struct {
 	sync.Mutex
@@ -34,18 +40,22 @@ type Server struct {
 
 	stagesLock sync.RWMutex
 	stages     map[string]*Stage
+
+	userBinaryPartsLock sync.RWMutex
+	userBinaryParts     map[userBinaryPartID][]byte
 }
 
 // NewServer creates a new Server type.
 func NewServer(config *Config) *Server {
 	s := &Server{
-		logger:      config.Logger,
-		db:          config.DB,
-		erupeConfig: config.ErupeConfig,
-		acceptConns: make(chan net.Conn),
-		deleteConns: make(chan net.Conn),
-		sessions:    make(map[net.Conn]*Session),
-		stages:      make(map[string]*Stage),
+		logger:          config.Logger,
+		db:              config.DB,
+		erupeConfig:     config.ErupeConfig,
+		acceptConns:     make(chan net.Conn),
+		deleteConns:     make(chan net.Conn),
+		sessions:        make(map[net.Conn]*Session),
+		stages:          make(map[string]*Stage),
+		userBinaryParts: make(map[userBinaryPartID][]byte),
 	}
 
 	// Default town stage that clients try to enter without creating.

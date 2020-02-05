@@ -93,11 +93,20 @@ func (s *Session) sendLoop() {
 	for {
 		// TODO(Andoryuuta): Test making this into a buffered channel and grouping the packet together before sending.
 		rawPacket := <-s.sendPackets
+
 		if rawPacket == nil {
 			s.logger.Debug("Got nil from s.SendPackets, exiting send loop")
 			return
 		}
-		s.cryptConn.SendPacket(rawPacket)
+
+		// Make a copy of the data.
+		terminatedPacket := make([]byte, len(rawPacket))
+		copy(terminatedPacket, rawPacket)
+
+		// Append the MSG_SYS_END tailing opcode.
+		terminatedPacket = append(terminatedPacket, []byte{0x00, 0x10}...)
+
+		s.cryptConn.SendPacket(terminatedPacket)
 	}
 }
 

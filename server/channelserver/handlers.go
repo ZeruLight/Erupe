@@ -583,8 +583,13 @@ func handleMsgSysEnumerateStage(s *Session, p mhfpacket.MHFPacket) {
 	resp := byteframe.NewByteFrame()
 	resp.WriteUint16(uint16(len(s.server.stages)))
 	for sid := range s.server.stages {
-		// Couldn't find the parsing code in the client, unk purpose & sizes:
-		resp.WriteBytes([]byte{0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x04, 0x00})
+		// Found parsing code, field sizes are correct, but unknown purposes still.
+		//resp.WriteBytes([]byte{0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x04, 0x00})
+		resp.WriteUint16(5)  // Current players.
+		resp.WriteUint16(7)  // Unknown value
+		resp.WriteUint16(0)  // HasDeparted or IsLocked.
+		resp.WriteUint16(20) // Max players.
+		resp.WriteUint8(2) // Password protected.
 		resp.WriteUint8(uint8(len(sid)))
 		resp.WriteBytes([]byte(sid))
 	}
@@ -727,7 +732,7 @@ func handleMsgSysGetUserBinary(s *Session, p mhfpacket.MHFPacket) {
 	s.server.userBinaryPartsLock.RLock()
 	defer s.server.userBinaryPartsLock.RUnlock()
 	data, ok := s.server.userBinaryParts[userBinaryPartID{charID: pkt.CharID, index: pkt.BinaryType}]
-	
+
 	resp := byteframe.NewByteFrame()
 
 	// If we can't get the real data, use a placeholder.

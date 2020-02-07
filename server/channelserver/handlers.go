@@ -303,12 +303,11 @@ func handleMsgSysCreateStage(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgSysStageDestruct(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgSysEnterStage(s *Session, p mhfpacket.MHFPacket) {
-	pkt := p.(*mhfpacket.MsgSysEnterStage)
+func doStageTransfer(s *Session, ackHandle uint32, stageID string) {
 
 	// Remove this session from old stage clients list and put myself in the new one.
 	s.server.stagesLock.Lock()
-	newStage, gotNewStage := s.server.stages[stripNullTerminator(pkt.StageID)]
+	newStage, gotNewStage := s.server.stages[stripNullTerminator(stageID)]
 	s.server.stagesLock.Unlock()
 
 	// Remove from old stage.
@@ -327,7 +326,7 @@ func handleMsgSysEnterStage(s *Session, p mhfpacket.MHFPacket) {
 
 	// Save our new stage ID and pointer to the new stage itself.
 	s.Lock()
-	s.stageID = string(stripNullTerminator(pkt.StageID))
+	s.stageID = string(stripNullTerminator(stageID))
 	s.stage = newStage
 	s.Unlock()
 
@@ -335,7 +334,7 @@ func handleMsgSysEnterStage(s *Session, p mhfpacket.MHFPacket) {
 	s.QueueSendMHF(&mhfpacket.MsgSysCleanupObject{})
 
 	// Confirm the stage entry.
-	s.QueueAck(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
+	s.QueueAck(ackHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
 
 	// Notify existing stage clients that this new client has entered.
 	s.logger.Info("Sending MsgSysInsertUser & MsgSysNotifyUserBinary")
@@ -414,9 +413,17 @@ func handleMsgSysEnterStage(s *Session, p mhfpacket.MHFPacket) {
 	s.QueueSend(clientDupObjNotif.Data())
 }
 
+func handleMsgSysEnterStage(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgSysEnterStage)
+	doStageTransfer(s, pkt.AckHandle, pkt.StageID)
+}
+
 func handleMsgSysBackStage(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgSysMoveStage(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysMoveStage(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgSysMoveStage)
+	doStageTransfer(s, pkt.AckHandle, pkt.StageID)
+}
 
 func handleMsgSysLeaveStage(s *Session, p mhfpacket.MHFPacket) {}
 
@@ -587,9 +594,9 @@ func handleMsgSysEnumerateStage(s *Session, p mhfpacket.MHFPacket) {
 		//resp.WriteBytes([]byte{0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x04, 0x00})
 		resp.WriteUint16(5)  // Current players.
 		resp.WriteUint16(7)  // Unknown value
-		resp.WriteUint16(0)  // HasDeparted or IsLocked.
+		resp.WriteUint16(0)  // HasDeparted.
 		resp.WriteUint16(20) // Max players.
-		resp.WriteUint8(2) // Password protected.
+		resp.WriteUint8(2)   // Password protected.
 		resp.WriteUint8(uint8(len(sid)))
 		resp.WriteBytes([]byte(sid))
 	}

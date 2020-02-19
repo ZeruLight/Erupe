@@ -304,16 +304,32 @@ func handleMsgSysCreateStage(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgSysStageDestruct(s *Session, p mhfpacket.MHFPacket) {}
 
 func doStageTransfer(s *Session, ackHandle uint32, stageID string) {
-
 	// Remove this session from old stage clients list and put myself in the new one.
 	s.server.stagesLock.Lock()
 	newStage, gotNewStage := s.server.stages[stripNullTerminator(stageID)]
 	s.server.stagesLock.Unlock()
 
-	// Remove from old stage.
 	if s.stage != nil {
 		s.stage.Lock()
+
+		// Remove client from old stage.
 		delete(s.stage.clients, s)
+
+		// Delete old stage objects owned by the client.
+		s.logger.Info("Sending MsgSysDeleteObject to old stage clients")
+		for objID, stageObject := range s.stage.objects {
+			if stageObject.ownerCharID == s.charID {
+				// Broadcast the deletion to clients in the stage.
+				s.stage.BroadcastMHF(&mhfpacket.MsgSysDeleteObject{
+					ObjID: stageObject.id,
+				}, s)
+				// TODO(Andoryuuta): Should this be sent to the owner's client as well? it currently isn't.
+
+				// Actually delete it form the objects map.
+				delete(s.stage.objects, objID)
+			}
+		}
+
 		s.stage.Unlock()
 	}
 

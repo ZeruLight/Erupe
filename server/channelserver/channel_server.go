@@ -62,9 +62,13 @@ func NewServer(config *Config) *Server {
 	stage := NewStage("sl1Ns200p0a0u0")
 	s.stages[stage.id] = stage
 
-	// Town underground left area --  rasta bar stage (Maybe private bar ID as well?)
+	// Town underground left area -- rasta bar stage (Maybe private bar ID as well?).
 	stage2 := NewStage("sl1Ns211p0a0u0")
 	s.stages[stage2.id] = stage2
+
+	// Diva fountain / prayer fountain.
+	stage3 := NewStage("sl2Ns379p0a0u0")
+	s.stages[stage3.id] = stage3
 
 	return s
 }

@@ -6,10 +6,24 @@ import (
 )
 
 type scenarioFileIdentifer struct {
-	Unk0 uint8
-	Unk1 uint32
-	Unk2 uint8
-	Unk3 uint8
+	CategoryID uint8
+	MainID     uint32
+	ChapterID  uint8
+	/*
+		Flags represent the following bit flags:
+
+		11111111 -> Least significant bit on the right.
+		||||||||
+		|||||||0x1: Chunk0-type, recursive chunks, quest name/description + 0x14 byte unk info
+		||||||0x2:  Chunk1-type, recursive chunks, npc dialog? + 0x2C byte unk info
+		|||||0x4:   UNK NONE FOUND. (Guessing from the following that this might be a chunk2-type)
+		||||0x8:    Chunk0-type, NO RECURSIVE CHUNKS ([0x1] prefixed?), Episode listing
+		|||0x10:    Chunk1-type, NO RECURSIVE CHUNKS, JKR blob, npc dialog?
+		||0x20:     Chunk2-type, NO RECURSIVE CHUNKS, JKR blob, Menu options or quest titles?
+		|0x40:      UNK NONE FOUND
+		0x80:       UNK NONE FOUND
+	*/
+	Flags uint8
 }
 
 // MsgSysGetFile represents the MSG_SYS_GET_FILE
@@ -30,6 +44,11 @@ func (m *MsgSysGetFile) Opcode() network.PacketID {
 func (m *MsgSysGetFile) Parse(bf *byteframe.ByteFrame) error {
 	m.AckHandle = bf.ReadUint32()
 	m.IsScenario = bf.ReadBool()
+	m.FilenameLength = bf.ReadUint8()
+	if m.FilenameLength > 0 {
+		m.Filename = string(bf.ReadBytes(uint(m.FilenameLength)))
+	}
+
 	if m.IsScenario {
 		m.ScenarioIdentifer = scenarioFileIdentifer{
 			bf.ReadUint8(),
@@ -37,9 +56,6 @@ func (m *MsgSysGetFile) Parse(bf *byteframe.ByteFrame) error {
 			bf.ReadUint8(),
 			bf.ReadUint8(),
 		}
-	} else {
-		m.FilenameLength = bf.ReadUint8()
-		m.Filename = string(bf.ReadBytes(uint(m.FilenameLength)))
 	}
 	return nil
 }

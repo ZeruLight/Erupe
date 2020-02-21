@@ -2,5 +2,7 @@ www/tw/
 www/jp/
 
 bin/quests/*.bin
+bin/scenarios/*.bin
+bin/debug/*.bin
 savedata/
 Erupe.exe

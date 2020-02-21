@@ -249,6 +249,12 @@ func handleMsgSysCastedBinary(s *Session, p mhfpacket.MHFPacket) {}
 func handleMsgSysGetFile(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysGetFile)
 
+	// Debug print the request.
+	fmt.Printf("%+v\n", pkt)
+	if pkt.IsScenario {
+		fmt.Printf("%+v\n", pkt.ScenarioIdentifer)
+	}
+
 	if !pkt.IsScenario {
 		// Get quest file.
 		data, err := ioutil.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("quests/%s.bin", stripNullTerminator(pkt.Filename))))
@@ -258,7 +264,34 @@ func handleMsgSysGetFile(s *Session, p mhfpacket.MHFPacket) {
 
 		doSizedAckResp(s, pkt.AckHandle, data)
 	} else {
-		s.logger.Fatal("scenario getfile not implemented.")
+
+		/*
+			// mhf-fake-client format
+			filename := fmt.Sprintf(
+				"%d_%d_%d_%d",
+				pkt.ScenarioIdentifer.CategoryID,
+				pkt.ScenarioIdentifer.MainID,
+				pkt.ScenarioIdentifer.ChapterID,
+				pkt.ScenarioIdentifer.Flags,
+			)
+		*/
+
+		// Fist's format:
+		filename := fmt.Sprintf(
+			"%d_0_0_0_S%d_T%d_C%d",
+			pkt.ScenarioIdentifer.CategoryID,
+			pkt.ScenarioIdentifer.MainID,
+			pkt.ScenarioIdentifer.Flags, // Fist had as "type" and is the "T%d"
+			pkt.ScenarioIdentifer.ChapterID,
+		)
+
+		// Read the scenario file.
+		data, err := ioutil.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("scenarios/%s.bin", filename)))
+		if err != nil {
+			panic(err)
+		}
+
+		doSizedAckResp(s, pkt.AckHandle, data)
 	}
 
 }
@@ -1175,7 +1208,58 @@ func handleMsgMhfPaymentAchievement(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfDisplayedAchievement(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfInfoScenarioCounter(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfInfoScenarioCounter(s *Session, p mhfpacket.MHFPacket) {
+
+	pkt := p.(*mhfpacket.MsgMhfInfoScenarioCounter)
+
+	scenarioCounter := []struct {
+		Unk0 uint32 // Main ID?
+		Unk1 uint8
+		Unk2 uint8
+	}{
+		{
+			Unk0: 0x00000000,
+			Unk1: 1,
+			Unk2: 4,
+		},
+		{
+			Unk0: 0x00000001,
+			Unk1: 1,
+			Unk2: 4,
+		},
+		{
+			Unk0: 0x00000002,
+			Unk1: 1,
+			Unk2: 4,
+		},
+		{
+			Unk0: 0x00000003,
+			Unk1: 1,
+			Unk2: 4,
+		},
+	}
+
+	resp := byteframe.NewByteFrame()
+	resp.WriteUint8(uint8(len(scenarioCounter))) // Entry count
+	for _, entry := range scenarioCounter {
+		resp.WriteUint32(entry.Unk0)
+		resp.WriteUint8(entry.Unk1)
+		resp.WriteUint8(entry.Unk2)
+	}
+
+	doSizedAckResp(s, pkt.AckHandle, resp.Data())
+
+	// DEBUG, DELETE ME!
+	/*
+		data, err := ioutil.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, "debug/info_scenario_counter_resp.bin"))
+		if err != nil {
+			panic(err)
+		}
+
+		doSizedAckResp(s, pkt.AckHandle, data)
+	*/
+
+}
 
 func handleMsgMhfSaveScenarioData(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSaveScenarioData)

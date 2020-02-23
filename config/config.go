@@ -9,14 +9,22 @@ import (
 
 // Config holds the global server-wide config.
 type Config struct {
-	HostIP string `mapstructure:"host_ip"`
+	HostIP  string `mapstructure:"host_ip"`
 	BinPath string `mapstructure:"bin_path"`
+	DevMode bool
 
+	DevModeOptions DevModeOptions
 	Database Database
 	Launcher Launcher
 	Sign     Sign
 	Channel  Channel
 	Entrance Entrance
+}
+
+// DevModeOptions holds various debug/temporary options for use while developing Erupe.
+type DevModeOptions struct {
+	CleanDB       bool // Automatically wipes the DB on server reset.
+	MaxLauncherHR bool // Sets the HR returned in the launcher to HR9 so that you can join non-beginner worlds.
 }
 
 // Database holds the postgres database config.
@@ -30,7 +38,7 @@ type Database struct {
 
 // Launcher holds the launcher server config.
 type Launcher struct {
-	Port int
+	Port                     int
 	UseOriginalLauncherFiles bool
 }
 

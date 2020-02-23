@@ -59,9 +59,12 @@ func main() {
 	}
 	logger.Info("Connected to database")
 
-	logger.Info("Cleaning DB")
-	cleanDB(db)
-	logger.Info("Done cleaning DB")
+	// Clean the DB if the option is on.
+	if erupeConfig.DevMode && erupeConfig.DevModeOptions.CleanDB {
+		logger.Info("Cleaning DB")
+		cleanDB(db)
+		logger.Info("Done cleaning DB")
+	}
 
 	// Now start our server(s).
 

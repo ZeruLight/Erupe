@@ -54,8 +54,15 @@ func (s *Session) makeSignInResp(uid int) []byte {
 	uint8PascalString(bf, "mhf-n.capcom.com.tw")
 
 	for _, char := range chars {
-		bf.WriteUint32(char.ID)                             // character ID 469153291
-		bf.WriteUint16(char.Exp)                            // Exp, HR[x] is split by 0, 1, 30, 50, 99, 299, 998, 999
+		bf.WriteUint32(char.ID) // character ID 469153291
+
+		// Exp, HR[x] is split by 0, 1, 30, 50, 99, 299, 998, 999
+		if s.server.erupeConfig.DevMode && s.server.erupeConfig.DevModeOptions.MaxLauncherHR {
+			bf.WriteUint16(999)
+		} else {
+			bf.WriteUint16(char.Exp)
+		}
+
 		bf.WriteUint16(char.Weapon)                         // Weapon, 0-13.
 		bf.WriteUint32(char.LastLogin)                      // Last login date, unix timestamp in seconds.
 		bf.WriteBool(char.IsFemale)                         // Sex, 0=male, 1=female.

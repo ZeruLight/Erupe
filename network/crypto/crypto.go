@@ -28,7 +28,7 @@ func _generalCrypt(data []byte, rotKey uint32, cryptType int, overrideByteKey *b
 		cryptKeyTruncByte = *overrideByteKey
 	}
 
-	derivedCryptKey := int32((uint32(len(data)) * uint32(cryptKeyTruncByte+1)) & 0xFFFFFFFF)
+	derivedCryptKey := int32((uint32(len(data)) * (uint32(cryptKeyTruncByte) + 1)) & 0xFFFFFFFF)
 	sharedBufIdx := byte(1)
 	accumulator0 := uint32(0)
 	accumulator1 := uint32(0)

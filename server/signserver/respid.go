@@ -1,6 +1,7 @@
 package signserver
 
 //revive:disable
+
 type RespID uint16
 
 //go:generate stringer -type=RespID

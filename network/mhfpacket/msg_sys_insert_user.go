@@ -6,7 +6,9 @@ import (
 )
 
 // MsgSysInsertUser represents the MSG_SYS_INSERT_USER
-type MsgSysInsertUser struct{}
+type MsgSysInsertUser struct {
+	CharID uint32
+}
 
 // Opcode returns the ID associated with this packet type.
 func (m *MsgSysInsertUser) Opcode() network.PacketID {
@@ -20,5 +22,6 @@ func (m *MsgSysInsertUser) Parse(bf *byteframe.ByteFrame) error {
 
 // Build builds a binary packet from the current data.
 func (m *MsgSysInsertUser) Build(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+	bf.WriteUint32(m.CharID)
+	return nil
 }

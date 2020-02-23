@@ -6,7 +6,11 @@ import (
 )
 
 // MsgSysSetUserBinary represents the MSG_SYS_SET_USER_BINARY
-type MsgSysSetUserBinary struct{}
+type MsgSysSetUserBinary struct {
+	BinaryType     uint8
+	DataSize       uint16
+	RawDataPayload []byte
+}
 
 // Opcode returns the ID associated with this packet type.
 func (m *MsgSysSetUserBinary) Opcode() network.PacketID {
@@ -15,7 +19,10 @@ func (m *MsgSysSetUserBinary) Opcode() network.PacketID {
 
 // Parse parses the packet from binary
 func (m *MsgSysSetUserBinary) Parse(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+	m.BinaryType = bf.ReadUint8()
+	m.DataSize = bf.ReadUint16()
+	m.RawDataPayload = bf.ReadBytes(uint(m.DataSize))
+	return nil
 }
 
 // Build builds a binary packet from the current data.

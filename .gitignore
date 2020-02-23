@@ -1,8 +1,8 @@
 www/tw/
 www/jp/
 
-bin_resp/
-custom_entrance_server_resp.bin
-dec_bin8_data_dump.bin
-entrance_resp_bin8_encrypted.bin
-tw_server_list_resp.bin
+bin/quests/*.bin
+bin/scenarios/*.bin
+bin/debug/*.bin
+savedata/
+Erupe.exe

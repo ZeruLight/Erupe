@@ -6,7 +6,10 @@ import (
 )
 
 // MsgMhfListMember represents the MSG_MHF_LIST_MEMBER
-type MsgMhfListMember struct{}
+type MsgMhfListMember struct{
+	AckHandle uint32
+	Unk0 uint16 // Hardcoded 01 00 in the JP client.
+}
 
 // Opcode returns the ID associated with this packet type.
 func (m *MsgMhfListMember) Opcode() network.PacketID {
@@ -15,7 +18,9 @@ func (m *MsgMhfListMember) Opcode() network.PacketID {
 
 // Parse parses the packet from binary
 func (m *MsgMhfListMember) Parse(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+	m.AckHandle = bf.ReadUint32()
+	m.Unk0 = bf.ReadUint16()
+	return nil
 }
 
 // Build builds a binary packet from the current data.

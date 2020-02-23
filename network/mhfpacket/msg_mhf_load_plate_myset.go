@@ -6,7 +6,9 @@ import (
 )
 
 // MsgMhfLoadPlateMyset represents the MSG_MHF_LOAD_PLATE_MYSET
-type MsgMhfLoadPlateMyset struct{}
+type MsgMhfLoadPlateMyset struct {
+	AckHandle uint32
+}
 
 // Opcode returns the ID associated with this packet type.
 func (m *MsgMhfLoadPlateMyset) Opcode() network.PacketID {
@@ -15,7 +17,8 @@ func (m *MsgMhfLoadPlateMyset) Opcode() network.PacketID {
 
 // Parse parses the packet from binary
 func (m *MsgMhfLoadPlateMyset) Parse(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+	m.AckHandle = bf.ReadUint32()
+	return nil
 }
 
 // Build builds a binary packet from the current data.

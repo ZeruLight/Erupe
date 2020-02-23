@@ -6,7 +6,9 @@ import (
 )
 
 // MsgMhfGetKeepLoginBoostStatus represents the MSG_MHF_GET_KEEP_LOGIN_BOOST_STATUS
-type MsgMhfGetKeepLoginBoostStatus struct{}
+type MsgMhfGetKeepLoginBoostStatus struct {
+	AckHandle uint32
+}
 
 // Opcode returns the ID associated with this packet type.
 func (m *MsgMhfGetKeepLoginBoostStatus) Opcode() network.PacketID {
@@ -15,7 +17,8 @@ func (m *MsgMhfGetKeepLoginBoostStatus) Opcode() network.PacketID {
 
 // Parse parses the packet from binary
 func (m *MsgMhfGetKeepLoginBoostStatus) Parse(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+	m.AckHandle = bf.ReadUint32()
+	return nil
 }
 
 // Build builds a binary packet from the current data.

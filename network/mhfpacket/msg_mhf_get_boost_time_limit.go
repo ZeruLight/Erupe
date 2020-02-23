@@ -6,7 +6,9 @@ import (
 )
 
 // MsgMhfGetBoostTimeLimit represents the MSG_MHF_GET_BOOST_TIME_LIMIT
-type MsgMhfGetBoostTimeLimit struct{}
+type MsgMhfGetBoostTimeLimit struct {
+	AckHandle uint32
+}
 
 // Opcode returns the ID associated with this packet type.
 func (m *MsgMhfGetBoostTimeLimit) Opcode() network.PacketID {
@@ -15,7 +17,8 @@ func (m *MsgMhfGetBoostTimeLimit) Opcode() network.PacketID {
 
 // Parse parses the packet from binary
 func (m *MsgMhfGetBoostTimeLimit) Parse(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+	m.AckHandle = bf.ReadUint32()
+	return nil
 }
 
 // Build builds a binary packet from the current data.

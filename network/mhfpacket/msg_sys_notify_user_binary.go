@@ -6,7 +6,10 @@ import (
 )
 
 // MsgSysNotifyUserBinary represents the MSG_SYS_NOTIFY_USER_BINARY
-type MsgSysNotifyUserBinary struct{}
+type MsgSysNotifyUserBinary struct {
+	CharID     uint32
+	BinaryType uint8
+}
 
 // Opcode returns the ID associated with this packet type.
 func (m *MsgSysNotifyUserBinary) Opcode() network.PacketID {
@@ -20,5 +23,7 @@ func (m *MsgSysNotifyUserBinary) Parse(bf *byteframe.ByteFrame) error {
 
 // Build builds a binary packet from the current data.
 func (m *MsgSysNotifyUserBinary) Build(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+	bf.WriteUint32(m.CharID)
+	bf.WriteUint8(m.BinaryType)
+	return nil
 }

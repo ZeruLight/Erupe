@@ -6,7 +6,10 @@ import (
 )
 
 // MsgMhfInfoGuild represents the MSG_MHF_INFO_GUILD
-type MsgMhfInfoGuild struct{}
+type MsgMhfInfoGuild struct {
+	AckHandle uint32
+	Unk0      uint32 // Probably a guild ID, but unverified.
+}
 
 // Opcode returns the ID associated with this packet type.
 func (m *MsgMhfInfoGuild) Opcode() network.PacketID {
@@ -15,7 +18,9 @@ func (m *MsgMhfInfoGuild) Opcode() network.PacketID {
 
 // Parse parses the packet from binary
 func (m *MsgMhfInfoGuild) Parse(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+	m.AckHandle = bf.ReadUint32()
+	m.Unk0 = bf.ReadUint32()
+	return nil
 }
 
 // Build builds a binary packet from the current data.

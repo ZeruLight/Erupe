@@ -6,7 +6,9 @@ import (
 )
 
 // MsgMhfLoadMezfesData represents the MSG_MHF_LOAD_MEZFES_DATA
-type MsgMhfLoadMezfesData struct{}
+type MsgMhfLoadMezfesData struct {
+	AckHandle uint32
+}
 
 // Opcode returns the ID associated with this packet type.
 func (m *MsgMhfLoadMezfesData) Opcode() network.PacketID {
@@ -15,7 +17,8 @@ func (m *MsgMhfLoadMezfesData) Opcode() network.PacketID {
 
 // Parse parses the packet from binary
 func (m *MsgMhfLoadMezfesData) Parse(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+	m.AckHandle = bf.ReadUint32()
+	return nil
 }
 
 // Build builds a binary packet from the current data.

@@ -6,7 +6,9 @@ import (
 )
 
 // MsgMhfGetUdMyRanking represents the MSG_MHF_GET_UD_MY_RANKING
-type MsgMhfGetUdMyRanking struct{}
+type MsgMhfGetUdMyRanking struct {
+	AckHandle uint32
+}
 
 // Opcode returns the ID associated with this packet type.
 func (m *MsgMhfGetUdMyRanking) Opcode() network.PacketID {
@@ -15,7 +17,8 @@ func (m *MsgMhfGetUdMyRanking) Opcode() network.PacketID {
 
 // Parse parses the packet from binary
 func (m *MsgMhfGetUdMyRanking) Parse(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+	m.AckHandle = bf.ReadUint32()
+	return nil
 }
 
 // Build builds a binary packet from the current data.

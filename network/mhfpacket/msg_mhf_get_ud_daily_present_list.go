@@ -6,7 +6,9 @@ import (
 )
 
 // MsgMhfGetUdDailyPresentList represents the MSG_MHF_GET_UD_DAILY_PRESENT_LIST
-type MsgMhfGetUdDailyPresentList struct{}
+type MsgMhfGetUdDailyPresentList struct {
+	AckHandle uint32
+}
 
 // Opcode returns the ID associated with this packet type.
 func (m *MsgMhfGetUdDailyPresentList) Opcode() network.PacketID {
@@ -15,7 +17,8 @@ func (m *MsgMhfGetUdDailyPresentList) Opcode() network.PacketID {
 
 // Parse parses the packet from binary
 func (m *MsgMhfGetUdDailyPresentList) Parse(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+	m.AckHandle = bf.ReadUint32()
+	return nil
 }
 
 // Build builds a binary packet from the current data.

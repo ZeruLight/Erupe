@@ -6,7 +6,9 @@ import (
 )
 
 // MsgMhfGetGuildWeeklyBonusMaster represents the MSG_MHF_GET_GUILD_WEEKLY_BONUS_MASTER
-type MsgMhfGetGuildWeeklyBonusMaster struct{}
+type MsgMhfGetGuildWeeklyBonusMaster struct {
+	AckHandle uint32
+}
 
 // Opcode returns the ID associated with this packet type.
 func (m *MsgMhfGetGuildWeeklyBonusMaster) Opcode() network.PacketID {
@@ -15,7 +17,8 @@ func (m *MsgMhfGetGuildWeeklyBonusMaster) Opcode() network.PacketID {
 
 // Parse parses the packet from binary
 func (m *MsgMhfGetGuildWeeklyBonusMaster) Parse(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+	m.AckHandle = bf.ReadUint32()
+	return nil
 }
 
 // Build builds a binary packet from the current data.

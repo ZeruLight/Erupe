@@ -6,7 +6,9 @@ import (
 )
 
 // MsgMhfGetFpointExchangeList represents the MSG_MHF_GET_FPOINT_EXCHANGE_LIST
-type MsgMhfGetFpointExchangeList struct{}
+type MsgMhfGetFpointExchangeList struct {
+	AckHandle uint32
+}
 
 // Opcode returns the ID associated with this packet type.
 func (m *MsgMhfGetFpointExchangeList) Opcode() network.PacketID {
@@ -15,7 +17,8 @@ func (m *MsgMhfGetFpointExchangeList) Opcode() network.PacketID {
 
 // Parse parses the packet from binary
 func (m *MsgMhfGetFpointExchangeList) Parse(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+	m.AckHandle = bf.ReadUint32()
+	return nil
 }
 
 // Build builds a binary packet from the current data.

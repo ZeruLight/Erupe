@@ -6,7 +6,9 @@ import (
 )
 
 // MsgMhfGetUdShopCoin represents the MSG_MHF_GET_UD_SHOP_COIN
-type MsgMhfGetUdShopCoin struct{}
+type MsgMhfGetUdShopCoin struct {
+	AckHandle uint32
+}
 
 // Opcode returns the ID associated with this packet type.
 func (m *MsgMhfGetUdShopCoin) Opcode() network.PacketID {
@@ -15,7 +17,8 @@ func (m *MsgMhfGetUdShopCoin) Opcode() network.PacketID {
 
 // Parse parses the packet from binary
 func (m *MsgMhfGetUdShopCoin) Parse(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+	m.AckHandle = bf.ReadUint32()
+	return nil
 }
 
 // Build builds a binary packet from the current data.

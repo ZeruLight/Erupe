@@ -6,7 +6,9 @@ import (
 )
 
 // MsgSysUnlockGlobalSema represents the MSG_SYS_UNLOCK_GLOBAL_SEMA
-type MsgSysUnlockGlobalSema struct{}
+type MsgSysUnlockGlobalSema struct {
+	AckHandle uint32
+}
 
 // Opcode returns the ID associated with this packet type.
 func (m *MsgSysUnlockGlobalSema) Opcode() network.PacketID {
@@ -15,7 +17,8 @@ func (m *MsgSysUnlockGlobalSema) Opcode() network.PacketID {
 
 // Parse parses the packet from binary
 func (m *MsgSysUnlockGlobalSema) Parse(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+	m.AckHandle = bf.ReadUint32()
+	return nil
 }
 
 // Build builds a binary packet from the current data.

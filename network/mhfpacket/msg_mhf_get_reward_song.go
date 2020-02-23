@@ -6,7 +6,9 @@ import (
 )
 
 // MsgMhfGetRewardSong represents the MSG_MHF_GET_REWARD_SONG
-type MsgMhfGetRewardSong struct{}
+type MsgMhfGetRewardSong struct {
+	AckHandle uint32
+}
 
 // Opcode returns the ID associated with this packet type.
 func (m *MsgMhfGetRewardSong) Opcode() network.PacketID {
@@ -15,7 +17,8 @@ func (m *MsgMhfGetRewardSong) Opcode() network.PacketID {
 
 // Parse parses the packet from binary
 func (m *MsgMhfGetRewardSong) Parse(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+	m.AckHandle = bf.ReadUint32()
+	return nil
 }
 
 // Build builds a binary packet from the current data.

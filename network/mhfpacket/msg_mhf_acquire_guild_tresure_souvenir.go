@@ -6,7 +6,9 @@ import (
 )
 
 // MsgMhfAcquireGuildTresureSouvenir represents the MSG_MHF_ACQUIRE_GUILD_TRESURE_SOUVENIR
-type MsgMhfAcquireGuildTresureSouvenir struct{}
+type MsgMhfAcquireGuildTresureSouvenir struct {
+	AckHandle uint32
+}
 
 // Opcode returns the ID associated with this packet type.
 func (m *MsgMhfAcquireGuildTresureSouvenir) Opcode() network.PacketID {
@@ -15,7 +17,8 @@ func (m *MsgMhfAcquireGuildTresureSouvenir) Opcode() network.PacketID {
 
 // Parse parses the packet from binary
 func (m *MsgMhfAcquireGuildTresureSouvenir) Parse(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+	m.AckHandle = bf.ReadUint32()
+	return nil
 }
 
 // Build builds a binary packet from the current data.

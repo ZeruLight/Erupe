@@ -1,18 +1,24 @@
 # Erupe
 ## WARNING 
-This project is in its infancy and currently doesn't do anything worth noting. Additionally, it has no documentation and no support.
+This project is in its infancy and has no reliable active developer, no documentation, and no support.
 
-This project is soley developed in my spare time for the educational experience of making a server emulator, which I haven't done before. Expectations regarding functionally and code quality should be set accordingly.
+This project has been solely developed in my spare time for the educational experience of making a server emulator, which I haven't done before. Expectations regarding functionally and code quality should be set accordingly.
 
 # General info
 Currently allows a JP MHF client (with GameGuard removed) to:
 * Login and register an account (registration is automatic if account doesn't exist)
 * Create a character
 * Get ingame to the main city
-* See other players walk around (Names and character data are not correct, placeholders are in use)
-* Use (local) chat.
+* See other players walk around
+* Do quests* (Single player only. Only quests shipped with the game are on the counter. **Requires binary quest files not in the repo**)
+* Use (local) chat*
+
+\* = Very limited or buggy.
+
+
 
 # Installation
+## Server
 1. Clone the repo with `git clone https://github.com/Andoryuuta/Erupe.git`
 2. Install PostgreSQL
 3. Launch psql shell, `CREATE DATABASE erupe;`.
@@ -43,10 +49,14 @@ Currently allows a JP MHF client (with GameGuard removed) to:
     (Replacing `postgres:password` with your postgres username and password)
 
 5. Edit the config.json
+
     Namely:
     * Update the database username and password
     * Update the `host_ip` and `ip` fields (there are multiple) to your external IP if you are hosting for multiple clients.
 
+6. Place quest/scenario binaries.
+
+    The quest and scenario binary files should be placed in `bin/quests/` and `bin/scenarios` respectively.
 
 ## Launcher
 Erupe ships with a rudimentary custom launcher, so you don't need to obtain the original TW/JP files to simply get ingame. However, it does still support using the original files if you choose to. To set this up, place a copy of the original launcher html/js/css in `./www/tw/`, and `/www/jp/` for the TW and JP files respectively.

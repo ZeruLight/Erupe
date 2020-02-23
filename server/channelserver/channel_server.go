@@ -70,6 +70,8 @@ func NewServer(config *Config) *Server {
 	stage3 := NewStage("sl2Ns379p0a0u0")
 	s.stages[stage3.id] = stage3
 
+	// sl1Ns257p0a0uE31111 -- house for charID E31111.
+
 	return s
 }
 

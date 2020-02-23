@@ -6,6 +6,7 @@ import (
 	"net"
 	"sync"
 
+	"github.com/Andoryuuta/Erupe/common/stringstack"
 	"github.com/Andoryuuta/Erupe/network"
 	"github.com/Andoryuuta/Erupe/network/mhfpacket"
 	"github.com/Andoryuuta/byteframe"
@@ -25,16 +26,20 @@ type Session struct {
 	stage   *Stage
 	charID  uint32
 	logKey  []byte
+
+	// A stack containing the stage movement history (push on enter/move, pop on back)
+	stageMoveStack *stringstack.StringStack
 }
 
 // NewSession creates a new Session type.
 func NewSession(server *Server, conn net.Conn) *Session {
 	s := &Session{
-		logger:      server.logger.Named(conn.RemoteAddr().String()),
-		server:      server,
-		rawConn:     conn,
-		cryptConn:   network.NewCryptConn(conn),
-		sendPackets: make(chan []byte, 20),
+		logger:         server.logger.Named(conn.RemoteAddr().String()),
+		server:         server,
+		rawConn:        conn,
+		cryptConn:      network.NewCryptConn(conn),
+		sendPackets:    make(chan []byte, 20),
+		stageMoveStack: stringstack.New(),
 	}
 	return s
 }

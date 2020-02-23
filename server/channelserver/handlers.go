@@ -318,7 +318,11 @@ func handleMsgSysIssueLogkey(s *Session, p mhfpacket.MHFPacket) {
 	doSizedAckResp(s, pkt.AckHandle, resp.Data())
 }
 
-func handleMsgSysRecordLog(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysRecordLog(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgSysRecordLog)
+	resp := make([]byte, 8) // Unk resp.
+	s.QueueAck(pkt.AckHandle, resp)
+}
 
 func handleMsgSysEcho(s *Session, p mhfpacket.MHFPacket) {}
 
@@ -464,13 +468,39 @@ func doStageTransfer(s *Session, ackHandle uint32, stageID string) {
 
 func handleMsgSysEnterStage(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysEnterStage)
+
+	// Push our current stage ID to the movement stack before entering another one.
+	s.Lock()
+	s.stageMoveStack.Push(s.stageID)
+	s.Unlock()
+
 	doStageTransfer(s, pkt.AckHandle, pkt.StageID)
 }
 
-func handleMsgSysBackStage(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysBackStage(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgSysBackStage)
+
+	// Transfer back to the saved stage ID before the previous move or enter.
+	s.Lock()
+	backStage, err := s.stageMoveStack.Pop()
+	s.Unlock()
+
+	if err != nil {
+		panic(err)
+	}
+
+	doStageTransfer(s, pkt.AckHandle, backStage)
+
+}
 
 func handleMsgSysMoveStage(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysMoveStage)
+
+	// Push our current stage ID to the movement stack before entering another one.
+	s.Lock()
+	s.stageMoveStack.Push(s.stageID)
+	s.Unlock()
+
 	doStageTransfer(s, pkt.AckHandle, pkt.StageID)
 }
 
@@ -1613,7 +1643,9 @@ func handleMsgMhfGetBoostTime(s *Session, p mhfpacket.MHFPacket) {
 	updateRights(s)
 }
 
-func handleMsgMhfPostBoostTime(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfPostBoostTime(s *Session, p mhfpacket.MHFPacket) {
+	//pkt := p.(*mhfpacket.MsgMhfPostBoostTime)
+}
 
 func handleMsgMhfGetBoostTimeLimit(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetBoostTimeLimit)
@@ -1672,7 +1704,10 @@ func handleMsgMhfGetBoostRight(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfStartBoostTime(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfPostBoostTimeQuestReturn(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfPostBoostTimeQuestReturn(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfPostBoostTimeQuestReturn)
+	s.QueueAck(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
+}
 
 func handleMsgMhfGetBoxGachaInfo(s *Session, p mhfpacket.MHFPacket) {}
 
@@ -1680,7 +1715,10 @@ func handleMsgMhfPlayBoxGacha(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfResetBoxGachaInfo(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfGetSeibattle(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfGetSeibattle(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfGetSeibattle)
+	stubGetNoResults(s, pkt.AckHandle)
+}
 
 func handleMsgMhfPostSeibattle(s *Session, p mhfpacket.MHFPacket) {}
 
@@ -1828,7 +1866,33 @@ func handleMsgMhfGetUdMyPoint(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfGetUdTotalPointInfo(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfGetUdBonusQuestInfo(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfGetUdBonusQuestInfo(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfGetUdBonusQuestInfo)
+
+	udBonusQuestInfos := []struct {
+		Unk0      uint8
+		Unk1      uint8
+		StartTime uint32 // Unix timestamp (seconds)
+		EndTime   uint32 // Unix timestamp (seconds)
+		Unk4      uint32
+		Unk5      uint8
+		Unk6      uint8
+	}{} // Blank stub array.
+
+	resp := byteframe.NewByteFrame()
+	resp.WriteUint8(uint8(len(udBonusQuestInfos)))
+	for _, q := range udBonusQuestInfos {
+		resp.WriteUint8(q.Unk0)
+		resp.WriteUint8(q.Unk1)
+		resp.WriteUint32(q.StartTime)
+		resp.WriteUint32(q.EndTime)
+		resp.WriteUint32(q.Unk4)
+		resp.WriteUint8(q.Unk5)
+		resp.WriteUint8(q.Unk6)
+	}
+
+	doSizedAckResp(s, pkt.AckHandle, resp.Data())
+}
 
 func handleMsgMhfGetUdSelectedColorInfo(s *Session, p mhfpacket.MHFPacket) {}
 
@@ -2086,7 +2150,10 @@ func handleMsgSysReserve18F(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfGetTrendWeapon(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfUpdateUseTrendWeaponLog(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfUpdateUseTrendWeaponLog(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfUpdateUseTrendWeaponLog)
+	s.QueueAck(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
+}
 
 func handleMsgSysReserve192(s *Session, p mhfpacket.MHFPacket) {}
 

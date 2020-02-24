@@ -6,7 +6,9 @@ import (
 )
 
 // MsgMhfGetKijuInfo represents the MSG_MHF_GET_KIJU_INFO
-type MsgMhfGetKijuInfo struct{}
+type MsgMhfGetKijuInfo struct {
+	AckHandle uint32
+}
 
 // Opcode returns the ID associated with this packet type.
 func (m *MsgMhfGetKijuInfo) Opcode() network.PacketID {
@@ -15,7 +17,8 @@ func (m *MsgMhfGetKijuInfo) Opcode() network.PacketID {
 
 // Parse parses the packet from binary
 func (m *MsgMhfGetKijuInfo) Parse(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+	m.AckHandle = bf.ReadUint32()
+	return nil
 }
 
 // Build builds a binary packet from the current data.

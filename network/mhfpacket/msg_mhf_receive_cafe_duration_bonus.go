@@ -6,7 +6,9 @@ import (
 )
 
 // MsgMhfReceiveCafeDurationBonus represents the MSG_MHF_RECEIVE_CAFE_DURATION_BONUS
-type MsgMhfReceiveCafeDurationBonus struct{}
+type MsgMhfReceiveCafeDurationBonus struct {
+	AckHandle uint32
+}
 
 // Opcode returns the ID associated with this packet type.
 func (m *MsgMhfReceiveCafeDurationBonus) Opcode() network.PacketID {
@@ -15,7 +17,8 @@ func (m *MsgMhfReceiveCafeDurationBonus) Opcode() network.PacketID {
 
 // Parse parses the packet from binary
 func (m *MsgMhfReceiveCafeDurationBonus) Parse(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+	m.AckHandle = bf.ReadUint32()
+	return nil
 }
 
 // Build builds a binary packet from the current data.

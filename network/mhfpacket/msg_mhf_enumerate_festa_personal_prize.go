@@ -6,7 +6,9 @@ import (
 )
 
 // MsgMhfEnumerateFestaPersonalPrize represents the MSG_MHF_ENUMERATE_FESTA_PERSONAL_PRIZE
-type MsgMhfEnumerateFestaPersonalPrize struct{}
+type MsgMhfEnumerateFestaPersonalPrize struct {
+	AckHandle uint32
+}
 
 // Opcode returns the ID associated with this packet type.
 func (m *MsgMhfEnumerateFestaPersonalPrize) Opcode() network.PacketID {
@@ -15,7 +17,8 @@ func (m *MsgMhfEnumerateFestaPersonalPrize) Opcode() network.PacketID {
 
 // Parse parses the packet from binary
 func (m *MsgMhfEnumerateFestaPersonalPrize) Parse(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+	m.AckHandle = bf.ReadUint32()
+	return nil
 }
 
 // Build builds a binary packet from the current data.

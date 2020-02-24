@@ -6,7 +6,9 @@ import (
 )
 
 // MsgMhfGetUdTacticsRewardList represents the MSG_MHF_GET_UD_TACTICS_REWARD_LIST
-type MsgMhfGetUdTacticsRewardList struct{}
+type MsgMhfGetUdTacticsRewardList struct {
+	AckHandle uint32
+}
 
 // Opcode returns the ID associated with this packet type.
 func (m *MsgMhfGetUdTacticsRewardList) Opcode() network.PacketID {
@@ -15,7 +17,8 @@ func (m *MsgMhfGetUdTacticsRewardList) Opcode() network.PacketID {
 
 // Parse parses the packet from binary
 func (m *MsgMhfGetUdTacticsRewardList) Parse(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+	m.AckHandle = bf.ReadUint32()
+	return nil
 }
 
 // Build builds a binary packet from the current data.

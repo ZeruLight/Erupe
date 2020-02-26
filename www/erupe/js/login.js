@@ -9,7 +9,7 @@ function checkAuthResult() {
     var loginResult = window.external.getLastAuthResult();
     console.log('|' + loginResult + '|');
     if(loginResult == "AUTH_PROGRESS") {
-        setTimeout(checkAuthResult, 1500);
+        setTimeout(checkAuthResult, 500);
     } else if (loginResult == "AUTH_SUCCESS") {
         window.location.href = 'charsel.html'
     } else {
@@ -18,7 +18,6 @@ function checkAuthResult() {
 }
 
 $(function() {
-
     // Login form submission.
     $("#loginform").submit(function(e){
         e.preventDefault();
@@ -35,4 +34,12 @@ $(function() {
         checkAuthResult();
     });
 
+    // Config button.
+    $("#configButton").click(function(){
+        try{
+            window.external.openMhlConfig();
+        } catch(e){
+            createErrorAlert("Error on openMhlConfig: " + e);
+        }
+    });
 });

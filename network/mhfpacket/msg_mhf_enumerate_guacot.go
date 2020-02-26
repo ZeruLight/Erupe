@@ -6,7 +6,9 @@ import (
 )
 
 // MsgMhfEnumerateGuacot represents the MSG_MHF_ENUMERATE_GUACOT
-type MsgMhfEnumerateGuacot struct{}
+type MsgMhfEnumerateGuacot struct{
+		AckHandle uint32
+}
 
 // Opcode returns the ID associated with this packet type.
 func (m *MsgMhfEnumerateGuacot) Opcode() network.PacketID {
@@ -15,7 +17,8 @@ func (m *MsgMhfEnumerateGuacot) Opcode() network.PacketID {
 
 // Parse parses the packet from binary
 func (m *MsgMhfEnumerateGuacot) Parse(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+	m.AckHandle = bf.ReadUint32()
+	return nil
 }
 
 // Build builds a binary packet from the current data.

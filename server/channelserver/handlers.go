@@ -1148,7 +1148,12 @@ func handleMsgMhfEnumerateHouse(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfUpdateHouse(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfLoadHouse(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfLoadHouse(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfLoadHouse)
+	// Seems to generate same response regardless of upgrade tier
+	data, _ := hex.DecodeString("0000000000000000000000000000000000000000")
+	doSizedAckResp(s, pkt.AckHandle, data)
+}
 
 func handleMsgMhfOperateWarehouse(s *Session, p mhfpacket.MHFPacket) {}
 
@@ -1263,9 +1268,15 @@ func handleMsgMhfContractMercenary(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfEnumerateMercenaryLog(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfEnumerateGuacot(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfEnumerateGuacot(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfEnumerateGuacot)
+	doSizedAckResp(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+}
 
-func handleMsgMhfUpdateGuacot(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfUpdateGuacot(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfUpdateGuacot)
+	s.QueueAck(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
+}
 
 func handleMsgMhfInfoTournament(s *Session, p mhfpacket.MHFPacket) {}
 
@@ -1366,9 +1377,22 @@ func handleMsgMhfGetEtcPoints(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfUpdateEtcPoint(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfGetMyhouseInfo(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfGetMyhouseInfo(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfGetMyhouseInfo)
+	// another save potentially since it can be updated?
+	// set first byte to 1 to avoid pop up every time without save
+	body := make([]byte, 0x16A)
+	// parity with the only packet capture available
+	//body[0] = 10;
+	//body[21] = 10;
+	doSizedAckResp(s, pkt.AckHandle, body)
+}
 
-func handleMsgMhfUpdateMyhouseInfo(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfUpdateMyhouseInfo(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfUpdateMyhouseInfo)
+	// looks to be the sized datachunk from above without the size bytes, quite possibly intended to be persistent
+	s.QueueAck(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
+}
 
 func handleMsgMhfGetWeeklySchedule(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetWeeklySchedule)

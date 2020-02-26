@@ -6,7 +6,10 @@ import (
 )
 
 // MsgMhfGetRengokuBinary represents the MSG_MHF_GET_RENGOKU_BINARY
-type MsgMhfGetRengokuBinary struct{}
+type MsgMhfGetRengokuBinary struct{
+		AckHandle uint32
+		Unk0 uint8
+}
 
 // Opcode returns the ID associated with this packet type.
 func (m *MsgMhfGetRengokuBinary) Opcode() network.PacketID {
@@ -15,7 +18,9 @@ func (m *MsgMhfGetRengokuBinary) Opcode() network.PacketID {
 
 // Parse parses the packet from binary
 func (m *MsgMhfGetRengokuBinary) Parse(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+	m.AckHandle = bf.ReadUint32()
+	m.Unk0 = bf.ReadUint8()
+	return nil
 }
 
 // Build builds a binary packet from the current data.

@@ -25,6 +25,7 @@ type Config struct {
 type DevModeOptions struct {
 	CleanDB       bool // Automatically wipes the DB on server reset.
 	MaxLauncherHR bool // Sets the HR returned in the launcher to HR9 so that you can join non-beginner worlds.
+	FixedStageID 	bool // Causes all move_stage to use the ID sl1Ns200p0a0u0 to get you into all stages
 }
 
 // Database holds the postgres database config.

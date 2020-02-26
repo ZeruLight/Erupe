@@ -9,7 +9,7 @@ function checkAuthResult() {
     var loginResult = window.external.getLastAuthResult();
     console.log('|' + loginResult + '|');
     if(loginResult == "AUTH_PROGRESS") {
-        setTimeout(checkAuthResult, 1500);
+        setTimeout(checkAuthResult, 500);
     } else if (loginResult == "AUTH_SUCCESS") {
         window.location.href = 'charsel.html'
     } else {
@@ -34,5 +34,15 @@ $(function() {
 
         checkAuthResult();
     });
+	
+	$("#btn_config").click(function() {
+        DoOpenMhlConfig()
+    })
+	function DoOpenMhlConfig() {
+		"use strict";
+		try {
+			window.external.openMhlConfig()
+		} catch (e) {}
+	}
 
 });

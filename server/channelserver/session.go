@@ -91,6 +91,7 @@ func (s *Session) QueueAck(ackHandle uint32, data []byte) {
 	bf.WriteUint16(uint16(network.MSG_SYS_ACK))
 	bf.WriteUint32(ackHandle)
 	bf.WriteBytes(data)
+	bf.WriteUint16(0x0010)
 	s.QueueSend(bf.Data())
 }
 

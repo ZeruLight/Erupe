@@ -2,10 +2,11 @@
     "host_ip": "127.0.0.1",
     "bin_path": "bin",
 
-    "devmode": false,
+    "devmode": true,
     "devmodeoptions": {
         "cleandb": false,
-        "maxlauncherhr": true
+        "maxlauncherhr": true,
+		"fixedstageid": true
     },
 
     "database": {

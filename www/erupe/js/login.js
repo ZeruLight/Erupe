@@ -36,13 +36,10 @@ $(function() {
     });
 	
 	$("#btn_config").click(function() {
-        DoOpenMhlConfig()
+        try{
+            window.external.openMhlConfig();
+        } catch(e){
+            createErrorAlert("Error on openMhlConfig: " + e);
+        }
     })
-	function DoOpenMhlConfig() {
-		"use strict";
-		try {
-			window.external.openMhlConfig()
-		} catch (e) {}
-	}
-
 });

@@ -94,5 +94,13 @@ $(function() {
             window.external.exitLauncher();
         }, 500);
     });
+		
+	$("#btn_config").click(function() {
+        try{
+            window.external.openMhlConfig();
+        } catch(e){
+            createErrorAlert("Error on openMhlConfig: " + e);
+        }
+    })
 
 });

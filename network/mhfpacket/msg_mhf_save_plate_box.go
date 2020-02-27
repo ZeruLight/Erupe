@@ -6,7 +6,12 @@ import (
 )
 
 // MsgMhfSavePlateBox represents the MSG_MHF_SAVE_PLATE_BOX
-type MsgMhfSavePlateBox struct{}
+type MsgMhfSavePlateBox struct{
+	AckHandle uint32
+	DataSize uint32
+	IsDataDiff bool
+	RawDataPayload []byte
+}
 
 // Opcode returns the ID associated with this packet type.
 func (m *MsgMhfSavePlateBox) Opcode() network.PacketID {
@@ -15,7 +20,11 @@ func (m *MsgMhfSavePlateBox) Opcode() network.PacketID {
 
 // Parse parses the packet from binary
 func (m *MsgMhfSavePlateBox) Parse(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+	m.AckHandle = bf.ReadUint32()
+	m.DataSize = bf.ReadUint32()
+	m.IsDataDiff = bf.ReadBool()
+	m.RawDataPayload = bf.ReadBytes(uint(m.DataSize))
+	return nil
 }
 
 // Build builds a binary packet from the current data.

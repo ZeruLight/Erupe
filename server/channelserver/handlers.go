@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"io"
 	"path/filepath"
 	"strings"
 	"time"
@@ -51,6 +52,128 @@ func doSizedAckResp(s *Session, ackHandle uint32, data []byte) {
 
 	s.QueueAck(ackHandle, bfw.Data())
 }
+
+// process a datadiff save for platebox and platedata
+func saveDataDiff(b []byte, save []byte) []byte {
+	// there are a bunch of extra variations on this method in use which this does not handle yet
+	// specifically this is for diffs with seek amounts trailed by 02 followed by bytes to be written
+	var seekBytes []byte
+	seekOperation := 0
+	write := byte(0)
+	for(len(b) > 2){
+		if bytes.IndexRune(b, 2) != 0 {
+			seekBytes = b[:bytes.IndexRune(b, 2)+1]
+		} else {
+			seekBytes = b[:bytes.IndexRune(b[1:], 2)+2]
+		}
+		if len(seekBytes) == 1{
+			seekBytes = b[:bytes.IndexRune(b, 2)+2]
+			//fmt.Printf("Seek: %d SeekBytes: %X Write: %X\n", seekBytes[0], seekBytes, b[len(seekBytes)] )
+			seekOperation += int(seekBytes[0])
+			write = b[len(seekBytes)]
+			b = b[3:]
+		} else {
+			seek := int32(0)
+			for _, b := range seekBytes[:len(seekBytes)-1] {
+				seek = (seek << 8) | int32(b)
+			}
+			//fmt.Printf("Seek: %d SeekBytes: %X Write: %X\n", seek, seekBytes, b[len(seekBytes)] )
+			seekOperation += int(seek)
+			write = b[len(seekBytes)]
+			b = b[len(seekBytes)+1:]
+		}
+		save[seekOperation-1] = write
+	}
+
+	return save
+}
+
+// decompress save data
+func saveDecompress(compData []byte) ([]byte, error) {
+	r := bytes.NewReader(compData)
+
+	header := make([]byte, 16)
+	n, err := r.Read(header)
+	if err != nil {
+		return nil, err
+	} else if n != len(header) {
+		return nil, err
+	}
+
+	if !bytes.Equal(header, []byte("cmp\x2020110113\x20\x20\x20\x00")) {
+		return nil, err
+	}
+
+	var output []byte
+	for {
+		b, err := r.ReadByte()
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			return nil, err
+		}
+
+		if b == 0 {
+			// If it's a null byte, then the next byte is how many nulls to add.
+			nullCount, err := r.ReadByte()
+			if err == io.EOF {
+				break
+			} else if err != nil {
+				return nil, err
+			}
+
+			output = append(output, make([]byte, int(nullCount))...)
+		} else {
+			output = append(output, b)
+		}
+	}
+
+	return output, nil
+}
+
+// Null compresses a save
+func saveCompress(rawData []byte) ([]byte, error) {
+	r := bytes.NewReader(rawData)
+	var output []byte
+	output = append(output, []byte("cmp\x2020110113\x20\x20\x20\x00")...)
+	for {
+		b, err := r.ReadByte()
+		if err == io.EOF {
+			break
+		} else if err != nil {
+			return nil, err
+		}
+		if b == 0 {
+			output = append(output, []byte{0x00}...)
+			// read to get null count
+			nullCount := 1
+			for {
+				i, err := r.ReadByte()
+				if err == io.EOF {
+					output = append(output, []byte{byte(nullCount)}...)
+					break
+				} else if i != 0 {
+					r.UnreadByte()
+					output = append(output, []byte{byte(nullCount)}...)
+					break
+				} else if err != nil {
+					return nil, err
+				}
+				nullCount++
+
+				if(nullCount == 255){
+					output = append(output, []byte{0xFF, 0x00}...)
+					nullCount = 0
+				}
+			}
+			//output = append(output, []byte{byte(nullCount)}...)
+		} else {
+			output = append(output, b)
+		}
+	}
+	return output, nil
+}
+
 
 func updateRights(s *Session) {
 	update := &mhfpacket.MsgSysUpdateRight{
@@ -899,9 +1022,13 @@ func handleMsgMhfSavedata(s *Session, p mhfpacket.MHFPacket) {
 		s.logger.Fatal("Error dumping savedata", zap.Error(err))
 	}
 
-	_, err = s.server.db.Exec("UPDATE characters SET is_new_character=false, savedata=$1 WHERE id=$2", pkt.RawDataPayload, s.charID)
-	if err != nil {
-		s.logger.Fatal("Failed to update savedata in db", zap.Error(err))
+	if pkt.SaveType == 2{
+		_, err = s.server.db.Exec("UPDATE characters SET is_new_character=false, savedata=$1 WHERE id=$2", pkt.RawDataPayload, s.charID)
+		if err != nil {
+			s.logger.Fatal("Failed to update savedata in db", zap.Error(err))
+		}
+	} else {
+			fmt.Printf("Got savedata packet of type 1, not saving.")
 	}
 
 	s.QueueAck(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
@@ -1446,7 +1573,45 @@ func handleMsgMhfLoadPlateData(s *Session, p mhfpacket.MHFPacket) {
 	}
 }
 
-func handleMsgMhfSavePlateData(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfSavePlateData(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfSavePlateData)
+	err := ioutil.WriteFile(fmt.Sprintf("savedata\\%d_platedata.bin", time.Now().Unix()), pkt.RawDataPayload, 0644)
+	if err != nil {
+		s.logger.Fatal("Error dumping platedata", zap.Error(err))
+	}
+	if pkt.IsDataDiff {
+		// https://gist.github.com/Andoryuuta/9c524da7285e4b5ca7e52e0fc1ca1daf
+		var data []byte
+		//load existing save
+		err := s.server.db.QueryRow("SELECT platedata FROM characters WHERE id = $1", s.charID).Scan(&data)
+		if err != nil {
+			s.logger.Fatal("Failed to get platedata savedata from db", zap.Error(err))
+		}
+		//decompress
+		fmt.Println("Decompressing...")
+		data, err = saveDecompress(data)
+		if err != nil {
+			s.logger.Fatal("Failed to decompress platedata from db", zap.Error(err))
+		}
+		// perform diff and compress it to write back to db
+		fmt.Println("Diffing...")
+		saveOutput, err := saveCompress(saveDataDiff(pkt.RawDataPayload, data))
+		if err != nil {
+			s.logger.Fatal("Failed to diff and compress platedata savedata", zap.Error(err))
+		}
+		_, err = s.server.db.Exec("UPDATE characters SET platedata=$1 WHERE id=$2", saveOutput, s.charID)
+		if err != nil {
+			s.logger.Fatal("Failed to update platedata savedata in db", zap.Error(err))
+		}
+	} else {
+		// simply update database, no extra processing
+		_, err := s.server.db.Exec("UPDATE characters SET platedata=$1 WHERE id=$2", pkt.RawDataPayload, s.charID)
+		if err != nil {
+			s.logger.Fatal("Failed to update platedata savedata in db", zap.Error(err))
+		}
+	}
+	s.QueueAck(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
+}
 
 func handleMsgMhfLoadPlateBox(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfLoadPlateBox)
@@ -1463,7 +1628,47 @@ func handleMsgMhfLoadPlateBox(s *Session, p mhfpacket.MHFPacket) {
 	}
 }
 
-func handleMsgMhfSavePlateBox(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfSavePlateBox(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfSavePlateBox)
+	err := ioutil.WriteFile(fmt.Sprintf("savedata\\%d_platebox.bin", time.Now().Unix()), pkt.RawDataPayload, 0644)
+	if err != nil {
+		s.logger.Fatal("Error dumping hunter platebox savedata", zap.Error(err))
+	}
+	if pkt.IsDataDiff {
+		var data []byte
+		//load existing save
+		err := s.server.db.QueryRow("SELECT platebox FROM characters WHERE id = $1", s.charID).Scan(&data)
+		if err != nil {
+			s.logger.Fatal("Failed to get sigil box savedata from db", zap.Error(err))
+		}
+		//decompress
+		fmt.Println("Decompressing...")
+		data, err = saveDecompress(data)
+		if err != nil {
+			s.logger.Fatal("Failed to decompress savedata from db", zap.Error(err))
+		}
+		// perform diff and compress it to write back to db
+		fmt.Println("Diffing...")
+		saveOutput, err := saveCompress(saveDataDiff(pkt.RawDataPayload, data))
+		if err != nil {
+			s.logger.Fatal("Failed to diff and compress savedata", zap.Error(err))
+		}
+		_, err = s.server.db.Exec("UPDATE characters SET platebox=$1 WHERE id=$2", saveOutput, s.charID)
+		if err != nil {
+			s.logger.Fatal("Failed to update platebox savedata in db", zap.Error(err))
+		} else {
+			fmt.Println("Wrote recompressed save back to DB.")
+		}
+
+	} else {
+		// simply update database, no extra processing
+		_, err := s.server.db.Exec("UPDATE characters SET platebox=$1 WHERE id=$2", pkt.RawDataPayload, s.charID)
+		if err != nil {
+			s.logger.Fatal("Failed to update platedata savedata in db", zap.Error(err))
+		}
+	}
+	s.QueueAck(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
+}
 
 func handleMsgMhfReadGuildcard(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfReadGuildcard)
@@ -1678,7 +1883,26 @@ func handleMsgMhfLoadHunterNavi(s *Session, p mhfpacket.MHFPacket) {
 	}
 }
 
-func handleMsgMhfSaveHunterNavi(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfSaveHunterNavi(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfSaveHunterNavi)
+	err := ioutil.WriteFile(fmt.Sprintf("savedata\\%d_hunternavi.bin", time.Now().Unix()), pkt.RawDataPayload, 0644)
+	if err != nil {
+		s.logger.Fatal("Error dumping hunter navigation savedata", zap.Error(err))
+	}
+
+	if pkt.IsDataDiff {
+		// https://gist.github.com/Andoryuuta/9c524da7285e4b5ca7e52e0fc1ca1daf
+		// doesn't seem fully consistent with platedata?
+		//
+	} else {
+		// simply update database, no extra processing
+		_, err := s.server.db.Exec("UPDATE characters SET hunternavi=$1 WHERE id=$2", pkt.RawDataPayload, s.charID)
+		if err != nil {
+			s.logger.Fatal("Failed to update hunternavi savedata in db", zap.Error(err))
+		}
+	}
+	s.QueueAck(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
+}
 
 func handleMsgMhfRegistSpabiTime(s *Session, p mhfpacket.MHFPacket) {}
 
@@ -2109,122 +2333,122 @@ func handleMsgMhfGetUdMonsterPoint(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetUdMonsterPoint)
 
 	monsterPoints := []struct {
-		MID    uint8 // Monster ID ?
+		MID    uint8
 		Points uint16
 	}{
-		{MID: 0x01, Points: 0x3C},
-		{MID: 0x02, Points: 0x5A},
-		{MID: 0x06, Points: 0x14},
-		{MID: 0x07, Points: 0x50},
-		{MID: 0x08, Points: 0x28},
-		{MID: 0x0B, Points: 0x3C},
-		{MID: 0x0E, Points: 0x3C},
-		{MID: 0x0F, Points: 0x46},
-		{MID: 0x11, Points: 0x46},
-		{MID: 0x14, Points: 0x28},
-		{MID: 0x15, Points: 0x3C},
-		{MID: 0x16, Points: 0x32},
-		{MID: 0x1A, Points: 0x32},
-		{MID: 0x1B, Points: 0x0A},
-		{MID: 0x1C, Points: 0x0A},
-		{MID: 0x1F, Points: 0x0A},
-		{MID: 0x21, Points: 0x50},
-		{MID: 0x24, Points: 0x64},
-		{MID: 0x25, Points: 0x3C},
-		{MID: 0x26, Points: 0x1E},
-		{MID: 0x27, Points: 0x28},
-		{MID: 0x28, Points: 0x50},
-		{MID: 0x29, Points: 0x5A},
-		{MID: 0x2A, Points: 0x50},
-		{MID: 0x2B, Points: 0x3C},
-		{MID: 0x2C, Points: 0x3C},
-		{MID: 0x2D, Points: 0x46},
-		{MID: 0x2E, Points: 0x3C},
-		{MID: 0x2F, Points: 0x50},
-		{MID: 0x30, Points: 0x1E},
-		{MID: 0x31, Points: 0x3C},
-		{MID: 0x32, Points: 0x50},
-		{MID: 0x33, Points: 0x3C},
-		{MID: 0x34, Points: 0x28},
-		{MID: 0x35, Points: 0x50},
-		{MID: 0x36, Points: 0x6E},
-		{MID: 0x37, Points: 0x50},
-		{MID: 0x3A, Points: 0x50},
-		{MID: 0x3B, Points: 0x6E},
-		{MID: 0x40, Points: 0x64},
-		{MID: 0x41, Points: 0x6E},
-		{MID: 0x43, Points: 0x28},
-		{MID: 0x44, Points: 0x0A},
-		{MID: 0x47, Points: 0x6E},
-		{MID: 0x4A, Points: 0xFA},
-		{MID: 0x4B, Points: 0xFA},
-		{MID: 0x4C, Points: 0x46},
-		{MID: 0x4D, Points: 0x64},
-		{MID: 0x4E, Points: 0xFA},
-		{MID: 0x4F, Points: 0xFA},
-		{MID: 0x50, Points: 0xFA},
-		{MID: 0x51, Points: 0xFA},
-		{MID: 0x52, Points: 0xFA},
-		{MID: 0x53, Points: 0xFA},
-		{MID: 0x54, Points: 0xFA},
-		{MID: 0x55, Points: 0xFA},
-		{MID: 0x59, Points: 0xFA},
-		{MID: 0x5A, Points: 0xFA},
-		{MID: 0x5B, Points: 0xFA},
-		{MID: 0x5C, Points: 0xFA},
-		{MID: 0x5E, Points: 0xFA},
-		{MID: 0x5F, Points: 0xFA},
-		{MID: 0x60, Points: 0xFA},
-		{MID: 0x63, Points: 0xFA},
-		{MID: 0x65, Points: 0xFA},
-		{MID: 0x67, Points: 0xFA},
-		{MID: 0x68, Points: 0xFA},
-		{MID: 0x69, Points: 0xFA},
-		{MID: 0x6A, Points: 0xFA},
-		{MID: 0x6B, Points: 0xFA},
-		{MID: 0x6C, Points: 0xFA},
-		{MID: 0x6D, Points: 0xFA},
-		{MID: 0x6E, Points: 0xFA},
-		{MID: 0x6F, Points: 0xFA},
-		{MID: 0x70, Points: 0xFA},
-		{MID: 0x72, Points: 0xFA},
-		{MID: 0x73, Points: 0xFA},
-		{MID: 0x74, Points: 0xFA},
-		{MID: 0x77, Points: 0xFA},
-		{MID: 0x78, Points: 0xFA},
-		{MID: 0x79, Points: 0xFA},
-		{MID: 0x7A, Points: 0xFA},
-		{MID: 0x7B, Points: 0xFA},
-		{MID: 0x7D, Points: 0xFA},
-		{MID: 0x7E, Points: 0xFA},
-		{MID: 0x7F, Points: 0xFA},
-		{MID: 0x80, Points: 0xFA},
-		{MID: 0x81, Points: 0xFA},
-		{MID: 0x82, Points: 0xFA},
-		{MID: 0x83, Points: 0xFA},
-		{MID: 0x8B, Points: 0xFA},
-		{MID: 0x8C, Points: 0xFA},
-		{MID: 0x8D, Points: 0xFA},
-		{MID: 0x8E, Points: 0xFA},
-		{MID: 0x90, Points: 0xFA},
-		{MID: 0x92, Points: 0x78},
-		{MID: 0x93, Points: 0x78},
-		{MID: 0x94, Points: 0x78},
-		{MID: 0x96, Points: 0xFA},
-		{MID: 0x97, Points: 0x78},
-		{MID: 0x98, Points: 0x78},
-		{MID: 0x99, Points: 0x78},
-		{MID: 0x9A, Points: 0xFA},
-		{MID: 0x9E, Points: 0xFA},
-		{MID: 0x9F, Points: 0x78},
-		{MID: 0xA0, Points: 0xFA},
-		{MID: 0xA1, Points: 0xFA},
-		{MID: 0xA2, Points: 0x78},
-		{MID: 0xA4, Points: 0x78},
-		{MID: 0xA5, Points: 0x78},
-		{MID: 0xA6, Points: 0xFA},
-		{MID: 0xA9, Points: 0x78},
-		{MID: 0xAA, Points: 0xFA},
+		{MID: 0x01, Points: 0x3C}, // em1 Rathian
+		{MID: 0x02, Points: 0x5A}, // em2 Fatalis
+		{MID: 0x06, Points: 0x14}, // em6 Yian Kut-Ku
+		{MID: 0x07, Points: 0x50}, // em7 Lao-Shan Lung
+		{MID: 0x08, Points: 0x28}, // em8 Cephadrome
+		{MID: 0x0B, Points: 0x3C}, // em11 Rathalos
+		{MID: 0x0E, Points: 0x3C}, // em14 Diablos
+		{MID: 0x0F, Points: 0x46}, // em15 Khezu
+		{MID: 0x11, Points: 0x46}, // em17 Gravios
+		{MID: 0x14, Points: 0x28}, // em20 Gypceros
+		{MID: 0x15, Points: 0x3C}, // em21 Plesioth
+		{MID: 0x16, Points: 0x32}, // em22 Basarios
+		{MID: 0x1A, Points: 0x32}, // em26 Monoblos
+		{MID: 0x1B, Points: 0x0A}, // em27 Velocidrome
+		{MID: 0x1C, Points: 0x0A}, // em28 Gendrome
+		{MID: 0x1F, Points: 0x0A}, // em31 Iodrome
+		{MID: 0x21, Points: 0x50}, // em33 Kirin
+		{MID: 0x24, Points: 0x64}, // em36 Crimson Fatalis
+		{MID: 0x25, Points: 0x3C}, // em37 Pink Rathian
+		{MID: 0x26, Points: 0x1E}, // em38 Blue Yian Kut-Ku
+		{MID: 0x27, Points: 0x28}, // em39 Purple Gypceros
+		{MID: 0x28, Points: 0x50}, // em40 Yian Garuga
+		{MID: 0x29, Points: 0x5A}, // em41 Silver Rathalos
+		{MID: 0x2A, Points: 0x50}, // em42 Gold Rathian
+		{MID: 0x2B, Points: 0x3C}, // em43 Black Diablos
+		{MID: 0x2C, Points: 0x3C}, // em44 White Monoblos
+		{MID: 0x2D, Points: 0x46}, // em45 Red Khezu
+		{MID: 0x2E, Points: 0x3C}, // em46 Green Plesioth
+		{MID: 0x2F, Points: 0x50}, // em47 Black Gravios
+		{MID: 0x30, Points: 0x1E}, // em48 Daimyo Hermitaur
+		{MID: 0x31, Points: 0x3C}, // em49 Azure Rathalos
+		{MID: 0x32, Points: 0x50}, // em50 Ashen Lao-Shan Lung
+		{MID: 0x33, Points: 0x3C}, // em51 Blangonga
+		{MID: 0x34, Points: 0x28}, // em52 Congalala
+		{MID: 0x35, Points: 0x50}, // em53 Rajang
+		{MID: 0x36, Points: 0x6E}, // em54 Kushala Daora
+		{MID: 0x37, Points: 0x50}, // em55 Shen Gaoren
+		{MID: 0x3A, Points: 0x50}, // em58 Yama Tsukami
+		{MID: 0x3B, Points: 0x6E}, // em59 Chameleos
+		{MID: 0x40, Points: 0x64}, // em64 Lunastra
+		{MID: 0x41, Points: 0x6E}, // em65 Teostra
+		{MID: 0x43, Points: 0x28}, // em67 Shogun Ceanataur
+		{MID: 0x44, Points: 0x0A}, // em68 Bulldrome
+		{MID: 0x47, Points: 0x6E}, // em71 White Fatalis
+		{MID: 0x4A, Points: 0xFA}, // em74 Hypnocatrice
+		{MID: 0x4B, Points: 0xFA}, // em75 Lavasioth
+		{MID: 0x4C, Points: 0x46}, // em76 Tigrex
+		{MID: 0x4D, Points: 0x64}, // em77 Akantor
+		{MID: 0x4E, Points: 0xFA}, // em78 Bright Hypnoc
+		{MID: 0x4F, Points: 0xFA}, // em79 Lavasioth Subspecies
+		{MID: 0x50, Points: 0xFA}, // em80 Espinas
+		{MID: 0x51, Points: 0xFA}, // em81 Orange Espinas
+		{MID: 0x52, Points: 0xFA}, // em82 White Hypnoc
+		{MID: 0x53, Points: 0xFA}, // em83 Akura Vashimu
+		{MID: 0x54, Points: 0xFA}, // em84 Akura Jebia
+		{MID: 0x55, Points: 0xFA}, // em85 Berukyurosu
+		{MID: 0x59, Points: 0xFA}, // em89 Pariapuria
+		{MID: 0x5A, Points: 0xFA}, // em90 White Espinas
+		{MID: 0x5B, Points: 0xFA}, // em91 Kamu Orugaron
+		{MID: 0x5C, Points: 0xFA}, // em92 Nono Orugaron
+		{MID: 0x5E, Points: 0xFA}, // em94 Dyuragaua
+		{MID: 0x5F, Points: 0xFA}, // em95 Doragyurosu
+		{MID: 0x60, Points: 0xFA}, // em96 Gurenzeburu
+		{MID: 0x63, Points: 0xFA}, // em99 Rukodiora
+		{MID: 0x65, Points: 0xFA}, // em101 Gogomoa
+		{MID: 0x67, Points: 0xFA}, // em103 Taikun Zamuza
+		{MID: 0x68, Points: 0xFA}, // em104 Abiorugu
+		{MID: 0x69, Points: 0xFA}, // em105 Kuarusepusu
+		{MID: 0x6A, Points: 0xFA}, // em106 Odibatorasu
+		{MID: 0x6B, Points: 0xFA}, // em107 Disufiroa
+		{MID: 0x6C, Points: 0xFA}, // em108 Rebidiora
+		{MID: 0x6D, Points: 0xFA}, // em109 Anorupatisu
+		{MID: 0x6E, Points: 0xFA}, // em110 Hyujikiki
+		{MID: 0x6F, Points: 0xFA}, // em111 Midogaron
+		{MID: 0x70, Points: 0xFA}, // em112 Giaorugu
+		{MID: 0x72, Points: 0xFA}, // em114 Farunokku
+		{MID: 0x73, Points: 0xFA}, // em115 Pokaradon
+		{MID: 0x74, Points: 0xFA}, // em116 Shantien
+		{MID: 0x77, Points: 0xFA}, // em119 Goruganosu
+		{MID: 0x78, Points: 0xFA}, // em120 Aruganosu
+		{MID: 0x79, Points: 0xFA}, // em121 Baruragaru
+		{MID: 0x7A, Points: 0xFA}, // em122 Zerureusu
+		{MID: 0x7B, Points: 0xFA}, // em123 Gougarf
+		{MID: 0x7D, Points: 0xFA}, // em125 Forokururu
+		{MID: 0x7E, Points: 0xFA}, // em126 Meraginasu
+		{MID: 0x7F, Points: 0xFA}, // em127 Diorekkusu
+		{MID: 0x80, Points: 0xFA}, // em128 Garuba Daora
+		{MID: 0x81, Points: 0xFA}, // em129 Inagami
+		{MID: 0x82, Points: 0xFA}, // em130 Varusaburosu
+		{MID: 0x83, Points: 0xFA}, // em131 Poborubarumu
+		{MID: 0x8B, Points: 0xFA}, // em139 Gureadomosu
+		{MID: 0x8C, Points: 0xFA}, // em140 Harudomerugu
+		{MID: 0x8D, Points: 0xFA}, // em141 Toridcless
+		{MID: 0x8E, Points: 0xFA}, // em142 Gasurabazura
+		{MID: 0x90, Points: 0xFA}, // em144 Yama Kurai
+		{MID: 0x92, Points: 0x78}, // em146 Zinogre
+		{MID: 0x93, Points: 0x78}, // em147 Deviljho
+		{MID: 0x94, Points: 0x78}, // em148 Brachydios
+		{MID: 0x96, Points: 0xFA}, // em150 Toa Tesukatora
+		{MID: 0x97, Points: 0x78}, // em151 Barioth
+		{MID: 0x98, Points: 0x78}, // em152 Uragaan
+		{MID: 0x99, Points: 0x78}, // em153 Stygian Zinogre
+		{MID: 0x9A, Points: 0xFA}, // em154 Guanzorumu
+		{MID: 0x9E, Points: 0xFA}, // em158 Voljang
+		{MID: 0x9F, Points: 0x78}, // em159 Nargacuga
+		{MID: 0xA0, Points: 0xFA}, // em160 Keoaruboru
+		{MID: 0xA1, Points: 0xFA}, // em161 Zenaserisu
+		{MID: 0xA2, Points: 0x78}, // em162 Gore Magala
+		{MID: 0xA4, Points: 0x78}, // em164 Shagaru Magala
+		{MID: 0xA5, Points: 0x78}, // em165 Amatsu
+		{MID: 0xA6, Points: 0xFA}, // em166 Elzelion
+		{MID: 0xA9, Points: 0x78}, // em169 Seregios
+		{MID: 0xAA, Points: 0xFA}, // em170 Bogabadorumu
 	}
 
 	resp := byteframe.NewByteFrame()
@@ -2278,9 +2502,20 @@ func handleMsgMhfGetUdTacticsRewardList(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfGetUdTacticsLog(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfGetEquipSkinHist(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfGetEquipSkinHist(s *Session, p mhfpacket.MHFPacket) {
+		pkt := p.(*mhfpacket.MsgMhfGetEquipSkinHist)
+		// Transmog / reskin system,  bitmask of 3200 bytes length
+		// presumably divided by 5 sections for 5120 armour IDs covered
+		// +10,000 for actual ID to be unlocked by each bit
+		// Returning 3200 bytes of FF just unlocks everything for now
+		doSizedAckResp(s, pkt.AckHandle, bytes.Repeat([]byte{0xFF}, 0xC80))
+}
 
-func handleMsgMhfUpdateEquipSkinHist(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfUpdateEquipSkinHist(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfUpdateEquipSkinHist)
+	// sends a raw armour ID back that needs to be mapped into the persistent bitmask above (-10,000)
+	s.QueueAck(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
+}
 
 func handleMsgMhfGetUdTacticsFollower(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetUdTacticsFollower)

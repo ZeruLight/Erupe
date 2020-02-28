@@ -1028,7 +1028,7 @@ func handleMsgMhfSavedata(s *Session, p mhfpacket.MHFPacket) {
 			s.logger.Fatal("Failed to update savedata in db", zap.Error(err))
 		}
 	} else {
-			fmt.Printf("Got savedata packet of type 1, not saving.")
+			fmt.Printf("Got savedata packet of type 1, no handling implemented. Not saving.")
 	}
 
 	s.QueueAck(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
@@ -1074,7 +1074,9 @@ func handleMsgMhfOprtMail(s *Session, p mhfpacket.MHFPacket) {}
 func handleMsgMhfLoadFavoriteQuest(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfLoadFavoriteQuest)
 	// TODO(Andoryuuta): Save data from MsgMhfSaveFavoriteQuest and resend it here.
-	doSizedAckResp(s, pkt.AckHandle, []byte{})
+	// Fist: Using a no favourites placeholder to avoid an in game error message
+	// being sent every time you use a counter when it fails to load
+	doSizedAckResp(s, pkt.AckHandle, []byte{0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
 }
 
 func handleMsgMhfSaveFavoriteQuest(s *Session, p mhfpacket.MHFPacket) {}
@@ -1271,6 +1273,7 @@ func handleMsgMhfEnumerateShop(s *Session, p mhfpacket.MHFPacket) {
 			data, _ := hex.DecodeString("0008000807749AA900004027000000C800010000000000C8000000000000000B000031950D2A00004028000000DC00010000000000C8000000000000001400003697CA6700004029000000FA00010000000000C8000000000000001E0000005788980000402A0000012C00010000000000C8000000000000002800000C727D150000406E000000C800010000000000C8000000000000000B000024D1B6460000406F000000DC00010000000000C80000000000000014000020B429A300004070000000FA00010000000000C8000000000000001E00003FFDDD84000040710000012C00010000000000C800000000000000280000")
 			doSizedAckResp(s, pkt.AckHandle, data)
 		} else if pkt.ShopID == 7{
+			// hunter's road, 30 bytes chunks, item ID at 0x10, cost at 0x14, floor req at 0x04
 			data, _ := hex.DecodeString("002C002C2C934441000030AC000001F400010000000000010000008C0000000100000A51B75F000030AD000001F400010000000000010000008C00000001000019B22C9D000030AE000003E80001000000000001000000410000000100001B91C74B000030AF000003E800010000000000010000004100000001000007749AB9000030B0000005DC00010000000000010000000F0000000100003797CA67000030B1000005DC0001000000000001000000230000000100000C707D05000030B2000005DC00010000000000010000003200000001000020B629B3000030B3000005DC00010000000000010000000F0000000100002D934471000030B4000005DC0001000000000001000000140000000100000B53B74F000030B5000005DC00010000000000010000003200000001000018B02CBD0000386D000003E80001000000000001000000010000000100001B91C76B0000386B00000BB800010000000000010000000500000001000006769AA90000386C000013880001000000000001000000050000000100003697CA5700003997000001F400010000000000010000002E0000000A00000C707D2500003A05000001F400010000000000010000002E0000000A000020B6298300003AAC000001F400010000000000010000002E0000000A00002D91445100003B08000001F400010000000000010000002E0000000A00000B53B75F00003FD2000001F400010000000000010000001F0000000A000019B02C8D00003FD3000001F400010000000000010000001F0000000A00001B91C77B00003835000001F400010000000000010000002E0000000A000007769AA900003AAD000001F400010000000000010000002E0000000A00003695CA4700003B07000001F400010000000000010000002E0000000A00000C727D3500003D9D000001F400010000000000010000002E0000000A000021B629B300003FD4000001F400010000000000010000002E0000003200002C91445100003FD5000001F400010000000000010000002E0000003200000A51B77F00003858000003E80001000000000001000000050005001E000019B02CAD00003AB8000003E80001000000000001000000050000002800001A93C76B00003B0D000003E800010000000000010000000500000032000006769A9900003DFC000003E80001000000000001000000050000003C00003695CA670000407C000003E80001000000000001000000050000004600000C727D050000407D000003E800010000000000010000000500000050000021B4299300003A62000003E80001000000000001000000050000006400002D93444100002C16000001F40001000000000001000000140000000100000B51B74F00003C58000003E800010000000000C8000000020002000B000019B02CBD0000392F000003E800010000000000C8000000050000000B00001B93C76B00003860000003E80001000000000001000000050000005A000006749A8900003861000003E80001000000000001000000050000006400003697CA7700003862000003E80001000000000001000000050000006E00000D727D3500003863000003E800010000000000010000000500000078000020B4299300003864000003E80001000000000001000000050000008200002D934451000036C5000003E80001000000000001000000050000008C00000B51B76F0000399600000FA000010000000000010000000A00000014000018B22CAD00003996000007D000010000000000010000000A0000002800001A93C75B000037DA000003E800010000000000C8000000050000000A0000")
 			doSizedAckResp(s, pkt.AckHandle, data)
 		}else if pkt.ShopID == 8{
@@ -1570,7 +1573,12 @@ func handleMsgMhfEnumerateInvGuild(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfOperationInvGuild(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfStampcardStamp(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfStampcardStamp(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfStampcardStamp)
+	// TODO: Work out where it gets existing stamp count from, its format and then
+	// update the actual sent values to be correct
+	doSizedAckResp(s, pkt.AckHandle, []byte{0x03, 0xe7, 0x03, 0xe7, 0x02, 0x99, 0x02, 0x9c, 0x00, 0x00, 0x00, 0x00, 0x14, 0xf8, 0x69, 0x54})
+}
 
 func handleMsgMhfStampcardPrize(s *Session, p mhfpacket.MHFPacket) {}
 
@@ -1732,7 +1740,13 @@ func handleMsgMhfReadLastWeekBeatRanking(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfAcceptReadReward(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfGetAdditionalBeatReward(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfGetAdditionalBeatReward(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfGetAdditionalBeatReward)
+	// Actual response in packet captures are all just giant batches of null bytes
+	// I'm assuming this is because it used to be tied to an actual event and
+	// they never bothered killing off the packet when they made it static
+	doSizedAckResp(s, pkt.AckHandle, make([]byte, 0x104))
+}
 
 func handleMsgMhfGetFixedSeibatuRankingTable(s *Session, p mhfpacket.MHFPacket) {}
 
@@ -2125,7 +2139,12 @@ func handleMsgMhfGetStepupStatus(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfPlayFreeGacha(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfGetTinyBin(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfGetTinyBin(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfGetTinyBin)
+	// requested after conquest quests
+	// 00 02 01 req returns 01 00 00 00 so using that as general placeholder
+	s.QueueAck(pkt.AckHandle, []byte{0x01, 0x00, 0x00, 0x00})
+}
 
 func handleMsgMhfPostTinyBin(s *Session, p mhfpacket.MHFPacket) {}
 
@@ -2566,7 +2585,11 @@ func handleMsgSysReserve180(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfGuildHuntdata(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfAddKouryouPoint(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfAddKouryouPoint(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfAddKouryouPoint)
+	// Adds pkt.KouryouPoints to the value in get kouryou points, not sure if the actual value is saved for sending in MsgMhfGetKouryouPoint or in SaveData
+	doSizedAckResp(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+}
 
 func handleMsgMhfGetKouryouPoint(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetKouryouPoint)
@@ -2624,8 +2647,14 @@ func handleMsgSysReserve18F(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfGetTrendWeapon(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetTrendWeapon)
-	// TODO (Fist): Work out actual format limitations, seems to be final upgrade for weapons and it traverses its upgrade tree to recommend base as final 423C correlates with most popular magnet spike in use on JP
-	// 2A 00 3C 44 00 3C 76 00 3F EA 01 0F 20 01 0F 50 01 0F F8 02 3C 7E 02 3D F3 02 40 2A 03 3D 65 03 3F 2A 03 40 36 04 3D 59 04 41 E7 04 43 3E 05 0A ED 05 0F 4C 05 0F F2 06 3A FE 06 41 E8 06 41 FA 07 3B 02 07 3F ED 07 40 24 08 3D 37 08 3F 66 08 41 EC 09 3D 38 09 3F 8A 09 41 EE 0A 0E 78 0A 0F AA 0A 0F F9 0B 3E 2E 0B 41 EF 0B 42 FB 0C 41 F0 0C 43 3F 0C 43 EE 0D 41 F1 0D 42 10 0D 42 3C 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
+	// TODO (Fist): Work out actual format limitations, seems to be final upgrade
+	// for weapons and it traverses its upgrade tree to recommend base as final
+	// 423C correlates with most popular magnet spike in use on JP
+	// 2A 00 3C 44 00 3C 76 00 3F EA 01 0F 20 01 0F 50 01 0F F8 02 3C 7E 02 3D
+	// F3 02 40 2A 03 3D 65 03 3F 2A 03 40 36 04 3D 59 04 41 E7 04 43 3E 05 0A
+	// ED 05 0F 4C 05 0F F2 06 3A FE 06 41 E8 06 41 FA 07 3B 02 07 3F ED 07 40
+	// 24 08 3D 37 08 3F 66 08 41 EC 09 3D 38 09 3F 8A 09 41 EE 0A 0E 78 0A 0F
+	// AA 0A 0F F9 0B 3E 2E 0B 41 EF 0B 42 FB 0C 41 F0 0C 43 3F 0C 43 EE 0D 41 F1 0D 42 10 0D 42 3C 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
 	doSizedAckResp(s, pkt.AckHandle, make([]byte, 0xA9))
 }
 

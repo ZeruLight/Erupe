@@ -813,10 +813,10 @@ func handleMsgSysEnumerateStage(s *Session, p mhfpacket.MHFPacket) {
 	for sid := range s.server.stages {
 		// Found parsing code, field sizes are correct, but unknown purposes still.
 		//resp.WriteBytes([]byte{0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x04, 0x00})
-		resp.WriteUint16(5)  // Current players.
-		resp.WriteUint16(7)  // Unknown value
+		resp.WriteUint16(1)  // Current players.
+		resp.WriteUint16(0)  // Unknown value
 		resp.WriteUint16(0)  // HasDeparted.
-		resp.WriteUint16(20) // Max players.
+		resp.WriteUint16(4) // Max players.
 		resp.WriteUint8(2)   // Password protected.
 		resp.WriteUint8(uint8(len(sid)))
 		resp.WriteBytes([]byte(sid))
@@ -1193,8 +1193,25 @@ func handleMsgMhfEntryRookieGuild(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateQuest)
-	stubEnumerateNoResults(s, pkt.AckHandle)
 
+	// questlists seem to be returned based on their internal values, intended order has these as:
+	// 0 > 42 > 84 > 126 > 168, what actually makes it stop requesting quests I do not know yet
+	// INSERT INTO questlists (ind, questlist) VALUES ('0', pg_read_binary_file('c:\save\quest_0_0.bin'));
+	// INSERT INTO questlists (ind, questlist) VALUES ('42', pg_read_binary_file('c:\save\quest_42_2A.bin'));
+	// INSERT INTO questlists (ind, questlist) VALUES ('84', pg_read_binary_file('c:\save\quest_84_54.bin'));
+	// INSERT INTO questlists (ind, questlist) VALUES ('126', pg_read_binary_file('c:\save\quest_126_7E.bin'));
+	// INSERT INTO questlists (ind, questlist) VALUES ('168', pg_read_binary_file('c:\save\quest_168_A8.bin'));
+	var data []byte
+	err := s.server.db.QueryRow("SELECT questlist FROM questlists WHERE ind = $1", int(pkt.QuestList)).Scan(&data)
+	if err != nil {
+		fmt.Println("Couldn't find quest list.")
+	} else {
+		if len(data) > 0{
+			doSizedAckResp(s, pkt.AckHandle, data)
+		}else{
+			stubEnumerateNoResults(s, pkt.AckHandle)
+		}
+	}
 	// Update the client's rights as well:
 	updateRights(s)
 }
@@ -1206,11 +1223,12 @@ func handleMsgMhfEnumerateEvent(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfEnumeratePrice(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumeratePrice)
-	resp := byteframe.NewByteFrame()
-	resp.WriteUint16(0) // Entry type 1 count
-	resp.WriteUint16(0) // Entry type 2 count
-
-	doSizedAckResp(s, pkt.AckHandle, resp.Data())
+	//resp := byteframe.NewByteFrame()
+	//resp.WriteUint16(0) // Entry type 1 count
+	//resp.WriteUint16(0) // Entry type 2 count
+	// directly lifted for now because lacking it crashes the counter on having actual events present
+	data, _ := hex.DecodeString("0000000066000003E800000000007300640100000320000000000006006401000003200000000000300064010000044C00000000007200640100000384000000000034006401000003840000000000140064010000051400000000006E006401000003E8000000000016006401000003E8000000000001006401000003200000000000430064010000057800000000006F006401000003840000000000330064010000044C00000000000B006401000003E800000000000F006401000006400000000000700064010000044C0000000000110064010000057800000000004C006401000003E8000000000059006401000006A400000000006D006401000005DC00000000004B006401000005DC000000000050006401000006400000000000350064010000070800000000006C0064010000044C000000000028006401000005DC00000000005300640100000640000000000060006401000005DC00000000005E0064010000051400000000007B006401000003E80000000000740064010000070800000000006B0064010000025800000000001B0064010000025800000000001C006401000002BC00000000001F006401000006A400000000007900640100000320000000000008006401000003E80000000000150064010000070800000000007A0064010000044C00000000000E00640100000640000000000055006401000007D0000000000002006401000005DC00000000002F0064010000064000000000002A0064010000076C00000000007E006401000002BC0000000000440064010000038400000000005C0064010000064000000000005B006401000006A400000000007D0064010000076C00000000007F006401000005DC0000000000540064010000064000000000002900640100000960000000000024006401000007D0000000000081006401000008340000000000800064010000038400000000001A006401000003E800000000002D0064010000038400000000004A006401000006A400000000005A00640100000384000000000027006401000007080000000000830064010000076C000000000040006401000006400000000000690064010000044C000000000025006401000004B000000000003100640100000708000000000082006401000003E800000000006500640100000640000000000051006401000007D000000000008C0064010000070800000000004D0064010000038400000000004E0064010000089800000000008B006401000004B000000000002E006401000009600000000000920064010000076C00000000008E00640100000514000000000068006401000004B000000000002B006401000003E800000000002C00640100000BB8000000000093006401000008FC00000000009000640100000AF0000000000094006401000006A400000000008D0064010000044C000000000052006401000005DC00000000004F006401000008980000000000970064010000070800000000006A0064010000064000000000005F00640100000384000000000026006401000008FC000000000096006401000007D00000000000980064010000076C000000000041006401000006A400000000003B006401000007080000000000360064010000083400000000009F00640100000A2800000000009A0064010000076C000000000021006401000007D000000000006300640100000A8C0000000000990064010000089800000000009E006401000007080000000000A100640100000C1C0000000000A200640100000C800000000000A400640100000DAC0000000000A600640100000C800000000000A50064010010")
+	doSizedAckResp(s, pkt.AckHandle, data)
 }
 
 func handleMsgMhfEnumerateRanking(s *Session, p mhfpacket.MHFPacket) {
@@ -1953,7 +1971,10 @@ func handleMsgMhfGetTowerInfo(s *Session, p mhfpacket.MHFPacket) {
 	stubGetNoResults(s, pkt.AckHandle)
 }
 
-func handleMsgMhfPostTowerInfo(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfPostTowerInfo(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfPostTowerInfo)
+	s.QueueAck(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
+}
 
 func handleMsgMhfGetGemInfo(s *Session, p mhfpacket.MHFPacket) {}
 
@@ -2680,7 +2701,7 @@ func handleMsgMhfLoadRengokuData(s *Session, p mhfpacket.MHFPacket) {
 }
 
 func handleMsgMhfGetRengokuBinary(s *Session, p mhfpacket.MHFPacket) {
-		pkt := p.(*mhfpacket.MsgMhfGetRengokuBinary)
+	pkt := p.(*mhfpacket.MsgMhfGetRengokuBinary)
 	// a (massively out of date) version resides in the game's /dat/ folder or up to date can be pulled from packets
 	data, err := ioutil.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("rengoku_data.bin")))
 	if err != nil {
@@ -2691,7 +2712,10 @@ func handleMsgMhfGetRengokuBinary(s *Session, p mhfpacket.MHFPacket) {
 
 }
 
-func handleMsgMhfEnumerateRengokuRanking(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfEnumerateRengokuRanking(s *Session, p mhfpacket.MHFPacket) {
+		pkt := p.(*mhfpacket.MsgMhfEnumerateRengokuRanking)
+		doSizedAckResp(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
+}
 
 func handleMsgMhfGetRengokuRankingRank(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetRengokuRankingRank)

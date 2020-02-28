@@ -6,7 +6,9 @@ import (
 )
 
 // MsgMhfEnumerateRengokuRanking represents the MSG_MHF_ENUMERATE_RENGOKU_RANKING
-type MsgMhfEnumerateRengokuRanking struct{}
+type MsgMhfEnumerateRengokuRanking struct{
+		AckHandle uint32
+}
 
 // Opcode returns the ID associated with this packet type.
 func (m *MsgMhfEnumerateRengokuRanking) Opcode() network.PacketID {
@@ -15,7 +17,8 @@ func (m *MsgMhfEnumerateRengokuRanking) Opcode() network.PacketID {
 
 // Parse parses the packet from binary
 func (m *MsgMhfEnumerateRengokuRanking) Parse(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+	m.AckHandle = bf.ReadUint32()
+	return nil;
 }
 
 // Build builds a binary packet from the current data.

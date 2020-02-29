@@ -1076,7 +1076,8 @@ func handleMsgMhfLoadFavoriteQuest(s *Session, p mhfpacket.MHFPacket) {
 	// TODO(Andoryuuta): Save data from MsgMhfSaveFavoriteQuest and resend it here.
 	// Fist: Using a no favourites placeholder to avoid an in game error message
 	// being sent every time you use a counter when it fails to load
-	doSizedAckResp(s, pkt.AckHandle, []byte{0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
+	doSizedAckResp(s, pkt.AckHandle, []byte{0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
+
 }
 
 func handleMsgMhfSaveFavoriteQuest(s *Session, p mhfpacket.MHFPacket) {}
@@ -1390,7 +1391,7 @@ func handleMsgMhfCheckWeeklyStamp(s *Session, p mhfpacket.MHFPacket) {
 	resp.WriteUint16(0x000E)
 	resp.WriteUint16(0x0001)
 	resp.WriteUint16(0x0000)
-	resp.WriteUint16(0x0001)
+	resp.WriteUint16(0x0000) // 0x0000 stops the vaguely annoying log in pop up 
 	resp.WriteUint32(0)
 	resp.WriteUint32(0x5dddcbb3) // Timestamp
 

@@ -1208,6 +1208,7 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 	err := s.server.db.QueryRow("SELECT questlist FROM questlists WHERE ind = $1", int(pkt.QuestList)).Scan(&data)
 	if err != nil {
 		fmt.Println("Couldn't find quest list.")
+		stubEnumerateNoResults(s, pkt.AckHandle)
 	} else {
 		if len(data) > 0{
 			doSizedAckResp(s, pkt.AckHandle, data)

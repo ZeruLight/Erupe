@@ -18,7 +18,6 @@ function checkAuthResult() {
 }
 
 $(function() {
-
     // Login form submission.
     $("#loginform").submit(function(e){
         e.preventDefault();
@@ -34,12 +33,13 @@ $(function() {
 
         checkAuthResult();
     });
-	
-	$("#btn_config").click(function() {
+
+    // Config button.
+    $("#configButton").click(function(){
         try{
             window.external.openMhlConfig();
         } catch(e){
             createErrorAlert("Error on openMhlConfig: " + e);
         }
-    })
+    });
 });

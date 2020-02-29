@@ -95,7 +95,7 @@ $(function() {
         }, 500);
     });
 		
-	$("#btn_config").click(function() {
+	$("#configButton").click(function() {
         try{
             window.external.openMhlConfig();
         } catch(e){

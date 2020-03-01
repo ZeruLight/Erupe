@@ -1082,7 +1082,7 @@ func handleMsgMhfLoadFavoriteQuest(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfSaveFavoriteQuest(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSaveFavoriteQuest)
-		s.QueueAck(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
+	s.QueueAck(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
 }
 
 func handleMsgMhfRegisterEvent(s *Session, p mhfpacket.MHFPacket) {}
@@ -1884,15 +1884,57 @@ func handleMsgMhfLoadDecoMyset(s *Session, p mhfpacket.MHFPacket) {
 }
 
 func handleMsgMhfSaveDecoMyset(s *Session, p mhfpacket.MHFPacket) {
-/*	1 byte         uint8 total number of sets
-1 byte         unk
+	pkt := p.(*mhfpacket.MsgMhfSaveDecoMyset)
+	// https://gist.github.com/Andoryuuta/9c524da7285e4b5ca7e52e0fc1ca1daf
+	var loadData []byte
+	bf := byteframe.NewByteFrameFromBytes(pkt.RawDataPayload[1:]) // skip first unk byte
+	err := s.server.db.QueryRow("SELECT decomyset FROM characters WHERE id = $1", s.charID).Scan(&loadData)
+	if err != nil {
+		s.logger.Fatal("Failed to get preset decorations savedata from db", zap.Error(err))
+	} else {
+		numSets := bf.ReadUint8() // sets being written
+		// empty save
+		if len(loadData) == 0{ loadData = []byte{0x01, 0x00} }
 
-78 bytes     total set size
-	2 bytes        uint16 set number
-	20 bytes    string with 0x00 padding
-	56 bytes    data chunk
-	*/
-
+		savedSets := loadData[1] // existing saved sets
+		// no sets, new slice with just first 2 bytes for appends later
+		if savedSets == 0{ loadData = []byte{0x01, 0x00} }
+		for i := 0; i < int(numSets); i++ {
+			writeSet := bf.ReadUint16()
+			dataChunk := bf.ReadBytes(76)
+			setBytes := append([]byte{uint8(writeSet>>8), uint8(writeSet&0xff)},dataChunk...)
+			for x := 0; true; x++ {
+				if x == int(savedSets) {
+					// appending set
+					if loadData[len(loadData)-1] == 0x10{
+						// sanity check for if there was a messy manual import
+						loadData = append(loadData[:len(loadData)-2], setBytes...)
+					} else {
+						loadData = append(loadData, setBytes...)
+					}
+					savedSets++
+					break
+				}
+				currentSet := loadData[3 + (x*78)]
+				if int(currentSet) == int(writeSet){
+					// replacing a set
+					loadData = append(loadData[:2 + (x*78)], append(setBytes, loadData[2 + ((x+1)*78):]...)...)
+					break
+				} else if int(currentSet) > int(writeSet){
+					// inserting before current set
+					loadData = append(loadData[:2 + ((x)*78)], append(setBytes, loadData[2 + ((x)*78):]...)...)
+					savedSets++
+					break
+				}
+			}
+			loadData[1] = savedSets // update set count
+		}
+		_, err := s.server.db.Exec("UPDATE characters SET decomyset=$1 WHERE id=$2", loadData, s.charID)
+		if err != nil {
+			s.logger.Fatal("Failed to update decomyset savedata in db", zap.Error(err))
+		} 
+	}
+	s.QueueAck(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
 
 }
 
@@ -1941,7 +1983,6 @@ func handleMsgMhfSaveHunterNavi(s *Session, p mhfpacket.MHFPacket) {
 	if pkt.IsDataDiff {
 		// https://gist.github.com/Andoryuuta/9c524da7285e4b5ca7e52e0fc1ca1daf
 		// doesn't seem fully consistent with platedata?
-		//
 	} else {
 		// simply update database, no extra processing
 		_, err := s.server.db.Exec("UPDATE characters SET hunternavi=$1 WHERE id=$2", pkt.RawDataPayload, s.charID)
@@ -2643,7 +2684,15 @@ func handleMsgMhfLoadPlateMyset(s *Session, p mhfpacket.MHFPacket) {
 	}
 }
 
-func handleMsgMhfSavePlateMyset(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfSavePlateMyset(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfSavePlateMyset)
+	// looks to always return the full thing, simply update database, no extra processing
+	_, err := s.server.db.Exec("UPDATE characters SET platemyset=$1 WHERE id=$2", pkt.RawDataPayload, s.charID)
+	if err != nil {
+		s.logger.Fatal("Failed to update platemyset savedata in db", zap.Error(err))
+	}
+	s.QueueAck(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
+}
 
 func handleMsgSysReserve18B(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysReserve18B)

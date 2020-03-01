@@ -1021,9 +1021,19 @@ func handleMsgMhfSavedata(s *Session, p mhfpacket.MHFPacket) {
 	if err != nil {
 		s.logger.Fatal("Error dumping savedata", zap.Error(err))
 	}
-
 	if pkt.SaveType == 2{
 		_, err = s.server.db.Exec("UPDATE characters SET is_new_character=false, savedata=$1 WHERE id=$2", pkt.RawDataPayload, s.charID)
+
+		// Temporary server launcher response stuff
+		// 0x1F715	Weapon Class
+		// 0x1FDF6 HR (small_gr_level)
+		// 0x88 Character Name
+		saveFile, _ := saveDecompress(pkt.RawDataPayload)
+		_, err = s.server.db.Exec("UPDATE characters SET weapon=$1 WHERE id=$2", uint16(saveFile[128789]), s.charID)
+		x := uint16(saveFile[130550])<<8 | uint16(saveFile[130551])
+		_, err = s.server.db.Exec("UPDATE characters SET small_gr_level=$1 WHERE id=$2", uint16(x), s.charID)
+		_, err = s.server.db.Exec("UPDATE characters SET name=$1 WHERE id=$2", strings.SplitN(string(saveFile[88:100]), "\x00", 2)[0], s.charID)
+
 		if err != nil {
 			s.logger.Fatal("Failed to update savedata in db", zap.Error(err))
 		}
@@ -1932,7 +1942,7 @@ func handleMsgMhfSaveDecoMyset(s *Session, p mhfpacket.MHFPacket) {
 		_, err := s.server.db.Exec("UPDATE characters SET decomyset=$1 WHERE id=$2", loadData, s.charID)
 		if err != nil {
 			s.logger.Fatal("Failed to update decomyset savedata in db", zap.Error(err))
-		} 
+		}
 	}
 	s.QueueAck(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
 

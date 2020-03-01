@@ -1080,7 +1080,10 @@ func handleMsgMhfLoadFavoriteQuest(s *Session, p mhfpacket.MHFPacket) {
 
 }
 
-func handleMsgMhfSaveFavoriteQuest(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfSaveFavoriteQuest(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfSaveFavoriteQuest)
+		s.QueueAck(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
+}
 
 func handleMsgMhfRegisterEvent(s *Session, p mhfpacket.MHFPacket) {}
 
@@ -1392,7 +1395,7 @@ func handleMsgMhfCheckWeeklyStamp(s *Session, p mhfpacket.MHFPacket) {
 	resp.WriteUint16(0x000E)
 	resp.WriteUint16(0x0001)
 	resp.WriteUint16(0x0000)
-	resp.WriteUint16(0x0000) // 0x0000 stops the vaguely annoying log in pop up 
+	resp.WriteUint16(0x0000) // 0x0000 stops the vaguely annoying log in pop up
 	resp.WriteUint32(0)
 	resp.WriteUint32(0x5dddcbb3) // Timestamp
 
@@ -1880,7 +1883,18 @@ func handleMsgMhfLoadDecoMyset(s *Session, p mhfpacket.MHFPacket) {
 	}
 }
 
-func handleMsgMhfSaveDecoMyset(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfSaveDecoMyset(s *Session, p mhfpacket.MHFPacket) {
+/*	1 byte         uint8 total number of sets
+1 byte         unk
+
+78 bytes     total set size
+	2 bytes        uint16 set number
+	20 bytes    string with 0x00 padding
+	56 bytes    data chunk
+	*/
+
+
+}
 
 func handleMsgMhfReserve010F(s *Session, p mhfpacket.MHFPacket) {}
 

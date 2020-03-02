@@ -1202,7 +1202,7 @@ func handleMsgMhfEnumerateItem(s *Session, p mhfpacket.MHFPacket) {}
 func handleMsgMhfAcquireItem(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfTransferItem(s *Session, p mhfpacket.MHFPacket) {
-	pkt := p.(*mhfpacket.MsgMhfTransferItem)
+	pkt := p.(*mhfpacket.MsgMhfEnumerateQuest)
 	s.QueueAck(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
 }
 

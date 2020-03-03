@@ -11,8 +11,8 @@ type MsgMhfEnumerateQuest struct {
 	Unk0      uint8 // Hardcoded 0 in the binary
 	Unk1      uint8
 	Unk2      uint16
-	Unk3      uint16
-	Unk4      uint8 // Hardcoded 0 in the binary
+	QuestList      uint16 // Increments to request following batches of quests
+	Unk4 uint8 // Hardcoded 0 in the binary
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -26,7 +26,7 @@ func (m *MsgMhfEnumerateQuest) Parse(bf *byteframe.ByteFrame) error {
 	m.Unk0 = bf.ReadUint8()
 	m.Unk1 = bf.ReadUint8()
 	m.Unk2 = bf.ReadUint16()
-	m.Unk3 = bf.ReadUint16()
+	m.QuestList = bf.ReadUint16()
 	m.Unk4 = bf.ReadUint8()
 	return nil
 }

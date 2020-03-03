@@ -26,7 +26,7 @@ Currently allows a JP MHF client (with GameGuard removed) to:
 
     Windows:
     ```
-    > go get -tags 'postgres' -u github.com/golang-migrate/migrate/cmd/migrate
+    > go get -tags 'postgres' -u github.com/golang-migrate/migrate/v4/cmd/migrate/
 
     > set POSTGRESQL_URL=postgres://postgres:password@localhost:5432/erupe?sslmode=disable
 
@@ -37,7 +37,7 @@ Currently allows a JP MHF client (with GameGuard removed) to:
 
     Linux:
     ```
-    > go get -tags 'postgres' -u github.com/golang-migrate/migrate/cmd/migrate
+    > go get -tags 'postgres' -u github.com/golang-migrate/migrate/v4/cmd/migrate/
 
     > export POSTGRESQL_URL=postgres://postgres:password@localhost:5432/erupe?sslmode=disable
 

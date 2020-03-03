@@ -6,10 +6,11 @@ import (
 )
 
 // MsgMhfGetTinyBin represents the MSG_MHF_GET_TINY_BIN
-type MsgMhfGetTinyBin struct{
+type MsgMhfGetTinyBin struct {
+	// Communicator type, multi-format. This might be valid for only one type.
 	AckHandle uint32
-	Unk0 uint16
-	Unk1 uint8
+	Unk0      uint16
+	Unk1      uint8
 }
 
 // Opcode returns the ID associated with this packet type.

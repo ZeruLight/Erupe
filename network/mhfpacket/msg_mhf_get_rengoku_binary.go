@@ -6,9 +6,9 @@ import (
 )
 
 // MsgMhfGetRengokuBinary represents the MSG_MHF_GET_RENGOKU_BINARY
-type MsgMhfGetRengokuBinary struct{
-		AckHandle uint32
-		Unk0 uint8
+type MsgMhfGetRengokuBinary struct {
+	AckHandle uint32
+	Unk0      uint8 // Hardcoded 0 in binary
 }
 
 // Opcode returns the ID associated with this packet type.

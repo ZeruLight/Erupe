@@ -6,7 +6,7 @@ import (
 )
 
 // MsgMhfSaveOtomoAirou represents the MSG_MHF_SAVE_OTOMO_AIROU
-type MsgMhfSaveOtomoAirou struct{
+type MsgMhfSaveOtomoAirou struct {
 	AckHandle      uint32
 	DataSize       uint16
 	RawDataPayload []byte

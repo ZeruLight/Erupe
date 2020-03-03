@@ -17,6 +17,7 @@ const (
 
 // MsgMhfGetTowerInfo represents the MSG_MHF_GET_TOWER_INFO
 type MsgMhfGetTowerInfo struct {
+	// Communicator type, multi-format. This might be valid for only one type.
 	AckHandle uint32
 	InfoType  uint32 // Requested response type
 	Unk0      uint32

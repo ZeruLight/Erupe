@@ -6,9 +6,9 @@ import (
 )
 
 // MsgMhfSaveDecoMyset represents the MSG_MHF_SAVE_DECO_MYSET
-type MsgMhfSaveDecoMyset struct{
-	AckHandle uint32
-	DataSize uint32
+type MsgMhfSaveDecoMyset struct {
+	AckHandle      uint32
+	DataSize       uint32
 	RawDataPayload []byte
 }
 

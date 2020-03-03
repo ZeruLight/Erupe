@@ -6,12 +6,13 @@ import (
 )
 
 // MsgMhfGetAdditionalBeatReward represents the MSG_MHF_GET_ADDITIONAL_BEAT_REWARD
-type MsgMhfGetAdditionalBeatReward struct{
+type MsgMhfGetAdditionalBeatReward struct {
+	// Communicator type, multi-format. This might be valid for only one type.
 	AckHandle uint32
-	Unk0 uint32
-	Unk1 uint32
-	Unk2 uint32
-	Unk3 uint32
+	Unk0      uint32
+	Unk1      uint32
+	Unk2      uint32
+	Unk3      uint32
 }
 
 // Opcode returns the ID associated with this packet type.

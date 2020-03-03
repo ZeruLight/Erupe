@@ -6,8 +6,8 @@ import (
 )
 
 // MsgMhfAddKouryouPoint represents the MSG_MHF_ADD_KOURYOU_POINT
-type MsgMhfAddKouryouPoint struct{
-	AckHandle uint32
+type MsgMhfAddKouryouPoint struct {
+	AckHandle     uint32
 	KouryouPoints uint32
 }
 
@@ -20,7 +20,7 @@ func (m *MsgMhfAddKouryouPoint) Opcode() network.PacketID {
 func (m *MsgMhfAddKouryouPoint) Parse(bf *byteframe.ByteFrame) error {
 	m.AckHandle = bf.ReadUint32()
 	m.KouryouPoints = bf.ReadUint32()
-	return nil;
+	return nil
 }
 
 // Build builds a binary packet from the current data.

@@ -6,10 +6,10 @@ import (
 )
 
 // MsgMhfSavePlateBox represents the MSG_MHF_SAVE_PLATE_BOX
-type MsgMhfSavePlateBox struct{
-	AckHandle uint32
-	DataSize uint32
-	IsDataDiff bool
+type MsgMhfSavePlateBox struct {
+	AckHandle      uint32
+	DataSize       uint32
+	IsDataDiff     bool
 	RawDataPayload []byte
 }
 

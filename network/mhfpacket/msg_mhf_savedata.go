@@ -9,7 +9,7 @@ import (
 type MsgMhfSavedata struct {
 	AckHandle      uint32
 	AllocMemSize   uint32
-	SaveType           uint8 // Either 1 or 2, representing a true or false value for some reason.
+	SaveType       uint8 // Either 1 or 2, representing a true or false value for some reason.
 	Unk1           uint32
 	DataSize       uint32
 	RawDataPayload []byte

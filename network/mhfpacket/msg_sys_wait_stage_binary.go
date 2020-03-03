@@ -6,7 +6,7 @@ import (
 )
 
 // MsgSysWaitStageBinary represents the MSG_SYS_WAIT_STAGE_BINARY
-type MsgSysWaitStageBinary struct{
+type MsgSysWaitStageBinary struct {
 	AckHandle     uint32
 	BinaryType0   uint8
 	BinaryType1   uint8

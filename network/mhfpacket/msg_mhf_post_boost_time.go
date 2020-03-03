@@ -6,7 +6,7 @@ import (
 )
 
 // MsgMhfPostBoostTime represents the MSG_MHF_POST_BOOST_TIME
-type MsgMhfPostBoostTime struct{
+type MsgMhfPostBoostTime struct {
 	AckHandle uint32
 	BoostTime uint32
 }

@@ -9,7 +9,7 @@ import (
 type MsgMhfSaveHunterNavi struct {
 	AckHandle      uint32
 	DataSize       uint32
-	IsDataDiff           bool
+	IsDataDiff     bool
 	RawDataPayload []byte
 }
 

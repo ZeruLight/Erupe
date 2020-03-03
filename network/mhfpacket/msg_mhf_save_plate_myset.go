@@ -6,9 +6,9 @@ import (
 )
 
 // MsgMhfSavePlateMyset represents the MSG_MHF_SAVE_PLATE_MYSET
-type MsgMhfSavePlateMyset struct{
-	AckHandle uint32
-	DataSize uint32
+type MsgMhfSavePlateMyset struct {
+	AckHandle      uint32
+	DataSize       uint32
 	RawDataPayload []byte
 }
 

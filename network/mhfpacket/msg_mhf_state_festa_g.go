@@ -6,11 +6,11 @@ import (
 )
 
 // MsgMhfStateFestaG represents the MSG_MHF_STATE_FESTA_G
-type MsgMhfStateFestaG struct{
+type MsgMhfStateFestaG struct {
 	AckHandle uint32
-	Unk0 uint32 // Shared ID of something.
-	Unk1 uint32
-	Unk2 uint16 // Hardcoded 0 in the binary.
+	Unk0      uint32 // Shared ID of something.
+	Unk1      uint32
+	Unk2      uint16 // Hardcoded 0 in the binary.
 }
 
 // Opcode returns the ID associated with this packet type.

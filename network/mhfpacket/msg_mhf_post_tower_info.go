@@ -6,7 +6,7 @@ import (
 )
 
 // MsgMhfPostTowerInfo represents the MSG_MHF_POST_TOWER_INFO
-type MsgMhfPostTowerInfo struct{
+type MsgMhfPostTowerInfo struct {
 	AckHandle uint32
 	Unk0      uint32
 	Unk1      uint32

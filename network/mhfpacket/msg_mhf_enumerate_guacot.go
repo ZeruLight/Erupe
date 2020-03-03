@@ -6,8 +6,8 @@ import (
 )
 
 // MsgMhfEnumerateGuacot represents the MSG_MHF_ENUMERATE_GUACOT
-type MsgMhfEnumerateGuacot struct{
-		AckHandle uint32
+type MsgMhfEnumerateGuacot struct {
+	AckHandle uint32
 }
 
 // Opcode returns the ID associated with this packet type.

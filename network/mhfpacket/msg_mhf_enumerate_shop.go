@@ -8,8 +8,8 @@ import (
 // MsgMhfEnumerateShop represents the MSG_MHF_ENUMERATE_SHOP
 type MsgMhfEnumerateShop struct {
 	AckHandle uint32
-	ShopType      uint8 // 1 running gachas, 10 normal shop extensions
-	ShopID      uint32
+	ShopType  uint8 // 1 running gachas, 10 normal shop extensions
+	ShopID    uint32
 	Unk2      uint16 // 00 80 running gachas, 00 20 normal shop
 	Unk3      uint8
 	Unk4      uint8

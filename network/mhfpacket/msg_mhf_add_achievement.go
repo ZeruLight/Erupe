@@ -6,7 +6,7 @@ import (
 )
 
 // MsgMhfAddAchievement represents the MSG_MHF_ADD_ACHIEVEMENT
-type MsgMhfAddAchievement struct{
+type MsgMhfAddAchievement struct {
 	Unk0 []byte
 }
 

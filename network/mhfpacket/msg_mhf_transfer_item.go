@@ -6,7 +6,7 @@ import (
 )
 
 // MsgMhfTransferItem represents the MSG_MHF_TRANSFER_ITEM
-type MsgMhfTransferItem struct{
+type MsgMhfTransferItem struct {
 	AckHandle uint32
 	// looking at packets, these were static across sessions and did not actually
 	// correlate with any item IDs that would make sense to get after quests so

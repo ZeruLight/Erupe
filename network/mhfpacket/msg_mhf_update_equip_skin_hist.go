@@ -6,7 +6,7 @@ import (
 )
 
 // MsgMhfUpdateEquipSkinHist represents the MSG_MHF_UPDATE_EQUIP_SKIN_HIST
-type MsgMhfUpdateEquipSkinHist struct{
+type MsgMhfUpdateEquipSkinHist struct {
 	AckHandle uint32
 }
 

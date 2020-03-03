@@ -6,12 +6,11 @@ import (
 )
 
 // MsgMhfGetTenrouirai represents the MSG_MHF_GET_TENROUIRAI
-type MsgMhfGetTenrouirai struct{
+type MsgMhfGetTenrouirai struct {
 	AckHandle uint32
-	Unk0 uint16
-	Unk1 uint32
-	Unk2 uint16
-
+	Unk0      uint16
+	Unk1      uint32
+	Unk2      uint16
 }
 
 // Opcode returns the ID associated with this packet type.

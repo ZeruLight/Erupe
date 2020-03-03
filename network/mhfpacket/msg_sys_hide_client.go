@@ -6,10 +6,10 @@ import (
 )
 
 // MsgSysHideClient represents the MSG_SYS_HIDE_CLIENT
-type MsgSysHideClient struct{
+type MsgSysHideClient struct {
 	Hide bool
 	Unk0 uint16 // Hardcoded 0 in binary
-	Unk1 uint8 // Hardcoded 0 in binary
+	Unk1 uint8  // Hardcoded 0 in binary
 }
 
 // Opcode returns the ID associated with this packet type.

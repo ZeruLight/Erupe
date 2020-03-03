@@ -6,8 +6,8 @@ import (
 )
 
 // MsgMhfUpdateGuacot represents the MSG_MHF_UPDATE_GUACOT
-type MsgMhfUpdateGuacot struct{
-		AckHandle uint32
+type MsgMhfUpdateGuacot struct {
+	AckHandle uint32
 }
 
 // Opcode returns the ID associated with this packet type.

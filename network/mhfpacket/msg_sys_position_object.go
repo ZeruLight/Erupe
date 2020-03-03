@@ -6,8 +6,8 @@ import (
 )
 
 // MsgSysPositionObject represents the MSG_SYS_POSITION_OBJECT
-type MsgSysPositionObject struct{
-	ObjID uint32
+type MsgSysPositionObject struct {
+	ObjID   uint32
 	X, Y, Z float32
 }
 

@@ -6,7 +6,7 @@ import (
 )
 
 // MsgMhfLoadOtomoAirou represents the MSG_MHF_LOAD_OTOMO_AIROU
-type MsgMhfLoadOtomoAirou struct{
+type MsgMhfLoadOtomoAirou struct {
 	AckHandle uint32
 }
 

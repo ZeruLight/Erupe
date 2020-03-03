@@ -6,7 +6,7 @@ import (
 )
 
 // MsgMhfLoadPartner represents the MSG_MHF_LOAD_PARTNER
-type MsgMhfLoadPartner struct{
+type MsgMhfLoadPartner struct {
 	AckHandle uint32
 }
 

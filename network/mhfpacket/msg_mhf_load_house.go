@@ -6,12 +6,12 @@ import (
 )
 
 // MsgMhfLoadHouse represents the MSG_MHF_LOAD_HOUSE
-type MsgMhfLoadHouse struct{
-	AckHandle      uint32
-	Unk0       uint8
-	Unk1       uint32
-	Unk2       uint8
-	Unk3       uint32
+type MsgMhfLoadHouse struct {
+	AckHandle uint32
+	Unk0      uint8
+	Unk1      uint32
+	Unk2      uint8
+	Unk3      uint32
 }
 
 // Opcode returns the ID associated with this packet type.

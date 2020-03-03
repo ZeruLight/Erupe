@@ -6,17 +6,17 @@ import (
 )
 
 // MsgMhfStampcardStamp represents the MSG_MHF_STAMPCARD_STAMP
-type MsgMhfStampcardStamp struct{
+type MsgMhfStampcardStamp struct {
 	// probably not actual format, just lined up neatly to an example packet
 	AckHandle uint32
-	Unk0 uint32
-	Unk1 uint32
-	Unk2 uint32
-	Unk3 uint32
-	Unk4 uint32
-	Unk5 uint32
-	Unk6 uint32
-	Unk7 uint32
+	Unk0      uint32
+	Unk1      uint32
+	Unk2      uint32
+	Unk3      uint32
+	Unk4      uint32
+	Unk5      uint32
+	Unk6      uint32
+	Unk7      uint32
 }
 
 // Opcode returns the ID associated with this packet type.

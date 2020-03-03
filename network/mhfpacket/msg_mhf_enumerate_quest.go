@@ -11,8 +11,8 @@ type MsgMhfEnumerateQuest struct {
 	Unk0      uint8 // Hardcoded 0 in the binary
 	Unk1      uint8
 	Unk2      uint16
-	QuestList      uint16 // Increments to request following batches of quests
-	Unk4 uint8 // Hardcoded 0 in the binary
+	QuestList uint16 // Increments to request following batches of quests
+	Unk4      uint8  // Hardcoded 0 in the binary
 }
 
 // Opcode returns the ID associated with this packet type.

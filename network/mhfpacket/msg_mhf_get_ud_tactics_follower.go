@@ -6,7 +6,7 @@ import (
 )
 
 // MsgMhfGetUdTacticsFollower represents the MSG_MHF_GET_UD_TACTICS_FOLLOWER
-type MsgMhfGetUdTacticsFollower struct{
+type MsgMhfGetUdTacticsFollower struct {
 	AckHandle uint32
 }
 

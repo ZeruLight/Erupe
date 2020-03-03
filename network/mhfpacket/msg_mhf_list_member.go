@@ -6,9 +6,9 @@ import (
 )
 
 // MsgMhfListMember represents the MSG_MHF_LIST_MEMBER
-type MsgMhfListMember struct{
+type MsgMhfListMember struct {
 	AckHandle uint32
-	Unk0 uint16 // Hardcoded 01 00 in the JP client.
+	Unk0      uint16 // Hardcoded 01 00 in the JP client.
 }
 
 // Opcode returns the ID associated with this packet type.

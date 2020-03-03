@@ -6,7 +6,7 @@ import (
 )
 
 // MsgMhfSaveRengokuData represents the MSG_MHF_SAVE_RENGOKU_DATA
-type MsgMhfSaveRengokuData struct{
+type MsgMhfSaveRengokuData struct {
 	AckHandle      uint32
 	DataSize       uint32
 	RawDataPayload []byte

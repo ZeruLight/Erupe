@@ -6,10 +6,10 @@ import (
 )
 
 // MsgMhfGetMyhouseInfo represents the MSG_MHF_GET_MYHOUSE_INFO
-type MsgMhfGetMyhouseInfo struct{
-	AckHandle      uint32
-	Unk0       uint32
-	Unk1       uint16
+type MsgMhfGetMyhouseInfo struct {
+	AckHandle uint32
+	Unk0      uint32
+	Unk1      uint16
 }
 
 // Opcode returns the ID associated with this packet type.

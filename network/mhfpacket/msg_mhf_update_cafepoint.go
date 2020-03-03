@@ -6,9 +6,9 @@ import (
 )
 
 // MsgMhfUpdateCafepoint represents the MSG_MHF_UPDATE_CAFEPOINT
-type MsgMhfUpdateCafepoint struct{
+type MsgMhfUpdateCafepoint struct {
 	AckHandle uint32
-	Unk0 uint32
+	Unk0      uint32
 }
 
 // Opcode returns the ID associated with this packet type.

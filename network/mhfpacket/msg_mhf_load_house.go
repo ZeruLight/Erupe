@@ -7,11 +7,13 @@ import (
 
 // MsgMhfLoadHouse represents the MSG_MHF_LOAD_HOUSE
 type MsgMhfLoadHouse struct {
-	AckHandle uint32
-	Unk0      uint8
-	Unk1      uint32
-	Unk2      uint8
-	Unk3      uint32
+	AckHandle      uint32
+	Unk0           uint32
+	Unk1           uint8
+	Unk2           uint8
+	Unk3           uint16 // Hardcoded 0 in binary
+	DataSize       uint8
+	RawDataPayload []byte
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -22,10 +24,12 @@ func (m *MsgMhfLoadHouse) Opcode() network.PacketID {
 // Parse parses the packet from binary
 func (m *MsgMhfLoadHouse) Parse(bf *byteframe.ByteFrame) error {
 	m.AckHandle = bf.ReadUint32()
-	m.Unk0 = bf.ReadUint8()
-	m.Unk1 = bf.ReadUint32()
+	m.Unk0 = bf.ReadUint32()
+	m.Unk1 = bf.ReadUint8()
 	m.Unk2 = bf.ReadUint8()
-	m.Unk3 = bf.ReadUint32()
+	m.Unk3 = bf.ReadUint16()
+	m.DataSize = bf.ReadUint8()
+	m.RawDataPayload = bf.ReadBytes(uint(m.DataSize))
 	return nil
 }
 

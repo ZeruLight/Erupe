@@ -7,6 +7,7 @@ import (
 
 // MsgMhfGetPaperData represents the MSG_MHF_GET_PAPER_DATA
 type MsgMhfGetPaperData struct {
+	// Communicator type, multi-format. This might be valid for only one type.
 	AckHandle uint32
 	Unk0      uint32
 	Unk1      uint32

@@ -7,6 +7,7 @@ import (
 
 // MsgMhfGetTenrouirai represents the MSG_MHF_GET_TENROUIRAI
 type MsgMhfGetTenrouirai struct {
+	// Communicator type, multi-format. This might be valid for only one type.
 	AckHandle uint32
 	Unk0      uint16
 	Unk1      uint32

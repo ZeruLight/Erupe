@@ -7,7 +7,7 @@ import (
 
 // MsgSysLogout represents the MSG_SYS_LOGOUT
 type MsgSysLogout struct {
-	Unk0 uint8
+	Unk0 uint8 // Hardcoded 1 in binary
 }
 
 // Opcode returns the ID associated with this packet type.

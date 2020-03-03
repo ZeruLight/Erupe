@@ -12,7 +12,8 @@ type MsgMhfTransferItem struct {
 	// correlate with any item IDs that would make sense to get after quests so
 	// I have no idea what this actually does
 	Unk0 uint32
-	Unk1 uint32
+	Unk1 uint16 // Hardcoded
+	Unk2 uint16 // Hardcoded
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -24,7 +25,8 @@ func (m *MsgMhfTransferItem) Opcode() network.PacketID {
 func (m *MsgMhfTransferItem) Parse(bf *byteframe.ByteFrame) error {
 	m.AckHandle = bf.ReadUint32()
 	m.Unk0 = bf.ReadUint32()
-	m.Unk1 = bf.ReadUint32()
+	m.Unk1 = bf.ReadUint16()
+	m.Unk2 = bf.ReadUint16()
 	return nil
 }
 

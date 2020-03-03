@@ -7,6 +7,7 @@ import (
 
 // MsgMhfPostTowerInfo represents the MSG_MHF_POST_TOWER_INFO
 type MsgMhfPostTowerInfo struct {
+	// Communicator type, multi-format. This might be valid for only one type.
 	AckHandle uint32
 	Unk0      uint32
 	Unk1      uint32

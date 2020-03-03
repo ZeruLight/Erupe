@@ -9,7 +9,10 @@ import (
 type MsgMhfGetMyhouseInfo struct {
 	AckHandle uint32
 	Unk0      uint32
-	Unk1      uint16
+
+	// No idea why it would send a buffer of data on a _GET_, but w/e.
+	DataSize       uint8
+	RawDataPayload []byte
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -21,7 +24,8 @@ func (m *MsgMhfGetMyhouseInfo) Opcode() network.PacketID {
 func (m *MsgMhfGetMyhouseInfo) Parse(bf *byteframe.ByteFrame) error {
 	m.AckHandle = bf.ReadUint32()
 	m.Unk0 = bf.ReadUint32()
-	m.Unk1 = bf.ReadUint16()
+	m.DataSize = bf.ReadUint8()
+	m.RawDataPayload = bf.ReadBytes(uint(m.DataSize))
 	return nil
 }
 

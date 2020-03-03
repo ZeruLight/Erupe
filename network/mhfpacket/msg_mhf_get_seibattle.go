@@ -7,6 +7,7 @@ import (
 
 // MsgMhfGetSeibattle represents the MSG_MHF_GET_SEIBATTLE
 type MsgMhfGetSeibattle struct {
+	// Communicator type, multi-format. This might be valid for only one type.
 	AckHandle uint32
 	Unk0      uint8
 	Unk1      uint8

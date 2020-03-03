@@ -6,7 +6,7 @@
     "devmodeoptions": {
         "cleandb": false,
         "maxlauncherhr": true,
-		"fixedstageid": true
+        "fixedstageid": true
     },
 
     "database": {

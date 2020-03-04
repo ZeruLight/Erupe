@@ -6,7 +6,6 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -14,6 +13,7 @@ import (
 	"time"
 
 	"github.com/Andoryuuta/Erupe/network/mhfpacket"
+	"github.com/Andoryuuta/Erupe/server/channelserver/compression/nullcomp"
 	"github.com/Andoryuuta/byteframe"
 	"go.uber.org/zap"
 	"golang.org/x/text/encoding/japanese"
@@ -86,92 +86,6 @@ func saveDataDiff(b []byte, save []byte) []byte {
 	}
 
 	return save
-}
-
-// decompress save data
-func saveDecompress(compData []byte) ([]byte, error) {
-	r := bytes.NewReader(compData)
-
-	header := make([]byte, 16)
-	n, err := r.Read(header)
-	if err != nil {
-		return nil, err
-	} else if n != len(header) {
-		return nil, err
-	}
-
-	if !bytes.Equal(header, []byte("cmp\x2020110113\x20\x20\x20\x00")) {
-		return nil, err
-	}
-
-	var output []byte
-	for {
-		b, err := r.ReadByte()
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			return nil, err
-		}
-
-		if b == 0 {
-			// If it's a null byte, then the next byte is how many nulls to add.
-			nullCount, err := r.ReadByte()
-			if err == io.EOF {
-				break
-			} else if err != nil {
-				return nil, err
-			}
-
-			output = append(output, make([]byte, int(nullCount))...)
-		} else {
-			output = append(output, b)
-		}
-	}
-
-	return output, nil
-}
-
-// Null compresses a save
-func saveCompress(rawData []byte) ([]byte, error) {
-	r := bytes.NewReader(rawData)
-	var output []byte
-	output = append(output, []byte("cmp\x2020110113\x20\x20\x20\x00")...)
-	for {
-		b, err := r.ReadByte()
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			return nil, err
-		}
-		if b == 0 {
-			output = append(output, []byte{0x00}...)
-			// read to get null count
-			nullCount := 1
-			for {
-				i, err := r.ReadByte()
-				if err == io.EOF {
-					output = append(output, []byte{byte(nullCount)}...)
-					break
-				} else if i != 0 {
-					r.UnreadByte()
-					output = append(output, []byte{byte(nullCount)}...)
-					break
-				} else if err != nil {
-					return nil, err
-				}
-				nullCount++
-
-				if nullCount == 255 {
-					output = append(output, []byte{0xFF, 0x00}...)
-					nullCount = 0
-				}
-			}
-			//output = append(output, []byte{byte(nullCount)}...)
-		} else {
-			output = append(output, b)
-		}
-	}
-	return output, nil
 }
 
 func updateRights(s *Session) {
@@ -1027,7 +941,7 @@ func handleMsgMhfSavedata(s *Session, p mhfpacket.MHFPacket) {
 		// 0x1F715	Weapon Class
 		// 0x1FDF6 HR (small_gr_level)
 		// 0x88 Character Name
-		saveFile, _ := saveDecompress(pkt.RawDataPayload)
+		saveFile, _ := nullcomp.Decompress(pkt.RawDataPayload)
 		_, err = s.server.db.Exec("UPDATE characters SET weapon=$1 WHERE id=$2", uint16(saveFile[128789]), s.charID)
 		x := uint16(saveFile[130550])<<8 | uint16(saveFile[130551])
 		_, err = s.server.db.Exec("UPDATE characters SET small_gr_level=$1 WHERE id=$2", uint16(x), s.charID)
@@ -1632,13 +1546,13 @@ func handleMsgMhfSavePlateData(s *Session, p mhfpacket.MHFPacket) {
 		}
 		//decompress
 		fmt.Println("Decompressing...")
-		data, err = saveDecompress(data)
+		data, err = nullcomp.Decompress(data)
 		if err != nil {
 			s.logger.Fatal("Failed to decompress platedata from db", zap.Error(err))
 		}
 		// perform diff and compress it to write back to db
 		fmt.Println("Diffing...")
-		saveOutput, err := saveCompress(saveDataDiff(pkt.RawDataPayload, data))
+		saveOutput, err := nullcomp.Compress(saveDataDiff(pkt.RawDataPayload, data))
 		if err != nil {
 			s.logger.Fatal("Failed to diff and compress platedata savedata", zap.Error(err))
 		}
@@ -1686,13 +1600,13 @@ func handleMsgMhfSavePlateBox(s *Session, p mhfpacket.MHFPacket) {
 		}
 		//decompress
 		fmt.Println("Decompressing...")
-		data, err = saveDecompress(data)
+		data, err = nullcomp.Decompress(data)
 		if err != nil {
 			s.logger.Fatal("Failed to decompress savedata from db", zap.Error(err))
 		}
 		// perform diff and compress it to write back to db
 		fmt.Println("Diffing...")
-		saveOutput, err := saveCompress(saveDataDiff(pkt.RawDataPayload, data))
+		saveOutput, err := nullcomp.Compress(saveDataDiff(pkt.RawDataPayload, data))
 		if err != nil {
 			s.logger.Fatal("Failed to diff and compress savedata", zap.Error(err))
 		}

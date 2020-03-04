@@ -13,6 +13,7 @@ import (
 	"time"
 
 	"github.com/Andoryuuta/Erupe/network/mhfpacket"
+	"github.com/Andoryuuta/Erupe/server/channelserver/compression/deltacomp"
 	"github.com/Andoryuuta/Erupe/server/channelserver/compression/nullcomp"
 	"github.com/Andoryuuta/byteframe"
 	"go.uber.org/zap"
@@ -51,41 +52,6 @@ func doSizedAckResp(s *Session, ackHandle uint32, data []byte) {
 	}
 
 	s.QueueAck(ackHandle, bfw.Data())
-}
-
-// process a datadiff save for platebox and platedata
-func saveDataDiff(b []byte, save []byte) []byte {
-	// there are a bunch of extra variations on this method in use which this does not handle yet
-	// specifically this is for diffs with seek amounts trailed by 02 followed by bytes to be written
-	var seekBytes []byte
-	seekOperation := 0
-	write := byte(0)
-	for len(b) > 2 {
-		if bytes.IndexRune(b, 2) != 0 {
-			seekBytes = b[:bytes.IndexRune(b, 2)+1]
-		} else {
-			seekBytes = b[:bytes.IndexRune(b[1:], 2)+2]
-		}
-		if len(seekBytes) == 1 {
-			seekBytes = b[:bytes.IndexRune(b, 2)+2]
-			//fmt.Printf("Seek: %d SeekBytes: %X Write: %X\n", seekBytes[0], seekBytes, b[len(seekBytes)] )
-			seekOperation += int(seekBytes[0])
-			write = b[len(seekBytes)]
-			b = b[3:]
-		} else {
-			seek := int32(0)
-			for _, b := range seekBytes[:len(seekBytes)-1] {
-				seek = (seek << 8) | int32(b)
-			}
-			//fmt.Printf("Seek: %d SeekBytes: %X Write: %X\n", seek, seekBytes, b[len(seekBytes)] )
-			seekOperation += int(seek)
-			write = b[len(seekBytes)]
-			b = b[len(seekBytes)+1:]
-		}
-		save[seekOperation-1] = write
-	}
-
-	return save
 }
 
 func updateRights(s *Session) {
@@ -930,28 +896,80 @@ func handleMsgSysReserve5F(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfSavedata(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSavedata)
+
 	err := ioutil.WriteFile(fmt.Sprintf("savedata\\%d.bin", time.Now().Unix()), pkt.RawDataPayload, 0644)
 	if err != nil {
 		s.logger.Fatal("Error dumping savedata", zap.Error(err))
 	}
-	if pkt.SaveType == 2 {
-		_, err = s.server.db.Exec("UPDATE characters SET is_new_character=false, savedata=$1 WHERE id=$2", pkt.RawDataPayload, s.charID)
 
-		// Temporary server launcher response stuff
-		// 0x1F715	Weapon Class
-		// 0x1FDF6 HR (small_gr_level)
-		// 0x88 Character Name
-		saveFile, _ := nullcomp.Decompress(pkt.RawDataPayload)
-		_, err = s.server.db.Exec("UPDATE characters SET weapon=$1 WHERE id=$2", uint16(saveFile[128789]), s.charID)
-		x := uint16(saveFile[130550])<<8 | uint16(saveFile[130551])
-		_, err = s.server.db.Exec("UPDATE characters SET small_gr_level=$1 WHERE id=$2", uint16(x), s.charID)
-		_, err = s.server.db.Exec("UPDATE characters SET name=$1 WHERE id=$2", strings.SplitN(string(saveFile[88:100]), "\x00", 2)[0], s.charID)
+	// Var to hold the decompressed savedata for updating the launcher response fields.
+	var decompressedData []byte
+
+	if pkt.SaveType == 1 {
+		// Diff-based update.
+
+		// Load existing save
+		var data []byte
+		err := s.server.db.QueryRow("SELECT savedata FROM characters WHERE id = $1", s.charID).Scan(&data)
+		if err != nil {
+			s.logger.Fatal("Failed to get savedata from db", zap.Error(err))
+		}
+
+		// Decompress
+		s.logger.Info("Decompressing...")
+		data, err = nullcomp.Decompress(data)
+		if err != nil {
+			s.logger.Fatal("Failed to decompress savedata from db", zap.Error(err))
+		}
+
+		// Perform diff and compress it to write back to db
+		s.logger.Info("Diffing...")
+		saveOutput, err := nullcomp.Compress(deltacomp.ApplyDataDiff(pkt.RawDataPayload, data))
+		if err != nil {
+			s.logger.Fatal("Failed to diff and compress savedata", zap.Error(err))
+		}
+
+		decompressedData = saveOutput // For updating launcher fields.
+
+		_, err = s.server.db.Exec("UPDATE characters SET savedata=$1 WHERE id=$2", saveOutput, s.charID)
+		if err != nil {
+			s.logger.Fatal("Failed to update savedata in db", zap.Error(err))
+		}
+
+		s.logger.Info("Wrote recompressed savedata back to DB.")
+	} else {
+		// Regular blob update.
+
+		_, err = s.server.db.Exec("UPDATE characters SET is_new_character=false, savedata=$1 WHERE id=$2", pkt.RawDataPayload, s.charID)
 
 		if err != nil {
 			s.logger.Fatal("Failed to update savedata in db", zap.Error(err))
 		}
-	} else {
-		fmt.Printf("Got savedata packet of type 1, no handling implemented. Not saving.")
+
+		decompressedData, err = nullcomp.Decompress(pkt.RawDataPayload) // For updating launcher fields.
+		if err != nil {
+			s.logger.Fatal("Failed to decompress savedata from packet", zap.Error(err))
+		}
+	}
+
+	// Temporary server launcher response stuff
+	// 0x1F715	Weapon Class
+	// 0x1FDF6 HR (small_gr_level)
+	// 0x88 Character Name
+	_, err = s.server.db.Exec("UPDATE characters SET weapon=$1 WHERE id=$2", uint16(decompressedData[128789]), s.charID)
+	if err != nil {
+		s.logger.Fatal("Failed to character weapon in db", zap.Error(err))
+	}
+
+	x := uint16(decompressedData[130550])<<8 | uint16(decompressedData[130551])
+	_, err = s.server.db.Exec("UPDATE characters SET small_gr_level=$1 WHERE id=$2", uint16(x), s.charID)
+	if err != nil {
+		s.logger.Fatal("Failed to character small_gr_level in db", zap.Error(err))
+	}
+
+	_, err = s.server.db.Exec("UPDATE characters SET name=$1 WHERE id=$2", strings.SplitN(string(decompressedData[88:100]), "\x00", 2)[0], s.charID)
+	if err != nil {
+		s.logger.Fatal("Failed to character name in db", zap.Error(err))
 	}
 
 	s.QueueAck(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
@@ -1532,34 +1550,41 @@ func handleMsgMhfLoadPlateData(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfSavePlateData(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSavePlateData)
+
 	err := ioutil.WriteFile(fmt.Sprintf("savedata\\%d_platedata.bin", time.Now().Unix()), pkt.RawDataPayload, 0644)
 	if err != nil {
 		s.logger.Fatal("Error dumping platedata", zap.Error(err))
 	}
+
 	if pkt.IsDataDiff {
-		// https://gist.github.com/Andoryuuta/9c524da7285e4b5ca7e52e0fc1ca1daf
 		var data []byte
-		//load existing save
+
+		// Load existing save
 		err := s.server.db.QueryRow("SELECT platedata FROM characters WHERE id = $1", s.charID).Scan(&data)
 		if err != nil {
 			s.logger.Fatal("Failed to get platedata savedata from db", zap.Error(err))
 		}
-		//decompress
-		fmt.Println("Decompressing...")
+
+		// Decompress
+		s.logger.Info("Decompressing...")
 		data, err = nullcomp.Decompress(data)
 		if err != nil {
 			s.logger.Fatal("Failed to decompress platedata from db", zap.Error(err))
 		}
-		// perform diff and compress it to write back to db
-		fmt.Println("Diffing...")
-		saveOutput, err := nullcomp.Compress(saveDataDiff(pkt.RawDataPayload, data))
+
+		// Perform diff and compress it to write back to db
+		s.logger.Info("Diffing...")
+		saveOutput, err := nullcomp.Compress(deltacomp.ApplyDataDiff(pkt.RawDataPayload, data))
 		if err != nil {
 			s.logger.Fatal("Failed to diff and compress platedata savedata", zap.Error(err))
 		}
+
 		_, err = s.server.db.Exec("UPDATE characters SET platedata=$1 WHERE id=$2", saveOutput, s.charID)
 		if err != nil {
 			s.logger.Fatal("Failed to update platedata savedata in db", zap.Error(err))
 		}
+
+		s.logger.Info("Wrote recompressed platedata back to DB.")
 	} else {
 		// simply update database, no extra processing
 		_, err := s.server.db.Exec("UPDATE characters SET platedata=$1 WHERE id=$2", pkt.RawDataPayload, s.charID)
@@ -1567,6 +1592,7 @@ func handleMsgMhfSavePlateData(s *Session, p mhfpacket.MHFPacket) {
 			s.logger.Fatal("Failed to update platedata savedata in db", zap.Error(err))
 		}
 	}
+
 	s.QueueAck(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
 }
 
@@ -1587,36 +1613,41 @@ func handleMsgMhfLoadPlateBox(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfSavePlateBox(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSavePlateBox)
+
 	err := ioutil.WriteFile(fmt.Sprintf("savedata\\%d_platebox.bin", time.Now().Unix()), pkt.RawDataPayload, 0644)
 	if err != nil {
 		s.logger.Fatal("Error dumping hunter platebox savedata", zap.Error(err))
 	}
+
 	if pkt.IsDataDiff {
 		var data []byte
-		//load existing save
+
+		// Load existing save
 		err := s.server.db.QueryRow("SELECT platebox FROM characters WHERE id = $1", s.charID).Scan(&data)
 		if err != nil {
 			s.logger.Fatal("Failed to get sigil box savedata from db", zap.Error(err))
 		}
-		//decompress
-		fmt.Println("Decompressing...")
+
+		// Decompress
+		s.logger.Info("Decompressing...")
 		data, err = nullcomp.Decompress(data)
 		if err != nil {
 			s.logger.Fatal("Failed to decompress savedata from db", zap.Error(err))
 		}
-		// perform diff and compress it to write back to db
-		fmt.Println("Diffing...")
-		saveOutput, err := nullcomp.Compress(saveDataDiff(pkt.RawDataPayload, data))
+
+		// Perform diff and compress it to write back to db
+		s.logger.Info("Diffing...")
+		saveOutput, err := nullcomp.Compress(deltacomp.ApplyDataDiff(pkt.RawDataPayload, data))
 		if err != nil {
 			s.logger.Fatal("Failed to diff and compress savedata", zap.Error(err))
 		}
+
 		_, err = s.server.db.Exec("UPDATE characters SET platebox=$1 WHERE id=$2", saveOutput, s.charID)
 		if err != nil {
 			s.logger.Fatal("Failed to update platebox savedata in db", zap.Error(err))
-		} else {
-			fmt.Println("Wrote recompressed save back to DB.")
 		}
 
+		s.logger.Info("Wrote recompressed platebox back to DB.")
 	} else {
 		// simply update database, no extra processing
 		_, err := s.server.db.Exec("UPDATE characters SET platebox=$1 WHERE id=$2", pkt.RawDataPayload, s.charID)
@@ -1911,8 +1942,34 @@ func handleMsgMhfSaveHunterNavi(s *Session, p mhfpacket.MHFPacket) {
 	}
 
 	if pkt.IsDataDiff {
-		// https://gist.github.com/Andoryuuta/9c524da7285e4b5ca7e52e0fc1ca1daf
-		// doesn't seem fully consistent with platedata?
+		var data []byte
+
+		// Load existing save
+		err := s.server.db.QueryRow("SELECT hunternavi FROM characters WHERE id = $1", s.charID).Scan(&data)
+		if err != nil {
+			s.logger.Fatal("Failed to get hunternavi savedata from db", zap.Error(err))
+		}
+
+		// Decompress
+		s.logger.Info("Decompressing...")
+		data, err = nullcomp.Decompress(data)
+		if err != nil {
+			s.logger.Fatal("Failed to decompress hunternavi from db", zap.Error(err))
+		}
+
+		// Perform diff and compress it to write back to db
+		s.logger.Info("Diffing...")
+		saveOutput, err := nullcomp.Compress(deltacomp.ApplyDataDiff(pkt.RawDataPayload, data))
+		if err != nil {
+			s.logger.Fatal("Failed to diff and compress hunternavi savedata", zap.Error(err))
+		}
+
+		_, err = s.server.db.Exec("UPDATE characters SET hunternavi=$1 WHERE id=$2", saveOutput, s.charID)
+		if err != nil {
+			s.logger.Fatal("Failed to update hunternavi savedata in db", zap.Error(err))
+		}
+
+		s.logger.Info("Wrote recompressed hunternavi back to DB.")
 	} else {
 		// simply update database, no extra processing
 		_, err := s.server.db.Exec("UPDATE characters SET hunternavi=$1 WHERE id=$2", pkt.RawDataPayload, s.charID)

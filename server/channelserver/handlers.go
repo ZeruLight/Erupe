@@ -1933,7 +1933,6 @@ func handleMsgMhfLoadHunterNavi(s *Session, p mhfpacket.MHFPacket) {
 
 	if len(data) > 0 {
 		doSizedAckResp(s, pkt.AckHandle, data)
-		//doSizedAckResp(s, pkt.AckHandle, data)
 	} else {
 		// set first byte to 1 to avoid pop up every time without save
 		body := make([]byte, 0x226)
@@ -1958,19 +1957,15 @@ func handleMsgMhfSaveHunterNavi(s *Session, p mhfpacket.MHFPacket) {
 			s.logger.Fatal("Failed to get hunternavi savedata from db", zap.Error(err))
 		}
 
-		// Decompress
-		s.logger.Info("Decompressing...")
-		data, err = nullcomp.Decompress(data)
-		if err != nil {
-			s.logger.Fatal("Failed to decompress hunternavi from db", zap.Error(err))
+		// Check if we actually had any hunternavi data, using a blank buffer if not.
+		// This is requried as the client will try to send a diff after character creation without a prior MsgMhfSaveHunterNavi packet.
+		if len(data) == 0 {
+			data = make([]byte, 0x226)
 		}
 
 		// Perform diff and compress it to write back to db
 		s.logger.Info("Diffing...")
-		saveOutput, err := nullcomp.Compress(deltacomp.ApplyDataDiff(pkt.RawDataPayload, data))
-		if err != nil {
-			s.logger.Fatal("Failed to diff and compress hunternavi savedata", zap.Error(err))
-		}
+		saveOutput := deltacomp.ApplyDataDiff(pkt.RawDataPayload, data)
 
 		_, err = s.server.db.Exec("UPDATE characters SET hunternavi=$1 WHERE id=$2", saveOutput, s.charID)
 		if err != nil {

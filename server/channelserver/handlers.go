@@ -922,14 +922,19 @@ func handleMsgMhfSavedata(s *Session, p mhfpacket.MHFPacket) {
 			s.logger.Fatal("Failed to decompress savedata from db", zap.Error(err))
 		}
 
-		// Perform diff and compress it to write back to db
+		// Perform diff.
+		data = deltacomp.ApplyDataDiff(pkt.RawDataPayload, data)
+
+		// Make a copy for updating the launcher fields.
+		decompressedData = make([]byte, len(data))
+		copy(decompressedData, data)
+
+		// Compress it to write back to db
 		s.logger.Info("Diffing...")
-		saveOutput, err := nullcomp.Compress(deltacomp.ApplyDataDiff(pkt.RawDataPayload, data))
+		saveOutput, err := nullcomp.Compress(data)
 		if err != nil {
 			s.logger.Fatal("Failed to diff and compress savedata", zap.Error(err))
 		}
-
-		decompressedData = saveOutput // For updating launcher fields.
 
 		_, err = s.server.db.Exec("UPDATE characters SET savedata=$1 WHERE id=$2", saveOutput, s.charID)
 		if err != nil {
@@ -961,15 +966,18 @@ func handleMsgMhfSavedata(s *Session, p mhfpacket.MHFPacket) {
 		s.logger.Fatal("Failed to character weapon in db", zap.Error(err))
 	}
 
-	x := uint16(decompressedData[130550])<<8 | uint16(decompressedData[130551])
-	_, err = s.server.db.Exec("UPDATE characters SET small_gr_level=$1 WHERE id=$2", uint16(x), s.charID)
+	gr := uint16(decompressedData[130550])<<8 | uint16(decompressedData[130551])
+	s.logger.Info("Setting db field", zap.Uint16("gr_override_level", gr))
+
+	// We have to use `gr_override_level` (uint16), not `small_gr_level` (uint8) to store this.
+	_, err = s.server.db.Exec("UPDATE characters SET gr_override_mode=true, gr_override_level=$1 WHERE id=$2", gr, s.charID)
 	if err != nil {
-		s.logger.Fatal("Failed to character small_gr_level in db", zap.Error(err))
+		s.logger.Fatal("Failed to update character gr_override_level in db", zap.Error(err))
 	}
 
 	_, err = s.server.db.Exec("UPDATE characters SET name=$1 WHERE id=$2", strings.SplitN(string(decompressedData[88:100]), "\x00", 2)[0], s.charID)
 	if err != nil {
-		s.logger.Fatal("Failed to character name in db", zap.Error(err))
+		s.logger.Fatal("Failed to update character name in db", zap.Error(err))
 	}
 
 	s.QueueAck(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})

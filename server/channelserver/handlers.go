@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
+	"github.com/Andoryuuta/Erupe/network/binpacket"
 	"io"
 	"io/ioutil"
 	"os"
@@ -700,29 +701,20 @@ func handleMsgSysReserveStage(s *Session, p mhfpacket.MHFPacket) {
 
 	s.stage.BroadcastMHF(notify, s)
 
-	joinMsgA := &mhfpacket.MsgSysCastedBinary{
-		CharID: s.charID,
-		Type0:  0x03,
-		Type1:  0x03,
-		RawDataPayload: []byte{
-			0x00, 0x02, 0x01, 0x00, 0x01, 0x00,
-			0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-		},
+	//TODO these messages should be directed to the correct recipients
+	joinedAPartyMessage := &binpacket.MsgBinPlayerJoinedParty{
+		CharID:        s.charID,
+		PartyJoinType: binpacket.JoinedLocalParty,
 	}
 
-	s.stage.BroadcastMHF(joinMsgA, s)
+	s.stage.BroadcastMHF(joinedAPartyMessage, s)
 
-	joinMsgB := &mhfpacket.MsgSysCastedBinary{
-		CharID: s.charID,
-		Type0:  0x03,
-		Type1:  0x03,
-		RawDataPayload: []byte{
-			0x00, 0x02, 0x04, 0x00, 0x01, 0x00,
-			0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-		},
+	joinedYourPartyMessage := &binpacket.MsgBinPlayerJoinedParty{
+		CharID:        s.charID,
+		PartyJoinType: binpacket.JoinedYourParty,
 	}
 
-	s.stage.BroadcastMHF(joinMsgB, s)
+	s.stage.BroadcastMHF(joinedYourPartyMessage, s)
 }
 
 func handleMsgSysUnreserveStage(s *Session, p mhfpacket.MHFPacket) {}
@@ -814,7 +806,10 @@ func handleMsgSysGetStageBinary(s *Session, p mhfpacket.MHFPacket) {
 
 	if gotBinary {
 		doSizedAckResp(s, pkt.AckHandle, stageBinary)
+
 	} else if pkt.BinaryType1 == 4 {
+		// This particular type seems to be expecting data that isn't set
+		// is it required before the party joining can be completed
 		s.QueueAck(pkt.AckHandle, []byte{0x01, 0x00, 0x00, 0x00, 0x10})
 	} else {
 		s.logger.Warn("Failed to get stage binary", zap.Uint8("BinaryType0", pkt.BinaryType0), zap.Uint8("pkt.BinaryType1", pkt.BinaryType1))

@@ -310,19 +310,44 @@ func handleMsgSysPing(s *Session, p mhfpacket.MHFPacket) {
 	s.QueueAck(pkt.AckHandle, bf.Data())
 }
 
+const (
+	BINARY_MESSAGE_TYPE_CHAT  = 1
+	BINARY_MESSAGE_TYPE_EMOTE = 6
+)
+
+const (
+	CHAT_TYPE_LOCAL = 3
+	// For some reason sending private messages appears to use the same code
+	// however the 9th byte in payload is 0x05 and there is no reference to
+	// the target player, something must be wrong here.
+	CHAT_TYPE_LIMITED = 1
+	CHAT_TYPE_GLOBAL  = 0xa
+)
+
 func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysCastBinary)
 
-	if pkt.Type0 == 3 && pkt.Type1 == 1 {
+	if pkt.Type1 == BINARY_MESSAGE_TYPE_CHAT {
 		fmt.Println("Got chat message!")
 
 		resp := &mhfpacket.MsgSysCastedBinary{
 			CharID:         s.charID,
-			Type0:          1,
-			Type1:          1,
+			Type0:          pkt.Type0,
+			Type1:          pkt.Type1,
 			RawDataPayload: pkt.RawDataPayload,
 		}
-		s.server.BroadcastMHF(resp, s)
+
+		switch chatType := pkt.Type0; chatType {
+		case CHAT_TYPE_GLOBAL:
+			s.server.BroadcastMHF(resp, s)
+		case CHAT_TYPE_LOCAL:
+			s.stage.BroadcastMHF(resp, s)
+		case CHAT_TYPE_LIMITED:
+			if pkt.RawDataPayload[9] == 0x04 {
+				// TODO Send to party members only
+				s.stage.BroadcastMHF(resp, s)
+			}
+		}
 
 		/*
 			// Made the inside of the casted binary
@@ -662,7 +687,42 @@ func handleMsgSysReserveStage(s *Session, p mhfpacket.MHFPacket) {
 
 	// TODO(Andoryuuta): Add proper player-slot reservations for stages.
 
-	s.QueueAck(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
+	s.QueueAck(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10})
+
+	s.QueueSend([]byte{
+		0x00, 0x1b, 0x30, 0x15, 0xc2, 0x45, 0x03, 0x03, 0x00, 0x0c, 0x00, 0x02, 0x06, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10,
+	})
+
+	notify := &mhfpacket.MsgSysNotifyUserBinary{
+		CharID:     s.charID,
+		BinaryType: 0x03,
+	}
+
+	s.stage.BroadcastMHF(notify, s)
+
+	joinMsgA := &mhfpacket.MsgSysCastedBinary{
+		CharID: s.charID,
+		Type0:  0x03,
+		Type1:  0x03,
+		RawDataPayload: []byte{
+			0x00, 0x02, 0x01, 0x00, 0x01, 0x00,
+			0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		},
+	}
+
+	s.stage.BroadcastMHF(joinMsgA, s)
+
+	joinMsgB := &mhfpacket.MsgSysCastedBinary{
+		CharID: s.charID,
+		Type0:  0x03,
+		Type1:  0x03,
+		RawDataPayload: []byte{
+			0x00, 0x02, 0x04, 0x00, 0x01, 0x00,
+			0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+		},
+	}
+
+	s.stage.BroadcastMHF(joinMsgB, s)
 }
 
 func handleMsgSysUnreserveStage(s *Session, p mhfpacket.MHFPacket) {}
@@ -754,6 +814,8 @@ func handleMsgSysGetStageBinary(s *Session, p mhfpacket.MHFPacket) {
 
 	if gotBinary {
 		doSizedAckResp(s, pkt.AckHandle, stageBinary)
+	} else if pkt.BinaryType1 == 4 {
+		s.QueueAck(pkt.AckHandle, []byte{0x01, 0x00, 0x00, 0x00, 0x10})
 	} else {
 		s.logger.Warn("Failed to get stage binary", zap.Uint8("BinaryType0", pkt.BinaryType0), zap.Uint8("pkt.BinaryType1", pkt.BinaryType1))
 		s.logger.Warn("Sending blank stage binary")

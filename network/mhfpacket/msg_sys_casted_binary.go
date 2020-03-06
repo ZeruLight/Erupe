@@ -27,7 +27,7 @@ func (m *MsgSysCastedBinary) Parse(bf *byteframe.ByteFrame) error {
 func (m *MsgSysCastedBinary) Build(bf *byteframe.ByteFrame) error {
 	bf.WriteUint32(m.CharID)
 	bf.WriteUint8(m.Type0)
-	bf.WriteUint8(m.Type0)
+	bf.WriteUint8(m.Type1)
 	bf.WriteUint16(uint16(len(m.RawDataPayload)))
 	bf.WriteBytes(m.RawDataPayload)
 	return nil

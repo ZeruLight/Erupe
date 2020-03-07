@@ -317,12 +317,12 @@ const (
 )
 
 const (
-	CHAT_TYPE_LOCAL = 3
-	// For some reason sending private messages appears to use the same code
-	// however the 9th byte in payload is 0x05 and there is no reference to
-	// the target player, something must be wrong here.
-	CHAT_TYPE_LIMITED = 1
-	CHAT_TYPE_GLOBAL  = 0xa
+	CHAT_TYPE_WORLD uint8 = iota
+	CHAT_TYPE_LOCAL
+	CHAT_TYPE_GUILD
+	CHAT_TYPE_ALLIANCE
+	CHAT_TYPE_PARTY
+	CHAT_TYPE_WHISPER
 )
 
 func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
@@ -338,16 +338,16 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 			RawDataPayload: pkt.RawDataPayload,
 		}
 
-		switch chatType := pkt.Type0; chatType {
-		case CHAT_TYPE_GLOBAL:
+		switch chatType := pkt.RawDataPayload[2]; chatType {
+		case CHAT_TYPE_WORLD:
 			s.server.BroadcastMHF(resp, s)
 		case CHAT_TYPE_LOCAL:
 			s.stage.BroadcastMHF(resp, s)
-		case CHAT_TYPE_LIMITED:
-			if pkt.RawDataPayload[9] == 0x04 {
-				// TODO Send to party members only
-				s.stage.BroadcastMHF(resp, s)
-			}
+		case CHAT_TYPE_PARTY:
+			// Party messages seem to work partially when a party member starts the quest
+			// In town it is not working yet
+			// TODO Send to party members only
+			s.stage.BroadcastMHF(resp, s)
 		}
 
 		/*
@@ -493,20 +493,12 @@ func handleMsgSysCreateStage(s *Session, p mhfpacket.MHFPacket) {
 
 	s.server.stagesLock.Lock()
 	stage := NewStage(stripNullTerminator(pkt.StageID))
+	stage.maxClients = pkt.PlayerCount
 	s.server.stages[stage.id] = stage
 	s.server.stagesLock.Unlock()
 
 	resp := make([]byte, 8) // Unk resp.
 	s.QueueAck(pkt.AckHandle, resp)
-
-	createdPartyMessage := &mhfpacket.MsgSysCastedBinary{
-		CharID:         s.charID,
-		Type0:          0x03,
-		Type1:          0x03,
-		RawDataPayload: []byte{0x00, 0x02, 0x0b, 0x00, 0x01, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x5b, 0x27, 0xb3, 0x2e, 0x48, 0xa3, 0x17, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
-	}
-
-	s.stage.BroadcastMHF(createdPartyMessage, s)
 }
 
 func handleMsgSysStageDestruct(s *Session, p mhfpacket.MHFPacket) {}
@@ -693,37 +685,56 @@ func handleMsgSysUnlockStage(s *Session, p mhfpacket.MHFPacket) {}
 func handleMsgSysReserveStage(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysReserveStage)
 
-	fmt.Printf("Got reserve stage req, Unk0:%v, StageID:%q\n", pkt.Unk0, pkt.StageID)
+	stageID := stripNullTerminator(pkt.StageID)
+	s.server.stagesLock.RLock()
+	stage := s.server.stages[stageID]
+	s.server.stagesLock.RUnlock()
+
+	if uint8(len(stage.clients)) >= s.stage.maxClients {
+		// Do something? This will probably only be possible when multiple
+		// players attempt joining a quest at the same time I think.
+	}
+
+	s.server.stagesLock.Lock()
+	stage.clients[s] = s.charID
+	s.server.stagesLock.Unlock()
+
+	s.reserveStage = stage
+
+	fmt.Printf("Got reserve stage req, Unk0:%v, StageID:%q\n", pkt.Unk0, stageID)
 
 	// TODO(Andoryuuta): Add proper player-slot reservations for stages.
 
-	s.QueueAck(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10})
+	s.QueueAck(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
 
-	s.QueueSend([]byte{
-		0x00, 0x1b, 0x30, 0x15, 0xc2, 0x45, 0x03, 0x03, 0x00, 0x0c, 0x00, 0x02, 0x06, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10,
-	})
+	stage.RLock()
+	for _, charID := range stage.clients {
+		if charID == s.charID {
+			continue
+		}
 
-	// TODO remove this, temp for testing
-	if s.charID == 0x02 {
-		return
+		// Notify joining player of all existing party members
+		s.QueueSendMHF(&binpacket.MsgBinPlayerJoinedParty{
+			CharID:        charID,
+			PartyJoinType: binpacket.JoinedYourParty,
+			Unk1:          0x01,
+		})
 	}
+	stage.RUnlock()
 
-	//TODO these messages should be directed to the correct recipients
-	joinedAPartyMessage := &binpacket.MsgBinPlayerJoinedParty{
+	// Notify players in room that player has joined a party
+	s.stage.BroadcastMHF(&binpacket.MsgBinPlayerJoinedParty{
 		CharID:        s.charID,
 		PartyJoinType: binpacket.JoinedLocalParty,
 		Unk1:          0x01,
-	}
+	}, s)
 
-	s.stage.BroadcastMHF(joinedAPartyMessage, s)
-
-	joinedYourPartyMessage := &binpacket.MsgBinPlayerJoinedParty{
+	// Notify players in party that player has joined
+	stage.BroadcastMHF(&binpacket.MsgBinPlayerJoinedParty{
 		CharID:        s.charID,
 		PartyJoinType: binpacket.JoinedYourParty,
 		Unk1:          0x01,
-	}
-
-	s.stage.BroadcastMHF(joinedYourPartyMessage, s)
+	}, s)
 }
 
 func handleMsgSysUnreserveStage(s *Session, p mhfpacket.MHFPacket) {}
@@ -875,14 +886,14 @@ func handleMsgSysEnumerateStage(s *Session, p mhfpacket.MHFPacket) {
 	// Build the response
 	resp := byteframe.NewByteFrame()
 	resp.WriteUint16(uint16(len(s.server.stages)))
-	for sid := range s.server.stages {
+	for sid, stage := range s.server.stages {
 		// Found parsing code, field sizes are correct, but unknown purposes still.
 		//resp.WriteBytes([]byte{0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x04, 0x00})
-		resp.WriteUint16(1) // Current players.
-		resp.WriteUint16(0) // Unknown value
-		resp.WriteUint16(0) // HasDeparted.
-		resp.WriteUint16(4) // Max players.
-		resp.WriteUint8(2)  // Password protected.
+		resp.WriteUint16(1)                        // Current players.
+		resp.WriteUint16(0)                        // Unknown value
+		resp.WriteUint16(0)                        // HasDeparted.
+		resp.WriteUint16(uint16(stage.maxClients)) // Max players.
+		resp.WriteUint8(2)                         // Password protected.
 		resp.WriteUint8(uint8(len(sid)))
 		resp.WriteBytes([]byte(sid))
 	}

@@ -22,10 +22,11 @@ type Session struct {
 	cryptConn   *network.CryptConn
 	sendPackets chan []byte
 
-	stageID string
-	stage   *Stage
-	charID  uint32
-	logKey  []byte
+	stageID      string
+	stage        *Stage
+	reserveStage *Stage
+	charID       uint32
+	logKey       []byte
 
 	// A stack containing the stage movement history (push on enter/move, pop on back)
 	stageMoveStack *stringstack.StringStack

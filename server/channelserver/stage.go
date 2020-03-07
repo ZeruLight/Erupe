@@ -27,6 +27,7 @@ type Stage struct {
 	gameObjectCount uint32                    // Total count of objects ever created for this stage. Used for ObjID generation.
 	objects         map[uint32]*StageObject   // Map of ObjID -> StageObject
 	clients         map[*Session]uint32       // Map of session -> charID
+	maxClients      uint8                     // Max number of clients allowed to join this stage
 	rawBinaryData   map[stageBinaryKey][]byte // Raw binary data set by the client.
 }
 
@@ -37,6 +38,7 @@ func NewStage(ID string) *Stage {
 		objects:         make(map[uint32]*StageObject),
 		clients:         make(map[*Session]uint32),
 		rawBinaryData:   make(map[stageBinaryKey][]byte),
+		maxClients:      4,
 		gameObjectCount: 1,
 	}
 

@@ -14,18 +14,19 @@ type Config struct {
 	DevMode bool
 
 	DevModeOptions DevModeOptions
-	Database Database
-	Launcher Launcher
-	Sign     Sign
-	Channel  Channel
-	Entrance Entrance
+	Database       Database
+	Launcher       Launcher
+	Sign           Sign
+	Channel        Channel
+	Entrance       Entrance
 }
 
 // DevModeOptions holds various debug/temporary options for use while developing Erupe.
 type DevModeOptions struct {
-	CleanDB       bool // Automatically wipes the DB on server reset.
-	MaxLauncherHR bool // Sets the HR returned in the launcher to HR9 so that you can join non-beginner worlds.
-	FixedStageID 	bool // Causes all move_stage to use the ID sl1Ns200p0a0u0 to get you into all stages
+	CleanDB             bool // Automatically wipes the DB on server reset.
+	MaxLauncherHR       bool // Sets the HR returned in the launcher to HR9 so that you can join non-beginner worlds.
+	FixedStageID        bool // Causes all move_stage to use the ID sl1Ns200p0a0u0 to get you into all stages
+	LogOutboundMessages bool // Log all messages sent to the clients
 }
 
 // Database holds the postgres database config.

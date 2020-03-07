@@ -498,6 +498,15 @@ func handleMsgSysCreateStage(s *Session, p mhfpacket.MHFPacket) {
 
 	resp := make([]byte, 8) // Unk resp.
 	s.QueueAck(pkt.AckHandle, resp)
+
+	createdPartyMessage := &mhfpacket.MsgSysCastedBinary{
+		CharID:         s.charID,
+		Type0:          0x03,
+		Type1:          0x03,
+		RawDataPayload: []byte{0x00, 0x02, 0x0b, 0x00, 0x01, 0x00, 0x00, 0x00, 0x10, 0x00, 0x00, 0x00, 0x5b, 0x27, 0xb3, 0x2e, 0x48, 0xa3, 0x17, 0x20, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00},
+	}
+
+	s.stage.BroadcastMHF(createdPartyMessage, s)
 }
 
 func handleMsgSysStageDestruct(s *Session, p mhfpacket.MHFPacket) {}
@@ -694,17 +703,16 @@ func handleMsgSysReserveStage(s *Session, p mhfpacket.MHFPacket) {
 		0x00, 0x1b, 0x30, 0x15, 0xc2, 0x45, 0x03, 0x03, 0x00, 0x0c, 0x00, 0x02, 0x06, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x10,
 	})
 
-	notify := &mhfpacket.MsgSysNotifyUserBinary{
-		CharID:     s.charID,
-		BinaryType: 0x03,
+	// TODO remove this, temp for testing
+	if s.charID == 0x02 {
+		return
 	}
-
-	s.stage.BroadcastMHF(notify, s)
 
 	//TODO these messages should be directed to the correct recipients
 	joinedAPartyMessage := &binpacket.MsgBinPlayerJoinedParty{
 		CharID:        s.charID,
 		PartyJoinType: binpacket.JoinedLocalParty,
+		Unk1:          0x01,
 	}
 
 	s.stage.BroadcastMHF(joinedAPartyMessage, s)
@@ -712,6 +720,7 @@ func handleMsgSysReserveStage(s *Session, p mhfpacket.MHFPacket) {
 	joinedYourPartyMessage := &binpacket.MsgBinPlayerJoinedParty{
 		CharID:        s.charID,
 		PartyJoinType: binpacket.JoinedYourParty,
+		Unk1:          0x01,
 	}
 
 	s.stage.BroadcastMHF(joinedYourPartyMessage, s)
@@ -1007,6 +1016,13 @@ func handleMsgSysSetUserBinary(s *Session, p mhfpacket.MHFPacket) {
 	s.server.userBinaryPartsLock.Lock()
 	s.server.userBinaryParts[userBinaryPartID{charID: s.charID, index: pkt.BinaryType}] = pkt.RawDataPayload
 	s.server.userBinaryPartsLock.Unlock()
+
+	msg := &mhfpacket.MsgSysNotifyUserBinary{
+		CharID:     s.charID,
+		BinaryType: pkt.BinaryType,
+	}
+
+	s.stage.BroadcastMHF(msg, s)
 }
 
 func handleMsgSysGetUserBinary(s *Session, p mhfpacket.MHFPacket) {

@@ -16,6 +16,7 @@ const (
 type MsgBinPlayerJoinedParty struct {
 	CharID        uint32
 	PartyJoinType PartyJoinType
+	Unk1          uint16
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -31,9 +32,10 @@ func (m *MsgBinPlayerJoinedParty) Parse(bf *byteframe.ByteFrame) error {
 func (m *MsgBinPlayerJoinedParty) Build(bf *byteframe.ByteFrame) error {
 	payload := byteframe.NewByteFrame()
 
-	payload.WriteUint16(0x2)
+	payload.WriteUint16(0x02)
 	payload.WriteUint8(uint8(m.PartyJoinType))
-	payload.WriteBytes([]byte{0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
+	payload.WriteUint16(m.Unk1)
+	payload.WriteBytes([]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
 
 	pkt := &mhfpacket.MsgSysCastedBinary{
 		CharID:         m.CharID,

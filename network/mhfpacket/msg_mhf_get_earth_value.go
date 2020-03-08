@@ -10,7 +10,7 @@ type MsgMhfGetEarthValue struct {
 	AckHandle uint32
 	Unk0      uint32
 	Unk1      uint32
-	Unk2      uint32
+	ReqType      uint32
 	Unk3      uint32
 	Unk4      uint32
 	Unk5      uint32
@@ -27,7 +27,7 @@ func (m *MsgMhfGetEarthValue) Parse(bf *byteframe.ByteFrame) error {
 	m.AckHandle = bf.ReadUint32()
 	m.Unk0 = bf.ReadUint32()
 	m.Unk1 = bf.ReadUint32()
-	m.Unk2 = bf.ReadUint32()
+	m.ReqType = bf.ReadUint32()
 	m.Unk3 = bf.ReadUint32()
 	m.Unk4 = bf.ReadUint32()
 	m.Unk5 = bf.ReadUint32()

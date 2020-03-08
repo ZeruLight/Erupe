@@ -9,5 +9,6 @@ ALTER TABLE characters
     ADD COLUMN platedata bytea,
     ADD COLUMN platemyset bytea,
     ADD COLUMN rengokudata bytea;
+    ADD COLUMN savemercenary bytea;
 
 END;

@@ -1961,6 +1961,7 @@ func handleMsgMhfSaveHunterNavi(s *Session, p mhfpacket.MHFPacket) {
 		// This is requried as the client will try to send a diff after character creation without a prior MsgMhfSaveHunterNavi packet.
 		if len(data) == 0 {
 			data = make([]byte, 0x226)
+			data[0] = 1 // set first byte to 1 to avoid pop up every time without save
 		}
 
 		// Perform diff and compress it to write back to db

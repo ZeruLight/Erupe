@@ -6,7 +6,9 @@ import (
 )
 
 // MsgSysDeleteUser represents the MSG_SYS_DELETE_USER
-type MsgSysDeleteUser struct{}
+type MsgSysDeleteUser struct {
+	CharID uint32
+}
 
 // Opcode returns the ID associated with this packet type.
 func (m *MsgSysDeleteUser) Opcode() network.PacketID {
@@ -20,5 +22,7 @@ func (m *MsgSysDeleteUser) Parse(bf *byteframe.ByteFrame) error {
 
 // Build builds a binary packet from the current data.
 func (m *MsgSysDeleteUser) Build(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+	bf.WriteUint32(m.CharID)
+
+	return nil
 }

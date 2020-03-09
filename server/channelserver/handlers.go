@@ -177,7 +177,9 @@ func handleMsgSysLogin(s *Session, p mhfpacket.MHFPacket) {
 	s.QueueAck(pkt.AckHandle, bf.Data())
 }
 
-func handleMsgSysLogout(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysLogout(s *Session, p mhfpacket.MHFPacket) {
+	logoutPlayer(s)
+}
 
 func handleMsgSysSetStatus(s *Session, p mhfpacket.MHFPacket) {}
 
@@ -396,27 +398,7 @@ func doStageTransfer(s *Session, ackHandle uint32, stageID string) {
 	s.server.stagesLock.Unlock()
 
 	if s.stage != nil {
-		s.stage.Lock()
-
-		// Remove client from old stage.
-		delete(s.stage.clients, s)
-
-		// Delete old stage objects owned by the client.
-		s.logger.Info("Sending MsgSysDeleteObject to old stage clients")
-		for objID, stageObject := range s.stage.objects {
-			if stageObject.ownerCharID == s.charID {
-				// Broadcast the deletion to clients in the stage.
-				s.stage.BroadcastMHF(&mhfpacket.MsgSysDeleteObject{
-					ObjID: stageObject.id,
-				}, s)
-				// TODO(Andoryuuta): Should this be sent to the owner's client as well? it currently isn't.
-
-				// Actually delete it form the objects map.
-				delete(s.stage.objects, objID)
-			}
-		}
-
-		s.stage.Unlock()
+		removeSessionFromStage(s)
 	}
 
 	// Add the new stage.
@@ -439,25 +421,28 @@ func doStageTransfer(s *Session, ackHandle uint32, stageID string) {
 	s.QueueAck(ackHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
 
 	// Notify existing stage clients that this new client has entered.
-	s.logger.Info("Sending MsgSysInsertUser & MsgSysNotifyUserBinary")
+	s.logger.Info("Sending MsgSysInsertUser")
 	s.stage.BroadcastMHF(&mhfpacket.MsgSysInsertUser{
 		CharID: s.charID,
 	}, s)
 
-	s.stage.BroadcastMHF(&mhfpacket.MsgSysNotifyUserBinary{
-		CharID:     s.charID,
-		BinaryType: 1,
-	}, s)
-	s.stage.BroadcastMHF(&mhfpacket.MsgSysNotifyUserBinary{
-		CharID:     s.charID,
-		BinaryType: 2,
-	}, s)
-	s.stage.BroadcastMHF(&mhfpacket.MsgSysNotifyUserBinary{
-		CharID:     s.charID,
-		BinaryType: 3,
-	}, s)
+	// It seems to be acceptable to recast all MSG_SYS_SET_USER_BINARY messages so far,
+	// players are still notified when a new player has joined the stage.
+	// These extra messages may not be needed
+	//s.stage.BroadcastMHF(&mhfpacket.MsgSysNotifyUserBinary{
+	//	CharID:     s.charID,
+	//	BinaryType: 1,
+	//}, s)
+	//s.stage.BroadcastMHF(&mhfpacket.MsgSysNotifyUserBinary{
+	//	CharID:     s.charID,
+	//	BinaryType: 2,
+	//}, s)
+	//s.stage.BroadcastMHF(&mhfpacket.MsgSysNotifyUserBinary{
+	//	CharID:     s.charID,
+	//	BinaryType: 3,
+	//}, s)
 
-	// Notify the entree client about all of the existing clients in the stage.
+	//Notify the entree client about all of the existing clients in the stage.
 	s.logger.Info("Notifying entree about existing stage clients")
 	s.stage.RLock()
 	clientNotif := byteframe.NewByteFrame()
@@ -513,6 +498,54 @@ func doStageTransfer(s *Session, ackHandle uint32, stageID string) {
 	s.stage.RUnlock()
 	clientDupObjNotif.WriteUint16(0x0010) // End it.
 	s.QueueSend(clientDupObjNotif.Data())
+}
+
+func removeSessionFromStage(s *Session) {
+	s.stage.Lock()
+	defer s.stage.Unlock()
+
+	// Remove client from old stage.
+	delete(s.stage.clients, s)
+
+	// Delete old stage objects owned by the client.
+	s.logger.Info("Sending MsgSysDeleteObject to old stage clients")
+	for objID, stageObject := range s.stage.objects {
+		if stageObject.ownerCharID == s.charID {
+			// Broadcast the deletion to clients in the stage.
+			s.stage.BroadcastMHF(&mhfpacket.MsgSysDeleteObject{
+				ObjID: stageObject.id,
+			}, s)
+			// TODO(Andoryuuta): Should this be sent to the owner's client as well? it currently isn't.
+
+			// Actually delete it form the objects map.
+			delete(s.stage.objects, objID)
+		}
+	}
+}
+
+func stageContainsSession(stage *Stage, s *Session) bool {
+	stage.RLock()
+	defer stage.RUnlock()
+
+	for session := range stage.clients {
+		if session == s {
+			return true
+		}
+	}
+
+	return false
+}
+
+func logoutPlayer(s *Session) {
+	s.stage.RLock()
+	for client := range s.stage.clients {
+		client.QueueSendMHF(&mhfpacket.MsgSysDeleteUser{
+			CharID: s.charID,
+		})
+	}
+	s.stage.RUnlock()
+
+	removeSessionFromStage(s)
 }
 
 func handleMsgSysEnterStage(s *Session, p mhfpacket.MHFPacket) {

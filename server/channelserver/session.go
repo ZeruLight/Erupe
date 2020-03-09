@@ -3,6 +3,7 @@ package channelserver
 import (
 	"encoding/hex"
 	"fmt"
+	"io"
 	"net"
 	"sync"
 
@@ -124,6 +125,13 @@ func (s *Session) sendLoop() {
 func (s *Session) recvLoop() {
 	for {
 		pkt, err := s.cryptConn.ReadPacket()
+
+		if err == io.EOF {
+			s.logger.Info(fmt.Sprintf("Character(%d) disconnected", s.charID))
+			logoutPlayer(s)
+			return
+		}
+
 		if err != nil {
 			s.logger.Warn("Error on ReadPacket, exiting recv loop", zap.Error(err))
 			return

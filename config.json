@@ -6,14 +6,14 @@
     "devmodeoptions": {
         "cleandb": false,
         "maxlauncherhr": true,
-        "fixedstageid": true
+        "logoutboundmessages" : true
     },
 
     "database": {
         "host": "localhost",
-        "port": 5432,
+        "port": 5555,
         "user": "postgres",
-        "password": "admin",
+        "password": "qweasd",
         "database": "erupe"
     },
     "launcher": {
@@ -30,7 +30,7 @@
         "port": 53310,
         "entries": [
             {
-                "name": "AErupe server noob",
+                "name": "Dev New",
                 "ip": "127.0.0.1",
                 "unk2": 0,
                 "type": 3,
@@ -56,7 +56,7 @@
                 ]
             },
             {
-                "name": "AErupe server open",
+                "name": "Dev Open",
                 "ip": "127.0.0.1",
                 "unk2": 0,
                 "type": 1,

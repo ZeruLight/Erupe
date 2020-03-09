@@ -7,7 +7,6 @@ import (
 	"encoding/hex"
 	"fmt"
 	"github.com/Andoryuuta/Erupe/network/binpacket"
-	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -15,6 +14,8 @@ import (
 	"time"
 
 	"github.com/Andoryuuta/Erupe/network/mhfpacket"
+	"github.com/Andoryuuta/Erupe/server/channelserver/compression/deltacomp"
+	"github.com/Andoryuuta/Erupe/server/channelserver/compression/nullcomp"
 	"github.com/Andoryuuta/byteframe"
 	"go.uber.org/zap"
 	"golang.org/x/text/encoding/japanese"
@@ -52,127 +53,6 @@ func doSizedAckResp(s *Session, ackHandle uint32, data []byte) {
 	}
 
 	s.QueueAck(ackHandle, bfw.Data())
-}
-
-// process a datadiff save for platebox and platedata
-func saveDataDiff(b []byte, save []byte) []byte {
-	// there are a bunch of extra variations on this method in use which this does not handle yet
-	// specifically this is for diffs with seek amounts trailed by 02 followed by bytes to be written
-	var seekBytes []byte
-	seekOperation := 0
-	write := byte(0)
-	for len(b) > 2 {
-		if bytes.IndexRune(b, 2) != 0 {
-			seekBytes = b[:bytes.IndexRune(b, 2)+1]
-		} else {
-			seekBytes = b[:bytes.IndexRune(b[1:], 2)+2]
-		}
-		if len(seekBytes) == 1 {
-			seekBytes = b[:bytes.IndexRune(b, 2)+2]
-			//fmt.Printf("Seek: %d SeekBytes: %X Write: %X\n", seekBytes[0], seekBytes, b[len(seekBytes)] )
-			seekOperation += int(seekBytes[0])
-			write = b[len(seekBytes)]
-			b = b[3:]
-		} else {
-			seek := int32(0)
-			for _, b := range seekBytes[:len(seekBytes)-1] {
-				seek = (seek << 8) | int32(b)
-			}
-			//fmt.Printf("Seek: %d SeekBytes: %X Write: %X\n", seek, seekBytes, b[len(seekBytes)] )
-			seekOperation += int(seek)
-			write = b[len(seekBytes)]
-			b = b[len(seekBytes)+1:]
-		}
-		save[seekOperation-1] = write
-	}
-
-	return save
-}
-
-// decompress save data
-func saveDecompress(compData []byte) ([]byte, error) {
-	r := bytes.NewReader(compData)
-
-	header := make([]byte, 16)
-	n, err := r.Read(header)
-	if err != nil {
-		return nil, err
-	} else if n != len(header) {
-		return nil, err
-	}
-
-	if !bytes.Equal(header, []byte("cmp\x2020110113\x20\x20\x20\x00")) {
-		return nil, err
-	}
-
-	var output []byte
-	for {
-		b, err := r.ReadByte()
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			return nil, err
-		}
-
-		if b == 0 {
-			// If it's a null byte, then the next byte is how many nulls to add.
-			nullCount, err := r.ReadByte()
-			if err == io.EOF {
-				break
-			} else if err != nil {
-				return nil, err
-			}
-
-			output = append(output, make([]byte, int(nullCount))...)
-		} else {
-			output = append(output, b)
-		}
-	}
-
-	return output, nil
-}
-
-// Null compresses a save
-func saveCompress(rawData []byte) ([]byte, error) {
-	r := bytes.NewReader(rawData)
-	var output []byte
-	output = append(output, []byte("cmp\x2020110113\x20\x20\x20\x00")...)
-	for {
-		b, err := r.ReadByte()
-		if err == io.EOF {
-			break
-		} else if err != nil {
-			return nil, err
-		}
-		if b == 0 {
-			output = append(output, []byte{0x00}...)
-			// read to get null count
-			nullCount := 1
-			for {
-				i, err := r.ReadByte()
-				if err == io.EOF {
-					output = append(output, []byte{byte(nullCount)}...)
-					break
-				} else if i != 0 {
-					r.UnreadByte()
-					output = append(output, []byte{byte(nullCount)}...)
-					break
-				} else if err != nil {
-					return nil, err
-				}
-				nullCount++
-
-				if nullCount == 255 {
-					output = append(output, []byte{0xFF, 0x00}...)
-					nullCount = 0
-				}
-			}
-			//output = append(output, []byte{byte(nullCount)}...)
-		} else {
-			output = append(output, b)
-		}
-	}
-	return output, nil
 }
 
 func updateRights(s *Session) {
@@ -344,11 +224,11 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 		case CHAT_TYPE_LOCAL:
 			s.stage.BroadcastMHF(resp, s)
 		case CHAT_TYPE_PARTY:
-			if s.reserveStage != nil {
+			if s.reservationStage != nil {
 				// Party messages seem to work partially when a party member starts the quest
 				// In town it is not working yet, the client now sends the chat packets
 				// however the other member does not accept it.
-				s.reserveStage.BroadcastMHF(resp, s)
+				s.reservationStage.BroadcastMHF(resp, s)
 			}
 		}
 
@@ -384,6 +264,17 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 			bfw.WriteUint16(uint16(len(payloadBytes)))
 			bfw.WriteBytes(payloadBytes)
 		*/
+	} else {
+		// Simply forward the packet to all the other clients.
+		// (The client never uses Type0 upon receiving)
+		// TODO(Andoryuuta): Does this broadcast need to be limited? (world, stage, guild, etc).
+		resp := &mhfpacket.MsgSysCastedBinary{
+			CharID:         s.charID,
+			Type0:          pkt.Type0,
+			Type1:          pkt.Type1,
+			RawDataPayload: pkt.RawDataPayload,
+		}
+		s.server.BroadcastMHF(resp, s)
 	}
 }
 
@@ -495,7 +386,7 @@ func handleMsgSysCreateStage(s *Session, p mhfpacket.MHFPacket) {
 
 	s.server.stagesLock.Lock()
 	stage := NewStage(stripNullTerminator(pkt.StageID))
-	stage.maxClients = pkt.PlayerCount
+	stage.maxPlayers = uint16(pkt.PlayerCount)
 	s.server.stages[stage.id] = stage
 	s.server.stagesLock.Unlock()
 
@@ -688,26 +579,34 @@ func handleMsgSysReserveStage(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysReserveStage)
 
 	stageID := stripNullTerminator(pkt.StageID)
-	s.server.stagesLock.RLock()
-	stage := s.server.stages[stageID]
-	s.server.stagesLock.RUnlock()
+	fmt.Printf("Got reserve stage req, Unk0:%v, StageID:%v\n", pkt.Unk0, stageID)
 
-	if uint8(len(stage.clients)) >= s.stage.maxClients {
-		// Do something? This will probably only be possible when multiple
-		// players attempt joining a quest at the same time I think.
-	}
-
+	// Try to get the stage
 	s.server.stagesLock.Lock()
-	stage.clients[s] = s.charID
+	stage, gotStage := s.server.stages[stageID]
 	s.server.stagesLock.Unlock()
 
-	s.reserveStage = stage
+	if !gotStage {
+		s.logger.Fatal("Failed to get stage", zap.String("StageID", stageID))
+	}
 
-	fmt.Printf("Got reserve stage req, Unk0:%v, StageID:%q\n", pkt.Unk0, stageID)
+	// Try to reserve a slot, fail if full.
+	stage.Lock()
+	defer stage.Unlock()
 
-	// TODO(Andoryuuta): Add proper player-slot reservations for stages.
+	if uint16(len(stage.reservedClientSlots)) < stage.maxPlayers {
+		// Add the charID to the stage's reservation map
+		stage.reservedClientSlots[s.charID] = nil
 
-	s.QueueAck(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
+		// Save the reservation stage in the session for later use in MsgSysUnreserveStage.
+		s.Lock()
+		s.reservationStage = stage
+		s.Unlock()
+
+		s.QueueAck(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
+	} else {
+		s.QueueAck(pkt.AckHandle, []byte{0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
+	}
 
 	stage.RLock()
 	for _, charID := range stage.clients {
@@ -739,9 +638,29 @@ func handleMsgSysReserveStage(s *Session, p mhfpacket.MHFPacket) {
 	}, s)
 }
 
-func handleMsgSysUnreserveStage(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysUnreserveStage(s *Session, p mhfpacket.MHFPacket) {
+	// Clear the saved reservation stage
+	s.Lock()
+	stage := s.reservationStage
+	if stage != nil {
+		s.reservationStage = nil
+	}
+	s.Unlock()
 
-func handleMsgSysSetStagePass(s *Session, p mhfpacket.MHFPacket) {}
+	// Remove the charID from the stage's reservation map
+	if stage != nil {
+		stage.Lock()
+		_, exists := stage.reservedClientSlots[s.charID]
+		if exists {
+			delete(stage.reservedClientSlots, s.charID)
+		}
+		stage.Unlock()
+	}
+}
+
+func handleMsgSysSetStagePass(s *Session, p mhfpacket.MHFPacket) {
+	// TODO(Andoryuuta): Implement me!
+}
 
 func handleMsgSysWaitStageBinary(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysWaitStageBinary)
@@ -753,19 +672,31 @@ func handleMsgSysWaitStageBinary(s *Session, p mhfpacket.MHFPacket) {
 	stage, gotStage := s.server.stages[stageID]
 	s.server.stagesLock.Unlock()
 
+	// TODO(Andoryuuta): This is a hack for a binary part that none of the clients set, figure out what it represents.
+	// In the packet captures, it seemingly comes out of nowhere, so presumably the server makes it.
+	if pkt.BinaryType0 == 1 && pkt.BinaryType1 == 12 {
+		// This might contain the hunter count, or max player count?
+		doSizedAckResp(s, pkt.AckHandle, []byte{0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
+		return
+	}
+
 	// If we got the stage, lock and try to get the data.
 	var stageBinary []byte
 	var gotBinary bool
 	if gotStage {
 		for {
+			s.logger.Debug("MsgSysWaitStageBinary before lock and get stage")
 			stage.Lock()
 			stageBinary, gotBinary = stage.rawBinaryData[stageBinaryKey{pkt.BinaryType0, pkt.BinaryType1}]
 			stage.Unlock()
+			s.logger.Debug("MsgSysWaitStageBinary after lock and get stage")
 
 			if gotBinary {
 				doSizedAckResp(s, pkt.AckHandle, stageBinary)
 				break
 			} else {
+				s.logger.Debug("Waiting stage binary", zap.Uint8("BinaryType0", pkt.BinaryType0), zap.Uint8("pkt.BinaryType1", pkt.BinaryType1))
+
 				// Couldn't get binary, sleep for some time and try again.
 				time.Sleep(2 * time.Second)
 				continue
@@ -860,16 +791,24 @@ func handleMsgSysEnumerateClient(s *Session, p mhfpacket.MHFPacket) {
 	resp := byteframe.NewByteFrame()
 	stage.RLock()
 
-	// TODO(Andoryuuta): Add proper player-slot reservations for stages.
-	if len(stage.clients) >= 1 {
-		resp.WriteUint16(uint16(len(stage.clients))) // Client count
-		for session := range stage.clients {
-			resp.WriteUint32(session.charID) // Client represented by charID
-		}
-	} else {
-		// Just give our client.
-		resp.WriteUint16(1)
-		resp.WriteUint32(s.charID)
+	// TODO(Andoryuuta): Is only the reservations needed? Do clients send this packet for mezeporta as well?
+
+	// Make a map to deduplicate the charIDs between the unreserved clients and the reservations.
+	deduped := make(map[uint32]interface{})
+
+	// Add the charIDs
+	for session := range stage.clients {
+		deduped[session.charID] = nil
+	}
+
+	for charid := range stage.reservedClientSlots {
+		deduped[charid] = nil
+	}
+
+	// Write the deduplicated response
+	resp.WriteUint16(uint16(len(deduped))) // Client count
+	for charid := range deduped {
+		resp.WriteUint32(charid)
 	}
 
 	stage.RUnlock()
@@ -881,7 +820,7 @@ func handleMsgSysEnumerateClient(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgSysEnumerateStage(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysEnumerateStage)
 
-	// Read-lock the stages.
+	// Read-lock the server stage map.
 	s.server.stagesLock.RLock()
 	defer s.server.stagesLock.RUnlock()
 
@@ -889,13 +828,20 @@ func handleMsgSysEnumerateStage(s *Session, p mhfpacket.MHFPacket) {
 	resp := byteframe.NewByteFrame()
 	resp.WriteUint16(uint16(len(s.server.stages)))
 	for sid, stage := range s.server.stages {
-		// Found parsing code, field sizes are correct, but unknown purposes still.
-		//resp.WriteBytes([]byte{0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x04, 0x00})
-		resp.WriteUint16(1)                        // Current players.
-		resp.WriteUint16(0)                        // Unknown value
-		resp.WriteUint16(0)                        // HasDeparted.
-		resp.WriteUint16(uint16(stage.maxClients)) // Max players.
-		resp.WriteUint8(2)                         // Password protected.
+		stage.RLock()
+		defer stage.RUnlock()
+
+		resp.WriteUint16(uint16(len(stage.reservedClientSlots))) // Current players.
+		resp.WriteUint16(0)                                      // Unknown value
+
+		var hasDeparted uint16
+		if stage.hasDeparted {
+			hasDeparted = 1
+		}
+
+		resp.WriteUint16(hasDeparted)           // HasDeparted.
+		resp.WriteUint16(stage.maxPlayers)      // Max players.
+		resp.WriteBool(len(stage.password) > 0) // Password protected.
 		resp.WriteUint8(uint8(len(sid)))
 		resp.WriteBytes([]byte(sid))
 	}
@@ -1102,28 +1048,88 @@ func handleMsgSysReserve5F(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfSavedata(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSavedata)
+
 	err := ioutil.WriteFile(fmt.Sprintf("savedata\\%d.bin", time.Now().Unix()), pkt.RawDataPayload, 0644)
 	if err != nil {
 		s.logger.Fatal("Error dumping savedata", zap.Error(err))
 	}
-	if pkt.SaveType == 2 {
-		_, err = s.server.db.Exec("UPDATE characters SET is_new_character=false, savedata=$1 WHERE id=$2", pkt.RawDataPayload, s.charID)
 
-		// Temporary server launcher response stuff
-		// 0x1F715	Weapon Class
-		// 0x1FDF6 HR (small_gr_level)
-		// 0x88 Character Name
-		saveFile, _ := saveDecompress(pkt.RawDataPayload)
-		_, err = s.server.db.Exec("UPDATE characters SET weapon=$1 WHERE id=$2", uint16(saveFile[128789]), s.charID)
-		x := uint16(saveFile[130550])<<8 | uint16(saveFile[130551])
-		_, err = s.server.db.Exec("UPDATE characters SET small_gr_level=$1 WHERE id=$2", uint16(x), s.charID)
-		_, err = s.server.db.Exec("UPDATE characters SET name=$1 WHERE id=$2", strings.SplitN(string(saveFile[88:100]), "\x00", 2)[0], s.charID)
+	// Var to hold the decompressed savedata for updating the launcher response fields.
+	var decompressedData []byte
+
+	if pkt.SaveType == 1 {
+		// Diff-based update.
+
+		// Load existing save
+		var data []byte
+		err := s.server.db.QueryRow("SELECT savedata FROM characters WHERE id = $1", s.charID).Scan(&data)
+		if err != nil {
+			s.logger.Fatal("Failed to get savedata from db", zap.Error(err))
+		}
+
+		// Decompress
+		s.logger.Info("Decompressing...")
+		data, err = nullcomp.Decompress(data)
+		if err != nil {
+			s.logger.Fatal("Failed to decompress savedata from db", zap.Error(err))
+		}
+
+		// Perform diff.
+		data = deltacomp.ApplyDataDiff(pkt.RawDataPayload, data)
+
+		// Make a copy for updating the launcher fields.
+		decompressedData = make([]byte, len(data))
+		copy(decompressedData, data)
+
+		// Compress it to write back to db
+		s.logger.Info("Diffing...")
+		saveOutput, err := nullcomp.Compress(data)
+		if err != nil {
+			s.logger.Fatal("Failed to diff and compress savedata", zap.Error(err))
+		}
+
+		_, err = s.server.db.Exec("UPDATE characters SET savedata=$1 WHERE id=$2", saveOutput, s.charID)
+		if err != nil {
+			s.logger.Fatal("Failed to update savedata in db", zap.Error(err))
+		}
+
+		s.logger.Info("Wrote recompressed savedata back to DB.")
+	} else {
+		// Regular blob update.
+
+		_, err = s.server.db.Exec("UPDATE characters SET is_new_character=false, savedata=$1 WHERE id=$2", pkt.RawDataPayload, s.charID)
 
 		if err != nil {
 			s.logger.Fatal("Failed to update savedata in db", zap.Error(err))
 		}
-	} else {
-		fmt.Printf("Got savedata packet of type 1, no handling implemented. Not saving.")
+
+		decompressedData, err = nullcomp.Decompress(pkt.RawDataPayload) // For updating launcher fields.
+		if err != nil {
+			s.logger.Fatal("Failed to decompress savedata from packet", zap.Error(err))
+		}
+	}
+
+	// Temporary server launcher response stuff
+	// 0x1F715	Weapon Class
+	// 0x1FDF6 HR (small_gr_level)
+	// 0x88 Character Name
+	_, err = s.server.db.Exec("UPDATE characters SET weapon=$1 WHERE id=$2", uint16(decompressedData[128789]), s.charID)
+	if err != nil {
+		s.logger.Fatal("Failed to character weapon in db", zap.Error(err))
+	}
+
+	gr := uint16(decompressedData[130550])<<8 | uint16(decompressedData[130551])
+	s.logger.Info("Setting db field", zap.Uint16("gr_override_level", gr))
+
+	// We have to use `gr_override_level` (uint16), not `small_gr_level` (uint8) to store this.
+	_, err = s.server.db.Exec("UPDATE characters SET gr_override_mode=true, gr_override_level=$1 WHERE id=$2", gr, s.charID)
+	if err != nil {
+		s.logger.Fatal("Failed to update character gr_override_level in db", zap.Error(err))
+	}
+
+	_, err = s.server.db.Exec("UPDATE characters SET name=$1 WHERE id=$2", strings.SplitN(string(decompressedData[88:100]), "\x00", 2)[0], s.charID)
+	if err != nil {
+		s.logger.Fatal("Failed to update character name in db", zap.Error(err))
 	}
 
 	s.QueueAck(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
@@ -1704,34 +1710,41 @@ func handleMsgMhfLoadPlateData(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfSavePlateData(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSavePlateData)
+
 	err := ioutil.WriteFile(fmt.Sprintf("savedata\\%d_platedata.bin", time.Now().Unix()), pkt.RawDataPayload, 0644)
 	if err != nil {
 		s.logger.Fatal("Error dumping platedata", zap.Error(err))
 	}
+
 	if pkt.IsDataDiff {
-		// https://gist.github.com/Andoryuuta/9c524da7285e4b5ca7e52e0fc1ca1daf
 		var data []byte
-		//load existing save
+
+		// Load existing save
 		err := s.server.db.QueryRow("SELECT platedata FROM characters WHERE id = $1", s.charID).Scan(&data)
 		if err != nil {
 			s.logger.Fatal("Failed to get platedata savedata from db", zap.Error(err))
 		}
-		//decompress
-		fmt.Println("Decompressing...")
-		data, err = saveDecompress(data)
+
+		// Decompress
+		s.logger.Info("Decompressing...")
+		data, err = nullcomp.Decompress(data)
 		if err != nil {
 			s.logger.Fatal("Failed to decompress platedata from db", zap.Error(err))
 		}
-		// perform diff and compress it to write back to db
-		fmt.Println("Diffing...")
-		saveOutput, err := saveCompress(saveDataDiff(pkt.RawDataPayload, data))
+
+		// Perform diff and compress it to write back to db
+		s.logger.Info("Diffing...")
+		saveOutput, err := nullcomp.Compress(deltacomp.ApplyDataDiff(pkt.RawDataPayload, data))
 		if err != nil {
 			s.logger.Fatal("Failed to diff and compress platedata savedata", zap.Error(err))
 		}
+
 		_, err = s.server.db.Exec("UPDATE characters SET platedata=$1 WHERE id=$2", saveOutput, s.charID)
 		if err != nil {
 			s.logger.Fatal("Failed to update platedata savedata in db", zap.Error(err))
 		}
+
+		s.logger.Info("Wrote recompressed platedata back to DB.")
 	} else {
 		// simply update database, no extra processing
 		_, err := s.server.db.Exec("UPDATE characters SET platedata=$1 WHERE id=$2", pkt.RawDataPayload, s.charID)
@@ -1739,6 +1752,7 @@ func handleMsgMhfSavePlateData(s *Session, p mhfpacket.MHFPacket) {
 			s.logger.Fatal("Failed to update platedata savedata in db", zap.Error(err))
 		}
 	}
+
 	s.QueueAck(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
 }
 
@@ -1759,36 +1773,41 @@ func handleMsgMhfLoadPlateBox(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfSavePlateBox(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSavePlateBox)
+
 	err := ioutil.WriteFile(fmt.Sprintf("savedata\\%d_platebox.bin", time.Now().Unix()), pkt.RawDataPayload, 0644)
 	if err != nil {
 		s.logger.Fatal("Error dumping hunter platebox savedata", zap.Error(err))
 	}
+
 	if pkt.IsDataDiff {
 		var data []byte
-		//load existing save
+
+		// Load existing save
 		err := s.server.db.QueryRow("SELECT platebox FROM characters WHERE id = $1", s.charID).Scan(&data)
 		if err != nil {
 			s.logger.Fatal("Failed to get sigil box savedata from db", zap.Error(err))
 		}
-		//decompress
-		fmt.Println("Decompressing...")
-		data, err = saveDecompress(data)
+
+		// Decompress
+		s.logger.Info("Decompressing...")
+		data, err = nullcomp.Decompress(data)
 		if err != nil {
 			s.logger.Fatal("Failed to decompress savedata from db", zap.Error(err))
 		}
-		// perform diff and compress it to write back to db
-		fmt.Println("Diffing...")
-		saveOutput, err := saveCompress(saveDataDiff(pkt.RawDataPayload, data))
+
+		// Perform diff and compress it to write back to db
+		s.logger.Info("Diffing...")
+		saveOutput, err := nullcomp.Compress(deltacomp.ApplyDataDiff(pkt.RawDataPayload, data))
 		if err != nil {
 			s.logger.Fatal("Failed to diff and compress savedata", zap.Error(err))
 		}
+
 		_, err = s.server.db.Exec("UPDATE characters SET platebox=$1 WHERE id=$2", saveOutput, s.charID)
 		if err != nil {
 			s.logger.Fatal("Failed to update platebox savedata in db", zap.Error(err))
-		} else {
-			fmt.Println("Wrote recompressed save back to DB.")
 		}
 
+		s.logger.Info("Wrote recompressed platebox back to DB.")
 	} else {
 		// simply update database, no extra processing
 		_, err := s.server.db.Exec("UPDATE characters SET platebox=$1 WHERE id=$2", pkt.RawDataPayload, s.charID)
@@ -2066,7 +2085,6 @@ func handleMsgMhfLoadHunterNavi(s *Session, p mhfpacket.MHFPacket) {
 
 	if len(data) > 0 {
 		doSizedAckResp(s, pkt.AckHandle, data)
-		//doSizedAckResp(s, pkt.AckHandle, data)
 	} else {
 		// set first byte to 1 to avoid pop up every time without save
 		body := make([]byte, 0x226)
@@ -2083,8 +2101,31 @@ func handleMsgMhfSaveHunterNavi(s *Session, p mhfpacket.MHFPacket) {
 	}
 
 	if pkt.IsDataDiff {
-		// https://gist.github.com/Andoryuuta/9c524da7285e4b5ca7e52e0fc1ca1daf
-		// doesn't seem fully consistent with platedata?
+		var data []byte
+
+		// Load existing save
+		err := s.server.db.QueryRow("SELECT hunternavi FROM characters WHERE id = $1", s.charID).Scan(&data)
+		if err != nil {
+			s.logger.Fatal("Failed to get hunternavi savedata from db", zap.Error(err))
+		}
+
+		// Check if we actually had any hunternavi data, using a blank buffer if not.
+		// This is requried as the client will try to send a diff after character creation without a prior MsgMhfSaveHunterNavi packet.
+		if len(data) == 0 {
+			data = make([]byte, 0x226)
+			data[0] = 1 // set first byte to 1 to avoid pop up every time without save
+		}
+
+		// Perform diff and compress it to write back to db
+		s.logger.Info("Diffing...")
+		saveOutput := deltacomp.ApplyDataDiff(pkt.RawDataPayload, data)
+
+		_, err = s.server.db.Exec("UPDATE characters SET hunternavi=$1 WHERE id=$2", saveOutput, s.charID)
+		if err != nil {
+			s.logger.Fatal("Failed to update hunternavi savedata in db", zap.Error(err))
+		}
+
+		s.logger.Info("Wrote recompressed hunternavi back to DB.")
 	} else {
 		// simply update database, no extra processing
 		_, err := s.server.db.Exec("UPDATE characters SET hunternavi=$1 WHERE id=$2", pkt.RawDataPayload, s.charID)

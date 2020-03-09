@@ -6,7 +6,9 @@ import (
 )
 
 // MsgSysUnreserveStage represents the MSG_SYS_UNRESERVE_STAGE
-type MsgSysUnreserveStage struct{}
+type MsgSysUnreserveStage struct {
+	// Contains no fields.
+}
 
 // Opcode returns the ID associated with this packet type.
 func (m *MsgSysUnreserveStage) Opcode() network.PacketID {
@@ -15,7 +17,7 @@ func (m *MsgSysUnreserveStage) Opcode() network.PacketID {
 
 // Parse parses the packet from binary
 func (m *MsgSysUnreserveStage) Parse(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+	return nil
 }
 
 // Build builds a binary packet from the current data.

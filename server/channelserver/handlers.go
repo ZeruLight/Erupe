@@ -193,17 +193,18 @@ func handleMsgSysPing(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysCastBinary)
 
+	// Simply forward the packet to all the other clients.
+	// (The client never uses Type0 upon receiving)
+	// TODO(Andoryuuta): Does this broadcast need to be limited? (world, stage, guild, etc).
+	resp := &mhfpacket.MsgSysCastedBinary{
+		CharID:         s.charID,
+		Type0:          pkt.Type0,
+		Type1:          pkt.Type1,
+		RawDataPayload: pkt.RawDataPayload,
+	}
+	s.server.BroadcastMHF(resp, s)
+
 	if pkt.Type0 == 3 && pkt.Type1 == 1 {
-		fmt.Println("Got chat message!")
-
-		resp := &mhfpacket.MsgSysCastedBinary{
-			CharID:         s.charID,
-			Type0:          1,
-			Type1:          1,
-			RawDataPayload: pkt.RawDataPayload,
-		}
-		s.server.BroadcastMHF(resp, s)
-
 		/*
 			// Made the inside of the casted binary
 			payload := byteframe.NewByteFrame()
@@ -538,16 +539,60 @@ func handleMsgSysUnlockStage(s *Session, p mhfpacket.MHFPacket) {}
 func handleMsgSysReserveStage(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysReserveStage)
 
-	fmt.Printf("Got reserve stage req, Unk0:%v, StageID:%q\n", pkt.Unk0, pkt.StageID)
+	stageID := stripNullTerminator(pkt.StageID)
+	fmt.Printf("Got reserve stage req, Unk0:%v, StageID:%v\n", pkt.Unk0, stageID)
 
-	// TODO(Andoryuuta): Add proper player-slot reservations for stages.
+	// Try to get the stage
+	s.server.stagesLock.Lock()
+	stage, gotStage := s.server.stages[stageID]
+	s.server.stagesLock.Unlock()
 
-	s.QueueAck(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
+	if !gotStage {
+		s.logger.Fatal("Failed to get stage", zap.String("StageID", stageID))
+	}
+
+	// Try to reserve a slot, fail if full.
+	stage.Lock()
+	defer stage.Unlock()
+
+	if uint16(len(stage.reservedClientSlots)) < stage.maxPlayers {
+		// Add the charID to the stage's reservation map
+		stage.reservedClientSlots[s.charID] = nil
+
+		// Save the reservation stage in the session for later use in MsgSysUnreserveStage.
+		s.Lock()
+		s.reservationStage = stage
+		s.Unlock()
+
+		s.QueueAck(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
+	} else {
+		s.QueueAck(pkt.AckHandle, []byte{0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
+	}
 }
 
-func handleMsgSysUnreserveStage(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysUnreserveStage(s *Session, p mhfpacket.MHFPacket) {
+	// Clear the saved reservation stage
+	s.Lock()
+	stage := s.reservationStage
+	if stage != nil {
+		s.reservationStage = nil
+	}
+	s.Unlock()
 
-func handleMsgSysSetStagePass(s *Session, p mhfpacket.MHFPacket) {}
+	// Remove the charID from the stage's reservation map
+	if stage != nil {
+		stage.Lock()
+		_, exists := stage.reservedClientSlots[s.charID]
+		if exists {
+			delete(stage.reservedClientSlots, s.charID)
+		}
+		stage.Unlock()
+	}
+}
+
+func handleMsgSysSetStagePass(s *Session, p mhfpacket.MHFPacket) {
+	// TODO(Andoryuuta): Implement me!
+}
 
 func handleMsgSysWaitStageBinary(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysWaitStageBinary)
@@ -559,19 +604,31 @@ func handleMsgSysWaitStageBinary(s *Session, p mhfpacket.MHFPacket) {
 	stage, gotStage := s.server.stages[stageID]
 	s.server.stagesLock.Unlock()
 
+	// TODO(Andoryuuta): This is a hack for a binary part that none of the clients set, figure out what it represents.
+	// In the packet captures, it seemingly comes out of nowhere, so presumably the server makes it.
+	if pkt.BinaryType0 == 1 && pkt.BinaryType1 == 12 {
+		// This might contain the hunter count, or max player count?
+		doSizedAckResp(s, pkt.AckHandle, []byte{0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
+		return
+	}
+
 	// If we got the stage, lock and try to get the data.
 	var stageBinary []byte
 	var gotBinary bool
 	if gotStage {
 		for {
+			s.logger.Debug("MsgSysWaitStageBinary before lock and get stage")
 			stage.Lock()
 			stageBinary, gotBinary = stage.rawBinaryData[stageBinaryKey{pkt.BinaryType0, pkt.BinaryType1}]
 			stage.Unlock()
+			s.logger.Debug("MsgSysWaitStageBinary after lock and get stage")
 
 			if gotBinary {
 				doSizedAckResp(s, pkt.AckHandle, stageBinary)
 				break
 			} else {
+				s.logger.Debug("Waiting stage binary", zap.Uint8("BinaryType0", pkt.BinaryType0), zap.Uint8("pkt.BinaryType1", pkt.BinaryType1))
+
 				// Couldn't get binary, sleep for some time and try again.
 				time.Sleep(2 * time.Second)
 				continue
@@ -661,16 +718,24 @@ func handleMsgSysEnumerateClient(s *Session, p mhfpacket.MHFPacket) {
 	resp := byteframe.NewByteFrame()
 	stage.RLock()
 
-	// TODO(Andoryuuta): Add proper player-slot reservations for stages.
-	if len(stage.clients) >= 1 {
-		resp.WriteUint16(uint16(len(stage.clients))) // Client count
-		for session := range stage.clients {
-			resp.WriteUint32(session.charID) // Client represented by charID
-		}
-	} else {
-		// Just give our client.
-		resp.WriteUint16(1)
-		resp.WriteUint32(s.charID)
+	// TODO(Andoryuuta): Is only the reservations needed? Do clients send this packet for mezeporta as well?
+
+	// Make a map to deduplicate the charIDs between the unreserved clients and the reservations.
+	deduped := make(map[uint32]interface{})
+
+	// Add the charIDs
+	for session := range stage.clients {
+		deduped[session.charID] = nil
+	}
+
+	for charid := range stage.reservedClientSlots {
+		deduped[charid] = nil
+	}
+
+	// Write the deduplicated response
+	resp.WriteUint16(uint16(len(deduped))) // Client count
+	for charid := range deduped {
+		resp.WriteUint32(charid)
 	}
 
 	stage.RUnlock()
@@ -682,21 +747,28 @@ func handleMsgSysEnumerateClient(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgSysEnumerateStage(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysEnumerateStage)
 
-	// Read-lock the stages.
+	// Read-lock the server stage map.
 	s.server.stagesLock.RLock()
 	defer s.server.stagesLock.RUnlock()
 
 	// Build the response
 	resp := byteframe.NewByteFrame()
 	resp.WriteUint16(uint16(len(s.server.stages)))
-	for sid := range s.server.stages {
-		// Found parsing code, field sizes are correct, but unknown purposes still.
-		//resp.WriteBytes([]byte{0x00, 0x00, 0x00, 0x01, 0x00, 0x01, 0x00, 0x04, 0x00})
-		resp.WriteUint16(1) // Current players.
-		resp.WriteUint16(0) // Unknown value
-		resp.WriteUint16(0) // HasDeparted.
-		resp.WriteUint16(4) // Max players.
-		resp.WriteUint8(2)  // Password protected.
+	for sid, stage := range s.server.stages {
+		stage.RLock()
+		defer stage.RUnlock()
+
+		resp.WriteUint16(uint16(len(stage.reservedClientSlots))) // Current players.
+		resp.WriteUint16(0)                                      // Unknown value
+
+		var hasDeparted uint16
+		if stage.hasDeparted {
+			hasDeparted = 1
+		}
+
+		resp.WriteUint16(hasDeparted)           // HasDeparted.
+		resp.WriteUint16(stage.maxPlayers)      // Max players.
+		resp.WriteBool(len(stage.password) > 0) // Password protected.
 		resp.WriteUint8(uint8(len(sid)))
 		resp.WriteBytes([]byte(sid))
 	}

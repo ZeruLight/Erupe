@@ -1,6 +1,7 @@
 www/tw/
 www/jp/
 
+vendor/
 bin/*.bin
 bin/quests/*.bin
 bin/scenarios/*.bin

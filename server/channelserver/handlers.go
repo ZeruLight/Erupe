@@ -344,10 +344,12 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 		case CHAT_TYPE_LOCAL:
 			s.stage.BroadcastMHF(resp, s)
 		case CHAT_TYPE_PARTY:
-			// Party messages seem to work partially when a party member starts the quest
-			// In town it is not working yet
-			// TODO Send to party members only
-			s.stage.BroadcastMHF(resp, s)
+			if s.reserveStage != nil {
+				// Party messages seem to work partially when a party member starts the quest
+				// In town it is not working yet, the client now sends the chat packets
+				// however the other member does not accept it.
+				s.reserveStage.BroadcastMHF(resp, s)
+			}
 		}
 
 		/*

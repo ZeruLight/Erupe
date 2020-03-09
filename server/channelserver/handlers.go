@@ -208,15 +208,15 @@ const (
 func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysCastBinary)
 
+	resp := &mhfpacket.MsgSysCastedBinary{
+		CharID:         s.charID,
+		Type0:          pkt.Type0,
+		Type1:          pkt.Type1,
+		RawDataPayload: pkt.RawDataPayload,
+	}
+
 	if pkt.Type1 == BINARY_MESSAGE_TYPE_CHAT {
 		fmt.Println("Got chat message!")
-
-		resp := &mhfpacket.MsgSysCastedBinary{
-			CharID:         s.charID,
-			Type0:          pkt.Type0,
-			Type1:          pkt.Type1,
-			RawDataPayload: pkt.RawDataPayload,
-		}
 
 		switch chatType := pkt.RawDataPayload[2]; chatType {
 		case CHAT_TYPE_WORLD:
@@ -268,12 +268,6 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 		// Simply forward the packet to all the other clients.
 		// (The client never uses Type0 upon receiving)
 		// TODO(Andoryuuta): Does this broadcast need to be limited? (world, stage, guild, etc).
-		resp := &mhfpacket.MsgSysCastedBinary{
-			CharID:         s.charID,
-			Type0:          pkt.Type0,
-			Type1:          pkt.Type1,
-			RawDataPayload: pkt.RawDataPayload,
-		}
 		s.server.BroadcastMHF(resp, s)
 	}
 }
@@ -608,7 +602,6 @@ func handleMsgSysReserveStage(s *Session, p mhfpacket.MHFPacket) {
 		s.QueueAck(pkt.AckHandle, []byte{0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
 	}
 
-	stage.RLock()
 	for _, charID := range stage.clients {
 		if charID == s.charID {
 			continue
@@ -621,7 +614,6 @@ func handleMsgSysReserveStage(s *Session, p mhfpacket.MHFPacket) {
 			Unk1:          0x01,
 		})
 	}
-	stage.RUnlock()
 
 	// Notify players in room that player has joined a party
 	s.stage.BroadcastMHF(&binpacket.MsgBinPlayerJoinedParty{

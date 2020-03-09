@@ -20,14 +20,19 @@ func (m *MsgSysCastedBinary) Opcode() network.PacketID {
 
 // Parse parses the packet from binary
 func (m *MsgSysCastedBinary) Parse(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+	m.CharID = bf.ReadUint32()
+	m.Type0 = bf.ReadUint8()
+	m.Type1 = bf.ReadUint8()
+	dataSize := bf.ReadUint16()
+	m.RawDataPayload = bf.ReadBytes(uint(dataSize))
+	return nil
 }
 
 // Build builds a binary packet from the current data.
 func (m *MsgSysCastedBinary) Build(bf *byteframe.ByteFrame) error {
 	bf.WriteUint32(m.CharID)
 	bf.WriteUint8(m.Type0)
-	bf.WriteUint8(m.Type0)
+	bf.WriteUint8(m.Type1)
 	bf.WriteUint16(uint16(len(m.RawDataPayload)))
 	bf.WriteBytes(m.RawDataPayload)
 	return nil

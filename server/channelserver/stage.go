@@ -15,6 +15,7 @@ type StageObject struct {
 	x, y, z     float32
 }
 
+// stageBinaryKey is a struct used as a map key for identifying a stage binary part.
 type stageBinaryKey struct {
 	id0 uint8
 	id1 uint8
@@ -23,21 +24,43 @@ type stageBinaryKey struct {
 // Stage holds stage-specific information
 type Stage struct {
 	sync.RWMutex
-	id              string                    // Stage ID string
-	gameObjectCount uint32                    // Total count of objects ever created for this stage. Used for ObjID generation.
-	objects         map[uint32]*StageObject   // Map of ObjID -> StageObject
-	clients         map[*Session]uint32       // Map of session -> charID
-	rawBinaryData   map[stageBinaryKey][]byte // Raw binary data set by the client.
+
+	// Stage ID string
+	id string
+
+	// Total count of objects ever created for this stage. Used for ObjID generation.
+	gameObjectCount uint32
+
+	// Map of ObjID -> StageObject
+	objects map[uint32]*StageObject
+
+	// Map of session -> charID.
+	// These are clients that are CURRENTLY in the stage
+	clients map[*Session]uint32
+
+	// Map of charID -> interface{}, only the key is used, value is always nil.
+	// These are clients that aren't in the stage, but have reserved a slot (for quests, etc).
+	reservedClientSlots map[uint32]interface{}
+
+	// These are raw binary blobs that the stage owner sets,
+	// other clients expect the server to echo them back in the exact same format.
+	rawBinaryData map[stageBinaryKey][]byte
+
+	maxPlayers  uint16
+	hasDeparted bool
+	password    string
 }
 
 // NewStage creates a new stage with intialized values.
 func NewStage(ID string) *Stage {
 	s := &Stage{
-		id:              ID,
-		objects:         make(map[uint32]*StageObject),
-		clients:         make(map[*Session]uint32),
-		rawBinaryData:   make(map[stageBinaryKey][]byte),
-		gameObjectCount: 1,
+		id:                  ID,
+		objects:             make(map[uint32]*StageObject),
+		clients:             make(map[*Session]uint32),
+		reservedClientSlots: make(map[uint32]interface{}),
+		rawBinaryData:       make(map[stageBinaryKey][]byte),
+		maxPlayers:          4,
+		gameObjectCount:     1,
 	}
 
 	return s

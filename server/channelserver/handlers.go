@@ -6,7 +6,6 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
-	"github.com/Andoryuuta/Erupe/network/binpacket"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -602,32 +601,6 @@ func handleMsgSysReserveStage(s *Session, p mhfpacket.MHFPacket) {
 		s.QueueAck(pkt.AckHandle, []byte{0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
 	}
 
-	for _, charID := range stage.clients {
-		if charID == s.charID {
-			continue
-		}
-
-		// Notify joining player of all existing party members
-		s.QueueSendMHF(&binpacket.MsgBinPlayerJoinedParty{
-			CharID:        charID,
-			PartyJoinType: binpacket.JoinedYourParty,
-			Unk1:          0x01,
-		})
-	}
-
-	// Notify players in room that player has joined a party
-	s.stage.BroadcastMHF(&binpacket.MsgBinPlayerJoinedParty{
-		CharID:        s.charID,
-		PartyJoinType: binpacket.JoinedLocalParty,
-		Unk1:          0x01,
-	}, s)
-
-	// Notify players in party that player has joined
-	stage.BroadcastMHF(&binpacket.MsgBinPlayerJoinedParty{
-		CharID:        s.charID,
-		PartyJoinType: binpacket.JoinedYourParty,
-		Unk1:          0x01,
-	}, s)
 }
 
 func handleMsgSysUnreserveStage(s *Session, p mhfpacket.MHFPacket) {

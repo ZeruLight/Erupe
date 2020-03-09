@@ -6,7 +6,7 @@ require (
 	cloud.google.com/go/spanner v1.2.1 // indirect
 	cloud.google.com/go/storage v1.6.0 // indirect
 	github.com/Andoryuuta/byteframe v0.0.0-20200114030334-8979c5cc4c4a
-	github.com/BurntSushi/toml v0.3.1 // indirect
+	github.com/BurntSushi/toml v0.3.1
 	github.com/ClickHouse/clickhouse-go v1.3.14 // indirect
 	github.com/aws/aws-sdk-go v1.29.10 // indirect
 	github.com/cockroachdb/cockroach-go v0.0.0-20190925194419-606b3d062051 // indirect

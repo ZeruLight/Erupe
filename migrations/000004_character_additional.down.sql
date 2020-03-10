@@ -9,6 +9,5 @@ ALTER TABLE characters
     DROP COLUMN platedata,
     DROP COLUMN platemyset,
     DROP COLUMN rengokudata;
-    DROP COLUMN savemercenary;
 
 END;

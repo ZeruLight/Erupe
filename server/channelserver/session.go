@@ -3,6 +3,7 @@ package channelserver
 import (
 	"encoding/hex"
 	"fmt"
+	"io"
 	"net"
 	"sync"
 
@@ -59,6 +60,11 @@ func (s *Session) Start() {
 
 // QueueSend queues a packet (raw []byte) to be sent.
 func (s *Session) QueueSend(data []byte) {
+	if s.server.erupeConfig.DevMode && s.server.erupeConfig.DevModeOptions.LogOutboundMessages {
+		fmt.Printf("Sending To CharID: '%x'\n", s.charID)
+		fmt.Printf("Sent Data:\n%s\n", hex.Dump(data))
+	}
+
 	s.sendPackets <- data
 }
 
@@ -119,6 +125,13 @@ func (s *Session) sendLoop() {
 func (s *Session) recvLoop() {
 	for {
 		pkt, err := s.cryptConn.ReadPacket()
+
+		if err == io.EOF {
+			s.logger.Info(fmt.Sprintf("Character(%d) disconnected", s.charID))
+			logoutPlayer(s)
+			return
+		}
+
 		if err != nil {
 			s.logger.Warn("Error on ReadPacket, exiting recv loop", zap.Error(err))
 			return
@@ -145,6 +158,7 @@ func (s *Session) handlePacketGroup(pktGroup []byte) {
 		opcode != network.MSG_SYS_NOP &&
 		opcode != network.MSG_SYS_TIME &&
 		opcode != network.MSG_SYS_EXTEND_THRESHOLD {
+		fmt.Printf("CharID: '%x'\n", s.charID)
 		fmt.Printf("Opcode: %s\n", opcode)
 		fmt.Printf("Data:\n%s\n", hex.Dump(pktGroup))
 	}

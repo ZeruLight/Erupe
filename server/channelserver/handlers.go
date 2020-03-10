@@ -6,6 +6,8 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
+	"github.com/Andoryuuta/Erupe/network/binpacket"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -177,7 +179,9 @@ func handleMsgSysLogin(s *Session, p mhfpacket.MHFPacket) {
 	s.QueueAck(pkt.AckHandle, bf.Data())
 }
 
-func handleMsgSysLogout(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysLogout(s *Session, p mhfpacket.MHFPacket) {
+	logoutPlayer(s)
+}
 
 func handleMsgSysSetStatus(s *Session, p mhfpacket.MHFPacket) {}
 
@@ -190,21 +194,71 @@ func handleMsgSysPing(s *Session, p mhfpacket.MHFPacket) {
 	s.QueueAck(pkt.AckHandle, bf.Data())
 }
 
+const (
+	BINARY_MESSAGE_TYPE_CHAT  = 1
+	BINARY_MESSAGE_TYPE_EMOTE = 6
+)
+
+const (
+	CHAT_TYPE_WORLD    = 0x0a
+	CHAT_TYPE_STAGE    = 0x03
+	CHAT_TYPE_TARGETED = 0x01
+)
+
 func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysCastBinary)
 
-	// Simply forward the packet to all the other clients.
-	// (The client never uses Type0 upon receiving)
-	// TODO(Andoryuuta): Does this broadcast need to be limited? (world, stage, guild, etc).
 	resp := &mhfpacket.MsgSysCastedBinary{
 		CharID:         s.charID,
 		Type0:          pkt.Type0,
 		Type1:          pkt.Type1,
 		RawDataPayload: pkt.RawDataPayload,
 	}
-	s.server.BroadcastMHF(resp, s)
 
-	if pkt.Type0 == 3 && pkt.Type1 == 1 {
+	if pkt.Type1 == BINARY_MESSAGE_TYPE_CHAT {
+		bf := byteframe.NewByteFrame()
+		bf.WriteBytes(pkt.RawDataPayload)
+		bf.Seek(0, io.SeekStart)
+
+		fmt.Println("Got chat message!")
+
+		switch pkt.Type0 {
+		case CHAT_TYPE_WORLD:
+			s.server.BroadcastMHF(resp, s)
+		case CHAT_TYPE_STAGE:
+			s.stage.BroadcastMHF(resp, s)
+		case CHAT_TYPE_TARGETED:
+			chatMessage := &binpacket.MsgBinTargetedChatMessage{}
+			err := chatMessage.Parse(bf)
+
+			if err != nil {
+				s.logger.Warn("failed to parse chat message")
+				break
+			}
+
+			chatBf := byteframe.NewByteFrame()
+
+			chatBf.WriteUint16(chatMessage.TargetType)
+			chatBf.WriteBytes(chatMessage.RawDataPayload)
+
+			resp = &mhfpacket.MsgSysCastedBinary{
+				CharID:         s.charID,
+				Type0:          pkt.Type0,
+				Type1:          pkt.Type1,
+				RawDataPayload: chatBf.Data(),
+			}
+
+			for _, targetID := range chatMessage.TargetCharIDs {
+				char := s.server.FindSessionByCharID(targetID)
+
+				if char != nil {
+					char.QueueSendMHF(resp)
+				}
+			}
+		default:
+			s.stage.BroadcastMHF(resp, s)
+		}
+
 		/*
 			// Made the inside of the casted binary
 			payload := byteframe.NewByteFrame()
@@ -237,6 +291,11 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 			bfw.WriteUint16(uint16(len(payloadBytes)))
 			bfw.WriteBytes(payloadBytes)
 		*/
+	} else {
+		// Simply forward the packet to all the other clients.
+		// (The client never uses Type0 upon receiving)
+		// TODO(Andoryuuta): Does this broadcast need to be limited? (world, stage, guild, etc).
+		s.server.BroadcastMHF(resp, s)
 	}
 }
 
@@ -348,6 +407,7 @@ func handleMsgSysCreateStage(s *Session, p mhfpacket.MHFPacket) {
 
 	s.server.stagesLock.Lock()
 	stage := NewStage(stripNullTerminator(pkt.StageID))
+	stage.maxPlayers = uint16(pkt.PlayerCount)
 	s.server.stages[stage.id] = stage
 	s.server.stagesLock.Unlock()
 
@@ -364,27 +424,7 @@ func doStageTransfer(s *Session, ackHandle uint32, stageID string) {
 	s.server.stagesLock.Unlock()
 
 	if s.stage != nil {
-		s.stage.Lock()
-
-		// Remove client from old stage.
-		delete(s.stage.clients, s)
-
-		// Delete old stage objects owned by the client.
-		s.logger.Info("Sending MsgSysDeleteObject to old stage clients")
-		for objID, stageObject := range s.stage.objects {
-			if stageObject.ownerCharID == s.charID {
-				// Broadcast the deletion to clients in the stage.
-				s.stage.BroadcastMHF(&mhfpacket.MsgSysDeleteObject{
-					ObjID: stageObject.id,
-				}, s)
-				// TODO(Andoryuuta): Should this be sent to the owner's client as well? it currently isn't.
-
-				// Actually delete it form the objects map.
-				delete(s.stage.objects, objID)
-			}
-		}
-
-		s.stage.Unlock()
+		removeSessionFromStage(s)
 	}
 
 	// Add the new stage.
@@ -407,25 +447,28 @@ func doStageTransfer(s *Session, ackHandle uint32, stageID string) {
 	s.QueueAck(ackHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
 
 	// Notify existing stage clients that this new client has entered.
-	s.logger.Info("Sending MsgSysInsertUser & MsgSysNotifyUserBinary")
+	s.logger.Info("Sending MsgSysInsertUser")
 	s.stage.BroadcastMHF(&mhfpacket.MsgSysInsertUser{
 		CharID: s.charID,
 	}, s)
 
-	s.stage.BroadcastMHF(&mhfpacket.MsgSysNotifyUserBinary{
-		CharID:     s.charID,
-		BinaryType: 1,
-	}, s)
-	s.stage.BroadcastMHF(&mhfpacket.MsgSysNotifyUserBinary{
-		CharID:     s.charID,
-		BinaryType: 2,
-	}, s)
-	s.stage.BroadcastMHF(&mhfpacket.MsgSysNotifyUserBinary{
-		CharID:     s.charID,
-		BinaryType: 3,
-	}, s)
+	// It seems to be acceptable to recast all MSG_SYS_SET_USER_BINARY messages so far,
+	// players are still notified when a new player has joined the stage.
+	// These extra messages may not be needed
+	//s.stage.BroadcastMHF(&mhfpacket.MsgSysNotifyUserBinary{
+	//	CharID:     s.charID,
+	//	BinaryType: 1,
+	//}, s)
+	//s.stage.BroadcastMHF(&mhfpacket.MsgSysNotifyUserBinary{
+	//	CharID:     s.charID,
+	//	BinaryType: 2,
+	//}, s)
+	//s.stage.BroadcastMHF(&mhfpacket.MsgSysNotifyUserBinary{
+	//	CharID:     s.charID,
+	//	BinaryType: 3,
+	//}, s)
 
-	// Notify the entree client about all of the existing clients in the stage.
+	//Notify the entree client about all of the existing clients in the stage.
 	s.logger.Info("Notifying entree about existing stage clients")
 	s.stage.RLock()
 	clientNotif := byteframe.NewByteFrame()
@@ -481,6 +524,54 @@ func doStageTransfer(s *Session, ackHandle uint32, stageID string) {
 	s.stage.RUnlock()
 	clientDupObjNotif.WriteUint16(0x0010) // End it.
 	s.QueueSend(clientDupObjNotif.Data())
+}
+
+func removeSessionFromStage(s *Session) {
+	s.stage.Lock()
+	defer s.stage.Unlock()
+
+	// Remove client from old stage.
+	delete(s.stage.clients, s)
+
+	// Delete old stage objects owned by the client.
+	s.logger.Info("Sending MsgSysDeleteObject to old stage clients")
+	for objID, stageObject := range s.stage.objects {
+		if stageObject.ownerCharID == s.charID {
+			// Broadcast the deletion to clients in the stage.
+			s.stage.BroadcastMHF(&mhfpacket.MsgSysDeleteObject{
+				ObjID: stageObject.id,
+			}, s)
+			// TODO(Andoryuuta): Should this be sent to the owner's client as well? it currently isn't.
+
+			// Actually delete it form the objects map.
+			delete(s.stage.objects, objID)
+		}
+	}
+}
+
+func stageContainsSession(stage *Stage, s *Session) bool {
+	stage.RLock()
+	defer stage.RUnlock()
+
+	for session := range stage.clients {
+		if session == s {
+			return true
+		}
+	}
+
+	return false
+}
+
+func logoutPlayer(s *Session) {
+	s.stage.RLock()
+	for client := range s.stage.clients {
+		client.QueueSendMHF(&mhfpacket.MsgSysDeleteUser{
+			CharID: s.charID,
+		})
+	}
+	s.stage.RUnlock()
+
+	removeSessionFromStage(s)
 }
 
 func handleMsgSysEnterStage(s *Session, p mhfpacket.MHFPacket) {
@@ -540,7 +631,7 @@ func handleMsgSysReserveStage(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysReserveStage)
 
 	stageID := stripNullTerminator(pkt.StageID)
-	fmt.Printf("Got reserve stage req, Unk0:%v, StageID:%v\n", pkt.Unk0, stageID)
+	fmt.Printf("Got reserve stage req, TargetCount:%v, StageID:%v\n", pkt.Unk0, stageID)
 
 	// Try to get the stage
 	s.server.stagesLock.Lock()
@@ -568,6 +659,7 @@ func handleMsgSysReserveStage(s *Session, p mhfpacket.MHFPacket) {
 	} else {
 		s.QueueAck(pkt.AckHandle, []byte{0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
 	}
+
 }
 
 func handleMsgSysUnreserveStage(s *Session, p mhfpacket.MHFPacket) {
@@ -691,6 +783,11 @@ func handleMsgSysGetStageBinary(s *Session, p mhfpacket.MHFPacket) {
 
 	if gotBinary {
 		doSizedAckResp(s, pkt.AckHandle, stageBinary)
+
+	} else if pkt.BinaryType1 == 4 {
+		// This particular type seems to be expecting data that isn't set
+		// is it required before the party joining can be completed
+		s.QueueAck(pkt.AckHandle, []byte{0x01, 0x00, 0x00, 0x00, 0x10})
 	} else {
 		s.logger.Warn("Failed to get stage binary", zap.Uint8("BinaryType0", pkt.BinaryType0), zap.Uint8("pkt.BinaryType1", pkt.BinaryType1))
 		s.logger.Warn("Sending blank stage binary")
@@ -846,7 +943,7 @@ func handleMsgSysCreateObject(s *Session, p mhfpacket.MHFPacket) {
 
 	// Response to our requesting client.
 	resp := byteframe.NewByteFrame()
-	resp.WriteUint32(0)     // Unk, is this echoed back from pkt.Unk0?
+	resp.WriteUint32(0)     // Unk, is this echoed back from pkt.TargetCount?
 	resp.WriteUint32(objID) // New local obj handle.
 	s.QueueAck(pkt.AckHandle, resp.Data())
 
@@ -909,6 +1006,13 @@ func handleMsgSysSetUserBinary(s *Session, p mhfpacket.MHFPacket) {
 	s.server.userBinaryPartsLock.Lock()
 	s.server.userBinaryParts[userBinaryPartID{charID: s.charID, index: pkt.BinaryType}] = pkt.RawDataPayload
 	s.server.userBinaryPartsLock.Unlock()
+
+	msg := &mhfpacket.MsgSysNotifyUserBinary{
+		CharID:     s.charID,
+		BinaryType: pkt.BinaryType,
+	}
+
+	s.stage.BroadcastMHF(msg, s)
 }
 
 func handleMsgSysGetUserBinary(s *Session, p mhfpacket.MHFPacket) {

@@ -169,12 +169,16 @@ func (s *Server) BroadcastMHF(pkt mhfpacket.MHFPacket, ignoredSession *Session) 
 }
 
 func (s *Server) FindSessionByCharID(charID uint32) *Session {
+	s.stagesLock.RLock()
+	defer s.stagesLock.RUnlock()
 	for _, stage := range s.stages {
+		stage.RLock()
 		for client := range stage.clients {
 			if client.charID == charID {
 				return client
 			}
 		}
+		stage.RUnlock()
 	}
 
 	return nil

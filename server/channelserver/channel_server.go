@@ -167,3 +167,15 @@ func (s *Server) BroadcastMHF(pkt mhfpacket.MHFPacket, ignoredSession *Session) 
 		session.QueueSendNonBlocking(bf.Data())
 	}
 }
+
+func (s *Server) FindSessionByCharID(charID uint32) *Session {
+	for _, stage := range s.stages {
+		for client := range stage.clients {
+			if client.charID == charID {
+				return client
+			}
+		}
+	}
+
+	return nil
+}

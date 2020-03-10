@@ -6,6 +6,8 @@ import (
 	"encoding/base64"
 	"encoding/hex"
 	"fmt"
+	"github.com/Andoryuuta/Erupe/network/binpacket"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -198,12 +200,9 @@ const (
 )
 
 const (
-	CHAT_TYPE_WORLD uint8 = iota
-	CHAT_TYPE_LOCAL
-	CHAT_TYPE_GUILD
-	CHAT_TYPE_ALLIANCE
-	CHAT_TYPE_PARTY
-	CHAT_TYPE_WHISPER
+	CHAT_TYPE_WORLD    = 0x0a
+	CHAT_TYPE_STAGE    = 0x03
+	CHAT_TYPE_TARGETED = 0x01
 )
 
 func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
@@ -217,20 +216,48 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 	}
 
 	if pkt.Type1 == BINARY_MESSAGE_TYPE_CHAT {
+		bf := byteframe.NewByteFrame()
+		bf.WriteBytes(pkt.RawDataPayload)
+		bf.Seek(0, io.SeekStart)
+
 		fmt.Println("Got chat message!")
 
-		switch chatType := pkt.RawDataPayload[2]; chatType {
+		switch pkt.Type0 {
 		case CHAT_TYPE_WORLD:
 			s.server.BroadcastMHF(resp, s)
-		case CHAT_TYPE_LOCAL:
+		case CHAT_TYPE_STAGE:
 			s.stage.BroadcastMHF(resp, s)
-		case CHAT_TYPE_PARTY:
-			if s.reservationStage != nil {
-				// Party messages seem to work partially when a party member starts the quest
-				// In town it is not working yet, the client now sends the chat packets
-				// however the other member does not accept it.
-				s.reservationStage.BroadcastMHF(resp, s)
+		case CHAT_TYPE_TARGETED:
+			chatMessage := &binpacket.MsgBinTargetedChatMessage{}
+			err := chatMessage.Parse(bf)
+
+			if err != nil {
+				s.logger.Warn("failed to parse chat message")
+				break
 			}
+
+			chatBf := byteframe.NewByteFrame()
+
+			chatBf.WriteUint16(0x04)
+
+			chatBf.WriteBytes(chatMessage.RawDataPayload)
+
+			resp = &mhfpacket.MsgSysCastedBinary{
+				CharID:         s.charID,
+				Type0:          pkt.Type0,
+				Type1:          pkt.Type1,
+				RawDataPayload: chatBf.Data(),
+			}
+
+			for _, targetID := range chatMessage.TargetCharIDs {
+				char := s.server.FindSessionByCharID(targetID)
+
+				if char != nil {
+					char.QueueSendMHF(resp)
+				}
+			}
+		default:
+			s.stage.BroadcastMHF(resp, s)
 		}
 
 		/*
@@ -605,7 +632,7 @@ func handleMsgSysReserveStage(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysReserveStage)
 
 	stageID := stripNullTerminator(pkt.StageID)
-	fmt.Printf("Got reserve stage req, Unk0:%v, StageID:%v\n", pkt.Unk0, stageID)
+	fmt.Printf("Got reserve stage req, TargetCount:%v, StageID:%v\n", pkt.Unk0, stageID)
 
 	// Try to get the stage
 	s.server.stagesLock.Lock()
@@ -910,7 +937,7 @@ func handleMsgSysCreateObject(s *Session, p mhfpacket.MHFPacket) {
 
 	// Response to our requesting client.
 	resp := byteframe.NewByteFrame()
-	resp.WriteUint32(0)     // Unk, is this echoed back from pkt.Unk0?
+	resp.WriteUint32(0)     // Unk, is this echoed back from pkt.TargetCount?
 	resp.WriteUint32(objID) // New local obj handle.
 	s.QueueAck(pkt.AckHandle, resp.Data())
 

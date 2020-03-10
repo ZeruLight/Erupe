@@ -3,6 +3,7 @@ www/jp/
 
 bin/*.bin
 bin/quests/*.bin
+bin/questlists/*.bin
 bin/scenarios/*.bin
 bin/debug/*.bin
 savedata/

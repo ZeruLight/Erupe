@@ -238,8 +238,7 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 
 			chatBf := byteframe.NewByteFrame()
 
-			chatBf.WriteUint16(0x04)
-
+			chatBf.WriteUint16(chatMessage.TargetType)
 			chatBf.WriteBytes(chatMessage.RawDataPayload)
 
 			resp = &mhfpacket.MsgSysCastedBinary{

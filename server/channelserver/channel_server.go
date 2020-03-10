@@ -175,6 +175,7 @@ func (s *Server) FindSessionByCharID(charID uint32) *Session {
 		stage.RLock()
 		for client := range stage.clients {
 			if client.charID == charID {
+				stage.RUnlock()
 				return client
 			}
 		}

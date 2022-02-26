@@ -1,0 +1,6 @@
+go version
+go version go1.16 darwin/arm64
+uname -a
+Darwin MacBook-Air.localdomain 20.3.0 Darwin Kernel Version 20.3.0: Thu Jan 21 00:06:51 PST 2021; root:xnu-7195.81.3~1/RELEASE_ARM64_T8101 arm64
+go test -v -timeout 24h
+=== RUN   TestTCC

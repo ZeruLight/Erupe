@@ -1,0 +1,47 @@
+dist: trusty
+
+matrix:
+  include:
+  - language: java
+    jdk: oraclejdk8
+    env: BUILD=BAZEL
+
+  - language: java
+    jdk: oraclejdk8
+    env: BUILD=GRADLE
+
+install:
+  - case "$BUILD" in
+      "BAZEL")
+        export BAZEL_OS="linux" ;
+        export BAZEL_VERSION="0.28.1" ;
+        wget "https://github.com/bazelbuild/bazel/releases/download/${BAZEL_VERSION}/bazel-${BAZEL_VERSION}-installer-${BAZEL_OS}-x86_64.sh" ;
+        chmod +x bazel-${BAZEL_VERSION}-installer-${BAZEL_OS}-x86_64.sh ;
+        ./bazel-${BAZEL_VERSION}-installer-${BAZEL_OS}-x86_64.sh --user ;
+        echo "build --disk_cache=$HOME/bazel-cache" > ~/.bazelrc ;
+        echo "build --experimental_strict_action_env" >> ~/.bazelrc ;
+        bazel version ;;
+    esac
+
+script:
+  - case "$BUILD" in
+      "BAZEL")
+        cd src ;
+        bazel build --show_result=100 ... ;;
+      "GRADLE")
+        ./gradlew clean assemble --stacktrace ;
+        ./gradlew check --stacktrace ;;
+      *)
+        echo "Missing case $BUILD" ;
+        exit 1 ;;
+    esac
+
+before_cache:
+  - rm -f $HOME/.gradle/caches/modules-2/modules-2.lock
+
+cache:
+  directories:
+    - $HOME/.gradle
+    - $HOME/.gradle/caches/
+    - $HOME/.gradle/wrapper/
+    - $HOME/bazel-cache/

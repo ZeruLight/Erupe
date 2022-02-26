@@ -1,0 +1,79 @@
+run:
+  timeout: 5m
+
+linters:
+  disable-all: true
+  # TODO(GODRIVER-2156): Enable all commented-out linters.
+  enable:
+    - deadcode
+    - errcheck
+    # - errorlint
+    - goimports
+    - gosimple
+    - gosec
+    - govet
+    - ineffassign
+    - makezero
+    # - misspell
+    - nakedret
+    - revive
+    - staticcheck
+    - structcheck
+    - typecheck
+    - unused
+    - unconvert
+    # - unparam
+    - varcheck
+
+linters-settings:
+  errcheck:
+    exclude: .errcheck-excludes
+  govet:
+    disable:
+      - cgocall
+      - composites
+  staticcheck:
+    checks: [
+      "all",
+      "-SA1019", # Disable deprecation warnings for now.
+      "-SA1012", # Disable "do not pass a nil Context" to allow testing nil contexts in tests.
+    ]
+
+issues:
+  exclude:
+    # Ignore capitalization warning for this weird field name.
+    - "var-naming: struct field CqCssWxW should be CqCSSWxW"
+    # Ignore warnings for common "wiremessage.Read..." usage because the safest way to use that API
+    # is by assigning possibly unused returned byte buffers.
+    - "SA4006: this value of `wm` is never used"
+    - "SA4006: this value of `rem` is never used"
+    - "ineffectual assignment to wm"
+    - "ineffectual assignment to rem"
+  skip-dirs-use-default: false
+  skip-dirs:
+    - (^|/)vendor($|/)
+    - (^|/)testdata($|/)
+    - (^|/)data($|/)
+    - (^|/)etc($|/)
+  exclude-rules:
+    # Ignore some linters for example code that is intentionally simplified.
+    - path: examples/
+      linters:
+        - revive
+        - errcheck
+    # Disable unused code linters for the copy/pasted "awsv4" package.
+    - path: x/mongo/driver/auth/internal/awsv4
+      linters:
+        - unused
+        - structcheck
+    # Disable "unused" linter for "crypt.go" because the linter doesn't work correctly without
+    # enabling CGO.
+    - path: x/mongo/driver/crypt.go
+      linters:
+        - unused
+    # Ignore "TLS MinVersion too low", "TLS InsecureSkipVerify set true", and "Use of weak random
+    # number generator (math/rand instead of crypto/rand)" in tests.
+    - path: (.+)_test.go
+      text: G401|G402|G404
+      linters:
+        - gosec

@@ -1,0 +1,8 @@
+golang.org/x/exp v0.0.0-20181106170214-d68db9428509 h1:k21GX33vzpH/syMF7TgrLxe8ILtvwbyuHtEO3ebR82E=
+golang.org/x/exp v0.0.0-20181106170214-d68db9428509/go.mod h1:CJ0aWSM057203Lf6IL+f9T1iT9GByDxfZKAQTCR3kQA=
+modernc.org/fileutil v1.0.0 h1:Z1AFLZwl6BO8A5NldQg/xTSjGLetp+1Ubvl4alfGx8w=
+modernc.org/fileutil v1.0.0/go.mod h1:JHsWpkrk/CnVV1H/eGlFf85BEpfkrp56ro8nojIq9Q8=
+modernc.org/lex v1.0.0 h1:w0dxp18i1q+aSE7GkepvwzvVWTLoCIQ2oDgTFAV2JZU=
+modernc.org/lex v1.0.0/go.mod h1:G6rxMTy3cH2iA0iXL/HRRv4Znu8MK4higxph/lE7ypk=
+modernc.org/lexer v1.0.0 h1:D2xE6YTaH7aiEC7o/+rbx6qTAEr1uY83peKwkamIdQ0=
+modernc.org/lexer v1.0.0/go.mod h1:F/Dld0YKYdZCLQ7bD0USbWL4YKCyTDRDHiDTOs0q0vk=

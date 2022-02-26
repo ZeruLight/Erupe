@@ -1,0 +1,5 @@
+cython>=0.29.11
+oldest-supported-numpy
+setuptools_scm
+setuptools>=58
+wheel

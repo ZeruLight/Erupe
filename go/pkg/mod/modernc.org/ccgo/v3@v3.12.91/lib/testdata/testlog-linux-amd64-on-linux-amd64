@@ -1,0 +1,118 @@
+make[2]: Entering directory '/home/jnml/src/modernc.org/ccgo/v3/lib'
+go version
+go version go1.15.6 linux/amd64
+uname -a
+Linux 3900x 4.19.0-12-amd64 #1 SMP Debian 4.19.152-1 (2020-10-18) x86_64 GNU/Linux
+go test -v -timeout 24h
+=== RUN   TestTCC
+    all_test.go:197: files 61, ok 61
+--- PASS: TestTCC (13.85s)
+=== RUN   TestCAPI
+    all_test.go:454: libc map[_IO_putc:{} ___errno_location:{} __assert_fail:{} __builtin___memcpy_chk:{} __builtin___memmove_chk:{} __builtin___memset_chk:{} __builtin___snprintf_chk:{} __builtin___sprintf_chk:{} __builtin___strcat_chk:{} __builtin___strcpy_chk:{} __builtin___strncpy_chk:{} __builtin_abort:{} __builtin_abs:{} __builtin_add_overflowInt64:{} __builtin_add_overflowUint32:{} __builtin_add_overflowUint64:{} __builtin_bswap16:{} __builtin_bswap32:{} __builtin_bswap64:{} __builtin_clzll:{} __builtin_constant_p_impl:{} __builtin_copysign:{} __builtin_copysignf:{} __builtin_exit:{} __builtin_expect:{} __builtin_fabs:{} __builtin_free:{} __builtin_huge_val:{} __builtin_huge_valf:{} __builtin_inf:{} __builtin_inff:{} __builtin_isnan:{} __builtin_malloc:{} __builtin_memcmp:{} __builtin_memcpy:{} __builtin_memset:{} __builtin_mmap:{} __builtin_mul_overflowInt64:{} __builtin_nanf:{} __builtin_object_size:{} __builtin_prefetch:{} __builtin_printf:{} __builtin_snprintf:{} __builtin_sprintf:{} __builtin_strchr:{} __builtin_strcmp:{} __builtin_strcpy:{} __builtin_strlen:{} __builtin_sub_overflowInt64:{} __builtin_trap:{} __builtin_unreachable:{} __ccgo_in6addr_anyp:{} __ccgo_sqlite3_log:{} __ctype_b_loc:{} __errno_location:{} __floatscan:{} __fpclassify:{} __fpclassifyf:{} __fpclassifyl:{} __h_errno_location:{} __inet_aton:{} __intscan:{} __isalnum_l:{} __isalpha_l:{} __isdigit_l:{} __islower_l:{} __isnan:{} __isnanf:{} __isnanl:{} __isoc99_sscanf:{} __isprint_l:{} __isxdigit_l:{} __lookup_ipliteral:{} __lookup_name:{} __lookup_serv:{} __shgetc:{} __shlim:{} __syscall1:{} __syscall3:{} __toread:{} __toread_needs_stdio_exit:{} __uflow:{} _exit:{} _obstack_begin:{} _obstack_newchunk:{} abort:{} abs:{} accept:{} access:{} acos:{} alarm:{} asin:{} atan:{} atan2:{} atexit:{} atof:{} atoi:{} atol:{} backtrace:{} backtrace_symbols_fd:{} bind:{} calloc:{} ceil:{} cfgetospeed:{} cfsetispeed:{} cfsetospeed:{} chdir:{} chmod:{} chown:{} close:{} closedir:{} confstr:{} connect:{} copysign:{} copysignf:{} copysignl:{} cos:{} cosf:{} cosh:{} dlclose:{} dlerror:{} dlopen:{} dlsym:{} dup2:{} environ:{} execvp:{} exit:{} exp:{} fabs:{} fabsf:{} fabsl:{} fchmod:{} fchown:{} fclose:{} fcntl:{} fcntl64:{} fdopen:{} ferror:{} fflush:{} fgetc:{} fgets:{} fileno:{} floor:{} fmod:{} fmodl:{} fopen:{} fopen64:{} fork:{} fprintf:{} fputc:{} fputs:{} fread:{} free:{} freeaddrinfo:{} frexp:{} fscanf:{} fseek:{} fstat:{} fstat64:{} fsync:{} ftell:{} ftruncate:{} ftruncate64:{} fts64_close:{} fts64_open:{} fts64_read:{} fts_close:{} fts_open:{} fts_read:{} fwrite:{} gai_strerror:{} getaddrinfo:{} getc:{} getcwd:{} getenv:{} geteuid:{} getgrgid:{} getgrnam:{} gethostbyaddr:{} gethostbyaddr_r:{} gethostbyname:{} gethostbyname2:{} gethostbyname2_r:{} getnameinfo:{} getpeername:{} getpid:{} getpwnam:{} getpwuid:{} getrlimit:{} getrlimit64:{} getrusage:{} getservbyname:{} getsockname:{} getsockopt:{} gettimeofday:{} getuid:{} gmtime_r:{} h_errno:{} htonl:{} htons:{} hypot:{} inet_ntoa:{} inet_ntop:{} inet_pton:{} ioctl:{} isalnum:{} isalpha:{} isatty:{} isdigit:{} islower:{} isnan:{} isnanf:{} isnanl:{} isprint:{} isxdigit:{} ldexp:{} link:{} listen:{} localtime:{} localtime_r:{} log:{} log10:{} lseek:{} lseek64:{} lstat:{} lstat64:{} malloc:{} memchr:{} memcmp:{} memcpy:{} memmove:{} memset:{} mkdir:{} mkfifo:{} mknod:{} mkstemp:{} mkstemp64:{} mkstemps:{} mkstemps64:{} mktime:{} mmap:{} mmap64:{} modf:{} mremap:{} munmap:{} nanf:{} nl_langinfo:{} ntohs:{} obstack_free:{} obstack_vprintf:{} open:{} open64:{} opendir:{} pclose:{} perror:{} pipe:{} popen:{} pow:{} printf:{} putc:{} putchar:{} puts:{} qsort:{} raise:{} rand:{} rand_r:{} random:{} read:{} readdir:{} readdir64:{} readlink:{} realloc:{} realpath:{} recv:{} rename:{} rewind:{} rmdir:{} round:{} scalbn:{} scalbnl:{} select:{} send:{} setbuf:{} setlocale:{} setrlimit:{} setrlimit64:{} setsockopt:{} setvbuf:{} shutdown:{} sigaction:{} signal:{} sin:{} sinf:{} sinh:{} sleep:{} snprintf:{} socket:{} sprintf:{} sqrt:{} sscanf:{} stat:{} stat64:{} stderr:{} stdin:{} stdout:{} strcasecmp:{} strcat:{} strchr:{} strcmp:{} strcpy:{} strcspn:{} strdup:{} strerror:{} strlcat:{} strlcpy:{} strlen:{} strncat:{} strncmp:{} strncpy:{} strnlen:{} strpbrk:{} strrchr:{} strspn:{} strstr:{} strtod:{} strtof:{} strtoimax:{} strtok:{} strtol:{} strtold:{} strtoll:{} strtoul:{} strtoull:{} strtoumax:{} symlink:{} sysconf:{} system:{} tan:{} tanh:{} tcgetattr:{} tcsetattr:{} time:{} tolower:{} toupper:{} tzset:{} umask:{} uname:{} ungetc:{} unlink:{} usleep:{} utime:{} utimes:{} vasprintf:{} vfprintf:{} vprintf:{} vsnprintf:{} vsprintf:{} waitpid:{} write:{} zero_struct_address:{}]
+--- PASS: TestCAPI (0.04s)
+=== RUN   TestText
+--- PASS: TestText (0.00s)
+=== RUN   TestGCCExec
+    all_test.go:487: files 1,234, ok 1,234
+--- PASS: TestGCCExec (249.72s)
+=== RUN   TestSQLite
+--- PASS: TestSQLite (11.24s)
+=== RUN   TestCompCert
+=== RUN   TestCompCert/gcc
+=== RUN   TestCompCert/ccgo
+=== CONT  TestCompCert
+    all_test.go:1249:   compiler           test    T         comp  exec match    coef
+    all_test.go:1251:        gcc          aes.c    45.696ms  true  true  true   1.000 *
+    all_test.go:1251:        gcc    almabench.c   161.360ms  true  true  true   1.000 *
+    all_test.go:1251:        gcc  binarytrees.c    25.859ms  true  true  true   1.000 *
+    all_test.go:1251:        gcc       bisect.c    48.381ms  true  true  true   1.000 *
+    all_test.go:1251:        gcc        chomp.c   105.700ms  true  true  true   1.000 *
+    all_test.go:1251:        gcc     fannkuch.c   133.387ms  true  true  true   1.000 *
+    all_test.go:1251:        gcc          fft.c   103.221ms  true  true  true   1.019
+    all_test.go:1251:        gcc        fftsp.c    27.055ms  true  true  true   1.000 *
+    all_test.go:1251:        gcc         fftw.c    39.441ms  true  true  true   1.000 *
+    all_test.go:1251:        gcc          fib.c    41.217ms  true  true  true   1.000 *
+    all_test.go:1251:        gcc       integr.c    31.666ms  true  true  true   1.000 *
+    all_test.go:1251:        gcc  knucleotide.c    87.042ms  true  true  true   1.000 *
+    all_test.go:1251:        gcc        lists.c    43.881ms  true  true  true   1.000 *
+    all_test.go:1251:        gcc   mandelbrot.c    65.287ms  true  true  true   1.000 *
+    all_test.go:1251:        gcc        nbody.c    93.874ms  true  true  true   1.041
+    all_test.go:1251:        gcc       nsieve.c    63.185ms  true  true  true   1.000 *
+    all_test.go:1251:        gcc   nsievebits.c    56.283ms  true  true  true   1.000 *
+    all_test.go:1251:        gcc       perlin.c    34.169ms  true  true  true   1.000 *
+    all_test.go:1251:        gcc        qsort.c    76.586ms  true  true  true   1.000 *
+    all_test.go:1251:        gcc         sha1.c    40.562ms  true  true  true   1.000 *
+    all_test.go:1251:        gcc         sha3.c    23.036ms  true  true  true   1.000 *
+    all_test.go:1251:        gcc    siphash24.c    62.833ms  true  true  true   1.000 *
+    all_test.go:1251:        gcc     spectral.c   110.720ms  true  true  true   1.048
+    all_test.go:1251:        gcc        vmach.c    52.067ms  true  true  true   1.050
+    all_test.go:1251:       ccgo          aes.c    53.842ms  true  true  true   1.178
+    all_test.go:1251:       ccgo    almabench.c   225.306ms  true  true  true   1.396
+    all_test.go:1251:       ccgo  binarytrees.c    48.877ms  true  true  true   1.890
+    all_test.go:1251:       ccgo       bisect.c    48.912ms  true  true  true   1.011
+    all_test.go:1251:       ccgo        chomp.c   131.650ms  true  true  true   1.246
+    all_test.go:1251:       ccgo     fannkuch.c   171.634ms  true  true  true   1.287
+    all_test.go:1251:       ccgo          fft.c   101.251ms  true  true  true   1.000 *
+    all_test.go:1251:       ccgo        fftsp.c    58.590ms  true  true  true   2.166
+    all_test.go:1251:       ccgo         fftw.c    65.681ms  true  true  true   1.665
+    all_test.go:1251:       ccgo          fib.c    56.227ms  true  true  true   1.364
+    all_test.go:1251:       ccgo       integr.c    32.904ms  true  true  true   1.039
+    all_test.go:1251:       ccgo  knucleotide.c   120.068ms  true  true  true   1.379
+    all_test.go:1251:       ccgo        lists.c    43.949ms  true  true  true   1.002
+    all_test.go:1251:       ccgo   mandelbrot.c   202.127ms  true  true  true   3.096
+    all_test.go:1251:       ccgo        nbody.c    90.173ms  true  true  true   1.000 *
+    all_test.go:1251:       ccgo       nsieve.c    71.900ms  true  true  true   1.138
+    all_test.go:1251:       ccgo   nsievebits.c    70.434ms  true  true  true   1.251
+    all_test.go:1251:       ccgo       perlin.c    47.374ms  true  true  true   1.386
+    all_test.go:1251:       ccgo        qsort.c    91.964ms  true  true  true   1.201
+    all_test.go:1251:       ccgo         sha1.c    64.855ms  true  true  true   1.599
+    all_test.go:1251:       ccgo         sha3.c    48.157ms  true  true  true   2.091
+    all_test.go:1251:       ccgo    siphash24.c    76.475ms  true  true  true   1.217
+    all_test.go:1251:       ccgo     spectral.c   105.683ms  true  true  true   1.000 *
+    all_test.go:1251:       ccgo        vmach.c    49.578ms  true  true  true   1.000 *
+    all_test.go:1258: Considered tests: 24/24
+    all_test.go:1266:       ccgo   2.077610462s  1.321
+    all_test.go:1266:        gcc   1.572507338s  1.000
+--- PASS: TestCompCert (27.04s)
+    --- PASS: TestCompCert/gcc (9.08s)
+    --- PASS: TestCompCert/ccgo (17.95s)
+=== RUN   TestBug
+    all_test.go:1429: files 10, ok 10
+--- PASS: TestBug (2.06s)
+=== RUN   TestCSmith
+    all_test.go:1650: --bitfields --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid --max-nested-struct-level 10 -s 1906742816
+    all_test.go:1650: --bitfields --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid --max-nested-struct-level 10 -s 612971101
+    all_test.go:1650: --bitfields --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid --max-nested-struct-level 10 -s 3629008936
+    all_test.go:1650: --bitfields --max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid -s 4130344133
+    all_test.go:1650: --bitfields --max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid -s 3130410542
+    all_test.go:1650: --bitfields --max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid -s 1833258637
+    all_test.go:1650: --bitfields --max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid -s 3126091077
+    all_test.go:1650: --bitfields --max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid -s 2205128324
+    all_test.go:1650: --bitfields --max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid -s 3043990076
+    all_test.go:1650: --bitfields --max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid -s 2517344771
+    all_test.go:1650: --bitfields --max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid -s 56498550
+    all_test.go:1650: --bitfields --max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid -s 3645367888
+    all_test.go:1650: --bitfields --max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid -s 169375684
+    all_test.go:1650: --bitfields --max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid -s 3578720023
+    all_test.go:1650: --bitfields --max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid -s 1885311141
+    all_test.go:1650: --no-bitfields --max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid -s 3720922579
+    all_test.go:1650: --bitfields --max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid -s 241244373
+    all_test.go:1650: --bitfields --max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid -s 517639208
+    all_test.go:1650: --bitfields --max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid -s 2205128324
+    all_test.go:1650: --bitfields --max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid -s 2876930815
+    all_test.go:1650: --bitfields --max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid -s 3365074920
+    all_test.go:1650: --bitfields --max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid -s 3329111231
+    all_test.go:1650: --bitfields --max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid -s 2648215054
+    all_test.go:1650: --bitfields --max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid -s 3919255949
+    all_test.go:1650: --bitfields --max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid -s 890611563
+    all_test.go:1650: --bitfields --max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid -s 4101947480
+    all_test.go:1650: --bitfields --max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid -s 4058772172
+    all_test.go:1650: --bitfields --max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid -s 2273393378
+    all_test.go:1650: --bitfields --max-nested-struct-level 10 --no-const-pointers --no-consts --no-packed-struct --no-volatile-pointers --no-volatiles --paranoid -s 3100949894
+    all_test.go:1754: files 36, bytes 5,896,342, ok 36 in 3m25.330869311s
+--- PASS: TestCSmith (205.33s)
+PASS
+ok  	modernc.org/ccgo/v3/lib	509.336s
+date | tee -a testdata/testlog-linux-amd64-on-linux-amd64
+Sat Dec 26 17:11:00 CET 2020
+make[2]: Leaving directory '/home/jnml/src/modernc.org/ccgo/v3/lib'

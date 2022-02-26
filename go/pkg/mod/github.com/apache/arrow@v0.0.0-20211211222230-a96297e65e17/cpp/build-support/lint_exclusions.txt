@@ -1,0 +1,13 @@
+*_generated*
+*.grpc.fb.*
+*arrowExports.cpp*
+*parquet_constants.*
+*parquet_types.*
+*pyarrow_api.h
+*pyarrow_lib.h
+*python/config.h
+*python/platform.h
+*RcppExports.cpp*
+*thirdparty/*
+*vendored/*
+*windows_compatibility.h

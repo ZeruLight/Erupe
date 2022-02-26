@@ -1,0 +1,1033 @@
+go version go1.15.2 linux/arm64
+Linux pi64 5.4.0-1018-raspi #20-Ubuntu SMP Sun Sep 6 05:11:16 UTC 2020 aarch64 aarch64 aarch64 GNU/Linux
+test binary compiled for linux/arm64
+CCGO_CPP=""
+=== RUN   TestTCC
+    all_test.go:416: files 61, ok 61
+--- PASS: TestTCC (162.88s)
+=== RUN   TestCAPI
+    all_test.go:649: libc map[_IO_putc:{} ___errno_location:{} __assert_fail:{} __builtin_abort:{} __builtin_abs:{} __builtin_copysign:{} __builtin_copysignf:{} __builtin_exit:{} __builtin_expect:{} __builtin_fabs:{} __builtin_free:{} __builtin_malloc:{} __builtin_memcmp:{} __builtin_memcpy:{} __builtin_memset:{} __builtin_prefetch:{} __builtin_printf:{} __builtin_snprintf:{} __builtin_sprintf:{} __builtin_strchr:{} __builtin_strcmp:{} __builtin_strcpy:{} __builtin_strlen:{} __builtin_trap:{} __builtin_unreachable:{} __ccgo_in6addr_anyp:{} __ccgo_sqlite3_log:{} __ctype_b_loc:{} __errno_location:{} __h_errno_location:{} __inet_aton:{} __intscan:{} __isalnum_l:{} __isalpha_l:{} __isdigit_l:{} __isnan:{} __isnanf:{} __isnanl:{} __isoc99_sscanf:{} __lookup_ipliteral:{} __lookup_name:{} __lookup_serv:{} __shgetc:{} __shlim:{} __syscall1:{} __syscall3:{} __toread:{} __toread_needs_stdio_exit:{} __uflow:{} _exit:{} abort:{} abs:{} accept:{} access:{} acos:{} alarm:{} asin:{} atan:{} atan2:{} atof:{} atoi:{} atol:{} backtrace:{} backtrace_symbols_fd:{} bind:{} calloc:{} ceil:{} cfgetospeed:{} cfsetispeed:{} cfsetospeed:{} chdir:{} chmod:{} chown:{} close:{} closedir:{} connect:{} copysign:{} copysignf:{} cos:{} cosf:{} cosh:{} dlclose:{} dlerror:{} dlopen:{} dlsym:{} dup2:{} environ:{} execvp:{} exit:{} exp:{} fabs:{} fabsf:{} fchmod:{} fchown:{} fclose:{} fcntl:{} fcntl64:{} fdopen:{} ferror:{} fflush:{} fgetc:{} fgets:{} fileno:{} floor:{} fmod:{} fopen:{} fopen64:{} fork:{} fprintf:{} fputc:{} fputs:{} fread:{} free:{} freeaddrinfo:{} frexp:{} fseek:{} fstat:{} fstat64:{} fsync:{} ftell:{} ftruncate:{} ftruncate64:{} fts64_close:{} fts64_open:{} fts64_read:{} fts_close:{} fts_open:{} fts_read:{} fwrite:{} gai_strerror:{} getaddrinfo:{} getcwd:{} getenv:{} geteuid:{} getgrgid:{} getgrnam:{} gethostbyaddr:{} gethostbyaddr_r:{} gethostbyname:{} gethostbyname2:{} gethostbyname2_r:{} getnameinfo:{} getpeername:{} getpid:{} getpwnam:{} getpwuid:{} getrlimit:{} getrlimit64:{} getrusage:{} getservbyname:{} getsockname:{} getsockopt:{} gettimeofday:{} getuid:{} gmtime_r:{} h_errno:{} htonl:{} htons:{} hypot:{} inet_ntoa:{} inet_ntop:{} inet_pton:{} ioctl:{} isalnum:{} isalpha:{} isatty:{} isdigit:{} isnan:{} isnanf:{} isnanl:{} ldexp:{} link:{} listen:{} localtime:{} localtime_r:{} log:{} log10:{} lseek:{} lseek64:{} lstat:{} lstat64:{} malloc:{} memchr:{} memcmp:{} memcpy:{} memmove:{} memset:{} mkdir:{} mkfifo:{} mknod:{} mkstemp64:{} mkstemps64:{} mktime:{} mmap64:{} modf:{} munmap:{} nl_langinfo:{} ntohs:{} open:{} open64:{} opendir:{} pclose:{} perror:{} pipe:{} popen:{} pow:{} printf:{} putc:{} putchar:{} qsort:{} raise:{} rand:{} read:{} readdir:{} readdir64:{} readlink:{} realloc:{} realpath:{} recv:{} rename:{} rewind:{} rmdir:{} round:{} select:{} send:{} setlocale:{} setrlimit:{} setrlimit64:{} setsockopt:{} setvbuf:{} shutdown:{} sigaction:{} signal:{} sin:{} sinf:{} sinh:{} sleep:{} snprintf:{} socket:{} sprintf:{} sqrt:{} stat:{} stat64:{} stderr:{} stdin:{} stdout:{} strcasecmp:{} strcat:{} strchr:{} strcmp:{} strcpy:{} strcspn:{} strdup:{} strerror:{} strlen:{} strncmp:{} strncpy:{} strnlen:{} strpbrk:{} strrchr:{} strspn:{} strstr:{} strtoimax:{} strtol:{} strtoll:{} strtoul:{} strtoull:{} strtoumax:{} symlink:{} sysconf:{} system:{} tan:{} tanh:{} tcgetattr:{} tcsetattr:{} time:{} tolower:{} toupper:{} tzset:{} umask:{} uname:{} unlink:{} usleep:{} utime:{} utimes:{} vfprintf:{} vprintf:{} waitpid:{} write:{} zero_struct_address:{}]
+--- PASS: TestCAPI (0.05s)
+=== RUN   TestText
+--- PASS: TestText (0.00s)
+=== RUN   TestGCCExec
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20010209-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20010209-1.c:5:7: variable length arrays not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20010209-1.c:5:7: unsupported C type: array of int
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20010209-1.c:5:7: unsupported C type: array of int
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20010209-1.c:6:3: nested functions not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20010209-1.c:6:3: nested functions not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20010209-1.c:6:16: variable length arrays not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20010209-1.c:13:10: undefined: bar
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20010209-1.c:13:10: undefined: bar
+/home/jnml/src/modernc.org/ccgo/v3/go.go:9510:primaryExpressionDecay: TODOTODO 20010325-1.c:12:7 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20010325-1.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:9510:primaryExpressionDecay: TODOTODO 20010325-1.c:12:7 
+/home/jnml/src/modernc.org/ccgo/v3/go.go:8667:postfixExpressionValue: TODOTODO 20010518-2.c:31:9 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20010518-2.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:8667:postfixExpressionValue: TODOTODO 20010518-2.c:31:9 
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20010605-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20010605-1.c:5:3: nested functions not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20010605-1.c:5:3: nested functions not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20010605-1.c:10:11: undefined: fff
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20010605-1.c:10:11: undefined: fff
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20010605-2.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20010605-2.c:7:12: `x`: expected ;
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20010605-2.c:8:12: `x`: expected ;
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20010605-2.c:10:12: `y`: expected ;
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20010605-2.c:11:12: `y`: expected ;
+/home/jnml/src/modernc.org/ccgo/v3/go.go:1960:typ: TODOTODO 20010924-1.c:27:3 array of char 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20010924-1.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:1960:typ: TODOTODO 20010924-1.c:27:3 array of char 
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20020107-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20020107-1.c:20:3: assembler statements not supported
+/home/jnml/src/modernc.org/ccgo/v3/go.go:8667:postfixExpressionValue: TODOTODO 20020206-1.c:10:11 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20020206-1.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:8667:postfixExpressionValue: TODOTODO 20020206-1.c:10:11 
+/home/jnml/src/modernc.org/ccgo/v3/go.go:8259:postfixExpressionSelect: TODOTODO 20020206-2.c:22:12 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20020206-2.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:8259:postfixExpressionSelect: TODOTODO 20020206-2.c:22:12 
+/home/jnml/src/modernc.org/ccgo/v3/go.go:8667:postfixExpressionValue: TODOTODO 20020215-1.c:29:22 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20020215-1.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:8667:postfixExpressionValue: TODOTODO 20020215-1.c:29:22 
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20020227-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20020227-1.c:5:27: declarator has invalid or incomplete type
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20020314-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20020314-1.c:14:7: undefined: alloca
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20020320-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20020320-1.c:13:11: statement expressions not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20020320-1.c:13:11: statement expressions not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20020320-1.c:17:11: statement expressions not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20020320-1.c:17:11: statement expressions not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20020320-1.c:18:6: statement expressions not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20020320-1.c:18:6: statement expressions not supported
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20020411-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20020411-1.c:11:12: `f`: expected ;
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20020411-1.c:12:12: `f`: expected ;
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20020411-1.c:21:16: `d`: expected )
+/home/jnml/src/modernc.org/ccgo/v3/go.go:7160:castExpressionValueNormal: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20020412-1.c:31:7 struct {x array of char; } struct 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20020412-1.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:7160:castExpressionValueNormal: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20020412-1.c:31:7 struct {x array of char; } struct 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20020810-1.c: TODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20020810-1.c:17:16: struct A <- int
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20021113-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20021113-1.c:13:14: undefined: alloca
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20021118-1.c: TODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20021118-1.c:10:18: array of 4 int
+/home/jnml/src/modernc.org/ccgo/v3/go.go:1960:typ: TODOTODO - array of int 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20030109-1.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:1960:typ: TODOTODO - array of int 
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20030222-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20030222-1.c:14:3: assembler statements not supported
+/home/jnml/src/modernc.org/ccgo/v3/go.go:8667:postfixExpressionValue: TODOTODO 20030224-2.c:19:15 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20030224-2.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:8667:postfixExpressionValue: TODOTODO 20030224-2.c:19:15 
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20030330-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20030330-1.c:9:21: undefined: __builtin_constant_p
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20030330-1.c:9:21: undefined: __builtin_constant_p
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20030330-1.c:10:25: undefined: link_error
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20030330-1.c:10:25: undefined: link_error
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20030501-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20030501-1.c:7:5: nested functions not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20030501-1.c:7:5: nested functions not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20030501-1.c:12:7: undefined: retframe_block
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20030501-1.c:12:7: undefined: retframe_block
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20030811-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20030811-1.c:13:29: undefined: __builtin_return_address
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20030811-1.c:19:29: undefined: __builtin_return_address
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20030811-1.c:24:26: undefined: __builtin_return_address
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20030811-1.c:24:26: too many errors
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20030910-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20030910-1.c:8:25: `dc`: expected )
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20030910-1.c:10:15: `dc`: expected )
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20030910-1.c:11:3: `exit`: expected ;
+/home/jnml/src/modernc.org/ccgo/v3/go.go:7137:castExpressionValueNormal: TODOTODO 20031003-1.c:14:15 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20031003-1.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:7137:castExpressionValueNormal: TODOTODO 20031003-1.c:14:15 
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20040223-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20040223-1.c:15:12: undefined: alloca
+/home/jnml/src/modernc.org/ccgo/v3/go.go:3914:jumpStatement: TODOTODO 20040302-1.c:13:3 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20040302-1.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:3914:jumpStatement: TODOTODO 20040302-1.c:13:3 
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20040308-1.c: unsupported C type: array of int
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20040308-1.c:7:9: unsupported C type: array of int
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20040308-1.c:7:9: variable length arrays not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20040308-1.c:7:9: too many errors
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20040520-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20040520-1.c:6:9: nested functions not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20040520-1.c:6:9: nested functions not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20040520-1.c:14:14: undefined: bar
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20040520-1.c:14:14: undefined: bar
+/home/jnml/src/modernc.org/ccgo/v3/go.go:7854:unaryExpressionPreIncDecVoid: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20040629-1.c:123:1 opBitfield 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20040629-1.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:7854:unaryExpressionPreIncDecVoid: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20040629-1.c:123:1 opBitfield 
+/home/jnml/src/modernc.org/ccgo/v3/go.go:7854:unaryExpressionPreIncDecVoid: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20040629-1.c:123:1 opBitfield 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20040705-1.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:7854:unaryExpressionPreIncDecVoid: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20040629-1.c:123:1 opBitfield 
+/home/jnml/src/modernc.org/ccgo/v3/go.go:7854:unaryExpressionPreIncDecVoid: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20040629-1.c:123:1 opBitfield 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20040705-2.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:7854:unaryExpressionPreIncDecVoid: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20040629-1.c:123:1 opBitfield 
+/home/jnml/src/modernc.org/ccgo/v3/go.go:3083:declaratorLValueDefault: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20040707-1.c:5:3: 20040707-1.c:4:19: "s1"
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20040707-1.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:3083:declaratorLValueDefault: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20040707-1.c:5:3: 20040707-1.c:4:19: "s1"
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20040709-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20040709-1.c:92:58: undefined: __builtin_classify_type
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20040709-1.c:93:67: undefined: __builtin_classify_type
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20040709-1.c:94:67: undefined: __builtin_classify_type
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20040709-1.c:94:67: too many errors
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20040709-2.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20040709-2.c:92:63: undefined: __builtin_classify_type
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20040709-2.c:93:72: undefined: __builtin_classify_type
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20040709-2.c:94:72: undefined: __builtin_classify_type
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20040709-2.c:94:72: too many errors
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20040709-3.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20040709-2.c:92:63: undefined: __builtin_classify_type
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20040709-2.c:93:72: undefined: __builtin_classify_type
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20040709-2.c:94:72: undefined: __builtin_classify_type
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20040709-2.c:94:72: too many errors
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20040811-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20040811-1.c:14:7: variable length arrays not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20040811-1.c:14:7: variable length arrays not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20040811-1.c:15:3: variable length arrays not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20040811-1.c:15:3: variable length arrays not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20040811-1.c:16:3: variable length arrays not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20040811-1.c:17:7: variable length arrays not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20040811-1.c:15:3: too many errors
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20041124-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20041124-1.c:1:36: declarator has invalid or incomplete type
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20041124-1.c:2:23: operand has invalid or incomplete type
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20041201-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20041201-1.c:3:32: declarator has invalid or incomplete type
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20041201-1.c:5:14: operand has invalid or incomplete type
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20041201-1.c:9:19: operand has invalid or incomplete type
+/home/jnml/src/modernc.org/ccgo/v3/go.go:3914:jumpStatement: TODOTODO 20041214-1.c:25:7 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20041214-1.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:3914:jumpStatement: TODOTODO 20041214-1.c:25:7 
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20041218-2.c: unsupported C type: array of char
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20041218-2.c:5:19: unsupported C type: array of char
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20041218-2.c:5:19: variable length arrays not supported
+/home/jnml/src/modernc.org/ccgo/v3/go.go:2584:externalDeclaration: TODOTODO 20050106-1.c:9:2 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20050106-1.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:2584:externalDeclaration: TODOTODO 20050106-1.c:9:2 
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20050121-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20050121-1.c:30:1: `r`: expected ;
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20050121-1.c:31:1: `r`: expected ;
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20050316-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20050316-1.c:51:17: initializer for a scalar shall be a single expression
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20050316-1.c:60:17: initializer for a scalar shall be a single expression
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20050316-1.c:66:18: initializer for a scalar shall be a single expression
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20050316-2.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20050316-2.c:38:19: initializer for a scalar shall be a single expression
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20050316-2.c:44:19: initializer for a scalar shall be a single expression
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20050316-2.c:49:17: initializer for a scalar shall be a single expression
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20050316-3.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20050316-3.c:28:18: initializer for a scalar shall be a single expression
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20050604-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20050604-1.c:29:25: initializer for a scalar shall be a single expression
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20050604-1.c:31:27: initializer for a scalar shall be a single expression
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20050607-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20050607-1.c:12:35: initializer for a scalar shall be a single expression
+/home/jnml/src/modernc.org/ccgo/v3/go.go:8472:postfixExpressionAddrOf: TODOTODO 20050929-1.c:8:18 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20050929-1.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:8472:postfixExpressionAddrOf: TODOTODO 20050929-1.c:8:18 
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20051012-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20051012-1.c:22:7: too many arguments
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20061220-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20061220-1.c:10:3: nested functions not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20061220-1.c:10:3: nested functions not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20061220-1.c:15:3: undefined: nested
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20061220-1.c:15:3: undefined: nested
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20061220-1.c:16:3: assembler statements not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20061220-1.c:16:3: assembler statements not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20061220-1.c:17:3: assembler statements not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20061220-1.c:18:3: assembler statements not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20061220-1.c:19:3: assembler statements not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20061220-1.c:20:3: assembler statements not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20061220-1.c:16:3: too many errors
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20070614-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20070614-1.c:3:10: declarator has invalid or incomplete type
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20070614-1.c:6:15: declarator has invalid or incomplete type
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20070614-1.c:12:24: declarator has invalid or incomplete type
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20070614-1.c:14:15: declarator has invalid or incomplete type
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20070614-1.c:24:15: operand has invalid or incomplete type
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20070824-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20070824-1.c:17:20: undefined: __builtin_alloca
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20070919-1.c: TODO653
+/home/jnml/src/modernc.org/ccgo/v3/go.go:8667:postfixExpressionValue: TODOTODO 20071029-1.c:36:8 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20071029-1.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:8667:postfixExpressionValue: TODOTODO 20071029-1.c:36:8 
+/home/jnml/src/modernc.org/ccgo/v3/go.go:8667:postfixExpressionValue: TODOTODO 20071202-1.c:8:9 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20071202-1.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:8667:postfixExpressionValue: TODOTODO 20071202-1.c:8:9 
+/home/jnml/src/modernc.org/ccgo/v3/go.go:3914:jumpStatement: TODOTODO 20071210-1.c:33:3 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20071210-1.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:3914:jumpStatement: TODOTODO 20071210-1.c:33:3 
+/home/jnml/src/modernc.org/ccgo/v3/go.go:7854:unaryExpressionPreIncDecVoid: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20071211-1.c:18:3 opBitfield 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20071211-1.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:7854:unaryExpressionPreIncDecVoid: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20071211-1.c:18:3 opBitfield 
+/home/jnml/src/modernc.org/ccgo/v3/go.go:3914:jumpStatement: TODOTODO 20071220-1.c:19:3 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20071220-1.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:3914:jumpStatement: TODOTODO 20071220-1.c:19:3 
+/home/jnml/src/modernc.org/ccgo/v3/go.go:7688:unaryExpressionValue: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20071220-2.c:16:24 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20071220-2.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:7688:unaryExpressionValue: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20071220-2.c:16:24 
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20080502-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20080502-1.c:7:10: undefined: __builtin_signbit
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20090219-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20090219-1.c:12:3: nested functions not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20090219-1.c:12:3: nested functions not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20090219-1.c:21:3: undefined: bar
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20090219-1.c:21:3: undefined: bar
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20180921-1.c: TODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/20180921-1.c:129:27: struct a <- long
+/home/jnml/src/modernc.org/ccgo/v3/go.go:7688:unaryExpressionValue: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/920302-1.c:8:25 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/920302-1.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:7688:unaryExpressionValue: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/920302-1.c:8:25 
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/920415-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/920415-1.c:2:18: `l`: expected ;
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/920428-2.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/920428-2.c:4:24: `l1`: expected ;
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/920501-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/920501-1.c:4:23: too many arguments
+/home/jnml/src/modernc.org/ccgo/v3/go.go:3914:jumpStatement: TODOTODO 920501-3.c:17:3 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/920501-3.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:3914:jumpStatement: TODOTODO 920501-3.c:17:3 
+/home/jnml/src/modernc.org/ccgo/v3/go.go:3914:jumpStatement: TODOTODO 920501-4.c:8:3 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/920501-4.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:3914:jumpStatement: TODOTODO 920501-4.c:8:3 
+/home/jnml/src/modernc.org/ccgo/v3/go.go:7688:unaryExpressionValue: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/920501-5.c:5:16 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/920501-5.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:7688:unaryExpressionValue: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/920501-5.c:5:16 
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/920501-7.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/920501-7.c:13:13: `xlab`: expected ;
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/920612-2.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/920612-2.c:6:3: nested functions not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/920612-2.c:6:3: nested functions not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/920612-2.c:13:7: undefined: a
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/920612-2.c:13:7: undefined: a
+/home/jnml/src/modernc.org/ccgo/v3/go.go:7160:castExpressionValueNormal: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/920625-1.c:12:8 point struct 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/920625-1.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:7160:castExpressionValueNormal: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/920625-1.c:12:8 point struct 
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/920721-2.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/920721-2.c:3:23: variable length arrays not supported
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/920721-4.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/920721-4.c:4:13: `lab1`: expected ;
+/home/jnml/src/modernc.org/ccgo/v3/go.go:7160:castExpressionValueNormal: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/920908-1.c:12:3 T struct 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/920908-1.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:7160:castExpressionValueNormal: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/920908-1.c:12:3 T struct 
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/920929-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/920929-1.c:6:8: variable length arrays not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/920929-1.c:6:8: unsupported C type: array of double
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/920929-1.c:8:1: variable length arrays not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/920929-1.c:8:1: variable length arrays not supported
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/921017-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/921017-1.c:9:16: undefined: i
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/921202-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/921202-1.c:21:7: too many arguments
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/921202-1.c:21:7: too many arguments
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/921202-1.c:29:8: too many arguments
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/921202-1.c:29:8: too many arguments
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/921202-1.c:31:25: too many arguments
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/921202-1.c:31:25: too many arguments
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/921202-1.c:33:4: too many arguments
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/921202-1.c:33:4: too many arguments
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/921202-1.c:33:22: too many errors
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/921208-2.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/921208-2.c:13:7: too many arguments
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/921208-2.c:13:7: too many arguments
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/921208-2.c:14:7: too many arguments
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/921208-2.c:14:7: too many arguments
+/home/jnml/src/modernc.org/ccgo/v3/go.go:3193:declaratorAddrOfFunction: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/921215-1.c:20:5: 921215-1.c:15:8: "q"
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/921215-1.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:3193:declaratorAddrOfFunction: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/921215-1.c:20:5: 921215-1.c:15:8: "q"
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/930406-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/930406-1.c:13:15: `mylabel`: expected ;
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/930930-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/930930-1.c:2:1: `ptr_t`: expected {
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/930930-1.c:3:7: `*`: expected declaration: '*'
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/930930-1.c:4:7: `*`: expected declaration: '*'
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/930930-1.c:6:7: `mem`: expected declaration: IDENTIFIER
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/931002-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/931002-1.c:10:3: nested functions not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/931002-1.c:10:3: nested functions not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/931002-1.c:14:3: nested functions not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/931002-1.c:14:3: nested functions not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/931002-1.c:19:3: nested functions not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/931002-1.c:19:3: nested functions not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/931002-1.c:24:3: undefined: t1
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/931002-1.c:24:3: undefined: t1
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/931002-1.c:25:3: undefined: t1
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/931002-1.c:26:3: undefined: t2
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/931002-1.c:24:3: too many errors
+/home/jnml/src/modernc.org/ccgo/v3/go.go:7160:castExpressionValueNormal: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/931004-10.c:18:11 struct tiny struct 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/931004-10.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:7160:castExpressionValueNormal: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/931004-10.c:18:11 struct tiny struct 
+/home/jnml/src/modernc.org/ccgo/v3/go.go:7160:castExpressionValueNormal: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/931004-12.c:19:11 struct tiny struct 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/931004-12.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:7160:castExpressionValueNormal: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/931004-12.c:19:11 struct tiny struct 
+/home/jnml/src/modernc.org/ccgo/v3/go.go:7160:castExpressionValueNormal: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/931004-14.c:20:11 struct tiny struct 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/931004-14.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:7160:castExpressionValueNormal: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/931004-14.c:20:11 struct tiny struct 
+/home/jnml/src/modernc.org/ccgo/v3/go.go:7160:castExpressionValueNormal: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/931004-2.c:17:11 struct tiny struct 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/931004-2.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:7160:castExpressionValueNormal: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/931004-2.c:17:11 struct tiny struct 
+/home/jnml/src/modernc.org/ccgo/v3/go.go:7160:castExpressionValueNormal: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/931004-4.c:17:11 struct tiny struct 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/931004-4.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:7160:castExpressionValueNormal: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/931004-4.c:17:11 struct tiny struct 
+/home/jnml/src/modernc.org/ccgo/v3/go.go:7160:castExpressionValueNormal: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/931004-6.c:18:11 struct tiny struct 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/931004-6.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:7160:castExpressionValueNormal: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/931004-6.c:18:11 struct tiny struct 
+/home/jnml/src/modernc.org/ccgo/v3/go.go:7160:castExpressionValueNormal: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/931004-8.c:17:11 struct tiny struct 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/931004-8.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:7160:castExpressionValueNormal: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/931004-8.c:17:11 struct tiny struct 
+/home/jnml/src/modernc.org/ccgo/v3/go.go:7107:castExpressionValueFunction: TODOTODO 941014-1.c:8:11 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/941014-1.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:7107:castExpressionValueFunction: TODOTODO 941014-1.c:8:11 
+/home/jnml/src/modernc.org/ccgo/v3/go.go:2584:externalDeclaration: TODOTODO 941202-1.c:22:2 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/941202-1.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:2584:externalDeclaration: TODOTODO 941202-1.c:22:2 
+/home/jnml/src/modernc.org/ccgo/v3/go.go:8249:postfixExpressionSelect: TODOTODO 950628-1.c:28:7 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/950628-1.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:8249:postfixExpressionSelect: TODOTODO 950628-1.c:28:7 
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/950906-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/950906-1.c:8:11: statement expressions not supported
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/960312-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/960312-1.c:14:3: assembler statements not supported
+/home/jnml/src/modernc.org/ccgo/v3/go.go:7160:castExpressionValueNormal: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/960416-1.c:57:16 union {d dt; s struct {h st; l st; }; } union 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/960416-1.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:7160:castExpressionValueNormal: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/960416-1.c:57:16 union {d dt; s struct {h st; l st; }; } union 
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/960512-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/960512-1.c:5:22: declarator has invalid or incomplete type
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/960512-1.c:14:22: declarator has invalid or incomplete type
+/home/jnml/src/modernc.org/ccgo/v3/go.go:9763:primaryExpressionValue: TODOTODO 970214-1.c:4:9 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/970214-1.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:9763:primaryExpressionValue: TODOTODO 970214-1.c:4:9 
+/home/jnml/src/modernc.org/ccgo/v3/go.go:9763:primaryExpressionValue: TODOTODO 970214-2.c:4:9 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/970214-2.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:9763:primaryExpressionValue: TODOTODO 970214-2.c:4:9 
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/970217-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/970217-1.c:1:1: variable length arrays not supported
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/980526-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/980526-1.c:6:13: `lbl1`: expected ;
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/980526-1.c:7:13: `lbl2`: expected ;
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/990130-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/990130-1.c:14:3: assembler statements not supported
+/home/jnml/src/modernc.org/ccgo/v3/go.go:7688:unaryExpressionValue: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/990208-1.c:14:13 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/990208-1.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:7688:unaryExpressionValue: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/990208-1.c:14:13 
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/990413-2.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/990413-2.c:19:3: assembler statements not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/990413-2.c:30:3: assembler statements not supported
+/home/jnml/src/modernc.org/ccgo/v3/go.go:6518:binaryAdditiveExpressionValue: TODOTODO 990524-1.c:18:7 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/990524-1.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:6518:binaryAdditiveExpressionValue: TODOTODO 990524-1.c:18:7 
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/991112-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/991112-1.c:8:10: undefined: isprint
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/991201-1.c: TODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/991201-1.c:11:27: struct vc <- pointer
+/home/jnml/src/modernc.org/ccgo/v3/go.go:6503:binaryAdditiveExpressionValue: TODOTODO 991227-1.c:3:10 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/991227-1.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:6503:binaryAdditiveExpressionValue: TODOTODO 991227-1.c:3:10 
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/991228-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/991228-1.c:11:1: `{`: expected ;
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/991228-1.c:12:3: `__extension__`: expected {
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/991228-1.c:13:3: `return`: expected direct-declarator
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/991228-1.c:14:1: `}`: expected direct-declarator
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/991228-1.c:17:1: `{`: expected ;
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/991228-1.c:18:3: `if`: expected {
+/home/jnml/src/modernc.org/ccgo/v3/go.go:2814:declaratorDecay: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/alias-2.c:7:3: alias-2.c:3:12: "b"
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/alias-2.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:2814:declaratorDecay: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/alias-2.c:7:3: alias-2.c:3:12: "b"
+/home/jnml/src/modernc.org/ccgo/v3/go.go:3083:declaratorLValueDefault: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/alias-3.c:8:3: alias-3.c:4:12: "b"
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/alias-3.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:3083:declaratorLValueDefault: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/alias-3.c:8:3: alias-3.c:4:12: "b"
+/home/jnml/src/modernc.org/ccgo/v3/go.go:3266:declaratorAddrOfNormal: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/alias-4.c:11:18: alias-4.c:3:12: "b"
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/alias-4.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:3266:declaratorAddrOfNormal: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/alias-4.c:11:18: alias-4.c:3:12: "b"
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/align-nest.c: unsupported C type: array of int
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/align-nest.c:12:9: unsupported C type: array of int
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/align-nest.c:12:9: variable length arrays not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/align-nest.c:12:9: too many errors
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/alloca-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/alloca-1.c:13:13: undefined: __builtin_alloca
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/bcp-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/bcp-1.c:10:25: undefined: __builtin_constant_p
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/bcp-1.c:11:25: undefined: __builtin_constant_p
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/bcp-1.c:12:33: undefined: __builtin_constant_p
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/bcp-1.c:12:33: too many errors
+/home/jnml/src/modernc.org/ccgo/v3/go.go:6538:bitFieldPatch2: TODOTODO bitfld-3.c:21:29 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/bitfld-3.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:6538:bitFieldPatch2: TODOTODO bitfld-3.c:21:29 
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/bswap-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/bswap-1.c:6:10: undefined: __builtin_bswap64
+/home/jnml/src/modernc.org/ccgo/v3/go.go:8667:postfixExpressionValue: TODOTODO bswap-2.c:106:17 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/bswap-2.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:8667:postfixExpressionValue: TODOTODO bswap-2.c:106:17 
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/built-in-setjmp.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/built-in-setjmp.c:14:3: undefined: __builtin_longjmp
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/built-in-setjmp.c:20:22: undefined: __builtin_alloca
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/built-in-setjmp.c:24:7: undefined: __builtin_setjmp
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/built-in-setjmp.c:33:22: undefined: __builtin_alloca
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/built-in-setjmp.c:33:22: too many errors
+/home/jnml/src/modernc.org/ccgo/v3/go.go:2584:externalDeclaration: TODOTODO builtin-bitops-1.c:93:23 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/builtin-bitops-1.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:2584:externalDeclaration: TODOTODO builtin-bitops-1.c:93:23 
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/builtin-constant.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/builtin-constant.c:23:8: undefined: __builtin_constant_p
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/builtin-constant.c:23:8: undefined: __builtin_constant_p
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/builtin-constant.c:24:8: undefined: __builtin_constant_p
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/builtin-constant.c:24:8: undefined: __builtin_constant_p
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/builtin-types-compatible-p.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/builtin-types-compatible-p.c:5:46: `int`: expected primary-expression
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/builtin-types-compatible-p.c:18:39: `int`: expected primary-expression
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/call-trap-1.c: function: Elem of invalid type
+/home/jnml/src/modernc.org/ccgo/v3/go.go:7688:unaryExpressionValue: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/comp-goto-1.c:67:30 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/comp-goto-1.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:7688:unaryExpressionValue: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/comp-goto-1.c:67:30 
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/comp-goto-2.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/comp-goto-2.c:15:13: `xlab`: expected ;
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/complex-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/complex-1.c:24:20: `x`: expected , or )
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/complex-1.c:25:12: `x`: expected ;
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/complex-1.c:26:12: `x`: expected ;
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/complex-1.c:35:16: `x`: expected )
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/complex-2.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/complex-2.c:2:23: declarator has invalid or incomplete type
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/complex-2.c:8:20: declarator has invalid or incomplete type
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/complex-2.c:9:20: declarator has invalid or incomplete type
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/complex-2.c:13:22: declarator has invalid or incomplete type
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/complex-4.c: runtime error: invalid memory address or nil pointer dereference
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/complex-5.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/complex-5.c:2:23: declarator has invalid or incomplete type
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/complex-5.c:7:20: declarator has invalid or incomplete type
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/complex-5.c:8:20: declarator has invalid or incomplete type
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/complex-5.c:9:20: declarator has invalid or incomplete type
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/complex-6.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/complex-6.c:39:1: declarator has invalid or incomplete type
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/complex-6.c:39:1: declarator has invalid or incomplete type
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/complex-6.c:40:1: declarator has invalid or incomplete type
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/complex-6.c:41:1: declarator has invalid or incomplete type
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/complex-6.c:42:1: declarator has invalid or incomplete type
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/complex-6.c:43:1: declarator has invalid or incomplete type
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/complex-7.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/complex-7.c:5:25: declarator has invalid or incomplete type
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/complex-7.c:6:25: declarator has invalid or incomplete type
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/complex-7.c:7:25: declarator has invalid or incomplete type
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/complex-7.c:8:25: declarator has invalid or incomplete type
+/home/jnml/src/modernc.org/ccgo/v3/go.go:8667:postfixExpressionValue: TODOTODO compndlit-1.c:20:8 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/compndlit-1.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:8667:postfixExpressionValue: TODOTODO compndlit-1.c:20:8 
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ffs-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ffs-1.c:9:7: undefined: __builtin_ffs
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ffs-2.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ffs-2.c:39:11: undefined: __builtin_ffs
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/fprintf-2.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/fprintf-2.c:12:20: undefined: tmpnam
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/fprintf-2.c:12:20: undefined: tmpnam
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/fprintf-2.c:33:7: undefined: remove
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/fprintf-2.c:33:7: undefined: remove
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/fprintf-2.c:38:12: undefined: __isoc99_fscanf
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/fprintf-2.c:38:12: undefined: __isoc99_fscanf
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/fprintf-2.c:42:7: undefined: remove
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/fprintf-2.c:42:7: undefined: remove
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/fprintf-2.c:47:3: undefined: remove
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/fprintf-2.c:47:3: undefined: remove
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/fprintf-2.c:47:3: too many errors
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/frame-address.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/frame-address.c:19:19: undefined: __builtin_frame_address
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/frame-address.c:40:18: undefined: __builtin_alloca
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/builtin-nan-1.c: runtime error: invalid memory address or nil pointer dereference
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/compare-fp-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/compare-fp-1.c:25:3: undefined: __builtin_isunordered
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/compare-fp-1.c:25:3: undefined: __builtin_isunordered
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/compare-fp-1.c:26:3: undefined: __builtin_islessgreater
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/compare-fp-1.c:27:3: undefined: __builtin_isunordered
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/compare-fp-1.c:25:3: too many errors
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/compare-fp-3.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/compare-fp-3.c:44:7: undefined: __builtin_isunordered
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/compare-fp-3.c:54:7: undefined: __builtin_isunordered
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/compare-fp-3.c:64:7: undefined: __builtin_isunordered
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/compare-fp-3.c:64:7: too many errors
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/compare-fp-4.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/compare-fp-4.c:27:3: undefined: __builtin_isunordered
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/compare-fp-4.c:39:3: undefined: __builtin_isunordered
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/compare-fp-4.c:39:3: too many errors
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/copysign1.c: runtime error: invalid memory address or nil pointer dereference
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/copysign2.c: runtime error: invalid memory address or nil pointer dereference
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/fp-cmp-4.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/fp-cmp-4.c:8:7: undefined: __builtin_isunordered
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/fp-cmp-4.c:23:7: undefined: __builtin_isless
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/fp-cmp-4.c:38:7: undefined: __builtin_islessequal
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/fp-cmp-4.c:38:7: too many errors
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/fp-cmp-4f.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/fp-cmp-4.c:8:7: undefined: __builtin_isunordered
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/fp-cmp-4.c:23:7: undefined: __builtin_isless
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/fp-cmp-4.c:38:7: undefined: __builtin_islessequal
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/fp-cmp-4.c:38:7: too many errors
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/fp-cmp-4l.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/fp-cmp-4.c:8:7: undefined: __builtin_isunordered
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/fp-cmp-4.c:23:7: undefined: __builtin_isless
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/fp-cmp-4.c:38:7: undefined: __builtin_islessequal
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/fp-cmp-4.c:38:7: too many errors
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/fp-cmp-5.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/fp-cmp-5.c:6:10: undefined: __builtin_isunordered
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/fp-cmp-5.c:12:11: undefined: __builtin_isunordered
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/fp-cmp-5.c:18:10: undefined: __builtin_isless
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/fp-cmp-5.c:18:10: too many errors
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/fp-cmp-7.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/fp-cmp-7.c:5:11: undefined: __builtin_inf
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/fp-cmp-7.c:5:11: undefined: __builtin_inf
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/fp-cmp-7.c:6:5: undefined: link_error
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/fp-cmp-7.c:6:5: undefined: link_error
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/fp-cmp-8.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/fp-cmp-8.c:10:10: undefined: __builtin_isunordered
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/fp-cmp-8.c:16:11: undefined: __builtin_isunordered
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/fp-cmp-8.c:22:10: undefined: __builtin_isless
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/fp-cmp-8.c:22:10: too many errors
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/fp-cmp-8f.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/fp-cmp-8.c:10:10: undefined: __builtin_isunordered
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/fp-cmp-8.c:16:11: undefined: __builtin_isunordered
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/fp-cmp-8.c:22:10: undefined: __builtin_isless
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/fp-cmp-8.c:22:10: too many errors
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/fp-cmp-8l.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/fp-cmp-8.c:10:10: undefined: __builtin_isunordered
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/fp-cmp-8.c:16:11: undefined: __builtin_isunordered
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/fp-cmp-8.c:22:10: undefined: __builtin_isless
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/fp-cmp-8.c:22:10: too many errors
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/inf-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/inf-1.c:7:14: undefined: __builtin_inff
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/inf-1.c:7:14: undefined: __builtin_inff
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/inf-1.c:9:15: undefined: __builtin_inf
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/inf-1.c:9:15: undefined: __builtin_inf
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/inf-1.c:10:20: undefined: __builtin_infl
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/inf-1.c:10:20: undefined: __builtin_infl
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/inf-1.c:12:14: undefined: __builtin_huge_valf
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/inf-1.c:12:14: undefined: __builtin_huge_valf
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/inf-1.c:13:15: undefined: __builtin_huge_val
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/inf-1.c:14:20: undefined: __builtin_huge_vall
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/inf-1.c:12:14: too many errors
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/inf-2.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/inf-2.c:5:12: undefined: __builtin_inf
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/inf-2.c:5:12: undefined: __builtin_inf
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/inf-2.c:7:13: undefined: __builtin_inf
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/inf-2.c:9:13: undefined: __builtin_inf
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/inf-2.c:11:12: undefined: __builtin_inf
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/inf-2.c:14:12: undefined: __builtin_inf
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/inf-2.c:16:11: undefined: __builtin_inf
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/inf-2.c:18:11: undefined: __builtin_inf
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/inf-2.c:20:13: undefined: __builtin_inf
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/inf-2.c:22:12: undefined: __builtin_inf
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/inf-2.c:5:12: too many errors
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/inf-3.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/inf-3.c:5:12: undefined: __builtin_huge_val
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/inf-3.c:5:12: undefined: __builtin_huge_val
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/inf-3.c:7:13: undefined: __builtin_huge_val
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/inf-3.c:9:13: undefined: __builtin_huge_val
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/inf-3.c:11:12: undefined: __builtin_huge_val
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/inf-3.c:14:12: undefined: __builtin_huge_val
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/inf-3.c:16:11: undefined: __builtin_huge_val
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/inf-3.c:18:11: undefined: __builtin_huge_val
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/inf-3.c:20:13: undefined: __builtin_huge_val
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/inf-3.c:22:12: undefined: __builtin_huge_val
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/inf-3.c:5:12: too many errors
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/mzero4.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/mzero4.c:49:12: undefined: tanf
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/mzero4.c:49:12: undefined: tanf
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/mzero4.c:50:12: undefined: atanf
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/mzero4.c:50:12: undefined: atanf
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/mzero4.c:53:12: undefined: tanf
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/mzero4.c:53:12: undefined: tanf
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/mzero4.c:54:12: undefined: atanf
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/mzero4.c:54:12: undefined: atanf
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/pr36332.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/pr36332.c:6:16: undefined: __builtin_infl
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/pr38016.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/fp-cmp-8.c:10:10: undefined: __builtin_isunordered
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/fp-cmp-8.c:16:11: undefined: __builtin_isunordered
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/fp-cmp-8.c:22:10: undefined: __builtin_isless
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/fp-cmp-8.c:22:10: too many errors
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/pr50310.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/pr50310.c:11:21: undefined: __builtin_isgreater
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/pr50310.c:13:23: undefined: __builtin_isgreater
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/pr50310.c:15:21: undefined: __builtin_isgreaterequal
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/pr50310.c:17:23: undefined: __builtin_isgreaterequal
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/pr50310.c:19:21: undefined: __builtin_isless
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/pr50310.c:19:21: too many errors
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/pr72824-2.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/pr72824-2.c:17:22: initializer for a scalar shall be a single expression
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ieee/pr72824-2.c:18:33: invalid index expression V[int]
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/medce-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/medce-1.c:19:7: undefined: link_error
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/nest-align-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/nest-align-1.c:25:3: nested functions not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/nest-align-1.c:25:3: nested functions not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/nest-align-1.c:30:3: undefined: bar
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/nest-align-1.c:30:3: undefined: bar
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/nest-stdar-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/nest-stdar-1.c:5:3: nested functions not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/nest-stdar-1.c:5:3: nested functions not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/nest-stdar-1.c:16:7: undefined: f
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/nest-stdar-1.c:16:7: undefined: f
+/home/jnml/src/modernc.org/ccgo/v3/go.go:3193:declaratorAddrOfFunction: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/nestfunc-1.c:20:16: nestfunc-1.c:15:7: "f2"
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/nestfunc-1.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:3193:declaratorAddrOfFunction: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/nestfunc-1.c:20:16: nestfunc-1.c:15:7: "f2"
+/home/jnml/src/modernc.org/ccgo/v3/go.go:3193:declaratorAddrOfFunction: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/nestfunc-2.c:32:51: nestfunc-2.c:13:7: "nested"
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/nestfunc-2.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:3193:declaratorAddrOfFunction: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/nestfunc-2.c:32:51: nestfunc-2.c:13:7: "nested"
+/home/jnml/src/modernc.org/ccgo/v3/go.go:3193:declaratorAddrOfFunction: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/nestfunc-3.c:39:51: nestfunc-3.c:25:8: "nested_2"
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/nestfunc-3.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:3193:declaratorAddrOfFunction: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/nestfunc-3.c:39:51: nestfunc-3.c:25:8: "nested_2"
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/nestfunc-5.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/nestfunc-5.c:8:13: `l1`: expected ;
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/nestfunc-6.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/nestfunc-6.c:13:13: `nonlocal`: expected ;
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/nestfunc-7.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/nestfunc-7.c:15:3: nested functions not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/nestfunc-7.c:15:3: nested functions not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/nestfunc-7.c:30:16: undefined: Foo
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/nestfunc-7.c:30:16: undefined: Foo
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr17377.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr17377.c:16:12: undefined: __builtin_return_address
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr17377.c:16:12: undefined: __builtin_return_address
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr17377.c:23:14: undefined: __builtin_return_address
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr17377.c:23:14: undefined: __builtin_return_address
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr19449.c: runtime error: invalid memory address or nil pointer dereference
+/home/jnml/src/modernc.org/ccgo/v3/go.go:8831:postfixExpressionValueIndexNormal: TODOTODO pr22061-1.c:14:7 int 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr22061-1.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:8831:postfixExpressionValueIndexNormal: TODOTODO pr22061-1.c:14:7 int 
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr22061-2.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr22061-2.c:2:1: variable length arrays not supported
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr22061-3.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr22061-3.c:4:3: nested functions not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr22061-3.c:4:17: variable length arrays not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr22061-3.c:5:7: undefined: foo
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr22061-3.c:5:7: undefined: foo
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr22061-3.c:7:7: undefined: foo
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr22061-3.c:7:7: undefined: foo
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr22061-4.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr22061-4.c:5:3: nested functions not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr22061-4.c:5:17: variable length arrays not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr22061-4.c:6:7: variable length arrays not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr22061-4.c:6:7: unsupported C type: array of 2 array of int
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr22061-4.c:7:3: undefined: foo
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr22061-4.c:8:7: variable length arrays not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr22061-4.c:8:7: unsupported C type: array of 2 array of int
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr22061-4.c:9:3: undefined: foo
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr22061-4.c:9:3: too many errors
+/home/jnml/src/modernc.org/ccgo/v3/go.go:8472:postfixExpressionAddrOf: TODOTODO pr22098-1.c:10:25 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr22098-1.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:8472:postfixExpressionAddrOf: TODOTODO pr22098-1.c:10:25 
+/home/jnml/src/modernc.org/ccgo/v3/go.go:8472:postfixExpressionAddrOf: TODOTODO pr22098-2.c:10:25 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr22098-2.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:8472:postfixExpressionAddrOf: TODOTODO pr22098-2.c:10:25 
+/home/jnml/src/modernc.org/ccgo/v3/go.go:8472:postfixExpressionAddrOf: TODOTODO pr22098-3.c:12:25 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr22098-3.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:8472:postfixExpressionAddrOf: TODOTODO pr22098-3.c:12:25 
+/home/jnml/src/modernc.org/ccgo/v3/go.go:8667:postfixExpressionValue: TODOTODO pr22141-1.c:44:8 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr22141-1.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:8667:postfixExpressionValue: TODOTODO pr22141-1.c:44:8 
+/home/jnml/src/modernc.org/ccgo/v3/go.go:8667:postfixExpressionValue: TODOTODO pr22141-2.c:44:8 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr22141-2.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:8667:postfixExpressionValue: TODOTODO pr22141-2.c:44:8 
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr23135.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr23135.c:19:19: initializer for a scalar shall be a single expression
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr23135.c:20:18: initializer for a scalar shall be a single expression
+/home/jnml/src/modernc.org/ccgo/v3/go.go:1806:structLiteral: TODOTODO - 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr23324.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:1806:structLiteral: TODOTODO - 
+    all_test.go:829: 
+        // Code generated by 'ccgo -D__FUNCTION__=__func__ -o main.go -ccgo-verify-structs /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr23467.c -ccgo-long-double-is-double', DO NOT EDIT.
+        
+        package main
+        
+        import (
+        	"fmt"
+        	"math"
+        	"reflect"
+        	"unsafe"
+        
+        	"modernc.org/libc"
+        )
+        
+        var _ = math.Pi
+        var _ reflect.Kind
+        var _ unsafe.Pointer
+        
+        func main() { libc.Start(main1) }
+        
+        type ptrdiff_t = int64 /* <builtin>:3:26 */
+        
+        type size_t = uint64 /* <builtin>:9:23 */
+        
+        type wchar_t = uint32 /* <builtin>:15:24 */
+        
+        // { dg-skip-if "small alignment" { pdp11-*-* } }
+        
+        type s1 = struct{ a int32 } /* pr23467.c:3:1 */
+        
+        var v struct {
+        	c int8
+        	_ [3]byte
+        	m s1
+        } /* pr23467.c:12:3: */
+        
+        func main1(tls *libc.TLS, _ int32, _ uintptr) int32 { /* pr23467.c:15:1: */
+        	if (int32((uintptr(unsafe.Pointer(&v)) + 4 /* &.m */)) & 7) != 0 {
+        		libc.X__builtin_abort(tls)
+        	}
+        	libc.X__builtin_exit(tls, 0)
+        	return int32(0)
+        }
+        
+        func init() {
+        	var v0 struct{ a int32 }
+        	if g, e := unsafe.Sizeof(v0), uintptr(4); g != e {
+        		panic(fmt.Sprintf(`invalid struct/union size, got %v, expected %v`, g, e))
+        	}
+        	if g, e := unsafe.Offsetof(v0.a), uintptr(0); g != e {
+        		panic(fmt.Sprintf(`invalid struct/union field offset, got %v, expected %v`, g, e))
+        	}
+        	if g, e := unsafe.Sizeof(v0.a), uintptr(4); g != e {
+        		panic(fmt.Sprintf(`invalid struct/union field size, got %v, expected %v`, g, e))
+        	}
+        	var v1 struct {
+        		c int8
+        		_ [3]byte
+        		m s1
+        	}
+        	if g, e := unsafe.Sizeof(v1), uintptr(8); g != e {
+        		panic(fmt.Sprintf(`invalid struct/union size, got %v, expected %v`, g, e))
+        	}
+        	if g, e := unsafe.Offsetof(v1.c), uintptr(0); g != e {
+        		panic(fmt.Sprintf(`invalid struct/union field offset, got %v, expected %v`, g, e))
+        	}
+        	if g, e := unsafe.Sizeof(v1.c), uintptr(1); g != e {
+        		panic(fmt.Sprintf(`invalid struct/union field size, got %v, expected %v`, g, e))
+        	}
+        	if g, e := unsafe.Offsetof(v1.m), uintptr(4); g != e {
+        		panic(fmt.Sprintf(`invalid struct/union field offset, got %v, expected %v`, g, e))
+        	}
+        	if g, e := unsafe.Sizeof(v1.m), uintptr(4); g != e {
+        		panic(fmt.Sprintf(`invalid struct/union field size, got %v, expected %v`, g, e))
+        	}
+        }
+        
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr23467.c: signal: aborted (core dumped)
+        
+        exit status 1
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr24135.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr24135.c:7:13: `xlab`: expected ;
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr24135.c:8:13: `xlab2`: expected ;
+/home/jnml/src/modernc.org/ccgo/v3/go.go:4730:conditionalExpressionFunc: TODOTODO pr28289.c:16:12 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr28289.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:4730:conditionalExpressionFunc: TODOTODO pr28289.c:16:12 
+/home/jnml/src/modernc.org/ccgo/v3/go.go:1960:typ: TODOTODO pr28865.c:3:20 array of char 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr28865.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:1960:typ: TODOTODO pr28865.c:3:20 array of char 
+/home/jnml/src/modernc.org/ccgo/v3/go.go:8249:postfixExpressionSelect: TODOTODO pr30185.c:21:7 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr30185.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:8249:postfixExpressionSelect: TODOTODO pr30185.c:21:7 
+/home/jnml/src/modernc.org/ccgo/v3/go.go:1960:typ: TODOTODO pr33382.c:6:23 array of int 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr33382.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:1960:typ: TODOTODO pr33382.c:6:23 array of int 
+/home/jnml/src/modernc.org/ccgo/v3/go.go:10106:intConst: TODOTODO int -> pthread_mutex_t
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr33631.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:10106:intConst: TODOTODO int -> pthread_mutex_t
+/home/jnml/src/modernc.org/ccgo/v3/go.go:10773:labeledStatement: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr34154.c:5:9 LabeledStatementRange 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr34154.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:10773:labeledStatement: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr34154.c:5:9 LabeledStatementRange 
+/home/jnml/src/modernc.org/ccgo/v3/go.go:4730:conditionalExpressionFunc: TODOTODO pr34768-1.c:15:4 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr34768-1.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:4730:conditionalExpressionFunc: TODOTODO pr34768-1.c:15:4 
+/home/jnml/src/modernc.org/ccgo/v3/go.go:4730:conditionalExpressionFunc: TODOTODO pr34768-2.c:17:14 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr34768-2.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:4730:conditionalExpressionFunc: TODOTODO pr34768-2.c:17:14 
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr35456.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr35456.c:18:8: undefined: __builtin_signbit
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr36321.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr36321.c:8:22: undefined: __builtin_alloca
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr36321.c:8:22: undefined: __builtin_alloca
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr36321.c:9:22: undefined: __builtin_alloca
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr36321.c:9:22: undefined: __builtin_alloca
+/home/jnml/src/modernc.org/ccgo/v3/go.go:2584:externalDeclaration: TODOTODO pr37573.c:44:2 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr37573.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:2584:externalDeclaration: TODOTODO pr37573.c:44:2 
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr37780.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr37780.c:8:27: undefined: __builtin_ctz
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr37780.c:14:21: undefined: __builtin_ctz
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr37780.c:20:21: undefined: __builtin_ctz
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr37780.c:20:21: too many errors
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr38151.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr38151.c:39:53: `1i`: expected )
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr38533.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr38533.c:11:3: assembler statements not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr38533.c:11:3: too many errors
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr38969.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr38969.c:16:12: `a`: expected ;
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr38969.c:17:12: `a`: expected ;
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr39120.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr39120.c:6:18: `(`: expected declaration-specifiers
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr39120.c:7:1: `bar`: expected {
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr39228.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr39228.c:10:10: undefined: __builtin_isinff
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr39228.c:17:10: undefined: __builtin_isinf
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr39228.c:24:10: undefined: __builtin_isinfl
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr39228.c:24:10: too many errors
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr40022.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr40022.c:17:3: assembler statements not supported
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr40657.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr40657.c:8:3: assembler statements not supported
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr41239.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr41239.c:41:3: assembler statements not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr41239.c:41:3: assembler statements not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr41239.c:42:3: assembler statements not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr41239.c:42:3: assembler statements not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr41239.c:49:3: assembler statements not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr41239.c:56:3: assembler statements not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr41239.c:63:3: assembler statements not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr41239.c:63:3: too many errors
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr41935.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr41935.c:8:15: variable length arrays not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr41935.c:9:23: unsupported C type: array of T
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr41935.c:9:23: variable length arrays not supported
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr42248.c: runtime error: invalid memory address or nil pointer dereference
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr43220.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr43220.c:12:11: variable length arrays not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr43220.c:12:11: variable length arrays not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr43220.c:12:11: unsupported C type: array of int
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr43220.c:13:7: variable length arrays not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr43220.c:14:7: variable length arrays not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr43220.c:15:11: variable length arrays not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr43220.c:20:11: unsupported C type: array of int
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr43220.c:20:11: variable length arrays not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr43220.c:12:11: too many errors
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr43385.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr43385.c:27:3: assembler statements not supported
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr43560.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr43560.c:25:3: assembler statements not supported
+/home/jnml/src/modernc.org/ccgo/v3/go.go:8667:postfixExpressionValue: TODOTODO pr44164.c:14:10 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr44164.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:8667:postfixExpressionValue: TODOTODO pr44164.c:14:10 
+/home/jnml/src/modernc.org/ccgo/v3/go.go:7160:castExpressionValueNormal: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr44575.c:27:10 struct S struct 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr44575.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:7160:castExpressionValueNormal: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr44575.c:27:10 struct S struct 
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr45695.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr45695.c:8:3: assembler statements not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr45695.c:26:3: assembler statements not supported
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr46309.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr46309.c:18:3: assembler statements not supported
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr47237.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr47237.c:16:3: undefined: __builtin_apply
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr49218.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr49218.c:2:18: `L`: expected declaration: IDENTIFIER
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr49218.c:11:5: `i`: expected ;
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr49279.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr49279.c:10:3: assembler statements not supported
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr49390.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr49390.c:81:3: assembler statements not supported
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr49644.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr49644.c:8:20: array of invalid or incomplete type
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr51447.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr51447.c:16:13: `nonlocal_lab`: expected ;
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr51877.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr51877.c:22:3: assembler statements not supported
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr51933.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr51933.c:16:3: assembler statements not supported
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr52286.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr52286.c:10:3: assembler statements not supported
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr53645-2.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr53645-2.c:41:1: initializer for a scalar shall be a single expression
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr53645-2.c:44:18: initializer for a scalar shall be a single expression
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr53645-2.c:45:17: initializer for a scalar shall be a single expression
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr53645-2.c:47:17: initializer for a scalar shall be a single expression
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr53645-2.c:48:19: initializer for a scalar shall be a single expression
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr53645.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr53645.c:41:1: initializer for a scalar shall be a single expression
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr53645.c:44:18: initializer for a scalar shall be a single expression
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr53645.c:45:17: initializer for a scalar shall be a single expression
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr53645.c:47:17: initializer for a scalar shall be a single expression
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr53645.c:48:19: initializer for a scalar shall be a single expression
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr54471.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr54471.c:13:1: `foo`: expected declaration: IDENTIFIER
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr54471.c:15:14: `irslt`: expected ;
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr54471.c:16:5: `ix`: expected ;
+/home/jnml/src/modernc.org/ccgo/v3/go.go:9237:postfixExpressionIncDecVoid: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr55750.c:14:3 opBitfield 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr55750.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:9237:postfixExpressionIncDecVoid: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr55750.c:14:3 opBitfield 
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr56205.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr56205.c:12:3: assembler statements not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr56205.c:26:3: assembler statements not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr56205.c:56:3: assembler statements not supported
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr56837.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr56837.c:2:15: array of invalid or incomplete type
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr56866.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr56866.c:22:3: assembler statements not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr56866.c:22:3: assembler statements not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr56866.c:33:3: assembler statements not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr56866.c:33:3: assembler statements not supported
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr56982.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr56982.c:11:3: assembler statements not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr56982.c:33:13: undefined: _setjmp
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr56982.c:33:13: undefined: _setjmp
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr56982.c:39:5: undefined: longjmp
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr56982.c:39:5: undefined: longjmp
+/home/jnml/src/modernc.org/ccgo/v3/go.go:8667:postfixExpressionValue: TODOTODO pr57130.c:18:8 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr57130.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:8667:postfixExpressionValue: TODOTODO pr57130.c:18:8 
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr57344-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr57344-1.c:21:3: assembler statements not supported
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr57344-2.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr57344-2.c:22:3: assembler statements not supported
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr57344-3.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr57344-3.c:17:3: assembler statements not supported
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr57344-4.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr57344-4.c:17:3: assembler statements not supported
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr60003.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr60003.c:11:3: undefined: __builtin_longjmp
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr60003.c:25:7: undefined: __builtin_setjmp
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr60960.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr60960.c:14:26: initializer for a scalar shall be a single expression
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr60960.c:26:17: initializer for a scalar shall be a single expression
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr60960.c:27:17: initializer for a scalar shall be a single expression
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr61375.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr61375.c:15:46: `in1`: expected )
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr61375.c:17:12: `mask`: expected ;
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr61375.c:24:12: `in`: expected ;
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr61725.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr61725.c:9:15: undefined: __builtin_ffs
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr63302.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr63302.c:14:15: `x`: expected )
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr63302.c:16:12: `v`: expected ;
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr63302.c:40:26: `1`: expected , or )
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr63302.c:44:50: `)`: expected ;
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr63641.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr63641.c:46:3: assembler statements not supported
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr64006.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr64006.c:11:9: undefined: __builtin_mul_overflow
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr64242.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr64242.c:5:14: `(`: expected declaration-specifiers
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr64242.c:14:14: `(`: expected declaration-specifiers
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr64242.c:20:14: `(`: expected declaration-specifiers
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr65053-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr65053-1.c:24:7: assembler statements not supported
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr65053-2.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr65053-2.c:9:3: assembler statements not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr65053-2.c:9:3: assembler statements not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr65053-2.c:19:7: assembler statements not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr65053-2.c:19:7: assembler statements not supported
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr65170.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr65170.c:4:27: `V`: expected declaration: IDENTIFIER
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr65170.c:12:8: `b`: expected )
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr65170.c:14:5: `a`: expected ;
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr65427.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr65427.c:22:16: initializer for a scalar shall be a single expression
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr65427.c:23:19: initializer for a scalar shall be a single expression
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr65427.c:24:19: initializer for a scalar shall be a single expression
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr65427.c:28:19: initializer for a scalar shall be a single expression
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr65427.c:29:19: initializer for a scalar shall be a single expression
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr65648.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr65648.c:13:3: assembler statements not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr65648.c:19:3: assembler statements not supported
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr65956.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr65956.c:17:3: assembler statements not supported
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr67037.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr67037.c:30:5: too many arguments
+/home/jnml/src/modernc.org/ccgo/v3/go.go:10599:iterationStatement: TODOTODO pr67714.c:8:3 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr67714.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:10599:iterationStatement: TODOTODO pr67714.c:8:3 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr68249.c: runtime error: invalid memory address or nil pointer dereference
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr68328.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr68328.c:6:3: assembler statements not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr68328.c:13:3: assembler statements not supported
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr68381.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr68381.c:8:7: undefined: __builtin_mul_overflow
+/home/jnml/src/modernc.org/ccgo/v3/go.go:10599:iterationStatement: TODOTODO pr68532.c:10:3 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr68532.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:10599:iterationStatement: TODOTODO pr68532.c:10:3 
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr69320-2.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr69320-2.c:12:6: assembler statements not supported
+/home/jnml/src/modernc.org/ccgo/v3/go.go:3392:convert: TODOTODO "" -> "pointer to void"
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr70460.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:3392:convert: TODOTODO "" -> "pointer to void"
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr70903.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr70903.c:8:39: initializer for a scalar shall be a single expression
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr70903.c:9:22: initializer for a scalar shall be a single expression
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr70903.c:16:7: invalid index expression V32[int]
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr71083.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr71083.c:11:1: `{`: expected ;
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr71083.c:13:3: `for`: expected {
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr71083.c:14:5: `{`: expected direct-declarator
+/home/jnml/src/modernc.org/ccgo/v3/go.go:7688:unaryExpressionValue: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr71494.c:7:17 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr71494.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:7688:unaryExpressionValue: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr71494.c:7:17 
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr71554.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr71554.c:17:7: undefined: __builtin_mul_overflow
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr71626-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr71626-1.c:16:7: invalid index expression V[int]
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr71626-2.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr71626-1.c:16:7: invalid index expression V[int]
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr77767.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr77767.c:3:1: variable length arrays not supported
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr78438.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr78438.c:15:3: assembler statements not supported
+/home/jnml/src/modernc.org/ccgo/v3/go.go:10599:iterationStatement: TODOTODO pr78559.c:19:7 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr78559.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:10599:iterationStatement: TODOTODO pr78559.c:19:7 
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr78726.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr78726.c:18:3: assembler statements not supported
+/home/jnml/src/modernc.org/ccgo/v3/go.go:10599:iterationStatement: TODOTODO pr79286.c:7:3 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr79286.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:10599:iterationStatement: TODOTODO pr79286.c:7:3 
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr79354.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr79354.c:24:3: assembler statements not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr79354.c:24:3: assembler statements not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr79354.c:26:3: assembler statements not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr79354.c:26:3: assembler statements not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr79354.c:28:3: assembler statements not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr79354.c:28:3: assembler statements not supported
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr79737-2.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr79737-2.c:44:3: assembler statements not supported
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr80421.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr80421.c:6:3: assembler statements not supported
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr80692.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr80692.c:4:13: `d64`: expected ;
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr81588.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr81588.c:6:3: assembler statements not supported
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr82210.c: unsupported C type: array of struct T {c short; }
+        unsupported C type: array of int
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr82210.c:9:57: unsupported C type: array of struct T {c short; }
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr82210.c:9:57: unsupported C type: array of struct T {c short; }
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr82210.c:9:57: unsupported C type: array of struct T {c short; }
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr82210.c:9:57: unsupported C type: array of struct T {c short; }
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr82210.c:10:9: unsupported C type: array of int
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr82210.c:10:9: unsupported C type: array of int
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr82210.c:10:9: unsupported C type: array of int
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr82210.c:10:9: unsupported C type: array of int
+/home/jnml/src/modernc.org/ccgo/v3/go.go:8667:postfixExpressionValue: TODOTODO pr82524.c:31:10 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr82524.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:8667:postfixExpressionValue: TODOTODO pr82524.c:31:10 
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr82954.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr82954.c:17:3: assembler statements not supported
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr84169.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr84169.c:4:27: `T`: expected declaration: IDENTIFIER
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr84169.c:9:3: `b`: expected declaration: IDENTIFIER
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr84169.c:12:1: `foo`: expected declaration: IDENTIFIER
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr84478.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr84478.c:45:3: assembler statements not supported
+/home/jnml/src/modernc.org/ccgo/v3/go.go:10599:iterationStatement: TODOTODO pr84524.c:26:3 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr84524.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:10599:iterationStatement: TODOTODO pr84524.c:26:3 
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr84748.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr84748.c:3:27: `u128`: expected declaration: IDENTIFIER
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr84748.c:6:6: `b`: expected declaration: IDENTIFIER
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr84748.c:23:8: `x`: expected ;
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr85095.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr85095.c:6:21: undefined: __builtin_add_overflow
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr85095.c:13:21: undefined: __builtin_add_overflow
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr85095.c:20:20: undefined: __builtin_add_overflow
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr85095.c:20:20: too many errors
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr85156.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr85156.c:17:3: assembler statements not supported
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr85169.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr85169.c:9:3: invalid index expression V[int]
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr85169.c:19:9: invalid index expression V[unsigned]
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr85331.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr85331.c:9:16: initializer for a scalar shall be a single expression
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr85331.c:10:26: initializer for a scalar shall be a single expression
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr85331.c:19:7: invalid index expression V[int]
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr85582-2.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr85582-2.c:4:18: `S`: expected declaration: IDENTIFIER
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr85582-2.c:5:27: `U`: expected declaration: IDENTIFIER
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr85582-2.c:12:1: `f1`: expected declaration: IDENTIFIER
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr85582-2.c:20:1: `f2`: expected declaration: IDENTIFIER
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr85582-3.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr85582-3.c:4:18: `S`: expected declaration: IDENTIFIER
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr85582-3.c:5:27: `U`: expected declaration: IDENTIFIER
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr85582-3.c:12:1: `f1`: expected declaration: IDENTIFIER
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr85582-3.c:18:1: `f2`: expected declaration: IDENTIFIER
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr85756.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr85756.c:11:3: assembler statements not supported
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr86528.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr86528.c:7:17: undefined: __builtin_alloca
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr88904.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr88904.c:10:3: assembler statements not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr88904.c:10:3: assembler statements not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr88904.c:11:3: assembler statements not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr88904.c:11:3: assembler statements not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr88904.c:12:3: assembler statements not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr88904.c:12:3: assembler statements not supported
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr89369.c: TODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr89369.c:51:22: array of 4 unsigned
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr89434.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr89434.c:10:3: undefined: __builtin_mul_overflow
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr90025.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/pr90025.c:19:29: undefined: __builtin_bswap32
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/printf-2.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/printf-2.c:26:20: undefined: tmpnam
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/printf-2.c:26:20: undefined: tmpnam
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/printf-2.c:27:13: undefined: freopen64
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/printf-2.c:27:13: undefined: freopen64
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/printf-2.c:41:7: undefined: remove
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/printf-2.c:41:7: undefined: remove
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/printf-2.c:46:12: undefined: __isoc99_fscanf
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/printf-2.c:46:12: undefined: __isoc99_fscanf
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/printf-2.c:50:7: undefined: remove
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/printf-2.c:55:3: undefined: remove
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/printf-2.c:46:12: too many errors
+/home/jnml/src/modernc.org/ccgo/v3/go.go:8667:postfixExpressionValue: TODOTODO restrict-1.c:16:11 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/restrict-1.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:8667:postfixExpressionValue: TODOTODO restrict-1.c:16:11 
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/scal-to-vec1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/scal-to-vec1.c:34:33: initializer for a scalar shall be a single expression
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/scal-to-vec1.c:37:32: initializer for a scalar shall be a single expression
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/scal-to-vec1.c:40:33: initializer for a scalar shall be a single expression
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/scal-to-vec1.c:65:25: initializer for a scalar shall be a single expression
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/scal-to-vec1.c:66:25: initializer for a scalar shall be a single expression
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/scal-to-vec1.c:67:25: initializer for a scalar shall be a single expression
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/scal-to-vec1.c:68:25: initializer for a scalar shall be a single expression
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/scal-to-vec1.c:70:30: initializer for a scalar shall be a single expression
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/scal-to-vec1.c:71:30: initializer for a scalar shall be a single expression
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/scal-to-vec1.c:72:30: initializer for a scalar shall be a single expression
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/scal-to-vec2.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/scal-to-vec2.c:35:34: initializer for a scalar shall be a single expression
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/scal-to-vec2.c:38:34: initializer for a scalar shall be a single expression
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/scal-to-vec2.c:41:32: initializer for a scalar shall be a single expression
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/scal-to-vec2.c:44:33: initializer for a scalar shall be a single expression
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/scal-to-vec3.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/scal-to-vec3.c:20:32: initializer for a scalar shall be a single expression
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/scal-to-vec3.c:23:33: initializer for a scalar shall be a single expression
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/scal-to-vec3.c:27:24: initializer for a scalar shall be a single expression
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/scal-to-vec3.c:28:24: initializer for a scalar shall be a single expression
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/scal-to-vec3.c:29:24: initializer for a scalar shall be a single expression
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/scal-to-vec3.c:30:24: initializer for a scalar shall be a single expression
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/scal-to-vec3.c:32:29: initializer for a scalar shall be a single expression
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/scal-to-vec3.c:33:29: initializer for a scalar shall be a single expression
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/scal-to-vec3.c:34:29: initializer for a scalar shall be a single expression
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/scal-to-vec3.c:35:29: initializer for a scalar shall be a single expression
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/simd-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/simd-1.c:10:19: initializer for a scalar shall be a single expression
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/simd-1.c:11:18: initializer for a scalar shall be a single expression
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/simd-2.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/simd-2.c:8:19: initializer for a scalar shall be a single expression
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/simd-2.c:9:18: initializer for a scalar shall be a single expression
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/simd-4.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/simd-4.c:17:36: initializer for a scalar shall be a single expression
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/simd-5.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/simd-5.c:5:12: initializer for a scalar shall be a single expression
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/simd-6.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/simd-6.c:13:17: initializer for a scalar shall be a single expression
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/simd-6.c:14:17: initializer for a scalar shall be a single expression
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/simd-6.c:15:17: initializer for a scalar shall be a single expression
+/home/jnml/src/modernc.org/ccgo/v3/go.go:10599:iterationStatement: TODOTODO ssad-run.c:8:3 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/ssad-run.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:10599:iterationStatement: TODOTODO ssad-run.c:8:3 
+/home/jnml/src/modernc.org/ccgo/v3/go.go:7160:castExpressionValueNormal: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/stdarg-3.c:73:10 struct S1 {i int; d double; j int; e double; } struct 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/stdarg-3.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:7160:castExpressionValueNormal: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/stdarg-3.c:73:10 struct S1 {i int; d double; j int; e double; } struct 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/stkalign.c: runtime error: invalid memory address or nil pointer dereference
+/home/jnml/src/modernc.org/ccgo/v3/go.go:7160:castExpressionValueNormal: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/strct-stdarg-1.c:21:11 struct tiny struct 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/strct-stdarg-1.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:7160:castExpressionValueNormal: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/strct-stdarg-1.c:21:11 struct tiny struct 
+/home/jnml/src/modernc.org/ccgo/v3/go.go:7160:castExpressionValueNormal: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/strct-varg-1.c:16:15 struct s struct 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/strct-varg-1.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:7160:castExpressionValueNormal: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/strct-varg-1.c:16:15 struct s struct 
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/string-opt-18.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/string-opt-18.c:27:7: undefined: mempcpy
+/home/jnml/src/modernc.org/ccgo/v3/go.go:6503:binaryAdditiveExpressionValue: TODOTODO string-opt-5.c:76:33 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/string-opt-5.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:6503:binaryAdditiveExpressionValue: TODOTODO string-opt-5.c:76:33 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/struct-ini-1.c: TODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/struct-ini-1.c:7:25: array of 2 int
+/home/jnml/src/modernc.org/ccgo/v3/go.go:10599:iterationStatement: TODOTODO usad-run.c:8:3 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/usad-run.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:10599:iterationStatement: TODOTODO usad-run.c:8:3 
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/user-printf.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/user-printf.c:23:20: undefined: tmpnam
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/user-printf.c:23:20: undefined: tmpnam
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/user-printf.c:24:13: undefined: freopen64
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/user-printf.c:24:13: undefined: freopen64
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/user-printf.c:45:7: undefined: remove
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/user-printf.c:45:7: undefined: remove
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/user-printf.c:50:12: undefined: __isoc99_fscanf
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/user-printf.c:50:12: undefined: __isoc99_fscanf
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/user-printf.c:54:7: undefined: remove
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/user-printf.c:59:3: undefined: remove
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/user-printf.c:50:12: too many errors
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/va-arg-2.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/va-arg-2.c:26:7: too many arguments
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/va-arg-2.c:40:7: too many arguments
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/va-arg-2.c:54:7: too many arguments
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/va-arg-2.c:68:7: too many arguments
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/va-arg-2.c:82:7: too many arguments
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/va-arg-2.c:82:7: too many errors
+/home/jnml/src/modernc.org/ccgo/v3/go.go:7160:castExpressionValueNormal: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/va-arg-22.c:46:1 A0 struct 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/va-arg-22.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:7160:castExpressionValueNormal: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/va-arg-22.c:46:1 A0 struct 
+/home/jnml/src/modernc.org/ccgo/v3/go.go:7160:castExpressionValueNormal: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/va-arg-pack-1.c:40:11 struct A struct 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/va-arg-pack-1.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:7160:castExpressionValueNormal: TODOTODO /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/va-arg-pack-1.c:40:11 struct A struct 
+    all_test.go:814: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/vla-dealloc-1.c: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/vla-dealloc-1.c:21:7: variable length arrays not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/vla-dealloc-1.c:21:7: variable length arrays not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/vla-dealloc-1.c:22:3: variable length arrays not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/vla-dealloc-1.c:22:3: variable length arrays not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/vla-dealloc-1.c:23:3: variable length arrays not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/vla-dealloc-1.c:24:7: variable length arrays not supported
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/vla-dealloc-1.c:22:3: too many errors
+/home/jnml/src/modernc.org/ccgo/v3/go.go:9763:primaryExpressionValue: TODOTODO wchar_t-1.c:4:13 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/wchar_t-1.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:9763:primaryExpressionValue: TODOTODO wchar_t-1.c:4:13 
+/home/jnml/src/modernc.org/ccgo/v3/go.go:9570:primaryExpressionBool: TODOTODO widechar-1.c:11:7 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/widechar-1.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:9570:primaryExpressionBool: TODOTODO widechar-1.c:11:7 
+/home/jnml/src/modernc.org/ccgo/v3/go.go:9763:primaryExpressionValue: TODOTODO widechar-2.c:8:16 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/widechar-2.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:9763:primaryExpressionValue: TODOTODO widechar-2.c:8:16 
+/home/jnml/src/modernc.org/ccgo/v3/go.go:9678:primaryExpressionAddrOf: TODOTODO widechar-3.c:11:21 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/widechar-3.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:9678:primaryExpressionAddrOf: TODOTODO widechar-3.c:11:21 
+/home/jnml/src/modernc.org/ccgo/v3/go.go:8667:postfixExpressionValue: TODOTODO zero-struct-1.c:9:26 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/zero-struct-1.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:8667:postfixExpressionValue: TODOTODO zero-struct-1.c:9:26 
+/home/jnml/src/modernc.org/ccgo/v3/go.go:8667:postfixExpressionValue: TODOTODO zero-struct-2.c:15:22 
+    all_test.go:804: /home/jnml/src/modernc.org/ccgo/v3/testdata/gcc-9.1.0/gcc/testsuite/gcc.c-torture/execute/zero-struct-2.c: /home/jnml/src/modernc.org/ccgo/v3/go.go:8667:postfixExpressionValue: TODOTODO zero-struct-2.c:15:22 
+    all_test.go:686: files 1,531, ok 1,209
+--- FAIL: TestGCCExec (4007.13s)
+=== RUN   TestSQLite
+--- PASS: TestSQLite (66.24s)
+=== RUN   TestMjson
+    all_test.go:1039: /home/jnml/src/modernc.org/ccgo/v3/testdata/microjson-1.5/mjson.c:742:37: undefined: strtod
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/microjson-1.5/test_microjson.c:814:22: undefined: getopt
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/microjson-1.5/test_microjson.c:814:22: undefined: getopt
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/microjson-1.5/test_microjson.c:824:24: undefined: optarg
+        /home/jnml/src/modernc.org/ccgo/v3/testdata/microjson-1.5/test_microjson.c:824:24: undefined: optarg
+--- FAIL: TestMjson (0.69s)
+=== RUN   TestCompCert
+=== RUN   TestCompCert/gcc
+=== RUN   TestCompCert/ccgo
+=== CONT  TestCompCert
+    all_test.go:1161:   compiler           test    T         comp  exec match    coef
+    all_test.go:1163:        gcc          aes.c   172.284ms  true  true  true   1.000 *
+    all_test.go:1163:        gcc    almabench.c   684.502ms  true  true  true   1.000 *
+    all_test.go:1163:        gcc  binarytrees.c   117.841ms  true  true  true   1.000 *
+    all_test.go:1163:        gcc       bisect.c   174.391ms  true  true  true   1.000 *
+    all_test.go:1163:        gcc        chomp.c   515.914ms  true  true  true   1.000 *
+    all_test.go:1163:        gcc     fannkuch.c   444.860ms  true  true  true   1.000 *
+    all_test.go:1163:        gcc          fft.c   622.301ms  true  true  true   1.000 *
+    all_test.go:1163:        gcc        fftsp.c   121.560ms  true  true  true   1.000 *
+    all_test.go:1163:        gcc         fftw.c   189.408ms  true  true  true   1.000 *
+    all_test.go:1163:        gcc          fib.c   140.617ms  true  true  true   1.000 *
+    all_test.go:1163:        gcc       integr.c    50.552ms  true  true  true   1.000 *
+    all_test.go:1163:        gcc  knucleotide.c   385.793ms  true  true  true   1.000 *
+    all_test.go:1163:        gcc        lists.c   159.346ms  true  true  true   1.046
+    all_test.go:1163:        gcc   mandelbrot.c   228.318ms  true  true  true   1.000 *
+    all_test.go:1163:        gcc        nbody.c   448.494ms  true  true  true   1.000 *
+    all_test.go:1163:        gcc       nsieve.c   838.599ms  true  true  true   1.000 *
+    all_test.go:1163:        gcc   nsievebits.c   244.507ms  true  true  true   1.000 *
+    all_test.go:1163:        gcc       perlin.c    84.030ms  true  true  true   1.000 *
+    all_test.go:1163:        gcc        qsort.c   283.486ms  true  true  true   1.000 *
+    all_test.go:1163:        gcc         sha1.c   145.060ms  true  true  true   1.000 *
+    all_test.go:1163:        gcc         sha3.c    64.702ms  true  true  true   1.000 *
+    all_test.go:1163:        gcc    siphash24.c   189.779ms  true  true  true   1.000 *
+    all_test.go:1163:        gcc     spectral.c   430.659ms  true  true  true   1.000 *
+    all_test.go:1163:        gcc        vmach.c   185.853ms  true  true  true   1.000 *
+    all_test.go:1163:       ccgo          aes.c   258.204ms  true  true  true   1.499
+    all_test.go:1163:       ccgo    almabench.c  1071.266ms  true  true  true   1.565
+    all_test.go:1163:       ccgo  binarytrees.c   292.974ms  true  true  true   2.486
+    all_test.go:1163:       ccgo       bisect.c   183.743ms  true  true  true   1.054
+    all_test.go:1163:       ccgo        chomp.c   665.789ms  true  true  true   1.291
+    all_test.go:1163:       ccgo     fannkuch.c   575.092ms  true  true  true   1.293
+    all_test.go:1163:       ccgo          fft.c   640.146ms  true  true  true   1.029
+    all_test.go:1163:       ccgo        fftsp.c   279.445ms  true  true  true   2.299
+    all_test.go:1163:       ccgo         fftw.c   284.544ms  true  true  true   1.502
+    all_test.go:1163:       ccgo          fib.c   250.492ms  true  true  true   1.781
+    all_test.go:1163:       ccgo       integr.c   101.581ms  true  true  true   2.009
+    all_test.go:1163:       ccgo  knucleotide.c   924.421ms  true  true  true   2.396
+    all_test.go:1163:       ccgo        lists.c   152.393ms  true  true  true   1.000 *
+    all_test.go:1163:       ccgo   mandelbrot.c   919.569ms  true  true  true   4.028
+    all_test.go:1163:       ccgo        nbody.c   460.587ms  true  true  true   1.027
+    all_test.go:1163:       ccgo       nsieve.c   939.034ms  true  true  true   1.120
+    all_test.go:1163:       ccgo   nsievebits.c   305.278ms  true  true  true   1.249
+    all_test.go:1163:       ccgo       perlin.c   183.946ms  true  true  true   2.189
+    all_test.go:1163:       ccgo        qsort.c   295.379ms  true  true  true   1.042
+    all_test.go:1163:       ccgo         sha1.c   258.624ms  true  true  true   1.783
+    all_test.go:1163:       ccgo         sha3.c   225.536ms  true  true  true   3.486
+    all_test.go:1163:       ccgo    siphash24.c   393.133ms  true  true  true   2.072
+    all_test.go:1163:       ccgo     spectral.c   448.471ms  true  true  true   1.041
+    all_test.go:1163:       ccgo        vmach.c   267.590ms  true  true  true   1.440
+    all_test.go:1170: Considered tests: 24/24
+    all_test.go:1178:       ccgo  10.377238062s  1.499
+    all_test.go:1178:        gcc   6.922856301s  1.000
+--- PASS: TestCompCert (166.77s)
+    --- PASS: TestCompCert/gcc (41.37s)
+    --- PASS: TestCompCert/ccgo (125.37s)
+=== RUN   TestBug
+    all_test.go:1312: files 10, ok 10
+--- PASS: TestBug (35.56s)
+=== RUN   TestCSmith
+    all_test.go:1462: exec: "csmith": executable file not found in $PATH
+--- FAIL: TestCSmith (0.00s)
+FAIL
+exit status 1
+FAIL	modernc.org/ccgo/v3	4439.595s
+9:    all_test.go:649: libc map[_IO_putc:{} ___errno_location:{} __assert_fail:{} __builtin_abort:{} __builtin_abs:{} __builtin_copysign:{} __builtin_copysignf:{} __builtin_exit:{} __builtin_expect:{} __builtin_fabs:{} __builtin_free:{} __builtin_malloc:{} __builtin_memcmp:{} __builtin_memcpy:{} __builtin_memset:{} __builtin_prefetch:{} __builtin_printf:{} __builtin_snprintf:{} __builtin_sprintf:{} __builtin_strchr:{} __builtin_strcmp:{} __builtin_strcpy:{} __builtin_strlen:{} __builtin_trap:{} __builtin_unreachable:{} __ccgo_in6addr_anyp:{} __ccgo_sqlite3_log:{} __ctype_b_loc:{} __errno_location:{} __h_errno_location:{} __inet_aton:{} __intscan:{} __isalnum_l:{} __isalpha_l:{} __isdigit_l:{} __isnan:{} __isnanf:{} __isnanl:{} __isoc99_sscanf:{} __lookup_ipliteral:{} __lookup_name:{} __lookup_serv:{} __shgetc:{} __shlim:{} __syscall1:{} __syscall3:{} __toread:{} __toread_needs_stdio_exit:{} __uflow:{} _exit:{} abort:{} abs:{} accept:{} access:{} acos:{} alarm:{} asin:{} atan:{} atan2:{} atof:{} atoi:{} atol:{} backtrace:{} backtrace_symbols_fd:{} bind:{} calloc:{} ceil:{} cfgetospeed:{} cfsetispeed:{} cfsetospeed:{} chdir:{} chmod:{} chown:{} close:{} closedir:{} connect:{} copysign:{} copysignf:{} cos:{} cosf:{} cosh:{} dlclose:{} dlerror:{} dlopen:{} dlsym:{} dup2:{} environ:{} execvp:{} exit:{} exp:{} fabs:{} fabsf:{} fchmod:{} fchown:{} fclose:{} fcntl:{} fcntl64:{} fdopen:{} ferror:{} fflush:{} fgetc:{} fgets:{} fileno:{} floor:{} fmod:{} fopen:{} fopen64:{} fork:{} fprintf:{} fputc:{} fputs:{} fread:{} free:{} freeaddrinfo:{} frexp:{} fseek:{} fstat:{} fstat64:{} fsync:{} ftell:{} ftruncate:{} ftruncate64:{} fts64_close:{} fts64_open:{} fts64_read:{} fts_close:{} fts_open:{} fts_read:{} fwrite:{} gai_strerror:{} getaddrinfo:{} getcwd:{} getenv:{} geteuid:{} getgrgid:{} getgrnam:{} gethostbyaddr:{} gethostbyaddr_r:{} gethostbyname:{} gethostbyname2:{} gethostbyname2_r:{} getnameinfo:{} getpeername:{} getpid:{} getpwnam:{} getpwuid:{} getrlimit:{} getrlimit64:{} getrusage:{} getservbyname:{} getsockname:{} getsockopt:{} gettimeofday:{} getuid:{} gmtime_r:{} h_errno:{} htonl:{} htons:{} hypot:{} inet_ntoa:{} inet_ntop:{} inet_pton:{} ioctl:{} isalnum:{} isalpha:{} isatty:{} isdigit:{} isnan:{} isnanf:{} isnanl:{} ldexp:{} link:{} listen:{} localtime:{} localtime_r:{} log:{} log10:{} lseek:{} lseek64:{} lstat:{} lstat64:{} malloc:{} memchr:{} memcmp:{} memcpy:{} memmove:{} memset:{} mkdir:{} mkfifo:{} mknod:{} mkstemp64:{} mkstemps64:{} mktime:{} mmap64:{} modf:{} munmap:{} nl_langinfo:{} ntohs:{} open:{} open64:{} opendir:{} pclose:{} perror:{} pipe:{} popen:{} pow:{} printf:{} putc:{} putchar:{} qsort:{} raise:{} rand:{} read:{} readdir:{} readdir64:{} readlink:{} realloc:{} realpath:{} recv:{} rename:{} rewind:{} rmdir:{} round:{} select:{} send:{} setlocale:{} setrlimit:{} setrlimit64:{} setsockopt:{} setvbuf:{} shutdown:{} sigaction:{} signal:{} sin:{} sinf:{} sinh:{} sleep:{} snprintf:{} socket:{} sprintf:{} sqrt:{} stat:{} stat64:{} stderr:{} stdin:{} stdout:{} strcasecmp:{} strcat:{} strchr:{} strcmp:{} strcpy:{} strcspn:{} strdup:{} strerror:{} strlen:{} strncmp:{} strncpy:{} strnlen:{} strpbrk:{} strrchr:{} strspn:{} strstr:{} strtoimax:{} strtol:{} strtoll:{} strtoul:{} strtoull:{} strtoumax:{} symlink:{} sysconf:{} system:{} tan:{} tanh:{} tcgetattr:{} tcsetattr:{} time:{} tolower:{} toupper:{} tzset:{} umask:{} uname:{} unlink:{} usleep:{} utime:{} utimes:{} vfprintf:{} vprintf:{} waitpid:{} write:{} zero_struct_address:{}]
+949:--- FAIL: TestGCCExec (4007.13s)
+958:--- FAIL: TestMjson (0.69s)
+1023:--- FAIL: TestCSmith (0.00s)
+1024:FAIL
+1026:FAIL	modernc.org/ccgo/v3	4439.595s
+Sun Sep 13 08:20:41 UTC 2020

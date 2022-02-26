@@ -1,0 +1,58 @@
+name: Go
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+
+  build-and-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        go:
+          - "1.16"
+          - "1.17"
+    steps:
+    - uses: actions/checkout@v2
+
+    - name: Set up Go ${{ matrix.go }}
+      uses: actions/setup-go@v2
+      with:
+        go-version: ${{ matrix.go }}
+
+    - name: Install dependencies
+      run: |
+        go install github.com/cockroachdb/crlfmt@latest
+        go install github.com/kisielk/errcheck@latest
+        go install github.com/mdempsky/unconvert@latest
+        go install honnef.co/go/tools/cmd/staticcheck@latest
+        go install golang.org/x/tools/go/analysis/passes/shadow/cmd/shadow@latest
+
+
+    - name: Build
+      run: go build -v ./...
+
+    - name: Test
+      run: go test -v ./...
+    - name: Race
+      run:  go test -p 1 -v ./...
+    - name: gofmt
+      run: gofmt -s -d -l .
+    - name: vet
+      run: |
+        ! go vet -vettool=$(which shadow) ./... 2>&1 | \
+          grep -vF 'declaration of "err" shadows declaration at' | \
+          grep -vF "# github.com/cockroachdb/cockroach-go/v2/testserver"
+    - name: License checks
+      run: |
+        ! git grep -lE '^// Author' -- '*.go'
+        ! git grep -LE '^// Copyright' -- '*.go'
+    - name: errchk
+      run: errcheck -ignore "Close|Init|AutoMigrate"  ./...
+    - name: unconvert
+      run: unconvert ./...
+    - name: staticcheck
+      run: staticcheck ./...

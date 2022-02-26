@@ -1,0 +1,16 @@
+This is a goinstall-able mirror of modified code already published at:
+http://git.nic.cz/redmine/projects/gofileutil/repository
+
+Packages in this repository:
+
+Install: $go get modernc.org/fileutil
+Godocs: http://godoc.org/modernc.org/fileutil
+
+Install: $go get modernc.org/fileutil/storage
+Godocs: http://godoc.org/modernc.org/fileutil/storage
+
+Install: $go get modernc.org/fileutil/falloc
+Godocs: http://godoc.org/modernc.org/fileutil/falloc
+
+Install: $go get modernc.org/fileutil/hdb
+Godocs: http://godoc.org/modernc.org/fileutil/hdb

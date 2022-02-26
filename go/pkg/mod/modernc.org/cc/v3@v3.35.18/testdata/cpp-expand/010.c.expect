@@ -1,0 +1,7 @@
+
+ int test = 4;
+
+
+int main (void) {
+ return test;
+}

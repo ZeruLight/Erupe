@@ -1,0 +1,28 @@
+trigger:
+- master
+- dev
+
+pool:
+  vmImage: 'ubuntu-latest'
+
+steps:
+- task: GoTool@0
+  inputs:
+    version: '1.15'
+- script: |
+    go build ./azblob
+  displayName: 'Compile the SDK'
+- script: |
+    go test -race -short -cover -v ./azblob
+  env:
+    ACCOUNT_NAME: $(ACCOUNT_NAME)
+    ACCOUNT_KEY: $(ACCOUNT_KEY)
+    BLOB_STORAGE_ACCOUNT_NAME: $(BLOB_STORAGE_ACCOUNT_NAME)
+    BLOB_STORAGE_ACCOUNT_KEY: $(BLOB_STORAGE_ACCOUNT_KEY)
+    PREMIUM_ACCOUNT_NAME: $(PREMIUM_ACCOUNT_NAME)
+    PREMIUM_ACCOUNT_KEY: $(PREMIUM_ACCOUNT_KEY)
+    SECONDARY_ACCOUNT_NAME: $(SECONDARY_ACCOUNT_NAME)
+    SECONDARY_ACCOUNT_KEY: $(SECONDARY_ACCOUNT_KEY)
+    APPLICATION_ID: $(APPLICATION_ID)
+    CLIENT_SECRET: $(CLIENT_SECRET)
+    TENANT_ID: $(TENANT_ID)

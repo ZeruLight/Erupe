@@ -1,0 +1,9 @@
+software.amazon.smithy.go.codegen.integration.ValidationGenerator
+software.amazon.smithy.go.codegen.integration.IdempotencyTokenMiddlewareGenerator
+software.amazon.smithy.go.codegen.integration.AddChecksumRequiredMiddleware
+software.amazon.smithy.go.codegen.integration.RequiresLengthTraitSupport
+software.amazon.smithy.go.codegen.integration.EndpointHostPrefixMiddleware
+software.amazon.smithy.go.codegen.integration.OperationInterfaceGenerator
+software.amazon.smithy.go.codegen.integration.Paginators
+software.amazon.smithy.go.codegen.integration.Waiters
+software.amazon.smithy.go.codegen.integration.ClientLogger

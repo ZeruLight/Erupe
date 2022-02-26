@@ -1,0 +1,4 @@
+105: c.zColl foo
+109: cols[1].zColl foo
+117: pTab->aCol[1].zColl foo
+123: p->y.pTab->aCol[1].zColl foo

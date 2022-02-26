@@ -1,0 +1,19 @@
+long __syscall(syscall_arg_t, ...);
+
+
+
+typedef long syscall_arg_t;
+
+
+
+
+
+
+
+
+
+
+
+
+
+int fd = __syscall_ret((__syscall)(SYS_openat,((long) (AT_FDCWD)),((long) (filename)),((long) ((flags)|O_LARGEFILE)),((long) (0666))));

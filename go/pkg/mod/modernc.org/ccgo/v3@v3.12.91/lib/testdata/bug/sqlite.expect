@@ -1,0 +1,8 @@
+8: foo
+12: foo
+24: tab.aCol[j].zColl bar
+28: ptab->aCol[j].zColl bar
+38: y.ptab->aCol[j].zColl bar
+42: y->ptab->aCol[j].zColl bar
+52: p.y.ptab->aCol[j].zColl bar
+56: p->y.ptab->aCol[j].zColl bar

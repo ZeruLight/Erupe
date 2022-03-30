@@ -135,7 +135,7 @@ func (guild *Guild) Save(s *Session) error {
 func (guild *Guild) CreateApplication(s *Session, charID uint32, applicationType GuildApplicationType, transaction *sql.Tx) error {
 
 	sql := `
-		INSERT INTO guild_applications (guild_id, character_id, actor_id, application_type) 
+		INSERT INTO guild_applications (guild_id, character_id, actor_id, application_type)
 		VALUES ($1, $2, $3, $4)
 	`
 
@@ -415,8 +415,8 @@ func CreateGuild(s *Session, guildName string) (int32, error) {
 	}
 
 	guildResult, err := transaction.Query(
-		"INSERT INTO guilds (name, leader_id) VALUES ($1, $2) RETURNING id",
-		guildName, s.charID,
+		"INSERT INTO guilds (name, leader_id, rp, guild_hall) VALUES ($1, $2, $3, $4) RETURNING id",
+		guildName, s.charID, 48, 17,
 	)
 
 	if err != nil {
@@ -507,7 +507,7 @@ func FindGuildsByName(s *Session, name string) ([]*Guild, error) {
 func GetGuildInfoByID(s *Session, guildID uint32) (*Guild, error) {
 	rows, err := s.server.db.Queryx(fmt.Sprintf(`
 		%s
-		WHERE g.id = $1 
+		WHERE g.id = $1
 		LIMIT 1
 	`, guildInfoSelectQuery), guildID)
 

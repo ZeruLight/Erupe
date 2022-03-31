@@ -18,3 +18,4 @@ Google Drive is reliable, but there's sometimes an inexplicable quota when too m
 Anonfiles: https://anonfiles.com/Jf135bG0x2/Erupe_-_Community_Edition_zip
 Anonfiles is middle-of-the-road speed, but the download will always stay up no matter how many times it's been downloaded by others. A bit untrustworthy but that's just the nature of anonymity.
 
+Special thanks to Hiroaki for the Quest Clear timer.

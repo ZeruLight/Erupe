@@ -2,6 +2,7 @@ package channelserver
 
 import (
 	"fmt"
+	"math"
 	"strings"
 
 	"github.com/Andoryuuta/byteframe"
@@ -48,6 +49,17 @@ func sendServerChatMessage(s *Session, message string) {
 
 func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysCastBinary)
+
+	if pkt.BroadcastType == 0x03 && pkt.MessageType == 0x03 && len(pkt.RawDataPayload) == 0x10 {
+        tmp := byteframe.NewByteFrameFromBytes(pkt.RawDataPayload)
+
+        if tmp.ReadUint16() == 0x0002 && tmp.ReadUint8() == 0x18 {
+            _ = tmp.ReadBytes(9)
+            tmp.SetLE()
+            frame := tmp.ReadUint32()
+            sendServerChatMessage(s, fmt.Sprintf("TIME : %d'%d.%03d (%dframe)", frame/30/60, frame/30%60, int(math.Round(float64(frame%30*100)/3)), frame))
+        }
+    }
 
 	// Parse out the real casted binary payload
 	var realPayload []byte

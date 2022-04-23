@@ -158,6 +158,11 @@ func handleMsgSysLogin(s *Session, p mhfpacket.MHFPacket) {
 		}
 	}
 
+	_, err := s.server.db.Exec("UPDATE characters SET last_login=$1 WHERE id=$2", Time_Current().Unix(), s.charID)
+	if err != nil {
+		panic(err)
+	}
+	
 	doAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
 }
 

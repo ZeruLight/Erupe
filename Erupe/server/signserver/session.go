@@ -85,6 +85,13 @@ func (s *Session) handleDSGNRequest(bf *byteframe.ByteFrame) error {
 		zap.String("reqUnk", reqUnk),
 	)
 
+	newCharaReq := false
+
+	if reqUsername[len(reqUsername) - 1] == 43 { // '+'
+		reqUsername = reqUsername[:len(reqUsername) - 1]
+		newCharaReq = true
+	}
+
 	// TODO(Andoryuuta): remove plaintext password storage if this ever becomes more than a toy project.
 	var (
 		id       int
@@ -123,6 +130,14 @@ func (s *Session) handleDSGNRequest(bf *byteframe.ByteFrame) error {
 	default:
 		if bcrypt.CompareHashAndPassword([]byte(password), []byte(reqPassword)) == nil {
 			s.logger.Info("Passwords match!")
+			if newCharaReq {
+				err = s.server.newUserChara(reqUsername)
+				if err != nil {
+					s.logger.Info("Error on adding new character to account", zap.Error(err))
+					serverRespBytes = makeSignInFailureResp(SIGN_EABORT)
+					break
+				}
+			}
 			serverRespBytes = s.makeSignInResp(id)
 		} else {
 			s.logger.Info("Passwords don't match!")

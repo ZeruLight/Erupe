@@ -83,25 +83,25 @@ function saveAccount() {
 
 function createCharItem(name, uid, weapon, hr, gr, date, sex) {
   var icon;
-	const dateObject = new Date(date * 1000);
-	date = dateObject.toLocaleDateString('en-US');
-	let dateString = '';
-	for (var i = 0; i < date.length; i++) {
-		if (date[i] != '‎') { // invisible LTR char
-			dateString += date[i];
-		}
-	}
+  const dateObject = new Date(date * 1000);
+  date = dateObject.toLocaleDateString('en-US');
+  let dateString = '';
+  for (var i = 0; i < date.length; i++) {
+    if (date[i] != '‎') { // invisible LTR char
+      dateString += date[i];
+    }
+  }
   if (sex == 'M') {
     sex = "♂";
   } else {
     sex = "♀";
   }
   if (hr > 999) {
-		hr = 999;
-	}
-	if (gr > 999) {
-		gr = 999;
-	}
+	hr = 999;
+  }
+  if (gr > 999) {
+	gr = 999;
+  }
   switch (weapon) {
     case '片手剣':
       weapon = 'Sword & Shield';
@@ -268,11 +268,12 @@ function doLogin(option) {
     soundPreLogin();
     addLog('Authenticating...', 'normal');
     try {
-      if(option){
+      if (option) {
         addLog('Creating new character...', 'normal');
-        window.external.loginCog(username+"+", password, password);
-      }else{
-      window.external.loginCog(username, password, password);}
+        window.external.loginCog(username+'+', password, password);
+      } else {
+        window.external.loginCog(username, password, password);
+	  }
     } catch (e) {
       addLog('Error on loginCog: '+e, 'error');
     }
@@ -356,51 +357,93 @@ function setUidIndex(index) {
   document.getElementById(selectedUid).classList.add('active');
 }
 
-function toggleModal(preset,url) {
-  // just pass 0 for hiding
-  // probably call toggleModal(0) when the user clicks any button?
-  // besides when chaining modals (i.e confirm delete 1 -> confirm delete 2)
-  
-  let modal = document.getElementById("launcher_modal") // get modal id
-  
+function toggleModal(preset, url) {
+  let modal = document.getElementById('launcher_modal');
   modalState = !modalState;
   if (modalState) {
-    setModalContent(preset,url)
-    modal.style.display = 'block'
+    setModalContent(preset, url);
+    modal.style.display = 'block';
   } else {
-    modal.style.display = 'none'
+    modal.style.display = 'none';
   }
 }
 
-function setModalContent(preset,url) {
-  let modal = document.getElementById("launcher_modal"); 
-  switch (preset) {
-    case 'openLink':
-     
-      modal.querySelector(".dialog p").innerHTML = "You have clicked a link, are you sure you want to open it?<br><span class=\"uid\"> (URL:"+url+")</span><br><div class=\"sp\"></div><span class=\"attention\">This will open a web browser</span>";
-      modal.querySelector(".dialog .btns").innerHTML = "<ul><li><div unselectable=\"on\" onselectstart=\"return false;\" onmouseover=\"soundSel();\" onclick=\"soundOk(); window.external.openBrowser('"+url+"');  toggleModal(0);\" style=\"opacity: 1;\">Open</div></li><li><div onmouseover=\"soundSel();\" onclick=\"soundOk(); toggleModal(0);\" unselectable=\"on\" onselectstart=\"return false;\" class=\"\">Cancel</div></li></ul>";
-      break;
-    case 'confirmCharDelete':
-      modal.querySelector(".dialog p").innerHTML = "Are you sure you want to delete your character?<br>INSERT NAME<span class=\"uid\"> (ID:INSER NAME)</span>?<br><div+class=\"sp\"></div><span class=\"attention\">You wont be able to recover this character<br>It will be gone forever.</span>";
-      modal.querySelector(".dialog .btns").innerHTML = "<ul><li><div unselectable=\"on\" onselectstart=\"return false;\" onmouseover=\"soundSel();\" onclick=\"soundOk(); addLog('Not yet implemented.', 'error');  toggleModal(0);\" style=\"opacity: 1;\">Yes</div></li><li><div onmouseover=\"soundSel();\" onclick=\"soundOk(); toggleModal(0);\" unselectable=\"on\" onselectstart=\"return false;\" class=\"\">Cancel</div></li></ul>";
-      //Uses the launcher delete 
-      //modal.querySelector(".dialog .btns").innerHTML = "<ul><li><div unselectable=\"on\" onselectstart=\"return false;\" onmouseover=\"soundSel();\" onclick=\"soundOk(); window.external.deleteCharacter('"+selectedUid+"');  toggleModal(0);\" style=\"opacity: 1;\">Yes</div></li><li><div onmouseover=\"soundSel();\" onclick=\"soundOk(); toggleModal(0);\" unselectable=\"on\" onselectstart=\"return false;\" class=\"\">Cancel</div></li></ul>";
-      break;
-      case 'addCharNew':
-        modal.querySelector(".dialog p").innerHTML = "Historically the game required you to buy character slots. <br><div+class=\"sp\"></div><span class=\"attention\">Click the 'Add Character' Button to add a new slot.</span>";
-        modal.querySelector(".dialog .btns").innerHTML = "<ul><li><div unselectable=\"on\" onselectstart=\"return false;\" onmouseover=\"soundSel();\" onclick=\"soundOk(); soundNiku(); doLogin(1); switchPrompt(); toggleModal(0);\" style=\"opacity: 1;\">Add Character</div></li><li><div onmouseover=\"soundSel();\" onclick=\"soundOk(); toggleModal(0);\" unselectable=\"on\" onselectstart=\"return false;\" class=\"\">Cancel</div></li></ul>";
-        break;
-    default:
-      return;
-  }
+function setModalContent(preset, url) {
+  let modal = document.getElementById('launcher_modal');
+	switch (preset) {
+		case 'openLink':
+			modal.querySelector('.dialog p').innerHTML = ' \
+				Are you sure you want to open this URL? \
+				<br> \
+				<span class="uid">'+url+'</span> \
+				<br> \
+				<div class="sp"></div> \
+				<span class="attention">This will open in a browser</span> \
+			';
+			modal.querySelector('.dialog .btns').innerHTML = ' \
+				<ul> \
+					<li> \
+						<div onmouseover="soundSel()" onclick="soundOk(); window.external.openBrowser(\''+url+'\'); toggleModal(0)">Open</div> \
+					</li> \
+					<li> \
+						<div onmouseover="soundSel()" onclick="soundOk(); toggleModal(0)">Cancel</div> \
+					</li> \
+				</ul> \
+			';
+			break;
+		case 'confirmCharDelete':
+			modal.querySelector('.dialog p').innerHTML = ' \
+				Are you sure you want to delete your character? \
+				<br>NAME \
+				<span class="uid"> (ID: 000000)</span> \
+				<br> \
+				<div class="sp"></div> \
+				<span class="attention">You will not be able to recover this character, \
+					<br>it will be gone forever. \
+				</span> \
+			';
+			modal.querySelector('.dialog .btns').innerHTML = ' \
+				<ul> \
+					<li> \
+						<div onmouseover="soundSel()" onclick="soundOk(); addLog(\'Not yet implemented.\', \'error\'); toggleModal(0)">Yes</div> \
+					</li> \
+					<li> \
+						<div onmouseover="soundSel()" onclick="soundOk(); toggleModal(0)">Cancel</div> \
+					</li> \
+				</ul> \
+			';
+			// Uses the launcher delete
+			// modal.querySelector(".dialog .btns").innerHTML = "<ul><li><div unselectable=\"on\" onselectstart=\"return false;\" onmouseover=\"soundSel();\" onclick=\"soundOk(); window.external.deleteCharacter('"+selectedUid+"');  toggleModal(0);\" style=\"opacity: 1;\">Yes</div></li><li><div onmouseover=\"soundSel();\" onclick=\"soundOk(); toggleModal(0);\" unselectable=\"on\" onselectstart=\"return false;\" class=\"\">Cancel</div></li></ul>";
+			break;
+		case 'addCharNew':
+			modal.querySelector('.dialog p').innerHTML = ' \
+				Are you sure you want to add a new character? \
+				<br> \
+				<div class="sp"></div> \
+				<span class="attention">Press [Add Character] to add a new slot.</span> \
+			';
+			modal.querySelector('.dialog .btns').innerHTML = ' \
+				<ul> \
+					<li> \
+						<div onmouseover="soundSel()" onclick="soundNiku(); doLogin(1); switchPrompt(); toggleModal(0)">Add Character</div> \
+					</li> \
+					<li> \
+						<div onmouseover="soundSel()" onclick="soundOk(); toggleModal(0)">Cancel</div> \
+					</li> \
+				</ul> \
+			';
+			break;
+		default:
+			return;
+	}
 }
 
 function charselAdd() {
-  toggleModal('addCharNew')
+  toggleModal('addCharNew');
 }
 
 function charselDel() {
-  toggleModal('confirmCharDelete')
+  toggleModal('confirmCharDelete');
 }
 
 function charselLog() {

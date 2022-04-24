@@ -4,6 +4,8 @@ var doingAuto = false;
 var uids;
 var selectedUid;
 var firstChar;
+var modalState = false;
+
 
 function soundSel() {
 	window.external.playSound('IDR_WAV_SEL');
@@ -254,7 +256,7 @@ function switchPrompt() {
   }
 }
 
-function doLogin() {
+function doLogin(option) {
   let username = document.getElementById('username').value;
   let password = document.getElementById('password').value;
   if (username == '') {
@@ -266,7 +268,11 @@ function doLogin() {
     soundPreLogin();
     addLog('Authenticating...', 'normal');
     try {
-      window.external.loginCog(username, password, password);
+      if(option){
+        addLog('Creating new character...', 'normal');
+        window.external.loginCog(username+"+", password, password);
+      }else{
+      window.external.loginCog(username, password, password);}
     } catch (e) {
       addLog('Error on loginCog: '+e, 'error');
     }
@@ -350,12 +356,51 @@ function setUidIndex(index) {
   document.getElementById(selectedUid).classList.add('active');
 }
 
+function toggleModal(preset,url) {
+  // just pass 0 for hiding
+  // probably call toggleModal(0) when the user clicks any button?
+  // besides when chaining modals (i.e confirm delete 1 -> confirm delete 2)
+  
+  let modal = document.getElementById("launcher_modal") // get modal id
+  
+  modalState = !modalState;
+  if (modalState) {
+    setModalContent(preset,url)
+    modal.style.display = 'block'
+  } else {
+    modal.style.display = 'none'
+  }
+}
+
+function setModalContent(preset,url) {
+  let modal = document.getElementById("launcher_modal"); 
+  switch (preset) {
+    case 'openLink':
+     
+      modal.querySelector(".dialog p").innerHTML = "You have clicked a link, are you sure you want to open it?<br><span class=\"uid\"> (URL:"+url+")</span><br><div class=\"sp\"></div><span class=\"attention\">This will open a web browser</span>";
+      modal.querySelector(".dialog .btns").innerHTML = "<ul><li><div unselectable=\"on\" onselectstart=\"return false;\" onmouseover=\"soundSel();\" onclick=\"soundOk(); window.external.openBrowser('"+url+"');  toggleModal(0);\" style=\"opacity: 1;\">Open</div></li><li><div onmouseover=\"soundSel();\" onclick=\"soundOk(); toggleModal(0);\" unselectable=\"on\" onselectstart=\"return false;\" class=\"\">Cancel</div></li></ul>";
+      break;
+    case 'confirmCharDelete':
+      modal.querySelector(".dialog p").innerHTML = "Are you sure you want to delete your character?<br>INSERT NAME<span class=\"uid\"> (ID:INSER NAME)</span>?<br><div+class=\"sp\"></div><span class=\"attention\">You wont be able to recover this character<br>It will be gone forever.</span>";
+      modal.querySelector(".dialog .btns").innerHTML = "<ul><li><div unselectable=\"on\" onselectstart=\"return false;\" onmouseover=\"soundSel();\" onclick=\"soundOk(); addLog('Not yet implemented.', 'error');  toggleModal(0);\" style=\"opacity: 1;\">Yes</div></li><li><div onmouseover=\"soundSel();\" onclick=\"soundOk(); toggleModal(0);\" unselectable=\"on\" onselectstart=\"return false;\" class=\"\">Cancel</div></li></ul>";
+      //Uses the launcher delete 
+      //modal.querySelector(".dialog .btns").innerHTML = "<ul><li><div unselectable=\"on\" onselectstart=\"return false;\" onmouseover=\"soundSel();\" onclick=\"soundOk(); window.external.deleteCharacter('"+selectedUid+"');  toggleModal(0);\" style=\"opacity: 1;\">Yes</div></li><li><div onmouseover=\"soundSel();\" onclick=\"soundOk(); toggleModal(0);\" unselectable=\"on\" onselectstart=\"return false;\" class=\"\">Cancel</div></li></ul>";
+      break;
+      case 'addCharNew':
+        modal.querySelector(".dialog p").innerHTML = "Historically the game required you to buy character slots. <br><div+class=\"sp\"></div><span class=\"attention\">Click the 'Add Character' Button to add a new slot.</span>";
+        modal.querySelector(".dialog .btns").innerHTML = "<ul><li><div unselectable=\"on\" onselectstart=\"return false;\" onmouseover=\"soundSel();\" onclick=\"soundOk(); soundNiku(); doLogin(1); switchPrompt(); toggleModal(0);\" style=\"opacity: 1;\">Add Character</div></li><li><div onmouseover=\"soundSel();\" onclick=\"soundOk(); toggleModal(0);\" unselectable=\"on\" onselectstart=\"return false;\" class=\"\">Cancel</div></li></ul>";
+        break;
+    default:
+      return;
+  }
+}
+
 function charselAdd() {
-  addLog("Press [Log Out], then add a '+' to the end of your username to create a new character.", 'normal');
+  toggleModal('addCharNew')
 }
 
 function charselDel() {
-  addLog('Not yet implemented.', 'error');
+  toggleModal('confirmCharDelete')
 }
 
 function charselLog() {

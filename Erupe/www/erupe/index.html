@@ -1,73 +1,126 @@
 <!DOCTYPE html>
 <html>
-  <head>
-    <meta charset="utf-8">
-	<meta http-equiv="cache-control" content="max-age=604800, stale-while-revalidate=604800">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <title>Monster Hunter Frontier Z Launcher</title>
-    <link rel="stylesheet" href="css/main.css">
-  </head>
-  <body>
-    <div id="main">
-      <div class="grabbable" unselectable="on" onselectstart="window.external.beginDrag(true); return false;"></div>
-      <div id="game_starting"></div>
-      <div id="window_controls"><div class="grabbable"></div>
-        <div class="unselectable button_min" onclick="window.external.minimizeWindow()" onmouseover="soundSel()">__</div>
-        <div class="unselectable button_close" onclick="window.external.closeWindow()" onmouseover="soundSel()">✕</div>
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="cache-control" content="max-age=604800, stale-while-revalidate=604800">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <title>Monster Hunter Frontier Z Launcher</title>
+  <link rel="stylesheet" href="css/main.css">
+</head>
+
+<body>
+  <div id="main">
+    <div class="grabbable" unselectable="on" onselectstart="window.external.beginDrag(true); return false;"></div>
+    <div id="game_starting"></div>
+    <div id="window_controls">
+      <div class="grabbable"></div>
+      <div class="unselectable button_min" onclick="soundOk(); window.external.minimizeWindow()" onmouseover="soundSel()">__</div>
+      <div class="unselectable button_close" onclick="soundOk(); window.external.closeWindow()" onmouseover="soundSel()">✕</div>
+    </div>
+    <div id="header">
+      <div class="grabbable"></div>
+      <p class="background"></p>
+      <p class="title1">Monster Hunter</p>
+      <p class="title2">Frontier Z Launcher</p>
+      <p class="ver">release ver. 2.017 (Erupe)</p>
+      <img src="img/logo.png" width="303" height="114">
+    </div>
+    <div id="login">
+      <div id="processing">
+        <p>Authenticating...</p>
       </div>
-      <div id="header"><div class="grabbable"></div>
-        <p class="background"></p>
-        <p class="title1">Monster Hunter</p>
-        <p class="title2">Frontier Z Launcher</p>
-        <p class="ver">release ver. 2.017 (Erupe)</p>
-        <img src="img/logo.png" width="303" height="114">
-      </div>
-      <div id="login">
-        <div id="processing"><p>Authenticating...</p></div>
-        <div class="login_form">
-          <form id="login_form" onsubmit="event.preventDefault();doLogin()">
-            <label for="username" class="unselectable label_username">Erupe ID</label>
-            <input type="text" id="username" placeholder="Username" onkeyup="soundSel()" onmouseover="soundSel()">
-            <label for="password" class="unselectable label_password">Password</label>
-            <input type="password" id="password" placeholder="Password" onkeyup="soundSel()" onmouseover="soundSel()">
-            <label for="server" class="label_server">Server</label>
-            <input type="text" id="server" value="Erupe" readonly>
-            <input type="submit">
-          </form>
-        </div>
-        <div class="unselectable login_button" onmouseenter="soundSel()" onclick="doLogin()"><span class="unselectable">Log In</span></div>
-        <div class="unselectable login_save"><input type="checkbox" id="login_save"><span id="login_save_text"> Remember Login</span></div>
-      </div>
-      <div id="char_select">
-        <div id="units"></div>
-        <div class="weapon_text">Current Weapon</div>
-        <div class="scroll up" onmouseover="soundSel()" onclick="soundOk();charselScrollUp()"></div>
-        <div class="scroll down" onmouseover="soundSel()" onclick="soundOk();charselScrollDown()"></div>
-        <div class="auto_login" onclick="autoWarning()"><input type="checkbox" id="auto_box"><span id="auto_text"> Auto-Login</span></div>
-        <div class="button_add" onmouseenter="soundSel()" onclick="soundOk();charselAdd()"><span class="unselectable">Add Character</span></div>
-        <div class="button_del" onmouseenter="soundSel()" onclick="soundOk();charselDel()"><span class="unselectable">Delete Character</span></div>
-        <div class="button_log" onmouseenter="soundSel()" onclick="soundOk();charselLog()"><span class="unselectable">Log Out</span></div>
-        <div class="button_start" onmouseenter="soundSel()" onclick="soundLogin();launch()"><span class="unselectable">Launch</span></div>
-      </div>
-      <div class="unselectable" id="log_outer">
-        <div class="log_inner">
-          <p id="log_p"></p>
-        </div>
-      </div>
-      <div class="unselectable" id="button_config" onclick="soundOk();window.external.openMhlConfig()" onmouseover="soundSel()"></div>
-      <div id="footer">
-        <!--
-			Example button
-			<div class="link" onclick="window.external.openBrowser('https://github.com/sekaiwish/Erupe')"><img src="img/icons/github.png"></div>
-		-->
-      </div>
-      <div class="unselectable" id="dev">
-        <form action="javascript:void(0);">
-          <input type="text" id="console">
-          <input type="submit" value="eval()" onclick="doEval()">
+      <div class="login_form">
+        <form id="login_form" onsubmit="event.preventDefault();doLogin()">
+          <label for="username" class="unselectable label_username">Erupe ID</label>
+          <input type="text" id="username" placeholder="Username" onkeypress="soundSel()" onmouseover="soundSel()" onclick="soundOk()">
+          <label for="password" class="unselectable label_password">Password</label>
+          <input type="password" id="password" placeholder="Password" onkeypress="soundSel()" onmouseover="soundSel()" onclick="soundOk()">
+          <label for="server" class="unselectable label_server">Server</label>
+          <input class="unselectable" type="text" id="server" value="Erupe" readonly>
+          <input type="submit">
         </form>
       </div>
+      <div class="unselectable login_button" onmouseenter="soundSel()" onclick="doLogin()"><span class="unselectable">Log In</span></div>
+      <div class="unselectable login_save">
+		<input class="unselectable" type="checkbox" id="login_save"><span id="login_save_text"> Remember Login</span>
+	  </div>
     </div>
-    <script src="js/script.js"></script>
-  </body>
+    <div id="char_select">
+      <div id="units"></div>
+      <div class="weapon_text">Current Weapon</div>
+      <div class="scroll up" onmouseover="soundSel()" onclick="soundOk();charselScrollUp()"></div>
+      <div class="scroll down" onmouseover="soundSel()" onclick="soundOk();charselScrollDown()"></div>
+      <div class="auto_login" onclick="autoWarning()">
+		<input type="checkbox" id="auto_box"><span id="auto_text"> Auto-Login</span>
+	  </div>
+      <div class="button_add" onmouseenter="soundSel()" onclick="soundOk();charselAdd()"><span class="unselectable">Add Character</span></div>
+      <div class="button_del" onmouseenter="soundSel()" onclick="soundOk();charselDel()"><span class="unselectable">Delete Character</span></div>
+      <div class="button_log" onmouseenter="soundSel()" onclick="soundOk();charselLog()"><span class="unselectable">Log Out</span></div>
+      <div class="button_start" onmouseenter="soundSel()" onclick="soundLogin();launch()"><span class="unselectable">Launch</span></div>
+    </div>
+    <div class="unselectable" id="log_outer">
+      <div class="log_inner">
+        <p id="log_p"></p>
+      </div>
+    </div>
+    <div class="unselectable" id="button_config" onclick="soundOk();window.external.openMhlConfig()" onmouseover="soundSel()"></div>
+    <div id="launcher_info_list" class="unselectable">
+      <div class="important_info">
+        <div class="head">
+          <p class="lbl">Important Updates</p>
+        </div>
+        <ul class="article">
+          <li>
+            <div class="date">2022-04-24</div>
+            <div class="body">
+				<a
+					href="javascript:toggleModal('openLink',&quot;https://discord.com/channels/368424389416583169/929509970624532511/964339905364918272&quot;);"
+					onclick="soundOk()">Launcher Patch v1.0 Released!
+				</a>
+			</div>
+          </li>
+        </ul>
+      </div>
+      <div class="normal_info">
+        <div class="head">
+          <div class="info lbl">Normal Updates</div>
+        </div>
+        <ul class="article">
+          <li>
+            <div class="date">2022-04-24</div>
+            <div class="body">
+				<a
+					href="javascript:toggleModal('openLink',&quot;https://discord.gg/CFnzbhQ&quot;);"
+					onclick="soundOk()">Join the community discord for updates!
+				</a>
+			</div>
+          </li>
+        </ul>
+      </div>
+    </div>
+    <div id="launcher_menu" class="unselectable">
+      <div class="manual btn" onmouseenter="soundSel()" onclick="soundOk(); toggleModal('openLink', 'https://mhfz.capcom.com.tw/manuals/')"></div>
+      <div class="pastebin btn" onmouseenter="soundSel()" onclick="soundOk(); toggleModal('openLink', 'https://pastebin.com/QqAwZSTC')"></div>
+    </div>
+    <div id="footer">
+      <div class="link unselectable" onclick="toggleModal('openLink', 'https://github.com/xl3lackout/Erupe')"><img src="img/icons/github.png"></div>
+      <div class="link unselectable" onclick="toggleModal('openLink', 'https://discord.gg/CFnzbhQ')"><img src="img/icons/discord.png"></div>
+    </div>
+    <div class="grabbable" id="launcher_modal">
+      <div class="modal"></div>
+      <div class="dialog">
+        <p></p>
+        <div class="btn_box"><div class="btns unselectable"></div></div>
+      </div>
+    </div>
+    <div class="unselectable" id="dev">
+      <form action="javascript:void(0);">
+        <input type="text" id="console">
+        <input type="submit" value="eval()" onclick="doEval()">
+      </form>
+    </div>
+  </div>
+  <script src="js/script.js"></script>
+</body>
 </html>

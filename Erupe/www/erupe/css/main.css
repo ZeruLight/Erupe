@@ -109,24 +109,13 @@ body{background:#092314; font-family:sans-serif; color:#d1c0a5; font-size:14px; 
 #dev input{width:100%; height:20px; font-size: 16px;}
 
 #footer{width:100%; height:39px; position:absolute; left:0; bottom:0; background-color:rgba(0,0,0,0.6); overflow:hidden;}
-#footer .link{padding:4px; display:block; position:absolute; z-index:1000; cursor:pointer;}
+#footer .link{padding:4px; display:block; z-index:1000; cursor:pointer;float:left;}
 
-/* UNUSED
-#launcher_bnr{width:533px; height:129px; position:absolute; right:38px; top:30px;}
-#launcher_bnr .bnr{width:523px; height:129px; position:absolute; left:0; top:0; background:no-repeat 0px 0px; overflow:hidden;}
-#launcher_bnr .bnr img{margin-left:1px;}
-#launcher_bnr .bnr .frame{width:523px; height:129px; position:absolute; left:0; top:0; background:no-repeat 0px 0px; cursor:pointer;}
-#launcher_bnr .dots{width:10px; position:absolute; right:0; top:0; max-height:129px;}
-#launcher_bnr .dots ul{position:relative; width:10px; padding-top:6px;}
-#launcher_bnr .dots li{display:block; width:10px; height:10px; padding:6px 0; position:relative;}
-#launcher_bnr .dots li .dot{width:10px; height:10px; background:no-repeat 0px 0px; cursor:pointer;}
-#launcher_bnr .dots li .dot.crr,
-#launcher_bnr .dots li .dot:hover{background-position:0px -10px;}
-#launcher_bnr .dots li .dot img{display:none;}
-#launcher_info_list{width:535px; height:288px; position:absolute; right:38px; top:163px; overflow:hidden; overflow-y:auto;}
+
+#launcher_info_list{width:535px; height:240px; position:absolute; right:38px; padding:5px; top:135px; overflow:hidden; overflow-y:auto; background-color:rgba(0,0,0,0.5); border-radius:3px 3px 3px 3px; border: 1px solid #a6a08a;}
 #launcher_info_list .important_info, #launcher_info_list .normal_info{margin-bottom:5px;}
 #launcher_info_list .head{width:513px; height:23px; position:relative;}
-#launcher_info_list .head .lbl{position:absolute; left:0; top:0; width:513px; height:23px; background:no-repeat 0px 0px;}
+#launcher_info_list .head .lbl{position:absolute; left:0; top:0; width:513px; height:23px;}
 #launcher_info_list .head a{position:absolute; right:10px; top:6px; display:block; width:35px; height:13px; background:no-repeat 0px 0px;}
 #launcher_info_list .head a:hover{background-position:0px -13px;}
 #launcher_info_list ul.article{margin-left:18px; width:517px; position:relative;}
@@ -140,6 +129,44 @@ body{background:#092314; font-family:sans-serif; color:#d1c0a5; font-size:14px; 
 #launcher_info_list .important_info ul.article li .body a:hover{color:#F8DD81;}
 #launcher_info_list ul.article li .icon{width:30px; height:14px; background:no-repeat center center;}
 #launcher_info_list a{cursor:pointer;}
+
+#launcher_modal{width:100%; height:100%; position:fixed; left:0; top:0;z-index:1000; display:none; }
+#launcher_modal .modal{width:100%; height:100%; position:absolute; left:0; top:0;}
+#launcher_modal .dialog{position:absolute; left:282px; top:140px; width:560px; height:320px; background:url(../img/modelbg.jpeg) round;}
+#launcher_modal .dialog p{color:#d1c0a5; font-size:18px; line-height:36px; width:100%; position:relative; text-align:center; padding-top:60px;}
+#launcher_modal .dialog p.alert{line-height:26px; padding-top:90px; font-size:20px;}
+#launcher_modal .dialog p span.uid{font-size:12px;}
+#launcher_modal .dialog p span.attention{color:#f4de22;}
+#launcher_modal .dialog p span.notes{color:#eb3535; font-size:16px; line-height:20px;}
+#launcher_modal .dialog p div.sp{width:100%; height:10px;}
+#launcher_modal .dialog .btnBox{width:100%; height:44px; position:absolute; left:0; top:252px;}
+#launcher_modal .dialog .btns{text-align:center; margin:0 auto; position:relative; overflow:hidden}
+#launcher_modal .dialog .btns ul{position:relative; left:50%; float:left; list-style:none}
+#launcher_modal .dialog .btns ul li{position:relative; left:-50%; float:left; margin-left:33px;}
+#launcher_modal .dialog .btns ul li:first-child{margin-left:5px;}
+#launcher_modal .dialog .btns ul li div{display:block; width:130px; height:35px; padding-top:9px; position:relative; background:url(../img/button_option.png) no-repeat 0px 0px; text-decoration:none; color:#d1c0a5; font-weight:bold; font-size:18px; line-height:18px; text-align:center; cursor:pointer;}
+#launcher_modal .dialog .btns ul li div:hover,#launcher_modal .dialog .btns ul li div.hover{background:url(../img/button_option_hover.png) no-repeat 0px 0px;}
+#launcher_modal .dialog .btns ul li div.wait:hover,#launcher_modal .dialog .btns ul li div.wait.hover{background-position:0px 0px; cursor:default;}
+
+#launcher_menu{height:86px; position:absolute; left:535px; top:416px; overflow:hidden;}
+#launcher_menu .btn{width:82px; height:86px; background:no-repeat 0px 0px; float:left; margin:0 2px; cursor:pointer;}
+#launcher_menu .btn:hover{background-position:0px -86px;}
+#launcher_menu .btn.hangameb,#launcher_menu .btn.hancoin{display:none;}
+#launcher_menu .btn.manual{background:url(../img/manual.png);}
+#launcher_menu .btn.pastebin{background:url(../img/pastebin.png);}
+/* UNUSED
+#launcher_bnr{width:533px; height:129px; position:absolute; right:38px; top:30px;}
+#launcher_bnr .bnr{width:523px; height:129px; position:absolute; left:0; top:0; background:no-repeat 0px 0px; overflow:hidden;}
+#launcher_bnr .bnr img{margin-left:1px;}
+#launcher_bnr .bnr .frame{width:523px; height:129px; position:absolute; left:0; top:0; background:no-repeat 0px 0px; cursor:pointer;}
+#launcher_bnr .dots{width:10px; position:absolute; right:0; top:0; max-height:129px;}
+#launcher_bnr .dots ul{position:relative; width:10px; padding-top:6px;}
+#launcher_bnr .dots li{display:block; width:10px; height:10px; padding:6px 0; position:relative;}
+#launcher_bnr .dots li .dot{width:10px; height:10px; background:no-repeat 0px 0px; cursor:pointer;}
+#launcher_bnr .dots li .dot.crr,
+#launcher_bnr .dots li .dot:hover{background-position:0px -10px;}
+#launcher_bnr .dots li .dot img{display:none;}
+
 #launcher_info_detail{width:532px; height:423px; position:absolute; right:38px; top:30px; background:no-repeat 0px 0px;}
 #launcher_info_detail .article_frame{width:532px; height:423px; position:absolute; left:0; top:0; overflow:hidden; overflow-y:auto;}
 #launcher_info_detail .article_frame .article{width:498px; min-height:394px; position:relative; margin:10px 0 10px 13px; padding-top:9px; background-color:#fef5e6; font-family:"ＭＳ Ｐゴシック", "MS PGothic", sans-serif; font-size:14px; line-height:18px; color:#333333;}
@@ -149,11 +176,6 @@ body{background:#092314; font-family:sans-serif; color:#d1c0a5; font-size:14px; 
 #launcher_info_detail .btn_back{cursor:pointer; width:160px; height:18px; position:absolute; left:184px; bottom:6px; background:no-repeat 0px 0px;}
 #launcher_info_detail .btn_back:hover{background-position:0px -18px;}
 #launcher_info_detail a{cursor:pointer;}
-
-#launcher_menu{height:86px; position:absolute; right:14px; top:467px; overflow:hidden;}
-#launcher_menu .btn{width:82px; height:86px; background:no-repeat 0px 0px; float:right; margin:0 2px; cursor:pointer;}
-#launcher_menu .btn:hover{background-position:0px -86px;}
-#launcher_menu .btn.hangameb,#launcher_menu .btn.hancoin{display:none;}
 
 #launcher_footer{width:100%; height:39px; position:absolute; left:0; bottom:0; overflow:hidden;}
 #launcher_footer .btn{display:block; position:absolute; z-index:1000; cursor:pointer;}
@@ -167,24 +189,6 @@ body{background:#092314; font-family:sans-serif; color:#d1c0a5; font-size:14px; 
 #launcher_footer .share .btn.tw{width:28px; height:27px; background-position:0px 0px;}
 #launcher_footer .share .btn.fb{width:28px; height:27px; background-position:-28px 0px;}
 #launcher_footer .share .btn.yt{width:50px; height:21px; margin-top:3px; background-position:-56px -3px;}
-
-#launcher_modal{width:100%; height:100%; position:fixed; left:0; top:0; display:none; z-index:1000;}
-#launcher_modal .modal{width:100%; height:100%; position:absolute; left:0; top:0;}
-#launcher_modal .dialog{position:absolute; left:282px; top:140px; width:560px; height:320px; background:url(images/dialog/bg.jpg) no-repeat 0px 0px;}
-#launcher_modal .dialog p{color:#d1c0a5; font-size:18px; line-height:36px; width:100%; position:relative; text-align:center; padding-top:105px;}
-#launcher_modal .dialog p.alert{line-height:26px; padding-top:90px; font-size:20px;}
-#launcher_modal .dialog p span.uid{font-size:12px;}
-#launcher_modal .dialog p span.attention{color:#f4de22;}
-#launcher_modal .dialog p span.notes{color:#eb3535; font-size:16px; line-height:20px;}
-#launcher_modal .dialog p div.sp{width:100%; height:10px;}
-#launcher_modal .dialog .btnBox{width:100%; height:44px; position:absolute; left:0; top:252px;}
-#launcher_modal .dialog .btns{text-align:center; margin:0 auto; position:relative; overflow:hidden}
-#launcher_modal .dialog .btns ul{position:relative; left:50%; float:left; list-style:none}
-#launcher_modal .dialog .btns ul li{position:relative; left:-50%; float:left; margin-left:33px;}
-#launcher_modal .dialog .btns ul li:first-child{margin-left:5px;}
-#launcher_modal .dialog .btns ul li div{display:block; width:200px; height:35px; padding-top:9px; position:relative; background:no-repeat 0px 0px; text-decoration:none; color:#d1c0a5; font-weight:bold; font-size:18px; line-height:18px; text-align:center; cursor:pointer;}
-#launcher_modal .dialog .btns ul li div:hover,#launcher_modal .dialog .btns ul li div.hover{background-position:0px -44px;}
-#launcher_modal .dialog .btns ul li div.wait:hover,#launcher_modal .dialog .btns ul li div.wait.hover{background-position:0px 0px; cursor:default;}
 
 .scroll_bar_box{width:10px; position:absolute;}
 .scroll_bar_box_base{width:10px; height:100%; position:absolute; right:0; top:0; border-radius:5px; background:#000; opacity:0.4; -moz-opacity:0.4; filter: alpha(opacity=40); -ms-filter:"alpha(opacity=40)";}

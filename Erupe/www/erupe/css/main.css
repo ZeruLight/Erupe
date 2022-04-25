@@ -35,9 +35,9 @@ body{background:#092314; font-family:sans-serif; color:#d1c0a5; font-size:14px; 
 #log_outer .log_inner span.red{color:#bd2130;}
 
 #login{width:300px; height:265px; position:absolute; left:129px; top:140px;}
-#login .login_button{position:absolute; left:-3px; top:167px; width:300px; height:64px; background-image:url(../img/button_launch.png); cursor:pointer;}
-#login .login_button:hover,#login .login_button.hover{background-image:url(../img/button_launch_hover.png);}
-#login .login_button span{position:absolute; font-size:24px; font-weight:bold; left:113px; top:23px; color:white; cursor:pointer;}
+#login .login_button{position:absolute; left:-3px; top:167px; width:300px; height:64px; background-image:url(../img/button_launch.png); cursor:pointer; display:flex; justify-content:center; align-items:center;}
+#login .login_button:hover{background-image:url(../img/button_launch_hover.png);}
+#login .login_button span{font-size:24px; font-weight:bold; left:113px; top:23px; color:white; cursor:pointer;}
 
 #login .login_save{width:135px; height:12px; position:absolute; left:81px; top:236px; cursor:pointer; color:white;}
 
@@ -56,7 +56,7 @@ body{background:#092314; font-family:sans-serif; color:#d1c0a5; font-size:14px; 
 #login #processing{display:none; position:absolute; left:-7px; top:-3px; width:307px; height:271px; background-color:rgba(0,0,0,0.8); background-image:url(../img/load.gif); background-position:center; background-size:50px 50px; background-repeat:no-repeat; border-radius:2px 2px 2px 2px; z-index:1;}
 #login #processing p{color:#fff; text-align:center; width:100%; position:absolute; left:0; top:160px; z-index:2;}
 
-#char_select{width:520px; height:378px; position:absolute; left:35px; top:115px; color:#313131; display:none;}
+#char_select{width:490px; height:290px; position:absolute; left:35px; top:115px; color:#313131; display:none;}
 #char_select #units{width:398px; height:100px; position:absolute; left:45px; top:50px; background-image:url(../img/button_charsel_char.jpg);}
 
 #char_select #units .unit{display:none; width:398px; height:100px; position:absolute; left:0; cursor:default;}
@@ -70,20 +70,20 @@ body{background:#092314; font-family:sans-serif; color:#d1c0a5; font-size:14px; 
 #char_select #units .unit *{color:white; font-size:16px; position:absolute;}
 #char_select #units .unit img{top:42px; left:18px;}
 #char_select #units .unit #char_name{top:15px; font-size:30px; width:100%; text-align:center;}
-#char_select #units .unit #char_weapon{top:70px; left:80px; font-weight:bold;}
+#char_select #units .unit #char_weapon{top:70px; left:72px; font-weight:bold; width:120px; text-align:center;}
 #char_select #units .unit #char_hr{top:43px; left:210px;}
-#char_select #units .unit #char_gr{top:43px; left:260px;}
-#char_select #units .unit #char_sex{top:43px; left:310px;}
+#char_select #units .unit #char_gr{top:43px; left:280px;}
+#char_select #units .unit #char_sex{top:43px; left:350px;}
 #char_select #units .unit #char_uid{top:58px; left:210px;}
 #char_select #units .unit #char_login{top:73px; left:210px;}
 
-#char_select .weapon_text{position:absolute; font-weight:bold; top:98px; left:117px; color:white;}
+#char_select .weapon_text{position:absolute; font-weight:bold; width:120px; top:98px; left:117px; color:white; text-align:center;}
 
 #char_select .auto_login{position:absolute; top:155px; left:50px; color:white; cursor:pointer;}
 
 #char_select .button_add,
 #char_select .button_del,
-#char_select .button_log{width:130px; height:33px; position:absolute; top:195px; background-image:url(../img/button_option.png); cursor:pointer; z-index:1000;}
+#char_select .button_log{width:130px; height:33px; position:absolute; top:195px; background-image:url(../img/button_option.png); cursor:pointer; z-index:1000; display:flex; justify-content:center; align-items:center;}
 
 #char_select .button_add{left:40px;}
 #char_select .button_del{left:179px;}
@@ -91,19 +91,15 @@ body{background:#092314; font-family:sans-serif; color:#d1c0a5; font-size:14px; 
 
 #char_select .button_add span,
 #char_select .button_del span,
-#char_select .button_log span{position:absolute; font-size: 14px; color:white; cursor:pointer; top:8px;}
-
-#char_select .button_add span{left:18px}
-#char_select .button_del span{left:12px}
-#char_select .button_log span{left:39px}
+#char_select .button_log span{font-size: 14px; color:white; cursor:pointer;}
 
 #char_select .button_add:hover,
 #char_select .button_del:hover,
 #char_select .button_log:hover{background-image:url(../img/button_option_hover.png);}
 
-#char_select .button_start{width:300px; height:64px; position:absolute; left:90px; top:229px; background-image:url(../img/button_launch.png); cursor:pointer; z-index:1000;}
+#char_select .button_start{width:300px; height:64px; position:absolute; left:90px; top:229px; background-image:url(../img/button_launch.png); cursor:pointer; z-index:1000; display:flex; justify-content:center; align-items:center;}
 #char_select .button_start:hover{background-image:url(../img/button_launch_hover.png);}
-#char_select .button_start span{position:absolute; font-size:24px; font-weight:bold; left:110px; top:23px; color:white; cursor:pointer;}
+#char_select .button_start span{font-size:24px; font-weight:bold; color:white; cursor:pointer;}
 
 #dev{display:none; width:100%; z-index: 10000; position:absolute; bottom:0px;}
 #dev input{width:100%; height:20px; font-size: 16px;}

@@ -386,7 +386,6 @@ func handleMsgMhfEnumerateUnionItem(s *Session, p mhfpacket.MHFPacket) {
 		}
 	}
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
-	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 
 }
 

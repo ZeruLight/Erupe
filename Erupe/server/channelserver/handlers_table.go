@@ -429,8 +429,8 @@ func init() {
 	handlerTable[network.MSG_SYS_reserve19F] = handleMsgSysReserve19F
 	handlerTable[network.MSG_MHF_UPDATE_FORCE_GUILD_RANK] = handleMsgMhfUpdateForceGuildRank
 	handlerTable[network.MSG_MHF_RESET_TITLE] = handleMsgMhfResetTitle
-	handlerTable[network.MSG_SYS_reserve202] = handleMsgSysReserve202
-	handlerTable[network.MSG_SYS_reserve203] = handleMsgSysReserve203
+	handlerTable[network.MSG_MHF_ENUMERATE_GUILD_MESSAGE_BOARD] = handleMsgMhfEnumerateGuildMessageBoard
+	handlerTable[network.MSG_MHF_UPDATE_GUILD_MESSAGE_BOARD] = handleMsgMhfUpdateGuildMessageBoard
 	handlerTable[network.MSG_SYS_reserve204] = handleMsgSysReserve204
 	handlerTable[network.MSG_SYS_reserve205] = handleMsgSysReserve205
 	handlerTable[network.MSG_SYS_reserve206] = handleMsgSysReserve206

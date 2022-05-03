@@ -3,6 +3,7 @@ package channelserver
 import (
 	"bytes"
 	"encoding/hex"
+	"encoding/binary"
 	"io/ioutil"
 	"math/bits"
 	"math/rand"
@@ -74,16 +75,7 @@ func doAckSimpleFail(s *Session, ackHandle uint32, data []byte) {
 func updateRights(s *Session) {
 	update := &mhfpacket.MsgSysUpdateRight{
 		ClientRespAckHandle: 0,
-		Unk1:                0x0E, //0e with normal sub 4e when having premium it's probably a bitfield?
-		// 01 = Character can take quests at allows
-		// 02 = Hunter Life, normal quests core sub
-		// 03 = Extra Course, extra quests, town boxes, QOL course, core sub
-		// 06 = Premium Course, standard 'premium' which makes ranking etc. faster
-		// some connection to unk1 above for these maybe?
-		// 06 0A 0B = Boost Course, just actually 3 subs combined
-		// 08 09 1E = N Course, gives you the benefits of being in a netcafe (extra quests, N Points, daily freebies etc.) minimal and pointless
-		// no timestamp after 08 or 1E while active
-		// 0C = N Boost course, ultra luxury course that ruins the game if in use but also gives a
+		Unk1:                s.rights,
 		Rights: []mhfpacket.ClientRight{
 			{
 				ID:        1,
@@ -143,10 +135,25 @@ func handleMsgSysLogin(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysLogin)
 	name := ""
 
+	rights := uint32(0x0E)
+	// 0e with normal sub 4e when having premium
+	// 01 = Character can take quests at allows
+	// 02 = Hunter Life, normal quests core sub
+	// 03 = Extra Course, extra quests, town boxes, QOL course, core sub
+	// 06 = Premium Course, standard 'premium' which makes ranking etc. faster
+	// 06 0A 0B = Boost Course, just actually 3 subs combined
+	// 08 09 1E = N Course, gives you the benefits of being in a netcafe (extra quests, N Points, daily freebies etc.) minimal and pointless
+	// 0C = N Boost course, ultra luxury course that ruins the game if in use
+	err := s.server.db.QueryRow("SELECT rights FROM users u INNER JOIN characters c ON u.id = c.user_id WHERE c.id = $1", pkt.CharID0).Scan(&rights)
+	if err != nil {
+		panic(err)
+	}
+
 	s.server.db.QueryRow("SELECT name FROM characters WHERE id = $1", pkt.CharID0).Scan(&name)
 	s.Lock()
 	s.Name = name
 	s.charID = pkt.CharID0
+	s.rights = rights
 	s.Unlock()
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint32(uint32(Time_Current_Adjusted().Unix())) // Unix timestamp
@@ -158,11 +165,11 @@ func handleMsgSysLogin(s *Session, p mhfpacket.MHFPacket) {
 		}
 	}
 
-	_, err := s.server.db.Exec("UPDATE characters SET last_login=$1 WHERE id=$2", Time_Current().Unix(), s.charID)
+	_, err = s.server.db.Exec("UPDATE characters SET last_login=$1 WHERE id=$2", Time_Current().Unix(), s.charID)
 	if err != nil {
 		panic(err)
 	}
-	
+
 	doAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
 }
 
@@ -191,6 +198,46 @@ func logoutPlayer(s *Session) {
 	}
 
 	removeSessionFromStage(s)
+
+	if _, exists := s.server.semaphore["hs_l0u3B51J9k3"]; exists {
+		if _, ok := s.server.semaphore["hs_l0u3B51J9k3"].reservedClientSlots[s.charID]; ok {
+		removeSessionFromSemaphore(s)
+		}
+	}
+
+	var timePlayed int
+	err := s.server.db.QueryRow("SELECT time_played FROM characters WHERE id = $1", s.charID).Scan(&timePlayed)
+
+	timePlayed = (int(Time_Current_Adjusted().Unix()) - int(s.sessionStart)) + timePlayed
+
+	var rpGained int
+
+	if s.rights == 0x08091e4e || s.rights == 0x08091e0e { // N Course
+		rpGained = timePlayed / 900
+		timePlayed = timePlayed % 900
+	} else {
+		rpGained = timePlayed / 1800
+		timePlayed = timePlayed % 1800
+	}
+
+	_, err = s.server.db.Exec("UPDATE characters SET time_played = $1 WHERE id = $2", timePlayed, s.charID)
+	if err != nil {
+		panic(err)
+	}
+
+	saveData, err := GetCharacterSaveData(s, s.charID)
+	if err != nil {
+		panic(err)
+	}
+	saveData.RP += uint16(rpGained)
+	transaction, err := s.server.db.Begin()
+	err = saveData.Save(s, transaction)
+	if err != nil {
+		transaction.Rollback()
+		panic(err)
+	} else {
+		transaction.Commit()
+	}
 }
 
 func handleMsgSysSetStatus(s *Session, p mhfpacket.MHFPacket) {}
@@ -208,6 +255,8 @@ func handleMsgSysTime(s *Session, p mhfpacket.MHFPacket) {
 		Timestamp:     uint32(Time_Current_Adjusted().Unix()), // JP timezone
 	}
 	s.QueueSendMHF(resp)
+
+	s.notifyticker()
 }
 
 func handleMsgSysIssueLogkey(s *Session, p mhfpacket.MHFPacket) {
@@ -356,15 +405,92 @@ func handleMsgMhfAcquireTitle(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfEnumerateTitle(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfEnumerateUnionItem(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfEnumerateUnionItem(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfEnumerateUnionItem)
+	var boxContents []byte
+	bf := byteframe.NewByteFrame()
+	err := s.server.db.QueryRow("SELECT item_box FROM users, characters WHERE characters.id = $1 AND users.id = characters.user_id", int(s.charID)).Scan(&boxContents)
+	if err != nil {
+		s.logger.Fatal("Failed to get shared item box contents from db", zap.Error(err))
+	} else {
+		if len(boxContents) == 0 {
+			bf.WriteUint32(0x00)
+		} else {
+			amount := len(boxContents) / 4
+			bf.WriteUint16(uint16(amount))
+			bf.WriteUint32(0x00)
+			bf.WriteUint16(0x00)
+			for i := 0; i < amount; i++ {
+				bf.WriteUint32(binary.BigEndian.Uint32(boxContents[i*4 : i*4+4]))
+				if i+1 != amount {
+					bf.WriteUint64(0x00)
+				}
+			}
+		}
+	}
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+}
 
-func handleMsgMhfUpdateUnionItem(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfUpdateUnionItem(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfUpdateUnionItem)
+	// Get item cache from DB
+	var boxContents []byte
+	var oldItems []Item
 
-func handleMsgMhfCreateJoint(s *Session, p mhfpacket.MHFPacket) {}
+	err := s.server.db.QueryRow("SELECT item_box FROM users, characters WHERE characters.id = $1 AND users.id = characters.user_id", int(s.charID)).Scan(&boxContents)
+	if err != nil {
+		s.logger.Fatal("Failed to get shared item box contents from db", zap.Error(err))
+	} else {
+		amount := len(boxContents) / 4
+		oldItems = make([]Item, amount)
+		for i := 0; i < amount; i++ {
+			oldItems[i].ItemId = binary.BigEndian.Uint16(boxContents[i*4 : i*4+2])
+			oldItems[i].Amount = binary.BigEndian.Uint16(boxContents[i*4+2 : i*4+4])
+		}
+	}
 
-func handleMsgMhfOperateJoint(s *Session, p mhfpacket.MHFPacket) {}
+	// Update item stacks
+	newItems := make([]Item, len(oldItems))
+	copy(newItems, oldItems)
+	for i := 0; i < int(pkt.Amount); i++ {
+		for j := 0; j <= len(oldItems); j++ {
+			if j == len(oldItems) {
+				var newItem Item
+				newItem.ItemId = pkt.Items[i].ItemId
+				newItem.Amount = pkt.Items[i].Amount
+				newItems = append(newItems, newItem)
+				break
+			}
+			if pkt.Items[i].ItemId == oldItems[j].ItemId {
+				newItems[j].Amount = pkt.Items[i].Amount
+				break
+			}
+		}
+	}
 
-func handleMsgMhfInfoJoint(s *Session, p mhfpacket.MHFPacket) {}
+	// Delete empty item stacks
+	for i := len(newItems) - 1; i >= 0; i-- {
+		if int(newItems[i].Amount) == 0 {
+			copy(newItems[i:], newItems[i+1:])
+			newItems[len(newItems)-1] = make([]Item, 1)[0]
+			newItems = newItems[:len(newItems)-1]
+		}
+	}
+
+	// Create new item cache
+	bf := byteframe.NewByteFrame()
+	for i := 0; i < len(newItems); i++ {
+		bf.WriteUint16(newItems[i].ItemId)
+		bf.WriteUint16(newItems[i].Amount)
+	}
+
+	// Upload new item cache
+	_, err = s.server.db.Exec("UPDATE users SET item_box = $1 FROM characters WHERE  users.id = characters.user_id AND characters.id = $2", bf.Data(), int(s.charID))
+	if err != nil {
+		s.logger.Fatal("Failed to update shared item box contents in db", zap.Error(err))
+	}
+	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+}
 
 func handleMsgMhfAcquireCafeItem(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfAcquireCafeItem)

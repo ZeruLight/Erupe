@@ -48,7 +48,12 @@ func handleMsgMhfGetUdTacticsFirstQuestBonus(s *Session, p mhfpacket.MHFPacket) 
 
 func handleMsgMhfGetUdTacticsRemainingPoint(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfGetUdTacticsRanking(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfGetUdTacticsRanking(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfGetUdTacticsRanking)
+	// Temporary canned response
+	data, _ := hex.DecodeString("00000515000005150000CEB4000003CE000003CE0000CEB44D49444E494748542D414E47454C0000000000000000000000")
+	doAckBufSucceed(s, pkt.AckHandle, data)
+}
 
 func handleMsgMhfSetUdTacticsFollower(s *Session, p mhfpacket.MHFPacket) {}
 

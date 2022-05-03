@@ -32,6 +32,8 @@ type Session struct {
 	reservationStage *Stage // Required for the stateful MsgSysUnreserveStage packet.
 	charID           uint32
 	logKey           []byte
+	sessionStart     int64
+	rights           uint32
 
 	semaphore *Semaphore // Required for the stateful MsgSysUnreserveStage packet.
 
@@ -62,6 +64,7 @@ func NewSession(server *Server, conn net.Conn) *Session {
 				Encoding: japanese.ShiftJIS,
 			},
 		},
+		sessionStart: Time_Current_Adjusted().Unix(),
 		stageMoveStack: stringstack.New(),
 	}
 	return s
@@ -177,6 +180,7 @@ func (s *Session) handlePacketGroup(pktGroup []byte) {
 			opcode != network.MSG_SYS_PING &&
 			opcode != network.MSG_SYS_NOP &&
 			opcode != network.MSG_SYS_TIME &&
+			opcode != network.MSG_SYS_POSITION_OBJECT &&
 			opcode != network.MSG_SYS_EXTEND_THRESHOLD {
 			fmt.Printf("[%s] send to Server\n", s.Name)
 			fmt.Printf("Opcode: %s\n", opcode)

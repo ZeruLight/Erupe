@@ -841,10 +841,10 @@ func FromOpcode(opcode network.PacketID) MHFPacket {
 		return &MsgMhfUpdateForceGuildRank{}
 	case network.MSG_MHF_RESET_TITLE:
 		return &MsgMhfResetTitle{}
-	case network.MSG_SYS_reserve202:
-		return &MsgSysReserve202{}
-	case network.MSG_SYS_reserve203:
-		return &MsgSysReserve203{}
+	case network.MSG_MHF_ENUMERATE_GUILD_MESSAGE_BOARD:
+		return &MsgMhfEnumerateGuildMessageBoard{}
+	case network.MSG_MHF_UPDATE_GUILD_MESSAGE_BOARD:
+		return &MsgMhfUpdateGuildMessageBoard{}
 	case network.MSG_SYS_reserve204:
 		return &MsgSysReserve204{}
 	case network.MSG_SYS_reserve205:

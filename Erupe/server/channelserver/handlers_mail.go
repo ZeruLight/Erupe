@@ -61,7 +61,7 @@ func (m *Mail) Send(s *Session, transaction *sql.Tx) error {
 
 func (m *Mail) MarkRead(s *Session) error {
 	_, err := s.server.db.Exec(`
-		UPDATE mail SET read = true WHERE id = $1 
+		UPDATE mail SET read = true WHERE id = $1
 	`, m.ID)
 
 	if err != nil {
@@ -78,7 +78,7 @@ func (m *Mail) MarkRead(s *Session) error {
 
 func (m *Mail) MarkDeleted(s *Session) error {
 	_, err := s.server.db.Exec(`
-		UPDATE mail SET deleted = true WHERE id = $1 
+		UPDATE mail SET deleted = true WHERE id = $1
 	`, m.ID)
 
 	if err != nil {
@@ -93,22 +93,40 @@ func (m *Mail) MarkDeleted(s *Session) error {
 	return nil
 }
 
+func (m *Mail) MarkAcquired(s *Session) error {
+	_, err := s.server.db.Exec(`
+		UPDATE mail SET attached_item_received = true WHERE id = $1
+	`, m.ID)
+
+	if err != nil {
+		s.logger.Error(
+			"failed to mark mail item as claimed",
+			zap.Error(err),
+			zap.Int("mailID", m.ID),
+		)
+		return err
+	}
+
+	return nil
+}
+
 func GetMailListForCharacter(s *Session, charID uint32) ([]Mail, error) {
 	rows, err := s.server.db.Queryx(`
-		SELECT 
+		SELECT
 			m.id,
 			m.sender_id,
 			m.recipient_id,
 			m.subject,
 			m.read,
+			m.attached_item_received,
 			m.attached_item,
 			m.attached_item_amount,
 			m.created_at,
 			m.is_guild_invite,
 			m.deleted,
 			c.name as sender_name
-		FROM mail m 
-			JOIN characters c ON c.id = m.sender_id 
+		FROM mail m
+			JOIN characters c ON c.id = m.sender_id
 		WHERE recipient_id = $1 AND deleted = false
 		ORDER BY m.created_at DESC, id DESC
 		LIMIT 32
@@ -140,21 +158,22 @@ func GetMailListForCharacter(s *Session, charID uint32) ([]Mail, error) {
 
 func GetMailByID(s *Session, ID int) (*Mail, error) {
 	row := s.server.db.QueryRowx(`
-		SELECT 
+		SELECT
 			m.id,
 			m.sender_id,
 			m.recipient_id,
 			m.subject,
 			m.read,
 			m.body,
+			m.attached_item_received,
 			m.attached_item,
 			m.attached_item_amount,
 			m.created_at,
 			m.is_guild_invite,
 			m.deleted,
 			c.name as sender_name
-		FROM mail m 
-			JOIN characters c ON c.id = m.sender_id 
+		FROM mail m
+			JOIN characters c ON c.id = m.sender_id
 		WHERE m.id = $1
 		LIMIT 1
 	`, ID)
@@ -235,9 +254,11 @@ func handleMsgMhfReadMail(s *Session, p mhfpacket.MHFPacket) {
 
 	_ = mail.MarkRead(s)
 
+	bf := byteframe.NewByteFrame()
 	bodyBytes, _ := stringsupport.ConvertUTF8ToShiftJIS(mail.Body)
+	bf.WriteNullTerminatedBytes(bodyBytes)
 
-	doAckBufSucceed(s, pkt.AckHandle, bodyBytes)
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfListMail(s *Session, p mhfpacket.MHFPacket) {
@@ -295,10 +316,10 @@ func handleMsgMhfListMail(s *Session, p mhfpacket.MHFPacket) {
 
 		msg.WriteUint8(flags)
 		msg.WriteBool(itemAttached)
-		msg.WriteUint8(uint8(len(subjectBytes)))
-		msg.WriteUint8(uint8(len(senderNameBytes)))
-		msg.WriteBytes(subjectBytes)
-		msg.WriteBytes(senderNameBytes)
+		msg.WriteUint8(uint8(len(subjectBytes)+1))
+		msg.WriteUint8(uint8(len(senderNameBytes)+1))
+		msg.WriteNullTerminatedBytes(subjectBytes)
+		msg.WriteNullTerminatedBytes(senderNameBytes)
 
 		if itemAttached {
 			msg.WriteInt16(m.AttachedItemAmount)
@@ -320,9 +341,14 @@ func handleMsgMhfOprtMail(s *Session, p mhfpacket.MHFPacket) {
 	}
 
 	switch mhfpacket.OperateMailOperation(pkt.Operation) {
-	case mhfpacket.OperateMailOperationDelete:
+	case mhfpacket.OPERATE_MAIL_DELETE:
 		err = mail.MarkDeleted(s)
-
+		if err != nil {
+			doAckSimpleFail(s, pkt.AckHandle, nil)
+			panic(err)
+		}
+	case mhfpacket.OPERATE_MAIL_ACQUIRE_ITEM:
+		err = mail.MarkAcquired(s)
 		if err != nil {
 			doAckSimpleFail(s, pkt.AckHandle, nil)
 			panic(err)
@@ -332,4 +358,34 @@ func handleMsgMhfOprtMail(s *Session, p mhfpacket.MHFPacket) {
 	doAckSimpleSucceed(s, pkt.AckHandle, nil)
 }
 
-func handleMsgMhfSendMail(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfSendMail(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfSendMail)
+	query := `
+		INSERT INTO mail (sender_id, recipient_id, subject, body, attached_item, attached_item_amount, is_guild_invite)
+		VALUES ($1, $2, $3, $4, $5, $6, $7)
+	`
+
+	if pkt.RecipientID == 0 { // Guild mail
+		g, err := GetGuildInfoByCharacterId(s, s.charID)
+		if err != nil {
+			s.logger.Fatal("Failed to get guild info for mail")
+		}
+		gm, err := GetGuildMembers(s, g.ID, false)
+		if err != nil {
+			s.logger.Fatal("Failed to get guild members for mail")
+		}
+		for i := 0; i < len(gm); i++ {
+			_, err := s.server.db.Exec(query, s.charID, gm[i].CharID, pkt.Subject, pkt.Body, 0, 0, false)
+			if err != nil {
+				s.logger.Fatal("Failed to send mail")
+			}
+		}
+	} else {
+		_, err := s.server.db.Exec(query, s.charID, pkt.RecipientID, pkt.Subject, pkt.Body, pkt.ItemID, pkt.Quantity, false)
+		if err != nil {
+			s.logger.Fatal("Failed to send mail")
+		}
+	}
+
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+}

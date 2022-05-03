@@ -1,12 +1,19 @@
 package mhfpacket
 
 import (
- "errors"
+	"errors"
 
- 	"github.com/Solenataris/Erupe/network/clientctx"
-	"github.com/Solenataris/Erupe/network"
 	"github.com/Andoryuuta/byteframe"
+	"github.com/Solenataris/Erupe/network"
+	"github.com/Solenataris/Erupe/network/clientctx"
 )
+
+type Item struct {
+	Unk0   uint32
+	ItemId uint16
+	Amount uint16
+	Unk1   uint32
+}
 
 // MsgMhfUpdateUnionItem represents the MSG_MHF_UPDATE_UNION_ITEM
 type MsgMhfUpdateUnionItem struct {

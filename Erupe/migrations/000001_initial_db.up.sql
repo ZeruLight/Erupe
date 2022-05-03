@@ -9,7 +9,8 @@ CREATE DOMAIN uint16 AS integer
 CREATE TABLE users (
    id serial NOT NULL PRIMARY KEY,
    username text UNIQUE NOT NULL,
-   password text NOT NULL
+   password text NOT NULL,
+   item_box bytea
 );
 
 CREATE TABLE characters (

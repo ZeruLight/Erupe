@@ -1,7 +1,7 @@
 package mhfpacket
 
-import ( 
- "errors" 
+import (
+ "errors"
 
  	"github.com/Solenataris/Erupe/network/clientctx"
 	"github.com/Solenataris/Erupe/network"
@@ -11,11 +11,12 @@ import (
 type GuildIconMsgPart struct {
 	Index    uint16
 	ID       uint16
-	Unk0     uint8
+	Page     uint8
 	Size     uint8
 	Rotation uint8
-	Unk1     uint8
-	Unk2     uint16
+	Red      uint8
+	Green    uint8
+  Blue     uint8
 	PosX     uint16
 	PosY     uint16
 }
@@ -47,11 +48,12 @@ func (m *MsgMhfUpdateGuildIcon) Parse(bf *byteframe.ByteFrame, ctx *clientctx.Cl
 		m.IconParts[i] = GuildIconMsgPart{
 			Index:    bf.ReadUint16(),
 			ID:       bf.ReadUint16(),
-			Unk0:     bf.ReadUint8(),
+			Page:     bf.ReadUint8(),
 			Size:     bf.ReadUint8(),
 			Rotation: bf.ReadUint8(),
-			Unk1:     bf.ReadUint8(),
-			Unk2:     bf.ReadUint16(),
+			Red:      bf.ReadUint8(),
+      Green:    bf.ReadUint8(),
+      Blue:     bf.ReadUint8(),
 			PosX:     bf.ReadUint16(),
 			PosY:     bf.ReadUint16(),
 		}

@@ -2,6 +2,7 @@ package channelserver
 
 import (
 	"encoding/hex"
+	"encoding/binary"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -54,27 +55,99 @@ func handleMsgMhfSavedata(s *Session, p mhfpacket.MHFPacket) {
 	}
 	s.logger.Info("Wrote recompressed savedata back to DB.")
 	dumpSaveData(s, pkt.RawDataPayload, "")
-	// Temporary server launcher response stuff
-	// 0x1F715	Weapon Class
-	// 0x1FDF6 HR (small_gr_level)
-	// 0x88 Character Name
-	_, err = s.server.db.Exec("UPDATE characters SET weapon=$1 WHERE id=$2", uint16(decompressedData[128789]), s.charID)
+
+	_, err = s.server.db.Exec("UPDATE characters SET weapon_type=$1 WHERE id=$2", uint16(decompressedData[128789]), s.charID)
 	if err != nil {
-		s.logger.Fatal("Failed to character weapon in db", zap.Error(err))
+		s.logger.Fatal("Failed to character weapon type in db", zap.Error(err))
 	}
-	gr := uint16(decompressedData[130550])<<8 | uint16(decompressedData[130551])
-	s.logger.Info("Setting db field", zap.Uint16("gr_override_level", gr))
-	// We have to use `gr_override_level` (uint16), not `small_gr_level` (uint8) to store this.
-	_, err = s.server.db.Exec("UPDATE characters SET gr_override_mode=true, gr_override_level=$1 WHERE id=$2", gr, s.charID)
+
+	isMale := uint8(decompressedData[80]) // 0x50
+	if isMale == 1 {
+		_, err = s.server.db.Exec("UPDATE characters SET is_female=true WHERE id=$1", s.charID)
+	} else {
+		_, err = s.server.db.Exec("UPDATE characters SET is_female=false WHERE id=$1", s.charID)
+	}
 	if err != nil {
-		s.logger.Fatal("Failed to update character gr_override_level in db", zap.Error(err))
+		s.logger.Fatal("Failed to character gender in db", zap.Error(err))
 	}
+
+	weaponId := binary.LittleEndian.Uint16(decompressedData[128522:128524]) // 0x1F60A
+	_, err = s.server.db.Exec("UPDATE characters SET weapon_id=$1 WHERE id=$2", weaponId, s.charID)
+	if err != nil {
+		s.logger.Fatal("Failed to update character weapon id in db", zap.Error(err))
+	}
+
+	hrp := binary.LittleEndian.Uint16(decompressedData[130550:130552]) // 0x1FDF6
+	_, err = s.server.db.Exec("UPDATE characters SET hrp=$1 WHERE id=$2", hrp, s.charID)
+	if err != nil {
+		s.logger.Fatal("Failed to update character hrp in db", zap.Error(err))
+	}
+
+	grp := binary.LittleEndian.Uint32(decompressedData[130556:130560]) // 0x1FDFC
+	var gr uint16
+	if grp > 0 {
+		gr = grpToGR(grp)
+	} else {
+		gr = 0
+	}
+	_, err = s.server.db.Exec("UPDATE characters SET gr=$1 WHERE id=$2", gr, s.charID)
+	if err != nil {
+		s.logger.Fatal("Failed to update character gr in db", zap.Error(err))
+	}
+
 	characterName := s.clientContext.StrConv.MustDecode(bfutil.UpToNull(decompressedData[88:100]))
 	_, err = s.server.db.Exec("UPDATE characters SET name=$1 WHERE id=$2", characterName, s.charID)
 	if err != nil {
 		s.logger.Fatal("Failed to update character name in db", zap.Error(err))
 	}
 	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+}
+
+func grpToGR(n uint32) uint16 {
+	var gr uint16
+	gr = 1
+	switch grp := int(n); {
+	case grp < 208750: // Up to 50
+		i := 0
+		for {
+			grp -= 500
+			if grp <= 500 {
+				if grp < 0 {
+					i--
+				}
+				break
+			} else {
+				i++
+				for j := 0; j < i; j++ {
+					grp -= 150
+				}
+			}
+		}
+		gr = uint16(i + 2); break
+	case grp < 593400: // 51-99
+		grp -= 208750; i := 51; for { if grp < 7850 {break}; i++; grp -= 7850 }; gr = uint16(i); break
+	case grp < 993400: // 100-149
+		grp -= 593400; i := 100; for { if grp < 8000 {break}; i++; grp -= 8000 }; gr = uint16(i); break
+	case grp < 1400900: // 150-199
+		grp -= 993400; i := 150; for { if grp < 8150 {break}; i++; grp -= 8150 }; gr = uint16(i); break
+	case grp < 2315900: // 200-299
+		grp -= 1400900; i := 200; for { if grp < 9150 {break}; i++; grp -= 9150 }; gr = uint16(i); break
+	case grp < 3340900: // 300-399
+		grp -= 2315900; i := 300; for { if grp < 10250 {break}; i++; grp -= 10250 }; gr = uint16(i); break
+	case grp < 4505900: // 400-499
+		grp -= 3340900; i := 400; for { if grp < 11650 {break}; i++; grp -= 11650 }; gr = uint16(i); break
+	case grp < 5850900: // 500-599
+		grp -= 4505900; i := 500; for { if grp < 13450 {break}; i++; grp -= 13450 }; gr = uint16(i); break
+	case grp < 7415900: // 600-699
+		grp -= 5850900; i := 600; for { if grp < 15650 {break}; i++; grp -= 15650 }; gr = uint16(i); break
+	case grp < 9230900: // 700-799
+		grp -= 7415900; i := 700; for { if grp < 18150 {break}; i++; grp -= 18150 }; gr = uint16(i); break
+	case grp < 11345900: // 800-899
+		grp -= 9230900; i := 800; for { if grp < 21150 {break}; i++; grp -= 21150 }; gr = uint16(i); break
+	default: // 900+
+		grp -= 11345900; i := 900; for { if grp < 23950 {break}; i++; grp -= 23950 }; gr = uint16(i); break
+	}
+	return gr
 }
 
 func dumpSaveData(s *Session, data []byte, suffix string) {

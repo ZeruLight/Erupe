@@ -18,7 +18,10 @@ type GuildMember struct {
 	LastLogin       uint32     `db:"last_login"`
 	AvoidLeadership bool       `db:"avoid_leadership"`
 	IsLeader        bool       `db:"is_leader"`
-	Exp             uint16     `db:"exp"`
+	HRP             uint16     `db:"hrp"`
+	GR              uint16     `db:"gr"`
+	WeaponID        uint16     `db:"weapon_id"`
+	WeaponType      uint16     `db:"weapon_type"`
 }
 
 func (gm *GuildMember) IsSubLeader() bool {
@@ -53,7 +56,10 @@ SELECT g.id as guild_id,
        coalesce(gc.order_index, 0) as order_index,
        c.last_login,
        coalesce(gc.avoid_leadership, false) as avoid_leadership,
-       c.exp,
+			 c.hrp,
+			 c.gr,
+			 c.weapon_id,
+			 c.weapon_type,
        character.is_applicant,
        CASE WHEN g.leader_id = c.id THEN 1 ELSE 0 END as is_leader
 FROM (

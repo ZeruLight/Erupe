@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
-	"encoding/binary"
 
 	"fmt"
 	"io/ioutil"
@@ -203,7 +202,7 @@ func logoutPlayer(s *Session) {
 
 	if _, exists := s.server.semaphore["hs_l0u3B51J9k3"]; exists {
 		if _, ok := s.server.semaphore["hs_l0u3B51J9k3"].reservedClientSlots[s.charID]; ok {
-		removeSessionFromSemaphore(s)
+			removeSessionFromSemaphore(s)
 		}
 	}
 
@@ -406,11 +405,6 @@ func handleMsgMhfGetExtraInfo(s *Session, p mhfpacket.MHFPacket) {}
 func handleMsgMhfAcquireTitle(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfEnumerateTitle(s *Session, p mhfpacket.MHFPacket) {}
-
-type Item struct {
-	ItemId uint16
-	Amount uint16
-}
 
 func handleMsgMhfEnumerateUnionItem(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateUnionItem)

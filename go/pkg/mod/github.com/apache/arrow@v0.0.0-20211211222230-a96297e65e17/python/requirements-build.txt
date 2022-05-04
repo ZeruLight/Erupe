@@ -1,4 +1,0 @@
-cython>=0.29
-oldest-supported-numpy
-setuptools_scm
-setuptools>=38.6.0

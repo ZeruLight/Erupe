@@ -1,1 +1,0 @@
-module github.com/yvasiyarov/newrelic_platform_go

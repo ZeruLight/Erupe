@@ -1,5 +1,0 @@
-This is a goinstall-able mirror of modified code already published at:
-https://git.nic.cz/redmine/projects/gofileutil/repository/show/storage
-
-Install: $go get modernc.org/fileutil/storage
-Godocs: http://gopkgdoc.appspot.com/pkg/modernc.org/fileutil/storage

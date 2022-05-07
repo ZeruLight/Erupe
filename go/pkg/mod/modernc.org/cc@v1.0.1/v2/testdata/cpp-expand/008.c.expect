@@ -1,5 +1,0 @@
-
-
-
-
-check("void", __alignof__(void));

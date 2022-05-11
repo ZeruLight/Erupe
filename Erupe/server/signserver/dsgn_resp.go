@@ -83,6 +83,7 @@ func (s *Session) makeSignInResp(uid int) []byte {
 		t := japanese.ShiftJIS.NewEncoder()
 		str_name, _, err := transform.String(t, char.Name)
 		if err != nil {
+		  str_name = char.Name
 		}
 		
 		bf.WriteUint16(char.WeaponType)                     // Weapon, 0-13.

@@ -7,6 +7,8 @@ import (
 
 	"github.com/Andoryuuta/byteframe"
 	"go.uber.org/zap"
+	"golang.org/x/text/encoding/japanese"
+	"golang.org/x/text/transform"
 )
 
 func paddedString(x string, size uint) []byte {
@@ -77,13 +79,19 @@ func (s *Session) makeSignInResp(uid int) []byte {
 		} else {
 			bf.WriteUint16(char.HRP)
 		}
+
+		t := japanese.ShiftJIS.NewEncoder()
+		str_name, _, err := transform.String(t, char.Name)
+		if err != nil {
+		}
+		
 		bf.WriteUint16(char.WeaponType)                     // Weapon, 0-13.
 		bf.WriteUint32(char.LastLogin)                      // Last login date, unix timestamp in seconds.
 		bf.WriteBool(char.IsFemale)                         // Sex, 0=male, 1=female.
 		bf.WriteBool(char.IsNewCharacter)                   // Is new character, 1 replaces character name with ?????.
 		bf.WriteUint8(0)                                    // Old GR
 		bf.WriteBool(true)                                  // Use uint16 GR, no reason not to
-		bf.WriteBytes(paddedString(char.Name, 16))          // Character name
+		bf.WriteBytes(paddedString(str_name, 16))          // Character name
 		bf.WriteBytes(paddedString(char.UnkDescString, 32)) // unk str
 		bf.WriteUint16(char.GR)
 		bf.WriteUint16(0) // Unk

@@ -2,9 +2,21 @@ package channelserver
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/Solenataris/Erupe/network/mhfpacket"
 )
+
+func removeSessionFromSemaphore(s *Session) {
+	s.server.semaphoreLock.Lock()
+	for _, semaphore := range s.server.semaphore {
+		if _, exists := semaphore.clients[s]; exists {
+			delete(semaphore.clients, s)
+		}
+	}
+	releaseRaviSemaphore(s)
+	s.server.semaphoreLock.Unlock()
+}
 
 func handleMsgSysCreateSemaphore(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysCreateSemaphore)
@@ -15,31 +27,53 @@ func handleMsgSysDeleteSemaphore(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysDeleteSemaphore)
 	sem := pkt.AckHandle
 	if s.server.semaphore != nil {
-	s.server.semaphoreLock.Lock()
-	for id := range s.server.semaphore {
-		switch sem {
+		s.server.semaphoreLock.Lock()
+		for id := range s.server.semaphore {
+			switch sem {
 			case 917533:
 				if s.server.semaphore[id].id_semaphore == "hs_l0u3B51J9k3" {
-				delete(s.server.semaphore["hs_l0u3B51J9k3"].reservedClientSlots, s.charID)
-				delete(s.server.semaphore["hs_l0u3B51J9k3"].clients, s)
+					delete(s.server.semaphore["hs_l0u3B51J9k3"].reservedClientSlots, s.charID)
+					delete(s.server.semaphore["hs_l0u3B51J9k3"].clients, s)
+				} else if s.server.semaphore[id].id_semaphore == "hs_l0u3B5129k3" {
+					delete(s.server.semaphore["hs_l0u3B5129k3"].reservedClientSlots, s.charID)
+					delete(s.server.semaphore["hs_l0u3B5129k3"].clients, s)
+				} else if s.server.semaphore[id].id_semaphore == "hs_l0u3B512Ak3" {
+					delete(s.server.semaphore["hs_l0u3B512Ak3"].reservedClientSlots, s.charID)
+					delete(s.server.semaphore["hs_l0u3B512Ak3"].clients, s)
 				}
 			case 851997:
 				if s.server.semaphore[id].id_semaphore == "hs_l0u3B51J9k4" {
-				delete(s.server.semaphore["hs_l0u3B51J9k4"].reservedClientSlots, s.charID)
+					delete(s.server.semaphore["hs_l0u3B51J9k4"].reservedClientSlots, s.charID)
+				} else if s.server.semaphore[id].id_semaphore == "hs_l0u3B5129k4" {
+					delete(s.server.semaphore["hs_l0u3B5129k4"].reservedClientSlots, s.charID)
+				} else if s.server.semaphore[id].id_semaphore == "hs_l0u3B512Ak4" {
+					delete(s.server.semaphore["hs_l0u3B512Ak4"].reservedClientSlots, s.charID)
 				}
 			case 786461:
 				if s.server.semaphore[id].id_semaphore == "hs_l0u3B51J9k5" {
-				delete(s.server.semaphore["hs_l0u3B51J9k5"].reservedClientSlots, s.charID)
+					delete(s.server.semaphore["hs_l0u3B51J9k5"].reservedClientSlots, s.charID)
+				} else if s.server.semaphore[id].id_semaphore == "hs_l0u3B5129k5" {
+					delete(s.server.semaphore["hs_l0u3B5129k5"].reservedClientSlots, s.charID)
+				} else if s.server.semaphore[id].id_semaphore == "hs_l0u3B512Ak5" {
+					delete(s.server.semaphore["hs_l0u3B512Ak5"].reservedClientSlots, s.charID)
 				}
 			default:
 				if len(s.server.semaphore[id].reservedClientSlots) != 0 {
-				if s.server.semaphore[id].id_semaphore != "hs_l0u3B51J9k3" && s.server.semaphore[id].id_semaphore != "hs_l0u3B51J9k4" && s.server.semaphore[id].id_semaphore != "hs_l0u3B51J9k5" {
-					delete(s.server.semaphore[id].reservedClientSlots, s.charID)
+					if s.server.semaphore[id].id_semaphore != "hs_l0u3B51J9k3" &&
+					s.server.semaphore[id].id_semaphore != "hs_l0u3B51J9k4" &&
+					s.server.semaphore[id].id_semaphore != "hs_l0u3B51J9k5" &&
+					s.server.semaphore[id].id_semaphore != "hs_l0u3B5129k3" &&
+					s.server.semaphore[id].id_semaphore != "hs_l0u3B5129k4" &&
+					s.server.semaphore[id].id_semaphore != "hs_l0u3B5129k5" &&
+					s.server.semaphore[id].id_semaphore != "hs_l0u3B512Ak3" &&
+					s.server.semaphore[id].id_semaphore != "hs_l0u3B512Ak4" &&
+					s.server.semaphore[id].id_semaphore != "hs_l0u3B512Ak5" {
+						delete(s.server.semaphore[id].reservedClientSlots, s.charID)
 					}
 				}
 			}
 		}
-	s.server.semaphoreLock.Unlock()
+		s.server.semaphoreLock.Unlock()
 	}
 }
 
@@ -52,11 +86,7 @@ func handleMsgSysCreateAcquireSemaphore(s *Session, p mhfpacket.MHFPacket) {
 	fmt.Printf("Got reserve stage req, StageID: %v\n\n", SemaphoreID)
 	if !gotNewStage {
 		s.server.semaphoreLock.Lock()
-		if SemaphoreID == "hs_l0u3B51J9k1" ||
-			SemaphoreID == "hs_l0u3B51J9k2" ||
-			SemaphoreID == "hs_l0u3B51J9k3" ||
-			SemaphoreID == "hs_l0u3B51J9k4" ||
-			SemaphoreID == "hs_l0u3B51J9k5" {
+		if strings.HasPrefix(SemaphoreID, "hs_l0u3B51") {
 			s.server.semaphore[SemaphoreID] = NewSemaphore(SemaphoreID, 32)
 		} else {
 			s.server.semaphore[SemaphoreID] = NewSemaphore(SemaphoreID, 1)
@@ -68,24 +98,23 @@ func handleMsgSysCreateAcquireSemaphore(s *Session, p mhfpacket.MHFPacket) {
 	newSemaphore.Lock()
 	defer newSemaphore.Unlock()
 	if _, exists := newSemaphore.reservedClientSlots[s.charID]; exists {
-		s.logger.Info("IS ALREADY EXIST !")
 		doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x0F, 0x00, 0x1D})
 	} else if uint16(len(newSemaphore.reservedClientSlots)) < newSemaphore.maxPlayers {
-	switch SemaphoreID {
-		case "hs_l0u3B51J9k3":
+		switch SemaphoreID {
+		case "hs_l0u3B51J9k3", "hs_l0u3B5129k3", "hs_l0u3B512Ak3":
 			newSemaphore.reservedClientSlots[s.charID] = nil
 			newSemaphore.clients[s] = s.charID
 			s.Lock()
 			s.semaphore = newSemaphore
 			s.Unlock()
 			doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x0E, 0x00, 0x1D})
-		case "hs_l0u3B51J9k4":
+		case "hs_l0u3B51J9k4", "hs_l0u3B5129k4", "hs_l0u3B512Ak4":
 			newSemaphore.reservedClientSlots[s.charID] = nil
 			s.Lock()
 			s.semaphore = newSemaphore
 			s.Unlock()
 			doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x0D, 0x00, 0x1D})
-		case "hs_l0u3B51J9k5":
+		case "hs_l0u3B51J9k5", "hs_l0u3B5129k5", "hs_l0u3B512Ak5":
 			newSemaphore.reservedClientSlots[s.charID] = nil
 			s.Lock()
 			s.semaphore = newSemaphore
@@ -109,29 +138,16 @@ func handleMsgSysAcquireSemaphore(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgSysReleaseSemaphore(s *Session, p mhfpacket.MHFPacket) {
 	//pkt := p.(*mhfpacket.MsgSysReleaseSemaphore)
-	if _, exists := s.server.semaphore["hs_l0u3B51J9k3"]; exists {
-		reset := len(s.server.semaphore["hs_l0u3B51J9k3"].reservedClientSlots)
-		if reset == 0 {
-			s.server.db.Exec("CALL ravireset($1)", 0)
-		}
-	}
-}
-
-func removeSessionFromSemaphore(s *Session) {
-
-	s.server.semaphoreLock.Lock()
-	for id := range s.server.semaphore {
-		delete(s.server.semaphore[id].reservedClientSlots, s.charID)
-		if id == "hs_l0u3B51J9k3" {
-			delete(s.server.semaphore[id].clients, s)
-		} else {
-			continue
-		}
-	}
-	s.server.semaphoreLock.Unlock()
+	releaseRaviSemaphore(s)
 }
 
 func handleMsgSysCheckSemaphore(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysCheckSemaphore)
-	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	resp := []byte{0x00, 0x00, 0x00, 0x00}
+	s.server.semaphoreLock.Lock()
+	if _, exists := s.server.semaphore[pkt.StageID]; exists {
+		resp = []byte{0x00, 0x00, 0x00, 0x01}
+	}
+	s.server.semaphoreLock.Unlock()
+	doAckSimpleSucceed(s, pkt.AckHandle, resp)
 }

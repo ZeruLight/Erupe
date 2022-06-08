@@ -183,13 +183,12 @@ func logoutPlayer(s *Session) {
 		return
 	}
 
-	s.stage.RLock()
-	for client := range s.stage.clients {
-		client.QueueSendMHF(&mhfpacket.MsgSysDeleteUser{
-			CharID: s.charID,
-		})
-	}
-	s.stage.RUnlock()
+	s.server.BroadcastMHF(&mhfpacket.MsgSysDeleteUser {
+		CharID: s.charID,
+	}, s)
+
+	delete(s.server.sessions, s.rawConn)
+	s.rawConn.Close()
 
 	if s.server.erupeConfig.DevModeOptions.ServerName != "" {
 		_, err := s.server.db.Exec("UPDATE servers SET current_players=$1 WHERE server_name=$2", uint32(len(s.server.sessions)), s.server.erupeConfig.DevModeOptions.ServerName)
@@ -198,13 +197,16 @@ func logoutPlayer(s *Session) {
 		}
 	}
 
-	removeSessionFromStage(s)
-
-	if _, exists := s.server.semaphore["hs_l0u3B51J9k3"]; exists {
-		if _, ok := s.server.semaphore["hs_l0u3B51J9k3"].reservedClientSlots[s.charID]; ok {
-			removeSessionFromSemaphore(s)
-		}
+	s.server.Lock()
+  for _, stage := range s.server.stages {
+    if _, exists := stage.reservedClientSlots[s.charID]; exists {
+      delete(stage.reservedClientSlots, s.charID)
+  	}
 	}
+	s.server.Unlock()
+
+	removeSessionFromSemaphore(s)
+	removeSessionFromStage(s)
 
 	var timePlayed int
 	err := s.server.db.QueryRow("SELECT time_played FROM characters WHERE id = $1", s.charID).Scan(&timePlayed)
@@ -213,7 +215,7 @@ func logoutPlayer(s *Session) {
 
 	var rpGained int
 
-	if s.rights == 0x08091e4e || s.rights == 0x08091e0e { // N Course
+	if s.rights > 0x40000000 { // N Course
 		rpGained = timePlayed / 900
 		timePlayed = timePlayed % 900
 	} else {
@@ -326,7 +328,13 @@ func handleMsgSysRightsReload(s *Session, p mhfpacket.MHFPacket) {
 	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
-func handleMsgMhfTransitMessage(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfTransitMessage(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfTransitMessage)
+	// TODO: figure out what this is supposed to return
+	// probably what world+land the targeted character is on?
+	// stubbed response will just say user not found
+	doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
+}
 
 func handleMsgCaExchangeItem(s *Session, p mhfpacket.MHFPacket) {}
 

@@ -193,7 +193,10 @@ func handleMsgMhfLoaddata(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfSaveScenarioData(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSaveScenarioData)
-
+	_, err := s.server.db.Exec("UPDATE characters SET scenariodata = $1 WHERE characters.id = $2", pkt.RawDataPayload, int(s.charID))
+  if err != nil {
+    s.logger.Fatal("Failed to update scenario data in db", zap.Error(err))
+  }
 	// Do this ack manually because it uses a non-(0|1) error code
 	s.QueueSendMHF(&mhfpacket.MsgSysAck{
 		AckHandle:        pkt.AckHandle,
@@ -205,7 +208,19 @@ func handleMsgMhfSaveScenarioData(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfLoadScenarioData(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfLoadScenarioData)
-	doAckBufSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
+	var scenarioData []byte
+	bf := byteframe.NewByteFrame()
+	err := s.server.db.QueryRow("SELECT scenariodata FROM characters WHERE characters.id = $1", int(s.charID)).Scan(&scenarioData)
+	if err != nil {
+		s.logger.Fatal("Failed to get scenario data contents in db", zap.Error(err))
+	} else {
+		if len(scenarioData) == 0 {
+			bf.WriteUint32(0x00)
+		} else {
+			bf.WriteBytes(scenarioData)
+		}
+	}
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfGetPaperData(s *Session, p mhfpacket.MHFPacket) {

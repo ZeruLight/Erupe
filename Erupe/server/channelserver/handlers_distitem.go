@@ -1,67 +1,134 @@
 package channelserver
 
 import (
-	"encoding/hex"
-	// "io/ioutil"
-	// "path/filepath"
-
 	"github.com/Solenataris/Erupe/network/mhfpacket"
+	"github.com/Solenataris/Erupe/common/stringsupport"
+	"github.com/Andoryuuta/byteframe"
+	"go.uber.org/zap"
 )
 
-func handleMsgMhfEnumerateDistItem(s *Session, p mhfpacket.MHFPacket) {
-    pkt := p.(*mhfpacket.MsgMhfEnumerateDistItem)
-    // uint16 number of entries
-    // 446 entry block
-    // uint32 claimID
-    // 00 00 00 00 00 00
-    // uint16 timesClaimable
-    // 00 00 00 00 FF FF FF FF FF FF FF FF FF FF FF FF 00 00 00 00 00 00 00 00 00
-    // uint8 stringLength
-    // string nullTermString
-    data, _ := hex.DecodeString("0001000000010000000000000000002000000000FFFFFFFFFFFFFFFFFFFFFFFF0000000000000000002F323020426F7820457870616E73696F6E73000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
-    doAckBufSucceed(s, pkt.AckHandle, data)
+type ItemDist struct {
+	ID              uint32 `db:"id"`
+	Deadline        uint32 `db:"deadline"`
+	TimesAcceptable uint16 `db:"times_acceptable"`
+	TimesAccepted   uint16 `db:"times_accepted"`
+	MinHR           uint16 `db:"min_hr"`
+	MaxHR           uint16 `db:"max_hr"`
+	MinSR           uint16 `db:"min_sr"`
+	MaxSR           uint16 `db:"max_sr"`
+	MinGR           uint16 `db:"min_gr"`
+	MaxGR           uint16 `db:"max_gr"`
+	EventName       string `db:"event_name"`
+	Description     string `db:"description"`
+	Data            []byte `db:"data"`
+}
 
+func handleMsgMhfEnumerateDistItem(s *Session, p mhfpacket.MHFPacket) {
+  pkt := p.(*mhfpacket.MsgMhfEnumerateDistItem)
+	bf := byteframe.NewByteFrame()
+
+	distCount := 0
+	dists, err := s.server.db.Queryx(`
+		SELECT d.id, event_name, description, times_acceptable,
+		min_hr, max_hr, min_sr, max_sr, min_gr, max_gr,
+		(
+    	SELECT count(*)
+    	FROM distributions_accepted da
+    	WHERE d.id = da.distribution_id
+    	AND da.character_id = $1
+		) AS times_accepted,
+		CASE
+			WHEN (EXTRACT(epoch FROM deadline)::int) IS NULL THEN 0
+			ELSE (EXTRACT(epoch FROM deadline)::int)
+		END deadline
+		FROM distribution d
+		WHERE character_id = $1 AND type = $2 OR character_id IS NULL AND type = $2 ORDER BY id DESC;
+	`, s.charID, pkt.Unk0)
+	if err != nil {
+		s.logger.Error("Error getting distribution data from db", zap.Error(err))
+		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
+	} else {
+		for dists.Next() {
+			distCount++
+			distData := &ItemDist{}
+			err = dists.StructScan(&distData)
+			if err != nil {
+				s.logger.Error("Error parsing item distribution data", zap.Error(err))
+			}
+
+			bf.WriteUint32(distData.ID)
+			bf.WriteUint32(distData.Deadline)
+			bf.WriteUint32(0) // Unk
+			bf.WriteUint16(distData.TimesAcceptable)
+			bf.WriteUint16(distData.TimesAccepted)
+			bf.WriteUint16(0) // Unk
+			bf.WriteUint16(distData.MinHR)
+			bf.WriteUint16(distData.MaxHR)
+			bf.WriteUint16(distData.MinSR)
+			bf.WriteUint16(distData.MaxSR)
+			bf.WriteUint16(distData.MinGR)
+			bf.WriteUint16(distData.MaxGR)
+			bf.WriteUint32(0) // Unk
+			bf.WriteUint32(0) // Unk
+			eventName, _ := stringsupport.ConvertUTF8ToShiftJIS(distData.EventName)
+			bf.WriteUint16(uint16(len(eventName)))
+			bf.WriteBytes(eventName)
+			bf.WriteBytes(make([]byte, 391))
+		}
+		resp := byteframe.NewByteFrame()
+		resp.WriteUint16(uint16(distCount))
+		resp.WriteBytes(bf.Data())
+		doAckBufSucceed(s, pkt.AckHandle, resp.Data())
+	}
 }
 
 func handleMsgMhfApplyDistItem(s *Session, p mhfpacket.MHFPacket) {
-    // 0052a49100011f00000000000000010274db99 equipment box page
-    // 0052a48f00011e0000000000000001195dda5c item box page
-    // 0052a49400010700003ae30000000132d3a4d6 Item ID 3AE3
-    // HEADER:
-    // int32: Unique item hash for tracking server side purchases? Swapping across items didn't change image/cost/function etc.
-    // int16: Number of distributed item types
-    // ITEM ENTRY
-    // int8:  distribution type
-    // 00 = legs, 01 = Head, 02 = Chest, 03 = Arms, 04 = Waist, 05 = Melee, 06 = Ranged, 07 = Item, 08 == furniture
-    // ids are wrong shop displays in random order
-    // 09 = Nothing, 10 = Null Point, 11 = Festi Point, 12 = Zeny, 13 = Null, 14 = Null Points, 15 = My Tore points
-    // 16 = Restyle Point, 17 = N Points, 18 = Nothing, 19 = Gacha Coins, 20 = Trial Gacha Coins, 21 = Frontier points
-    // 22 = ?, 23 = Guild Points, 30 = Item Box Page, 31 = Equipment Box Page
-    // int16: Unk
-    // int16: Item when type 07
-    // int16: Unk
-    // int16: Number delivered in batch
-    // int32: Unique item hash for tracking server side purchases? Swapping across items didn't change image/cost/function etc.
-    pkt := p.(*mhfpacket.MsgMhfApplyDistItem)
-    if pkt.RequestType == 0 {
-        doAckBufSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
-    } else if pkt.RequestType == 0x00000001 {
-        data, _ := hex.DecodeString("0052a494001e0f000000010000000132d3a4d60f000000020000000132d3a4d60f000000030000000132d3a4d60f000000040000000132d3a4d60f000000050000000132d3a4d60f000000060000000132d3a4d60f000000070000000132d3a4d60f000000080000000132d3a4d60f000000090000000132d3a4d60f0000000a0000000132d3a4d60f0000000b0000000132d3a4d60f0000000c0000000132d3a4d60f0000000d0000000132d3a4d60f0000000e0000000132d3a4d60f0000000f0000000132d3a4d60f000000100000000132d3a4d60f000000110000000132d3a4d60f000000120000000132d3a4d60f000000130000000132d3a4d60f000000140000000132d3a4d60f000000150000000132d3a4d60f000000160000000132d3a4d60f000000170000000132d3a4d60f000000180000000132d3a4d60f000000190000000132d3a4d60f0000001a0000000132d3a4d60f0000001b0000000132d3a4d60f0000001c0000000132d3a4d60f0000001d0000000132d3a4d60f0000001e0000000132d3a4d6")
-        doAckBufSucceed(s, pkt.AckHandle, data)
-    } else {
-        doAckBufSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
-    }
+	pkt := p.(*mhfpacket.MsgMhfApplyDistItem)
+
+  if pkt.DistributionID == 0 {
+    doAckBufSucceed(s, pkt.AckHandle, make([]byte, 6))
+  } else {
+		row := s.server.db.QueryRowx("SELECT data FROM distribution WHERE id = $1", pkt.DistributionID)
+		dist := &ItemDist{}
+		err := row.StructScan(dist)
+		if err != nil {
+			s.logger.Error("Error parsing item distribution data", zap.Error(err))
+			doAckBufSucceed(s, pkt.AckHandle, make([]byte, 6))
+			return
+		}
+
+		bf := byteframe.NewByteFrame()
+		bf.WriteUint32(0)
+		bf.WriteBytes(dist.Data)
+    doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+
+		_, err = s.server.db.Exec(`
+			INSERT INTO public.distributions_accepted
+			VALUES ($1, $2)
+		`, pkt.DistributionID, s.charID)
+		if err != nil {
+			s.logger.Error("Error updating accepted dist count", zap.Error(err))
+		}
+  }
 }
 
 func handleMsgMhfAcquireDistItem(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfAcquireDistItem)
-	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfGetDistDescription(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetDistDescription)
-	// string for the associated message
-	data, _ := hex.DecodeString("007E43303547656E65726963204974656D20436C61696D204D6573736167657E4330300D0A596F752067657420736F6D65206B696E64206F66206974656D732070726F6261626C792E00000100")
-	//data, _ := hex.DecodeString("0075b750c1c2b17ac1cab652a1757e433035b8cbb3c6bd63c258b169aa41b0c87e433030a1760a0aa175b8cbb3c6bd63c258b169aa41b0c8a176a843c1caa44a31a6b8a141a569c258b169a2b0add30aa8a4a6e2aabaa175b8cbb3c6bd63a176a2b0adb6a143b3cca668a569c258b169a2b4adb6a14300000100")
-	doAckBufSucceed(s, pkt.AckHandle, data)
+	var desc string
+	err := s.server.db.QueryRow("SELECT description FROM distribution WHERE id = $1", pkt.DistributionID).Scan(&desc)
+	if err != nil {
+		s.logger.Error("Error parsing item distribution description", zap.Error(err))
+		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
+		return
+	}
+	bf := byteframe.NewByteFrame()
+	description, _ := stringsupport.ConvertUTF8ToShiftJIS(desc)
+	bf.WriteUint16(uint16(len(description)+1))
+	bf.WriteNullTerminatedBytes(description)
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }

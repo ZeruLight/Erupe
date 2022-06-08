@@ -53,6 +53,63 @@ type Server struct {
 
 	// Discord chat integration
 	discordSession *discordgo.Session
+
+	raviente *Raviente
+}
+
+type Raviente struct {
+	sync.Mutex
+
+	register *RavienteRegister
+	state *RavienteState
+	support *RavienteSupport
+}
+
+type RavienteRegister struct {
+	nextTime uint32
+	startTime uint32
+	postTime uint32
+	killedTime uint32
+	ravienteType uint32
+	maxPlayers uint32
+	carveQuest uint32
+	register []uint32
+}
+
+type RavienteState struct {
+	damageMultiplier uint32
+	stateData []uint32
+}
+
+type RavienteSupport struct {
+	supportData []uint32
+}
+
+// Set up the Raviente variables for the server
+func NewRaviente() *Raviente {
+	ravienteRegister := &RavienteRegister {
+		nextTime: 0,
+		startTime: 0,
+		killedTime: 0,
+		postTime: 0,
+		ravienteType: 0,
+		maxPlayers: 0,
+		carveQuest: 0,
+	}
+	ravienteState := &RavienteState {
+		damageMultiplier: 1,
+	}
+	ravienteSupport := &RavienteSupport { }
+	ravienteRegister.register = []uint32{0, 0, 0, 0, 0}
+	ravienteState.stateData = []uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+	ravienteSupport.supportData = []uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+
+	raviente := &Raviente {
+		register: ravienteRegister,
+		state: ravienteState,
+		support: ravienteSupport,
+	}
+	return raviente
 }
 
 // NewServer creates a new Server type.

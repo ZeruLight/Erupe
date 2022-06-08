@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/Andoryuuta/byteframe"
 	"github.com/Solenataris/Erupe/common/bfutil"
 	"github.com/Solenataris/Erupe/network/mhfpacket"
 	"github.com/Solenataris/Erupe/server/channelserver/compression/deltacomp"
@@ -32,17 +33,16 @@ func handleMsgMhfSavedata(s *Session, p mhfpacket.MHFPacket) {
 			s.logger.Fatal("Failed to decompress diff", zap.Error(err))
 		}
 		// Perform diff.
-		characterSaveData.SetBaseSaveData(deltacomp.ApplyDataDiff(diff, characterSaveData.BaseSaveData()))
 		s.logger.Info("Diffing...")
+		characterSaveData.SetBaseSaveData(deltacomp.ApplyDataDiff(diff, characterSaveData.BaseSaveData()))
 	} else {
 		// Regular blob update.
 		saveData, err := nullcomp.Decompress(pkt.RawDataPayload)
-
-		characterSaveData.SetBaseSaveData(saveData)
 		if err != nil {
 			s.logger.Fatal("Failed to decompress savedata from packet", zap.Error(err))
 		}
 		s.logger.Info("Updating save with blob")
+		characterSaveData.SetBaseSaveData(saveData)
 	}
 	characterSaveData.IsNewCharacter = false
 	characterBaseSaveData := characterSaveData.BaseSaveData()

@@ -128,16 +128,5 @@ func (save *CharacterSaveData) updateStructWithSaveData() {
 
 func handleMsgMhfSexChanger(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSexChanger)
-	if pkt.Gender == 0 {
-		_, err := s.server.db.Exec("UPDATE characters SET is_female=true WHERE id=$1", s.charID)
-		if err != nil {
-			s.logger.Fatal("Failed to update gender in db", zap.Error(err))
-		}
-	} else {
-		_, err := s.server.db.Exec("UPDATE characters SET is_female=false WHERE id=$1", s.charID)
-		if err != nil {
-			s.logger.Fatal("Failed to update gender in db", zap.Error(err))
-		}
-	}
 	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }

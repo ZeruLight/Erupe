@@ -129,9 +129,8 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 		fmt.Printf("Got chat message: %+v\n", chatMessage)
 
 		// Discord integration
-		if s.server.erupeConfig.Discord.Enabled {
-			message := fmt.Sprintf("%s: %s", chatMessage.SenderName, chatMessage.Message)
-			s.server.discordSession.ChannelMessageSend(s.server.erupeConfig.Discord.ChannelID, message)
+		if chatMessage.Type == binpacket.ChatTypeLocal || chatMessage.Type == binpacket.ChatTypeParty {
+			s.server.DiscordChannelSend(chatMessage.SenderName, chatMessage.Message)
 		}
 
 		// RAVI COMMANDS

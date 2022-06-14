@@ -1,7 +1,7 @@
 package mhfpacket
 
-import ( 
- "errors" 
+import (
+ "errors"
 
  	"github.com/Solenataris/Erupe/network/clientctx"
 	"github.com/Solenataris/Erupe/network"
@@ -12,7 +12,7 @@ import (
 type MsgMhfGetDistDescription struct{
 	AckHandle uint32
 	Unk0 uint8
-	EntryID uint32
+	DistributionID uint32
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -24,7 +24,7 @@ func (m *MsgMhfGetDistDescription) Opcode() network.PacketID {
 func (m *MsgMhfGetDistDescription) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
 	m.Unk0 = bf.ReadUint8()
-	m.EntryID = bf.ReadUint32()
+	m.DistributionID = bf.ReadUint32()
 	return nil
 }
 // Build builds a binary packet from the current data.

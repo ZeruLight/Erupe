@@ -58,6 +58,9 @@ type Guild struct {
 	RankRP         uint32         `db:"rank_rp"`
 	EventRP        uint32         `db:"event_rp"`
 	Comment        string         `db:"comment"`
+	PugiName1      string         `db:"pugi_name_1"`
+	PugiName2      string         `db:"pugi_name_2"`
+	PugiName3      string         `db:"pugi_name_3"`
 	FestivalColour FestivalColour `db:"festival_colour"`
 	Rank           uint16         `db:"rank"`
 	Icon           *GuildIcon     `db:"icon"`
@@ -123,6 +126,9 @@ SELECT
 	leader_id,
 	lc.name as leader_name,
 	comment,
+	pugi_name_1,
+	pugi_name_2,
+	pugi_name_3,
 	festival_colour,
 	CASE
 		WHEN rank_rp <= 48 THEN rank_rp/24
@@ -915,10 +921,26 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteBytes([]byte{0x01, 0x02, 0x02})       // Unk
 		bf.WriteUint32(guild.EventRP)
 
-		// Pugi's names, probably expected as null until you have them with levels? Null gives them a default japanese name
-		for i := 0; i < 3; i++ {
-			bf.WriteUint8(0x1) // Name Length - 1 minimum due to null byte
-			bf.WriteUint8(0x0) // Name string
+		if guild.PugiName1 == "" {
+			bf.WriteUint16(0x0100)
+		} else {
+			bf.WriteUint8(uint8(len(guild.PugiName1)+1))
+			pugiName := s.clientContext.StrConv.MustEncode(guild.PugiName1)
+			bf.WriteNullTerminatedBytes(pugiName)
+		}
+		if guild.PugiName2 == "" {
+			bf.WriteUint16(0x0100)
+		} else {
+			bf.WriteUint8(uint8(len(guild.PugiName2)+1))
+			pugiName := s.clientContext.StrConv.MustEncode(guild.PugiName2)
+			bf.WriteNullTerminatedBytes(pugiName)
+		}
+		if guild.PugiName3 == "" {
+			bf.WriteUint16(0x0100)
+		} else {
+			bf.WriteUint8(uint8(len(guild.PugiName3)+1))
+			pugiName := s.clientContext.StrConv.MustEncode(guild.PugiName3)
+			bf.WriteNullTerminatedBytes(pugiName)
 		}
 
 		// probably guild pugi properties, should be status, stamina and luck outfits

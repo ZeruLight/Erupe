@@ -9,16 +9,36 @@ import (
 	"github.com/Solenataris/Erupe/config"
 	"github.com/Solenataris/Erupe/network/binpacket"
 	"github.com/Solenataris/Erupe/network/mhfpacket"
-	"github.com/bwmarrin/discordgo"
+	"github.com/Solenataris/Erupe/server/discordbot"
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
+)
+
+type StageIdType = string
+
+const (
+	// GlobalStage is the stage that is used for all users.
+	MezeportaStageId 		   StageIdType = "sl1Ns200p0a0u0"
+	GuildHallLv1StageId		   StageIdType = "sl1Ns202p0a0u0"
+	GuildHallLv2StageId		   StageIdType = "sl1Ns203p0a0u0"
+	GuildHallLv3StageId  	   StageIdType = "sl1Ns204p0a0u0"
+	PugiFarmStageId  		   StageIdType = "sl1Ns205p0a0u0"
+	RastaBarStageId  		   StageIdType = "sl1Ns211p0a0u0"
+	PalloneCaravanStageId      StageIdType = "sl1Ns260p0a0u0"
+	GookFarmStageId  		   StageIdType = "sl1Ns265p0a0u0"
+	DivaFountainStageId  	   StageIdType = "sl2Ns379p0a0u0"
+	DivaHallStageId  		   StageIdType = "sl1Ns445p0a0u0"
+	MezFesStageId    		   StageIdType = "sl1Ns462p0a0u0"
 )
 
 // Config struct allows configuring the server.
 type Config struct {
 	Logger      *zap.Logger
 	DB          *sqlx.DB
+	DiscordBot  *discordbot.DiscordBot
 	ErupeConfig *config.Config
+	Name        string
+	Enable      bool
 }
 
 // Map key type for a user binary part.
@@ -30,14 +50,13 @@ type userBinaryPartID struct {
 // Server is a MHF channel server.
 type Server struct {
 	sync.Mutex
-	logger      *zap.Logger
-	db          *sqlx.DB
-	erupeConfig *config.Config
-	acceptConns chan net.Conn
-	deleteConns chan net.Conn
-	sessions    map[net.Conn]*Session
-	listener    net.Listener // Listener that is created when Server.Start is called.
-
+	logger         *zap.Logger
+	db             *sqlx.DB
+	erupeConfig    *config.Config
+	acceptConns    chan net.Conn
+	deleteConns    chan net.Conn
+	sessions       map[net.Conn]*Session
+	listener       net.Listener // Listener that is created when Server.Start is called.
 	isShuttingDown bool
 
 	stagesLock sync.RWMutex
@@ -52,7 +71,10 @@ type Server struct {
 	semaphore     map[string]*Semaphore
 
 	// Discord chat integration
-	discordSession *discordgo.Session
+	discordBot *discordbot.DiscordBot
+
+	name   string
+	enable bool
 
 	raviente *Raviente
 }
@@ -61,8 +83,8 @@ type Raviente struct {
 	sync.Mutex
 
 	register *RavienteRegister
-	state *RavienteState
-	support *RavienteSupport
+	state    *RavienteState
+	support  *RavienteSupport
 }
 
 type RavienteRegister struct {
@@ -114,7 +136,7 @@ func NewRaviente() *Raviente {
 
 // NewServer creates a new Server type.
 func NewServer(config *Config) *Server {
-	s := &Server{
+	s := &Server {
 		logger:          config.Logger,
 		db:              config.DB,
 		erupeConfig:     config.ErupeConfig,
@@ -124,7 +146,10 @@ func NewServer(config *Config) *Server {
 		stages:          make(map[string]*Stage),
 		userBinaryParts: make(map[userBinaryPartID][]byte),
 		semaphore:       make(map[string]*Semaphore),
-		discordSession:  nil,
+		discordBot:      config.DiscordBot,
+		name:            config.Name,
+		enable:          config.Enable,
+		raviente:        NewRaviente(),
 	}
 
 	// Mezeporta
@@ -145,7 +170,7 @@ func NewServer(config *Config) *Server {
 	// Rasta bar stage
 	s.stages["sl1Ns211p0a0u0"] = NewStage("sl1Ns211p0a0u0")
 
-	// Carvane
+	// Pallone Carvan
 	s.stages["sl1Ns260p0a0u0"] = NewStage("sl1Ns260p0a0u0")
 
 	// Gook Farm
@@ -159,16 +184,6 @@ func NewServer(config *Config) *Server {
 
 	// MezFes
 	s.stages["sl1Ns462p0a0u0"] = NewStage("sl1Ns462p0a0u0")
-
-	// Create the discord session, (not actually connecting to discord servers yet).
-	if s.erupeConfig.Discord.Enabled {
-		ds, err := discordgo.New("Bot " + s.erupeConfig.Discord.BotToken)
-		if err != nil {
-			s.logger.Fatal("Error creating Discord session.", zap.Error(err))
-		}
-		ds.AddHandler(s.onDiscordMessage)
-		s.discordSession = ds
-	}
 
 	return s
 }
@@ -185,12 +200,8 @@ func (s *Server) Start(port int) error {
 	go s.manageSessions()
 
 	// Start the discord bot for chat integration.
-	if s.erupeConfig.Discord.Enabled {
-		err = s.discordSession.Open()
-		if err != nil {
-			s.logger.Warn("Error opening Discord session.", zap.Error(err))
-			return err
-		}
+	if s.erupeConfig.Discord.Enabled && s.discordBot != nil {
+		s.discordBot.Session.AddHandler(s.onDiscordMessage)
 	}
 
 	return nil
@@ -203,11 +214,8 @@ func (s *Server) Shutdown() {
 	s.Unlock()
 
 	s.listener.Close()
-	close(s.acceptConns)
 
-	if s.erupeConfig.Discord.Enabled {
-		s.discordSession.Close()
-	}
+	close(s.acceptConns)
 }
 
 func (s *Server) acceptClients() {
@@ -289,7 +297,7 @@ func (s *Server) BroadcastChatMessage(message string) {
 		Type:       5,
 		Flags:      0x80,
 		Message:    message,
-		SenderName: "Erupe",
+		SenderName: s.name,
 	}
 	msgBinChat.Build(bf)
 
@@ -298,6 +306,13 @@ func (s *Server) BroadcastChatMessage(message string) {
 		MessageType:    BinaryMessageTypeChat,
 		RawDataPayload: bf.Data(),
 	}, nil)
+}
+
+func (s *Server) DiscordChannelSend(charName string, content string) {
+	if s.erupeConfig.Discord.Enabled && s.discordBot != nil {
+		message := fmt.Sprintf("**%s** : %s", charName, content)
+		s.discordBot.RealtimeChannelSend(message)
+	}
 }
 
 func (s *Server) FindSessionByCharID(charID uint32) *Session {
@@ -309,6 +324,24 @@ func (s *Server) FindSessionByCharID(charID uint32) *Session {
 			if client.charID == charID {
 				stage.RUnlock()
 				return client
+			}
+		}
+		stage.RUnlock()
+	}
+
+	return nil
+}
+
+func (s *Server) FindStageObjectByChar(charID uint32) *StageObject {
+	s.stagesLock.RLock()
+	defer s.stagesLock.RUnlock()
+	for _, stage := range s.stages {
+		stage.RLock()
+		for objId := range stage.objects {
+			obj := stage.objects[objId]
+			if obj.ownerCharID == charID {
+				stage.RUnlock()
+				return obj
 			}
 		}
 		stage.RUnlock()

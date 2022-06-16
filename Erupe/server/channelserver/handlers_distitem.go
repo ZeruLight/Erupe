@@ -26,7 +26,6 @@ type ItemDist struct {
 func handleMsgMhfEnumerateDistItem(s *Session, p mhfpacket.MHFPacket) {
   pkt := p.(*mhfpacket.MsgMhfEnumerateDistItem)
 	bf := byteframe.NewByteFrame()
-
 	distCount := 0
 	dists, err := s.server.db.Queryx(`
 		SELECT d.id, event_name, description, times_acceptable,
@@ -55,7 +54,6 @@ func handleMsgMhfEnumerateDistItem(s *Session, p mhfpacket.MHFPacket) {
 			if err != nil {
 				s.logger.Error("Error parsing item distribution data", zap.Error(err))
 			}
-
 			bf.WriteUint32(distData.ID)
 			bf.WriteUint32(distData.Deadline)
 			bf.WriteUint32(0) // Unk
@@ -71,8 +69,8 @@ func handleMsgMhfEnumerateDistItem(s *Session, p mhfpacket.MHFPacket) {
 			bf.WriteUint32(0) // Unk
 			bf.WriteUint32(0) // Unk
 			eventName, _ := stringsupport.ConvertUTF8ToShiftJIS(distData.EventName)
-			bf.WriteUint16(uint16(len(eventName)))
-			bf.WriteBytes(eventName)
+			bf.WriteUint16(uint16(len(eventName)+1))
+			bf.WriteNullTerminatedBytes(eventName)
 			bf.WriteBytes(make([]byte, 391))
 		}
 		resp := byteframe.NewByteFrame()

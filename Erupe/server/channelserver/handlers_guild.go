@@ -163,8 +163,8 @@ SELECT
 
 func (guild *Guild) Save(s *Session) error {
 	_, err := s.server.db.Exec(`
-		UPDATE guilds SET main_motto=$1, sub_motto=$6, comment=$3, festival_colour=$4, icon=$5 WHERE id=$2
-	`, guild.MainMotto, guild.ID, guild.Comment, guild.FestivalColour, guild.Icon, guild.SubMotto)
+		UPDATE guilds SET main_motto=$2, sub_motto=$3, comment=$4, pugi_name_1=$5, pugi_name_2=$6, pugi_name_3=$7, festival_colour=$8, icon=$9 WHERE id=$1
+	`, guild.ID, guild.MainMotto, guild.SubMotto, guild.Comment, guild.PugiName1, guild.PugiName2, guild.PugiName3, guild.FestivalColour, guild.Icon)
 
 	if err != nil {
 		s.logger.Error("failed to update guild data", zap.Error(err), zap.Uint32("guildID", guild.ID))
@@ -734,12 +734,15 @@ func handleMsgMhfOperateGuild(s *Session, p mhfpacket.MHFPacket) {
 			return
 		}
 	case mhfpacket.OPERATE_GUILD_RENAME_PUGI_1:
+		handleRenamePugi(s, pkt.UnkData, guild, 1)
 		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 		return
 	case mhfpacket.OPERATE_GUILD_RENAME_PUGI_2:
+		handleRenamePugi(s, pkt.UnkData, guild, 2)
 		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 		return
 	case mhfpacket.OPERATE_GUILD_RENAME_PUGI_3:
+		handleRenamePugi(s, pkt.UnkData, guild, 3)
 		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 		return
 	case mhfpacket.OPERATE_GUILD_CHANGE_PUGI_1:
@@ -758,6 +761,22 @@ func handleMsgMhfOperateGuild(s *Session, p mhfpacket.MHFPacket) {
 	}
 
 	doAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
+}
+
+func handleRenamePugi(s *Session, data []byte, guild *Guild, num int) {
+	bf := NewByteFrameFromBytes(data)
+	_ = bf.ReadUint8() // len
+	_ = bf.ReadUint32() // unk
+	name, _ := stringsupport.ConvertSJISBytesToString(bf.ReadNullTerminatedBytes())
+	switch num {
+	case 1:
+		guild.PugiName1 = name
+	case 2:
+		guild.PugiName2 = name
+	default:
+		guild.PugiName3 = name
+	}
+	guild.Save()
 }
 
 func handleDonateRP(s *Session, pkt *mhfpacket.MsgMhfOperateGuild, bf *byteframe.ByteFrame, guild *Guild, isEvent bool) error {

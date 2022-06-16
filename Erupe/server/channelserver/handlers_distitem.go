@@ -26,7 +26,6 @@ type ItemDist struct {
 func handleMsgMhfEnumerateDistItem(s *Session, p mhfpacket.MHFPacket) {
   pkt := p.(*mhfpacket.MsgMhfEnumerateDistItem)
 	bf := byteframe.NewByteFrame()
-
 	distCount := 0
 	dists, err := s.server.db.Queryx(`
 		SELECT d.id, event_name, description, times_acceptable,
@@ -55,7 +54,6 @@ func handleMsgMhfEnumerateDistItem(s *Session, p mhfpacket.MHFPacket) {
 			if err != nil {
 				s.logger.Error("Error parsing item distribution data", zap.Error(err))
 			}
-
 			bf.WriteUint32(distData.ID)
 			bf.WriteUint32(distData.Deadline)
 			bf.WriteUint32(0) // Unk
@@ -119,18 +117,15 @@ func handleMsgMhfAcquireDistItem(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfGetDistDescription(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetDistDescription)
-
-	var itemDesc string
-	err := s.server.db.QueryRow("SELECT description FROM distribution WHERE id = $1", pkt.DistributionID).Scan(&itemDesc)
-	
+	var desc string
+	err := s.server.db.QueryRow("SELECT description FROM distribution WHERE id = $1", pkt.DistributionID).Scan(&desc)
 	if err != nil {
 		s.logger.Error("Error parsing item distribution description", zap.Error(err))
 		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
-
 	bf := byteframe.NewByteFrame()
-	description, _ := stringsupport.ConvertUTF8ToShiftJIS(itemDesc)
+	description, _ := stringsupport.ConvertUTF8ToShiftJIS(desc)
 	bf.WriteUint16(uint16(len(description)+1))
 	bf.WriteNullTerminatedBytes(description)
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())

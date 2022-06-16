@@ -248,11 +248,16 @@ function switchPrompt() {
       }
   	} catch (e) {
       addLog('Error parsing character info XML: '+e, 'error');
+			switchPrompt();
+			return;
   	}
     let uid = localStorage.getItem('uid');
     if (uid != 'null' && uids.indexOf(uid) >= 0) {
       setUidIndex(uids.indexOf(uid));
-    }
+    } else {
+			addLog('Error setting character ID: '+e, 'error');
+			switchPrompt();
+		}
   }
 }
 

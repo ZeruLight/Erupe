@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/Solenataris/Erupe/common/stringsupport"
 	"github.com/Solenataris/Erupe/network/binpacket"
 	"github.com/Solenataris/Erupe/network/mhfpacket"
 	"github.com/Andoryuuta/byteframe"
@@ -19,9 +18,10 @@ type Mail struct {
 	Body                 string    `db:"body"`
 	Read                 bool      `db:"read"`
 	Deleted              bool      `db:"deleted"`
+	Locked               bool      `db:"locked"`
 	AttachedItemReceived bool      `db:"attached_item_received"`
-	AttachedItemID       *uint16   `db:"attached_item"`
-	AttachedItemAmount   int16     `db:"attached_item_amount"`
+	AttachedItemID       uint16    `db:"attached_item"`
+	AttachedItemAmount   uint16    `db:"attached_item_amount"`
 	CreatedAt            time.Time `db:"created_at"`
 	IsGuildInvite        bool      `db:"is_guild_invite"`
 	SenderName           string    `db:"sender_name"`
@@ -49,8 +49,8 @@ func (m *Mail) Send(s *Session, transaction *sql.Tx) error {
 			zap.Uint32("recipientID", m.RecipientID),
 			zap.String("subject", m.Subject),
 			zap.String("body", m.Body),
-			zap.Uint16p("itemID", m.AttachedItemID),
-			zap.Int16("itemAmount", m.AttachedItemAmount),
+			zap.Uint16("itemID", m.AttachedItemID),
+			zap.Uint16("itemAmount", m.AttachedItemAmount),
 			zap.Bool("isGuildInvite", m.IsGuildInvite),
 		)
 		return err
@@ -110,6 +110,23 @@ func (m *Mail) MarkAcquired(s *Session) error {
 	return nil
 }
 
+func (m *Mail) MarkLocked(s *Session, locked bool) error {
+	_, err := s.server.db.Exec(`
+		UPDATE mail SET locked = $1 WHERE id = $2
+	`, locked, m.ID)
+
+	if err != nil {
+		s.logger.Error(
+			"failed to mark mail as locked",
+			zap.Error(err),
+			zap.Int("mailID", m.ID),
+		)
+		return err
+	}
+
+	return nil
+}
+
 func GetMailListForCharacter(s *Session, charID uint32) ([]Mail, error) {
 	rows, err := s.server.db.Queryx(`
 		SELECT
@@ -124,6 +141,7 @@ func GetMailListForCharacter(s *Session, charID uint32) ([]Mail, error) {
 			m.created_at,
 			m.is_guild_invite,
 			m.deleted,
+			m.locked,
 			c.name as sender_name
 		FROM mail m
 			JOIN characters c ON c.id = m.sender_id
@@ -171,6 +189,7 @@ func GetMailByID(s *Session, ID int) (*Mail, error) {
 			m.created_at,
 			m.is_guild_invite,
 			m.deleted,
+			m.locked,
 			c.name as sender_name
 		FROM mail m
 			JOIN characters c ON c.id = m.sender_id
@@ -255,8 +274,9 @@ func handleMsgMhfReadMail(s *Session, p mhfpacket.MHFPacket) {
 	_ = mail.MarkRead(s)
 
 	bf := byteframe.NewByteFrame()
-	bodyBytes, _ := stringsupport.ConvertUTF8ToShiftJIS(mail.Body)
-	bf.WriteNullTerminatedBytes(bodyBytes)
+
+	body := s.clientContext.StrConv.MustEncode(mail.Body)
+	bf.WriteNullTerminatedBytes(body)
 
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
@@ -286,9 +306,10 @@ func handleMsgMhfListMail(s *Session, p mhfpacket.MHFPacket) {
 		s.mailList[accIndex] = m.ID
 		s.mailAccIndex++
 
-		itemAttached := m.AttachedItemID != nil
-		subjectBytes, _ := stringsupport.ConvertUTF8ToShiftJIS(m.Subject)
-		senderNameBytes, _ := stringsupport.ConvertUTF8ToShiftJIS(m.SenderName)
+
+		itemAttached := m.AttachedItemID != 0
+		subject := s.clientContext.StrConv.MustEncode(m.Subject)
+		sender := s.clientContext.StrConv.MustEncode(m.SenderName)
 
 		msg.WriteUint32(m.SenderID)
 		msg.WriteUint32(uint32(m.CreatedAt.Unix()))
@@ -302,28 +323,34 @@ func handleMsgMhfListMail(s *Session, p mhfpacket.MHFPacket) {
 			flags |= 0x01
 		}
 
+		if m.Locked {
+			flags |= 0x02
+		}
+
+		// System message, hides ID
+		// flags |= 0x04
+
+		// Mitigate game crash
+		flags |= 0x08
 		if m.AttachedItemReceived {
-			flags |= 0x08
+			// flags |= 0x08
 		}
 
 		if m.IsGuildInvite {
-			// Guild Invite
 			flags |= 0x10
-
-			// System message?
-			flags |= 0x04
 		}
 
 		msg.WriteUint8(flags)
 		msg.WriteBool(itemAttached)
-		msg.WriteUint8(uint8(len(subjectBytes)+1))
-		msg.WriteUint8(uint8(len(senderNameBytes)+1))
-		msg.WriteNullTerminatedBytes(subjectBytes)
-		msg.WriteNullTerminatedBytes(senderNameBytes)
+		msg.WriteUint8(uint8(len(subject)+1))
+		msg.WriteUint8(uint8(len(sender)+1))
+		msg.WriteNullTerminatedBytes(subject)
+		msg.WriteNullTerminatedBytes(sender)
 
+		// TODO: The game will crash if it attempts to receive items
 		if itemAttached {
-			msg.WriteInt16(m.AttachedItemAmount)
-			msg.WriteUint16(*m.AttachedItemID)
+			msg.WriteUint16(m.AttachedItemAmount)
+			msg.WriteUint16(m.AttachedItemID)
 		}
 	}
 
@@ -343,6 +370,18 @@ func handleMsgMhfOprtMail(s *Session, p mhfpacket.MHFPacket) {
 	switch mhfpacket.OperateMailOperation(pkt.Operation) {
 	case mhfpacket.OPERATE_MAIL_DELETE:
 		err = mail.MarkDeleted(s)
+		if err != nil {
+			doAckSimpleFail(s, pkt.AckHandle, nil)
+			panic(err)
+		}
+	case mhfpacket.OPERATE_MAIL_LOCK:
+		err = mail.MarkLocked(s, true)
+		if err != nil {
+			doAckSimpleFail(s, pkt.AckHandle, nil)
+			panic(err)
+		}
+	case mhfpacket.OPERATE_MAIL_UNLOCK:
+		err = mail.MarkLocked(s, false)
 		if err != nil {
 			doAckSimpleFail(s, pkt.AckHandle, nil)
 			panic(err)

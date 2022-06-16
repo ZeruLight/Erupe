@@ -1,7 +1,6 @@
 package channelserver
 
 import (
-	"bytes"
 	"database/sql"
 	"database/sql/driver"
 	"encoding/binary"
@@ -9,9 +8,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
-	"io/ioutil"
-	"log"
 	"sort"
 	"strconv"
 	"strings"
@@ -23,8 +19,6 @@ import (
 	"github.com/Solenataris/Erupe/network/mhfpacket"
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
-	"golang.org/x/text/encoding/japanese"
-	"golang.org/x/text/transform"
 )
 
 type FestivalColour string
@@ -764,7 +758,7 @@ func handleMsgMhfOperateGuild(s *Session, p mhfpacket.MHFPacket) {
 }
 
 func handleRenamePugi(s *Session, data []byte, guild *Guild, num int) {
-	bf := NewByteFrameFromBytes(data)
+	bf := byteframe.NewByteFrameFromBytes(data)
 	_ = bf.ReadUint8() // len
 	_ = bf.ReadUint32() // unk
 	name, _ := stringsupport.ConvertSJISBytesToString(bf.ReadNullTerminatedBytes())
@@ -776,7 +770,7 @@ func handleRenamePugi(s *Session, data []byte, guild *Guild, num int) {
 	default:
 		guild.PugiName3 = name
 	}
-	guild.Save()
+	guild.Save(s)
 }
 
 func handleDonateRP(s *Session, pkt *mhfpacket.MsgMhfOperateGuild, bf *byteframe.ByteFrame, guild *Guild, isEvent bool) error {
@@ -1918,9 +1912,3 @@ func handleMsgMhfEnumerateInvGuild(s *Session, p mhfpacket.MHFPacket) {}
 func handleMsgMhfOperationInvGuild(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfUpdateGuildcard(s *Session, p mhfpacket.MHFPacket) {}
-
-func handleMsgMhfCreateJoint(s *Session, p mhfpacket.MHFPacket) {}
-
-func handleMsgMhfOperateJoint(s *Session, p mhfpacket.MHFPacket) {}
-
-func handleMsgMhfInfoJoint(s *Session, p mhfpacket.MHFPacket) {}

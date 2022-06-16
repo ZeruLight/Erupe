@@ -115,21 +115,21 @@ const guildInfoSelectQuery = `
 SELECT
 	g.id,
 	g.name,
-	g.rank_rp,
-	g.event_rp,
-	g.main_motto,
-	g.sub_motto,
+	rank_rp,
+	event_rp,
+	main_motto,
+	sub_motto,
 	created_at,
 	leader_id,
 	lc.name as leader_name,
 	comment,
 	festival_colour,
 	CASE
-		WHEN g.rank_rp <= 48 THEN g.rank_rp/24
-		WHEN g.rank_rp <= 288 THEN g.rank_rp/48+1
-		WHEN g.rank_rp <= 504 THEN g.rank_rp/72+3
-		WHEN g.rank_rp <= 1080 THEN (g.rank_rp-24)/96+5
-		WHEN g.rank_rp < 1200 THEN 16
+		WHEN rank_rp <= 48 THEN rank_rp/24
+		WHEN rank_rp <= 288 THEN rank_rp/48+1
+		WHEN rank_rp <= 504 THEN rank_rp/72+3
+		WHEN rank_rp <= 1080 THEN (rank_rp-24)/96+5
+		WHEN rank_rp < 1200 THEN 16
 		ELSE 17
 	END rank,
 	icon,
@@ -858,18 +858,9 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 	}
 
 	if err == nil && guild != nil {
-		guildName, err1 := stringsupport.ConvertUTF8ToShiftJIS(guild.Name)
-		if err1 != nil {
-			s.server.logger.Info("ERROR GUILD NAME !")
-		}
-
-		guildComment, err2 := stringsupport.ConvertUTF8ToShiftJIS(guild.Comment)
-		if err2 != nil {
-			s.server.logger.Info("ERROR GUILD COMMENT !")
-		}
-
+		guildName, _ := stringsupport.ConvertUTF8ToShiftJIS(guild.Name)
+		guildComment, _ := stringsupport.ConvertUTF8ToShiftJIS(guild.Comment)
 		characterGuildData, err := GetCharacterGuildData(s, s.charID)
-
 		characterJoinedAt := uint32(0xFFFFFFFF)
 
 		if characterGuildData != nil && characterGuildData.JoinedAt != nil {
@@ -960,16 +951,30 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 			applicantName := s.clientContext.StrConv.MustEncode(applicant.Name)
 			bf.WriteUint32(applicant.CharID)
 			bf.WriteUint32(0x05)
-			bf.WriteUint32(0x00320000)
-			bf.WriteUint8(uint8(len(applicantName) + 1))
+			bf.WriteUint16(0x0032)
+			bf.WriteUint8(0x00)
+			bf.WriteUint16(uint16(len(applicantName)+1))
 			bf.WriteNullTerminatedBytes(applicantName)
 		}
 
-		// Unk bool? if true +3 bytes after this
-		bf.WriteUint8(0x00)
+		bf.WriteUint16(0x0000)
+
+		/*
+		alliance application format
+		uint16 numapplicants (above)
+
+		uint32 guild id
+		uint32 guild leader id (for mail)
+		uint32 unk (always null in pcap)
+		uint16 unk (always 0001 in pcap)
+		uint16 len guild name
+		string nullterm guild name
+		uint16 len guild leader name
+		string nullterm guild leader name
+		*/
 
 		if guild.Icon != nil {
-			bf.WriteUint16(uint16(len(guild.Icon.Parts)))
+			bf.WriteUint8(uint8(len(guild.Icon.Parts)))
 
 			for _, p := range guild.Icon.Parts {
 				bf.WriteUint16(p.Index)
@@ -984,7 +989,7 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 				bf.WriteUint16(p.PosY)
 			}
 		} else {
-			bf.WriteUint16(0x00)
+			bf.WriteUint8(0x00)
 		}
 
 		doAckBufSucceed(s, pkt.AckHandle, bf.Data())

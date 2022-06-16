@@ -63,6 +63,7 @@ type Guild struct {
 	PugiName3      string         `db:"pugi_name_3"`
 	FestivalColour FestivalColour `db:"festival_colour"`
 	Rank           uint16         `db:"rank"`
+	AllianceID     uint32         `db:"alliance_id"`
 	Icon           *GuildIcon     `db:"icon"`
 
 	GuildLeader
@@ -138,6 +139,19 @@ SELECT
 		WHEN rank_rp < 1200 THEN 16
 		ELSE 17
 	END rank,
+	CASE WHEN (
+		SELECT id FROM guild_alliances ga WHERE
+	 	ga.parent_id = g.id OR
+	 	ga.sub1_id = g.id OR
+	 	ga.sub2_id = g.id
+	) IS NULL THEN 0
+	ELSE (
+		SELECT id FROM guild_alliances ga WHERE
+	 	ga.parent_id = g.id OR
+	 	ga.sub1_id = g.id OR
+	 	ga.sub2_id = g.id
+	)
+	END alliance_id,
 	icon,
 	(
 		SELECT count(1) FROM guild_characters gc WHERE gc.guild_id = g.id
@@ -955,7 +969,80 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 			0x00, 0x00, 0xD6, 0xD8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
 		})
 
-		bf.WriteUint32(0x00) // Alliance ID
+		if guild.AllianceID > 0 {
+			alliance, err := GetAllianceData(s, guild.AllianceID)
+			if err != nil {
+				bf.WriteUint32(0) // Error, no alliance
+			} else {
+				allianceName, _ := stringsupport.ConvertUTF8ToShiftJIS(alliance.Name)
+				allianceParentName, _ := stringsupport.ConvertUTF8ToShiftJIS(alliance.ParentGuild.Name)
+				allianceParentOwner, _ := stringsupport.ConvertUTF8ToShiftJIS(alliance.ParentGuild.LeaderName)
+				allianceSub1Name, _ := stringsupport.ConvertUTF8ToShiftJIS(alliance.SubGuild1.Name)
+				allianceSub1Owner, _ := stringsupport.ConvertUTF8ToShiftJIS(alliance.SubGuild1.LeaderName)
+				allianceSub2Name, _ := stringsupport.ConvertUTF8ToShiftJIS(alliance.SubGuild2.Name)
+				allianceSub2Owner, _ := stringsupport.ConvertUTF8ToShiftJIS(alliance.SubGuild2.LeaderName)
+				bf.WriteUint32(alliance.ID)
+				bf.WriteUint32(uint32(alliance.CreatedAt.Unix()))
+				bf.WriteUint16(uint16(alliance.TotalMembers))
+				bf.WriteUint16(0) // Unk0
+				bf.WriteUint16(uint16(len(allianceName)))
+				bf.WriteBytes(allianceName)
+				if alliance.SubGuild1ID > 0 {
+					if alliance.SubGuild2ID > 0 {
+						bf.WriteUint8(3)
+					} else {
+						bf.WriteUint8(2)
+					}
+				} else {
+					bf.WriteUint8(1)
+				}
+				bf.WriteUint32(alliance.ParentGuildID)
+				bf.WriteUint32(0) // Unk1
+				if alliance.ParentGuildID == guild.ID {
+					bf.WriteUint16(1)
+				} else {
+					bf.WriteUint16(0)
+				}
+				bf.WriteUint16(alliance.ParentGuild.Rank)
+				bf.WriteUint16(alliance.ParentGuild.MemberCount)
+				bf.WriteUint16(uint16(len(allianceParentName)))
+				bf.WriteBytes(allianceParentName)
+				bf.WriteUint16(uint16(len(allianceParentOwner)))
+				bf.WriteBytes(allianceParentOwner)
+				if alliance.SubGuild1ID > 0 {
+					bf.WriteUint32(alliance.SubGuild1ID)
+					bf.WriteUint32(0) // Unk1
+					if alliance.SubGuild1ID == guild.ID {
+						bf.WriteUint16(1)
+					} else {
+						bf.WriteUint16(0)
+					}
+					bf.WriteUint16(alliance.SubGuild1.Rank)
+					bf.WriteUint16(alliance.SubGuild1.MemberCount)
+					bf.WriteUint16(uint16(len(allianceSub1Name)))
+					bf.WriteBytes(allianceSub1Name)
+					bf.WriteUint16(uint16(len(allianceSub1Owner)))
+					bf.WriteBytes(allianceSub1Owner)
+				}
+				if alliance.SubGuild2ID > 0 {
+					bf.WriteUint32(alliance.SubGuild2ID)
+					bf.WriteUint32(0) // Unk1
+					if alliance.SubGuild2ID == guild.ID {
+						bf.WriteUint16(1)
+					} else {
+						bf.WriteUint16(0)
+					}
+					bf.WriteUint16(alliance.SubGuild2.Rank)
+					bf.WriteUint16(alliance.SubGuild2.MemberCount)
+					bf.WriteUint16(uint16(len(allianceSub2Name)))
+					bf.WriteBytes(allianceSub2Name)
+					bf.WriteUint16(uint16(len(allianceSub2Owner)))
+					bf.WriteBytes(allianceSub2Owner)
+				}
+			}
+		} else {
+			bf.WriteUint32(0) // No alliance
+		}
 
 		applicants, err := GetGuildMembers(s, guild.ID, true)
 

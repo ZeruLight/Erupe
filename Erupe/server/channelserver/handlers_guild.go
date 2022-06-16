@@ -1587,9 +1587,7 @@ func handleMsgMhfEnumerateGuildMessageBoard(s *Session, p mhfpacket.MHFPacket) {
 	for msgs.Next() {
 		noMsgs = false
 		postCount++
-		var str_title, str_body string
-		var timestampst, timecomp uint64
-		timestampst = 32400
+		var titleConv, bodyConv []byte
 
 		postData := &MessageBoardPost{}
 		err = msgs.StructScan(&postData)
@@ -1597,21 +1595,9 @@ func handleMsgMhfEnumerateGuildMessageBoard(s *Session, p mhfpacket.MHFPacket) {
 			log.Println("Failed to get guild messages from db", zap.Error(err))
 		}
 
-		t := japanese.ShiftJIS.NewEncoder()
-		str_title, _, err := transform.String(t, postData.Title)
-		if err != nil {
-			log.Println(err)
-		}
-		str_body, _, err = transform.String(t, postData.Body)
-		if err != nil {
-			log.Println(err)
-		}
-
-		timecomp = postData.Timestamp - timestampst
-
 		bf.WriteUint32(postData.Type)
 		bf.WriteUint32(postData.AuthorID)
-		bf.WriteUint64(timecomp)
+		bf.WriteUint64(postData.Timestamp)
 		liked := false
 		likedBySlice := strings.Split(postData.LikedBy, ",")
 		for i := 0; i < len(likedBySlice); i++ {
@@ -1627,12 +1613,15 @@ func handleMsgMhfEnumerateGuildMessageBoard(s *Session, p mhfpacket.MHFPacket) {
 			bf.WriteUint32(uint32(len(likedBySlice)))
 		}
 
+		titleConv, _ = stringsupport.ConvertUTF8ToShiftJIS(postData.Title)
+		bodyConv, _ = stringsupport.ConvertUTF8ToShiftJIS(postData.Body)
+
 		bf.WriteBool(liked)
 		bf.WriteUint32(postData.StampID)
-		bf.WriteUint32(uint32(len(str_title)))
-		bf.WriteBytes([]byte(str_title))
-		bf.WriteUint32(uint32(len(str_body)))
-		bf.WriteBytes([]byte(str_body))
+		bf.WriteUint32(uint32(len(titleConv)))
+		bf.WriteBytes([]byte(titleConv))
+		bf.WriteUint32(uint32(len(bodyConv)))
+		bf.WriteBytes([]byte(bodyConv))
 	}
 	if noMsgs {
 		doAckBufSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
@@ -1644,19 +1633,6 @@ func handleMsgMhfEnumerateGuildMessageBoard(s *Session, p mhfpacket.MHFPacket) {
 	}
 }
 
-func transformEncoding(rawReader io.Reader, trans transform.Transformer) (string, error) {
-	ret, err := ioutil.ReadAll(transform.NewReader(rawReader, trans))
-	if err == nil {
-		return string(ret), nil
-	} else {
-		return "", err
-	}
-}
-
-func BytesFromShiftJIS(b []byte) (string, error) {
-	return transformEncoding(bytes.NewReader(b), japanese.ShiftJIS.NewDecoder())
-}
-
 func handleMsgMhfUpdateGuildMessageBoard(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfUpdateGuildMessageBoard)
 	bf := byteframe.NewByteFrameFromBytes(pkt.Request)
@@ -1665,31 +1641,21 @@ func handleMsgMhfUpdateGuildMessageBoard(s *Session, p mhfpacket.MHFPacket) {
 		doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 		return
 	}
+	var titleConv, bodyConv []byte
 
 	switch pkt.MessageOp {
 	case 0: // Create message
-		var title_str, body_str string
-
 		postType := bf.ReadUint32() // 0 = message, 1 = news
 		stampId := bf.ReadUint32()
 		titleLength := bf.ReadUint32()
 		bodyLength := bf.ReadUint32()
-		title := bf.ReadBytes(uint(titleLength))
-		body := bf.ReadBytes(uint(bodyLength))
+		title := string(bf.ReadBytes(uint(titleLength)))
+		body := string(bf.ReadBytes(uint(bodyLength)))
 
-		title_str, err := BytesFromShiftJIS(title)
-		if err != nil {
-			log.Println(err)
-		}
-		fmt.Println(title_str)
+		titleConv, _ = stringsupport.ConvertUTF8ToShiftJIS(title)
+		bodyConv, _ = stringsupport.ConvertUTF8ToShiftJIS(body)
 
-		body_str, err = BytesFromShiftJIS(body)
-		if err != nil {
-			log.Println(err)
-		}
-		fmt.Println(body_str)
-
-		_, err = s.server.db.Exec("INSERT INTO guild_posts (guild_id, author_id, stamp_id, post_type, title, body) VALUES ($1, $2, $3, $4, $5, $6)", guild.ID, s.charID, int(stampId), int(postType), string(title_str), string(body_str))
+		_, err := s.server.db.Exec("INSERT INTO guild_posts (guild_id, author_id, stamp_id, post_type, title, body) VALUES ($1, $2, $3, $4, $5, $6)", guild.ID, s.charID, int(stampId), int(postType), string(titleConv), string(bodyConv))
 		if err != nil {
 			log.Println("Failed to add new guild message to db", zap.Error(err))
 		}
@@ -1699,73 +1665,41 @@ func handleMsgMhfUpdateGuildMessageBoard(s *Session, p mhfpacket.MHFPacket) {
 			log.Println("Failed to remove excess guild messages from db", zap.Error(err))
 		}
 	case 1: // Delete message
-		var timestampst, timecomp uint64
-		timestampst = 32400
-
 		postType := bf.ReadUint32()
 		timestamp := bf.ReadUint64()
-
-		timecomp = timestamp + timestampst
-		_, err := s.server.db.Exec("DELETE FROM guild_posts WHERE post_type = $1 AND (EXTRACT(epoch FROM created_at)::int) = $2 AND guild_id = $3", int(postType), int(timecomp), guild.ID)
+		_, err := s.server.db.Exec("DELETE FROM guild_posts WHERE post_type = $1 AND (EXTRACT(epoch FROM created_at)::int) = $2 AND guild_id = $3", int(postType), int(timestamp), guild.ID)
 		if err != nil {
 			log.Println("Failed to delete guild message from db", zap.Error(err))
 		}
 	case 2: // Update message
-		var title_str, body_str string
-		var timestampst, timecomp uint64
-		timestampst = 32400
-
 		postType := bf.ReadUint32()
 		timestamp := bf.ReadUint64()
 		titleLength := bf.ReadUint32()
 		bodyLength := bf.ReadUint32()
-		title := bf.ReadBytes(uint(titleLength))
-		body := bf.ReadBytes(uint(bodyLength))
+		title := string(bf.ReadBytes(uint(titleLength)))
+		body := string(bf.ReadBytes(uint(bodyLength)))
 
-		title_str, err := BytesFromShiftJIS(title)
-		if err != nil {
-			log.Println(err)
-		}
-		fmt.Println(title_str)
+		titleConv, _ = stringsupport.ConvertUTF8ToShiftJIS(title)
+		bodyConv, _ = stringsupport.ConvertUTF8ToShiftJIS(body)
 
-		body_str, err = BytesFromShiftJIS(body)
-		if err != nil {
-			log.Println(err)
-		}
-		fmt.Println(body_str)
-
-		timecomp = timestamp + timestampst
-
-		_, err = s.server.db.Exec("UPDATE guild_posts SET title = $1, body = $2 WHERE post_type = $3 AND (EXTRACT(epoch FROM created_at)::int) = $4 AND guild_id = $5", string(title_str), string(body_str), int(postType), int(timecomp), guild.ID)
+		_, err := s.server.db.Exec("UPDATE guild_posts SET title = $1, body = $2 WHERE post_type = $3 AND (EXTRACT(epoch FROM created_at)::int) = $4 AND guild_id = $5", string(titleConv), string(bodyConv), int(postType), int(timestamp), guild.ID)
 		if err != nil {
 			log.Println("Failed to update guild message in db", zap.Error(err))
 		}
 	case 3: // Update stamp
-		var timestampst, timecomp uint64
-		timestampst = 32400
-
 		postType := bf.ReadUint32()
 		timestamp := bf.ReadUint64()
 		stampId := bf.ReadUint32()
-
-		timecomp = timestamp + timestampst
-
-		_, err := s.server.db.Exec("UPDATE guild_posts SET stamp_id = $1 WHERE post_type = $2 AND (EXTRACT(epoch FROM created_at)::int) = $3 AND guild_id = $4", int(stampId), int(postType), int(timecomp), guild.ID)
+		_, err := s.server.db.Exec("UPDATE guild_posts SET stamp_id = $1 WHERE post_type = $2 AND (EXTRACT(epoch FROM created_at)::int) = $3 AND guild_id = $4", int(stampId), int(postType), int(timestamp), guild.ID)
 		if err != nil {
 			log.Println("Failed to update guild message stamp in db", zap.Error(err))
 		}
 	case 4: // Like message
-		var timestampst, timecomp uint64
-		timestampst = 32400
-
 		postType := bf.ReadUint32()
 		timestamp := bf.ReadUint64()
 		likeState := bf.ReadBool()
-
-		timecomp = timestamp + timestampst
-
 		var likedBy string
-		err := s.server.db.QueryRow("SELECT liked_by FROM guild_posts WHERE post_type = $1 AND (EXTRACT(epoch FROM created_at)::int) = $2 AND guild_id = $3", int(postType), int(timecomp), guild.ID).Scan(&likedBy)
+		err := s.server.db.QueryRow("SELECT liked_by FROM guild_posts WHERE post_type = $1 AND (EXTRACT(epoch FROM created_at)::int) = $2 AND guild_id = $3", int(postType), int(timestamp), guild.ID).Scan(&likedBy)
 		if err != nil {
 			log.Println("Failed to get guild message like data from db", zap.Error(err))
 		} else {
@@ -1775,7 +1709,7 @@ func handleMsgMhfUpdateGuildMessageBoard(s *Session, p mhfpacket.MHFPacket) {
 				} else {
 					likedBy += "," + strconv.Itoa(int(s.charID))
 				}
-				_, err := s.server.db.Exec("UPDATE guild_posts SET liked_by = $1 WHERE post_type = $2 AND (EXTRACT(epoch FROM created_at)::int) = $3 AND guild_id = $4", likedBy, int(postType), int(timecomp), guild.ID)
+				_, err := s.server.db.Exec("UPDATE guild_posts SET liked_by = $1 WHERE post_type = $2 AND (EXTRACT(epoch FROM created_at)::int) = $3 AND guild_id = $4", likedBy, int(postType), int(timestamp), guild.ID)
 				if err != nil {
 					log.Println("Failed to like guild message in db", zap.Error(err))
 				}
@@ -1788,7 +1722,7 @@ func handleMsgMhfUpdateGuildMessageBoard(s *Session, p mhfpacket.MHFPacket) {
 					}
 				}
 				likedBy = strings.Join(likedBySlice, ",")
-				_, err := s.server.db.Exec("UPDATE guild_posts SET liked_by = $1 WHERE post_type = $2 AND (EXTRACT(epoch FROM created_at)::int) = $3 AND guild_id = $4", likedBy, int(postType), int(timecomp), guild.ID)
+				_, err := s.server.db.Exec("UPDATE guild_posts SET liked_by = $1 WHERE post_type = $2 AND (EXTRACT(epoch FROM created_at)::int) = $3 AND guild_id = $4", likedBy, int(postType), int(timestamp), guild.ID)
 				if err != nil {
 					log.Println("Failed to unlike guild message in db", zap.Error(err))
 				}

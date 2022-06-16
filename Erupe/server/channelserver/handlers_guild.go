@@ -1633,19 +1633,6 @@ func handleMsgMhfEnumerateGuildMessageBoard(s *Session, p mhfpacket.MHFPacket) {
 	}
 }
 
-func transformEncoding(rawReader io.Reader, trans transform.Transformer) (string, error) {
-	ret, err := ioutil.ReadAll(transform.NewReader(rawReader, trans))
-	if err == nil {
-		return string(ret), nil
-	} else {
-		return "", err
-	}
-}
-
-func BytesFromShiftJIS(b []byte) (string, error) {
-	return transformEncoding(bytes.NewReader(b), japanese.ShiftJIS.NewDecoder())
-}
-
 func handleMsgMhfUpdateGuildMessageBoard(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfUpdateGuildMessageBoard)
 	bf := byteframe.NewByteFrameFromBytes(pkt.Request)

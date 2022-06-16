@@ -126,6 +126,21 @@ func handleMsgMhfSaveDecoMyset(s *Session, p mhfpacket.MHFPacket) {
 	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
+func handleMsgMhfEnumerateTitle(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfEnumerateTitle)
+	bf := byteframe.NewByteFrame()
+	titleCount := 114 // all titles unlocked
+	bf.WriteUint16(uint16(titleCount)) // title count
+	bf.WriteUint16(0) // unk
+	for i := 0; i < titleCount; i++ {
+		bf.WriteUint16(uint16(i))
+		bf.WriteUint16(0) // unk
+		bf.WriteUint32(0) // timestamp acquired
+		bf.WriteUint32(0) // timestamp updated
+	}
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+}
+
 func handleMsgMhfOperateWarehouse(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfEnumerateWarehouse(s *Session, p mhfpacket.MHFPacket) {}

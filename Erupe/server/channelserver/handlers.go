@@ -412,8 +412,6 @@ func handleMsgMhfGetExtraInfo(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfAcquireTitle(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfEnumerateTitle(s *Session, p mhfpacket.MHFPacket) {}
-
 func handleMsgMhfEnumerateUnionItem(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateUnionItem)
 	var boxContents []byte

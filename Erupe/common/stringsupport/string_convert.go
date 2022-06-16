@@ -91,3 +91,20 @@ func ConvertUTF8ToShiftJIS(text string) ([]byte, error) {
 
 	return encoded, nil
 }
+
+func ConvertSJISBytesToString(text []byte) (string, error) {
+	result, err := ioutil.ReadAll(transform.NewReader(bytes.NewReader(text), japanese.ShiftJIS.NewDecoder()))
+	if err != nil {
+		return "", err
+	} else {
+		return string(result), nil
+	}
+}
+
+func ConvertUTF8ToSJIS(text string) (string, error) {
+	r, _, err := transform.String(japanese.ShiftJIS.NewEncoder(), text)
+	if err != nil {
+		return "", err
+	}
+	return r, nil
+}

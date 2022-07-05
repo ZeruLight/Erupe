@@ -135,12 +135,16 @@ func (s *Session) makeSignInResp(uid int) []byte {
 	}
 
 	bf.WriteUint32(0x00000000)
-	bf.WriteBool(true) // mezfes active
-	bf.WriteUint16(0x0000)
-	bf.WriteUint8(0x00)
+	bf.WriteUint32(0x0A5197DF)
 
-	bf.WriteUint32(uint32(channelserver.Time_Current_Adjusted().Add(-5 * time.Minute).Unix())) // mezfes start time
-	bf.WriteUint32(uint32(channelserver.Time_Current_Adjusted().Add(24 * time.Hour * 7).Unix())) // mezfes end time
+	mezfes := true
+	if mezfes {
+		bf.WriteUint32(uint32(channelserver.Time_Current_Adjusted().Add(-5 * time.Minute).Unix())) // mezfes start time
+		bf.WriteUint32(uint32(channelserver.Time_Current_Adjusted().Add(24 * time.Hour * 7).Unix())) // mezfes end time
+	} else {
+		bf.WriteUint32(0)
+		bf.WriteUint32(0)
+	}
 
 	endBytes, _ := hex.DecodeString("020000002700000027080A03060904080507")
 	bf.WriteBytes(endBytes)

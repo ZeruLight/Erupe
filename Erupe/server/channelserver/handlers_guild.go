@@ -951,23 +951,23 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 		if guild.PugiName1 == "" {
 			bf.WriteUint16(0x0100)
 		} else {
-			bf.WriteUint8(uint8(len(guild.PugiName1)+1))
 			pugiName := s.clientContext.StrConv.MustEncode(guild.PugiName1)
-			bf.WriteNullTerminatedBytes(pugiName)
+			bf.WriteUint8(uint8(len(pugiName)))
+			bf.WriteBytes(pugiName)
 		}
 		if guild.PugiName2 == "" {
 			bf.WriteUint16(0x0100)
 		} else {
-			bf.WriteUint8(uint8(len(guild.PugiName2)+1))
 			pugiName := s.clientContext.StrConv.MustEncode(guild.PugiName2)
-			bf.WriteNullTerminatedBytes(pugiName)
+			bf.WriteUint8(uint8(len(pugiName)))
+			bf.WriteBytes(pugiName)
 		}
 		if guild.PugiName3 == "" {
 			bf.WriteUint16(0x0100)
 		} else {
-			bf.WriteUint8(uint8(len(guild.PugiName3)+1))
 			pugiName := s.clientContext.StrConv.MustEncode(guild.PugiName3)
-			bf.WriteNullTerminatedBytes(pugiName)
+			bf.WriteUint8(uint8(len(pugiName)))
+			bf.WriteBytes(pugiName)
 		}
 
 		// probably guild pugi properties, should be status, stamina and luck outfits

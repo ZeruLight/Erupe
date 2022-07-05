@@ -1,11 +1,11 @@
 BEGIN;
 
 ALTER TABLE IF EXISTS public.guilds
-(
-    ADD COLUMN pugi_name_1 varchar(12) DEFAULT '',
-    ADD COLUMN pugi_name_2 varchar(12) DEFAULT '',
-    ADD COLUMN pugi_name_3 varchar(12) DEFAULT ''
-);
+    ADD COLUMN pugi_name_1 varchar(12) DEFAULT '';
+ALTER TABLE IF EXISTS public.guilds
+    ADD COLUMN pugi_name_2 varchar(12) DEFAULT '';
+ALTER TABLE IF EXISTS public.guilds
+    ADD COLUMN pugi_name_3 varchar(12) DEFAULT '';
 
 CREATE TABLE IF NOT EXISTS public.guild_alliances
 (

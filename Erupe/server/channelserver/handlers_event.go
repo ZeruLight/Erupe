@@ -1,7 +1,7 @@
 package channelserver
 
 import (
-	"fmt"
+	"math"
 	"math/rand"
 	"time"
 
@@ -53,8 +53,6 @@ func handleMsgMhfEnumerateEvent(s *Session, p mhfpacket.MHFPacket) {
 	stubEnumerateNoResults(s, pkt.AckHandle)
 }
 
-var persistentEventSchedule []activeFeature
-
 type activeFeature struct {
 	StartTime      time.Time
 	ActiveFeatures uint32
@@ -63,24 +61,15 @@ type activeFeature struct {
 
 func handleMsgMhfGetWeeklySchedule(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetWeeklySchedule)
-	// ActiveFeatures is a bit field, 0x3FFF is all 14 active features.
-	// Long term it should probably be made persistent and simply cycle a couple daily
-	// Times seem to need to be timeServerFix.midnight which is likely why matching timezone was required originally
-	if len(persistentEventSchedule) == 0 {
-		if s.server.erupeConfig.DevMode && s.server.erupeConfig.DevModeOptions.OpcodeMessages {
-			s.logger.Info("\nGenerating active feature...")
-		}
-		persistentEventSchedule = make([]activeFeature, 8)
-		//weapons := generateRandomNumber(1, 14, 8)
-		for x := -1; x < 7; x++ {
-			var feat uint32
-			feat |= 65535
-			persistentEventSchedule[x+1] = activeFeature{
-				StartTime:      Time_Current_Midnight().Add(time.Duration(24*x) * time.Hour),
-				ActiveFeatures: feat,
-				Unk1:           0,
-			}
-			fmt.Println(feat)
+	persistentEventSchedule := make([]activeFeature, 8) // generate day after weekly restart
+	for x := -1; x < 7; x++ {
+		feat := generateActiveWeapons(14) // number of active weapons
+		// TODO: only generate this once per restart (server should be restarted weekly)
+		// then load data from db instead of regenerating
+		persistentEventSchedule[x+1] = activeFeature {
+			StartTime:      Time_Current_Midnight().Add(time.Duration(24*x) * time.Hour),
+			ActiveFeatures: uint32(feat),
+			Unk1:           0,
 		}
 	}
 
@@ -96,14 +85,12 @@ func handleMsgMhfGetWeeklySchedule(s *Session, p mhfpacket.MHFPacket) {
 	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
 }
 
-func generateRandomNumber(start int, end int, count int) []int {
-	if end < start || (end-start) < count {
-		return nil
-	}
+func generateActiveWeapons(count int) int {
 	nums := make([]int, 0)
+	var result int
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	for len(nums) < count {
-		num := r.Intn((end - start)) + start
+		num := r.Intn(14)
 		exist := false
 		for _, v := range nums {
 			if v == num {
@@ -115,7 +102,10 @@ func generateRandomNumber(start int, end int, count int) []int {
 			nums = append(nums, num)
 		}
 	}
-	return nums
+	for _, num := range nums {
+		result += int(math.Pow(2, float64(num)))
+	}
+	return result
 }
 
 type loginBoost struct {

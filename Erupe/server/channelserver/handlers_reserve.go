@@ -1,6 +1,6 @@
 package channelserver
 
-import "github.com/Solenataris/Erupe/network/mhfpacket"
+import "erupe-ce/network/mhfpacket"
 
 func handleMsgSysReserve188(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysReserve188)

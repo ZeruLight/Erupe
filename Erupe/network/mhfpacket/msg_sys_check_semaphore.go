@@ -3,9 +3,9 @@ package mhfpacket
 import ( 
  "errors" 
 
- 	"github.com/Solenataris/Erupe/network/clientctx"
-	"github.com/Solenataris/Erupe/common/bfutil"
-	"github.com/Solenataris/Erupe/network"
+ 	"erupe-ce/network/clientctx"
+	"erupe-ce/common/bfutil"
+	"erupe-ce/network"
 	"github.com/Andoryuuta/byteframe"
 )
 

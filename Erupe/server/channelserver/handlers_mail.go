@@ -4,8 +4,8 @@ import (
 	"database/sql"
 	"time"
 
-	"github.com/Solenataris/Erupe/network/binpacket"
-	"github.com/Solenataris/Erupe/network/mhfpacket"
+	"erupe-ce/network/binpacket"
+	"erupe-ce/network/mhfpacket"
 	"github.com/Andoryuuta/byteframe"
 	"go.uber.org/zap"
 )

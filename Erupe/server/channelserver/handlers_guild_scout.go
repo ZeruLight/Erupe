@@ -5,8 +5,8 @@ import (
 	"io"
 	"time"
 
-	"github.com/Solenataris/Erupe/common/stringsupport"
-	"github.com/Solenataris/Erupe/network/mhfpacket"
+	"erupe-ce/common/stringsupport"
+	"erupe-ce/network/mhfpacket"
 	"github.com/Andoryuuta/byteframe"
 	"go.uber.org/zap"
 )

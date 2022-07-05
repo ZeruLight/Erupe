@@ -6,10 +6,10 @@ import (
 	"sync"
 
 	"github.com/Andoryuuta/byteframe"
-	"github.com/Solenataris/Erupe/config"
-	"github.com/Solenataris/Erupe/network/binpacket"
-	"github.com/Solenataris/Erupe/network/mhfpacket"
-	"github.com/Solenataris/Erupe/server/discordbot"
+	"erupe-ce/config"
+	"erupe-ce/network/binpacket"
+	"erupe-ce/network/mhfpacket"
+	"erupe-ce/server/discordbot"
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )

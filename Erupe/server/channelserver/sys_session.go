@@ -8,11 +8,11 @@ import (
 	"sync"
 
 	"github.com/Andoryuuta/byteframe"
-	"github.com/Solenataris/Erupe/common/stringstack"
-	"github.com/Solenataris/Erupe/common/stringsupport"
-	"github.com/Solenataris/Erupe/network"
-	"github.com/Solenataris/Erupe/network/clientctx"
-	"github.com/Solenataris/Erupe/network/mhfpacket"
+	"erupe-ce/common/stringstack"
+	"erupe-ce/common/stringsupport"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
+	"erupe-ce/network/mhfpacket"
 	"go.uber.org/zap"
 	"golang.org/x/text/encoding/japanese"
 )

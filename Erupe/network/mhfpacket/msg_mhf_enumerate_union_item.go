@@ -4,8 +4,8 @@ import (
 	"errors"
 
 	"github.com/Andoryuuta/byteframe"
-	"github.com/Solenataris/Erupe/network"
-	"github.com/Solenataris/Erupe/network/clientctx"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgMhfEnumerateUnionItem represents the MSG_MHF_ENUMERATE_UNION_ITEM

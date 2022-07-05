@@ -6,8 +6,8 @@ import (
 	"time"
 
 	"github.com/Andoryuuta/byteframe"
-	"github.com/Solenataris/Erupe/network/mhfpacket"
-	timeServerFix "github.com/Solenataris/Erupe/server/channelserver/timeserver"
+	"erupe-ce/network/mhfpacket"
+	timeServerFix "erupe-ce/server/channelserver/timeserver"
 )
 
 func handleMsgMhfRegisterEvent(s *Session, p mhfpacket.MHFPacket) {

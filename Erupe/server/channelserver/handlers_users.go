@@ -4,7 +4,7 @@ import (
 	"encoding/base64"
 	"fmt"
 
-	"github.com/Solenataris/Erupe/network/mhfpacket"
+	"erupe-ce/network/mhfpacket"
 	"github.com/Andoryuuta/byteframe"
 )
 

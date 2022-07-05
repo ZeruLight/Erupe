@@ -1,8 +1,8 @@
 package channelserver
 
 import (
-	"github.com/Solenataris/Erupe/network/mhfpacket"
-	"github.com/Solenataris/Erupe/common/stringsupport"
+	"erupe-ce/network/mhfpacket"
+	"erupe-ce/common/stringsupport"
 	"github.com/Andoryuuta/byteframe"
 	"go.uber.org/zap"
 )

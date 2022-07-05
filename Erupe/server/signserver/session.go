@@ -6,7 +6,7 @@ import (
 	"net"
 	"sync"
 
-	"github.com/Solenataris/Erupe/network"
+	"erupe-ce/network"
 	"github.com/Andoryuuta/byteframe"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"

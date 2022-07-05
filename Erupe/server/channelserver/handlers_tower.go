@@ -1,7 +1,7 @@
 package channelserver
 
 import (
-	"github.com/Solenataris/Erupe/network/mhfpacket"
+	"erupe-ce/network/mhfpacket"
     "encoding/hex"
 )
 

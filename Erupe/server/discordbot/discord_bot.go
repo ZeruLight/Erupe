@@ -3,7 +3,7 @@ package discordbot
 import (
 	"regexp"
 
-	"github.com/Solenataris/Erupe/config"
+	"erupe-ce/config"
 	"github.com/bwmarrin/discordgo"
 	"go.uber.org/zap"
 )

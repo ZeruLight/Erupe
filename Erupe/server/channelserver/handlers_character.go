@@ -4,8 +4,8 @@ import (
 	"database/sql"
 	"encoding/binary"
 
-	"github.com/Solenataris/Erupe/network/mhfpacket"
-	"github.com/Solenataris/Erupe/server/channelserver/compression/nullcomp"
+	"erupe-ce/network/mhfpacket"
+	"erupe-ce/server/channelserver/compression/nullcomp"
 	"go.uber.org/zap"
 )
 

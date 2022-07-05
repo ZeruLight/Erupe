@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/Andoryuuta/byteframe"
-	"github.com/Solenataris/Erupe/network/mhfpacket"
+	"erupe-ce/network/mhfpacket"
 )
 
 // StageObject holds infomation about a specific stage object.

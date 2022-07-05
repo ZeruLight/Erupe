@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/Andoryuuta/byteframe"
-	"github.com/Solenataris/Erupe/network"
-	"github.com/Solenataris/Erupe/network/clientctx"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgSysOperateRegister represents the MSG_SYS_OPERATE_REGISTER

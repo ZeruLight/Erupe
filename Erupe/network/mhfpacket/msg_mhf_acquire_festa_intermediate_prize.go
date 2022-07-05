@@ -3,8 +3,8 @@ package mhfpacket
 import (
 	"errors"
 
-	"github.com/Solenataris/Erupe/network"
-	"github.com/Solenataris/Erupe/network/clientctx"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 	"github.com/Andoryuuta/byteframe"
 )
 

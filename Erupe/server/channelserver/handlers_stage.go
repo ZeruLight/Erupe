@@ -5,7 +5,7 @@ import (
 	"time"
 	"strings"
 
-	"github.com/Solenataris/Erupe/network/mhfpacket"
+	"erupe-ce/network/mhfpacket"
 	"github.com/Andoryuuta/byteframe"
 	"go.uber.org/zap"
 )

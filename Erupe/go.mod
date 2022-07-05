@@ -1,4 +1,4 @@
-module github.com/Solenataris/Erupe
+module erupe-ce
 
 go 1.16
 

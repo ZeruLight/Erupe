@@ -1,6 +1,6 @@
 package channelserver
 
-import "github.com/Solenataris/Erupe/network/mhfpacket"
+import "erupe-ce/network/mhfpacket"
 
 func handleMsgMhfEnumerateCampaign(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateCampaign)

@@ -7,8 +7,8 @@ import (
 	"net"
 	"sync"
 
-	"github.com/Solenataris/Erupe/config"
-	"github.com/Solenataris/Erupe/network"
+	"erupe-ce/config"
+	"erupe-ce/network"
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )

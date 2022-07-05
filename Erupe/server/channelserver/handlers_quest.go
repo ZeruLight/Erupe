@@ -6,7 +6,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/Solenataris/Erupe/network/mhfpacket"
+	"erupe-ce/network/mhfpacket"
 	"github.com/Andoryuuta/byteframe"
 )
 

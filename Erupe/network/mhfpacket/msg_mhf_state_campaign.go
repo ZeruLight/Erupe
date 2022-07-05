@@ -1,9 +1,9 @@
 package mhfpacket
 
 import (
-	"github.com/Solenataris/Erupe/network/clientctx"
+	"erupe-ce/network/clientctx"
 
-	"github.com/Solenataris/Erupe/network"
+	"erupe-ce/network"
 	"github.com/Andoryuuta/byteframe"
 )
 

@@ -9,10 +9,10 @@ import (
 	"path/filepath"
 
 	"github.com/Andoryuuta/byteframe"
-	"github.com/Solenataris/Erupe/common/bfutil"
-	"github.com/Solenataris/Erupe/network/mhfpacket"
-	"github.com/Solenataris/Erupe/server/channelserver/compression/deltacomp"
-	"github.com/Solenataris/Erupe/server/channelserver/compression/nullcomp"
+	"erupe-ce/common/bfutil"
+	"erupe-ce/network/mhfpacket"
+	"erupe-ce/server/channelserver/compression/deltacomp"
+	"erupe-ce/server/channelserver/compression/nullcomp"
 	"go.uber.org/zap"
 )
 

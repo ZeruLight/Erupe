@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/Andoryuuta/byteframe"
-	"github.com/Solenataris/Erupe/network/mhfpacket"
+	"erupe-ce/network/mhfpacket"
 	"go.uber.org/zap"
 	"golang.org/x/text/encoding/japanese"
 	"golang.org/x/text/transform"

@@ -4,8 +4,8 @@ import (
 	"errors"
 
 	"github.com/Andoryuuta/byteframe"
-	"github.com/Solenataris/Erupe/network"
-	"github.com/Solenataris/Erupe/network/clientctx"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgSysSetUserBinary represents the MSG_SYS_SET_USER_BINARY

@@ -1,6 +1,6 @@
 package mhfpacket
 
-import "github.com/Solenataris/Erupe/network"
+import "erupe-ce/network"
 
 // FromOpcode gets a packet struct that fulfills the MHFPacket interface by it's opcode.
 func FromOpcode(opcode network.PacketID) MHFPacket {

@@ -1,8 +1,8 @@
 package binpacket
 
 import (
-	"github.com/Solenataris/Erupe/common/stringsupport"
-	"github.com/Solenataris/Erupe/network"
+	"erupe-ce/common/stringsupport"
+	"erupe-ce/network"
 	"github.com/Andoryuuta/byteframe"
 )
 

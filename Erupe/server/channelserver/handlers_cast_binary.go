@@ -6,8 +6,8 @@ import (
 	"math"
 
 	"github.com/Andoryuuta/byteframe"
-	"github.com/Solenataris/Erupe/network/binpacket"
-	"github.com/Solenataris/Erupe/network/mhfpacket"
+	"erupe-ce/network/binpacket"
+	"erupe-ce/network/mhfpacket"
 )
 
 // MSG_SYS_CAST[ED]_BINARY types enum

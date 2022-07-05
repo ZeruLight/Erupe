@@ -1,7 +1,7 @@
 package binpacket
 
 import (
-	"github.com/Solenataris/Erupe/network"
+	"erupe-ce/network"
 	"github.com/Andoryuuta/byteframe"
 )
 

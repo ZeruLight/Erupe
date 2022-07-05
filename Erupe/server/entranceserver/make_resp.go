@@ -4,11 +4,11 @@ import (
 	"encoding/binary"
 	"net"
 
-	"github.com/Solenataris/Erupe/common/stringsupport"
+	"erupe-ce/common/stringsupport"
 
 	"github.com/Andoryuuta/byteframe"
-	"github.com/Solenataris/Erupe/config"
-	"github.com/Solenataris/Erupe/server/channelserver"
+	"erupe-ce/config"
+	"erupe-ce/server/channelserver"
 )
 
 func paddedString(x string, size uint) []byte {

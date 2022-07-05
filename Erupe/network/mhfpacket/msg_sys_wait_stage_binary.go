@@ -2,9 +2,9 @@ package mhfpacket
 
 import (
 	"github.com/Andoryuuta/byteframe"
-	"github.com/Solenataris/Erupe/common/bfutil"
-	"github.com/Solenataris/Erupe/network"
-	"github.com/Solenataris/Erupe/network/clientctx"
+	"erupe-ce/common/bfutil"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgSysWaitStageBinary represents the MSG_SYS_WAIT_STAGE_BINARY

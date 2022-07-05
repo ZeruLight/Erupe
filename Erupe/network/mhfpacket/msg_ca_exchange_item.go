@@ -4,8 +4,8 @@ import (
 	"errors"
 
 	"github.com/Andoryuuta/byteframe"
-	"github.com/Solenataris/Erupe/network"
-	"github.com/Solenataris/Erupe/network/clientctx"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgCaExchangeItem represents the MSG_CA_EXCHANGE_ITEM

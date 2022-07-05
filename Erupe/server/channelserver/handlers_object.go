@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/Andoryuuta/byteframe"
-	"github.com/Solenataris/Erupe/network/mhfpacket"
+	"erupe-ce/network/mhfpacket"
 )
 
 func handleMsgSysCreateObject(s *Session, p mhfpacket.MHFPacket) {

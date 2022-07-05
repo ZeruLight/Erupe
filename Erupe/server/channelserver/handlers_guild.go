@@ -14,9 +14,9 @@ import (
 	"time"
 
 	"github.com/Andoryuuta/byteframe"
-	"github.com/Solenataris/Erupe/common/bfutil"
-	"github.com/Solenataris/Erupe/common/stringsupport"
-	"github.com/Solenataris/Erupe/network/mhfpacket"
+	"erupe-ce/common/bfutil"
+	"erupe-ce/common/stringsupport"
+	"erupe-ce/network/mhfpacket"
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )

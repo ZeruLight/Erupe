@@ -6,9 +6,9 @@ import (
 	"strings"
 	"time"
 
-	//"github.com/Solenataris/Erupe/common/stringsupport"
+	//"erupe-ce/common/stringsupport"
 	"github.com/Andoryuuta/byteframe"
-	"github.com/Solenataris/Erupe/network/mhfpacket"
+	"erupe-ce/network/mhfpacket"
 	"github.com/lib/pq"
 	"github.com/sachaos/lottery"
 	"go.uber.org/zap"

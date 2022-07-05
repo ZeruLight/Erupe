@@ -3,7 +3,7 @@ package channelserver
 import (
 	"encoding/hex"
 	"github.com/Andoryuuta/byteframe"
-	"github.com/Solenataris/Erupe/network/mhfpacket"
+	"erupe-ce/network/mhfpacket"
 )
 
 func handleMsgSysOperateRegister(s *Session, p mhfpacket.MHFPacket) {

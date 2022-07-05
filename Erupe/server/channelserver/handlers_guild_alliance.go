@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/Solenataris/Erupe/network/mhfpacket"
+	"erupe-ce/network/mhfpacket"
 	"github.com/jmoiron/sqlx"
   "go.uber.org/zap"
 )

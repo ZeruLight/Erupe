@@ -45,11 +45,11 @@ func encodeServerInfo(serverInfos []config.EntranceServerInfo, s *Server) []byte
 		}
 		bf.WriteUint32(binary.LittleEndian.Uint32(net.ParseIP(si.IP).To4()))
 		bf.WriteUint16(16 + uint16(serverIdx))
-		bf.WriteUint16(si.Unk2)
+		bf.WriteUint16(0x0000)
 		bf.WriteUint16(uint16(len(si.Channels)))
 		bf.WriteUint8(si.Type)
 		bf.WriteUint8(season)
-		bf.WriteUint8(si.Unk6)
+		bf.WriteUint8(si.Recommended)
 		shiftjisName, err := stringsupport.ConvertUTF8ToShiftJIS(si.Name)
 		if err != nil {
 			panic(err)
@@ -66,16 +66,13 @@ func encodeServerInfo(serverInfos []config.EntranceServerInfo, s *Server) []byte
 				panic(err)
 			}
 			bf.WriteUint16(currentplayers)
-			bf.WriteUint16(ci.Unk4)
-			bf.WriteUint16(ci.Unk5)
-			bf.WriteUint16(ci.Unk6)
-			bf.WriteUint16(ci.Unk7)
-			bf.WriteUint16(ci.Unk8)
-			bf.WriteUint16(ci.Unk9)
-			bf.WriteUint16(ci.Unk10)
-			bf.WriteUint16(ci.Unk11)
-			bf.WriteUint16(ci.Unk12)
-			bf.WriteUint16(ci.Unk13)
+			bf.WriteUint32(0)
+			bf.WriteUint32(0)
+			bf.WriteUint32(0)
+			bf.WriteUint16(ci.Unk0)
+			bf.WriteUint16(ci.Unk1)
+			bf.WriteUint16(ci.Unk2)
+			bf.WriteUint16(0x3039)
 		}
 	}
 	bf.WriteUint32(uint32(channelserver.Time_Current_Adjusted().Unix()))

@@ -1,156 +1,105 @@
 {
-    "host_ip": "",
-    "bin_path": "bin",
-    "devmode": true,
-    "devmodeoptions": {
-        "serverName" : "",
-        "cleandb": false,
-        "maxlauncherhr": true,
-        "LogOutboundMessages": false,
-		"Event": 0, 
-        "OpcodeMessages": false,
-		"SaveDumps": {
-			"Enabled": true,
-			"OutputDir": "savedata"
-		}
-		
-    },
-    "discord": {
-        "enabled": false,
-        "bottoken": "",
-        "realtimeChannelID": "",
-        "serverId": "",
-        "devRoles": [],
-        "devMode": false
-    },
-    "database": {
-        "host": "localhost",
-        "port": 5432,
-        "user": "postgres",
-        "password": "",
-        "database": "erupe"
-    },
-    "launcher": {
-        "port": 80,
-        "UseOriginalLauncherFiles": false
-    },
-    "sign": {
-        "port": 53312
-    },
-    "channel": {
-        "port1": 54001,
-		"port2": 54002,
-		"port3": 54003,
-		"port4": 54004
-    },
-    "entrance": {
-        "port": 53310,
-        "entries": [
-            {
-                "name": " Server #1",
-                "ip": "",
-                "unk2": 0,
-                "type": 3,
-                "season": 3,
-                "unk6": 0,
-                "allowedclientflags": "4096",
-                "channels": [
-                    {
-                        "port": 54001,
-                        "MaxPlayers": 100,
-                        "CurrentPlayers": 0,
-                        "Unk4": 0,
-                        "Unk5": 0,
-                        "Unk6": 0,
-                        "Unk7": 0,
-                        "Unk8": 0,
-                        "Unk9": 0,
-                        "Unk10": 319,
-                        "Unk11": 248,
-                        "Unk12": 159,
-                        "Unk13": 12345
-                    }
-                ]
-            },
-            {
-                "name": " Server #2",
-                "ip": "",
-                "unk2": 0,
-                "type": 1,
-                "season": 3,
-                "unk6": 0,
-                "allowedclientflags": 0,
-                "channels": [
-                    {
-                        "port": 54002,
-                        "MaxPlayers": 50,
-                        "CurrentPlayers": 0,
-                        "Unk4": 0,
-                        "Unk5": 0,
-                        "Unk6": 0,
-                        "Unk7": 0,
-                        "Unk8": 0,
-                        "Unk9": 0,
-                        "Unk10": 318,
-                        "Unk11": 251,
-                        "Unk12": 155,
-                        "Unk13": 12345
-                    }
-                ]
-            },
-            {
-                "name": " Server #3",
-                "ip": "",
-                "unk2": 0,
-                "type": 2,
-                "season": 1,
-                "unk6": 0,
-                "allowedclientflags": 0,
-                "channels": [
-                    {
-                        "port": 54003,
-                        "MaxPlayers": 50,
-                        "CurrentPlayers": 0,
-                        "Unk4": 0,
-                        "Unk5": 0,
-                        "Unk6": 0,
-                        "Unk7": 0,
-                        "Unk8": 0,
-                        "Unk9": 0,
-                        "Unk10": 318,
-                        "Unk11": 251,
-                        "Unk12": 155,
-                        "Unk13": 12345
-                    }
-                ]
-            },
-			{
-                "name": " Server #4",
-                "ip": "",
-                "unk2": 0,
-                "type": 4,
-                "season": 0,
-                "unk6": 0,
-                "allowedclientflags": 0,
-                "channels": [
-                    {
-                        "port": 54004,
-                        "MaxPlayers": 50,
-                        "CurrentPlayers": 0,
-                        "Unk4": 0,
-                        "Unk5": 0,
-                        "Unk6": 0,
-                        "Unk7": 0,
-                        "Unk8": 0,
-                        "Unk9": 0,
-                        "Unk10": 318,
-                        "Unk11": 251,
-                        "Unk12": 155,
-                        "Unk13": 12345
-                    }
-                ]
-				
-            }
-        ]
+  "host_ip": "",
+  "bin_path": "bin",
+  "devmode": true,
+  "devmodeoptions": {
+    "serverName" : "",
+    "cleandb": false,
+    "maxlauncherhr": true,
+    "LogOutboundMessages": false,
+    "Event": 0,
+    "OpcodeMessages": false,
+    "SaveDumps": {
+      "Enabled": true,
+      "OutputDir": "savedata"
     }
+  },
+  "discord": {
+    "enabled": false,
+    "bottoken": "",
+    "realtimeChannelID": "",
+    "serverId": "",
+    "devRoles": [],
+    "devMode": false
+  },
+  "database": {
+    "host": "localhost",
+    "port": 5432,
+    "user": "postgres",
+    "password": "",
+    "database": "erupe"
+  },
+  "launcher": {
+    "port": 80,
+    "UseOriginalLauncherFiles": false
+  },
+  "sign": {
+    "port": 53312
+  },
+  "entrance": {
+    "port": 53310,
+    "entries": [
+      {
+        "name": "ANewbie",
+        "ip": "",
+        "type": 3,
+        "recommended": 1,
+        "season": 3,
+        "allowedclientflags": 4096,
+        "channels": [
+          { "port": 54001, "MaxPlayers": 50, "Unk0": 319, "Unk1": 252, "Unk2": 248 }
+        ]
+      }, {
+        "name": "ANormal",
+        "ip": "",
+        "type": 1,
+        "recommended": 0,
+        "season": 3,
+        "allowedclientflags": 0,
+        "channels": [
+          { "port": 54002, "MaxPlayers": 50, "Unk0": 319, "Unk1": 252, "Unk2": 248 }
+        ]
+      }, {
+        "name": "ACities",
+        "ip": "",
+        "type": 2,
+        "recommended": 1,
+        "season": 3,
+        "allowedclientflags": 0,
+        "channels": [
+          { "port": 54003, "MaxPlayers": 50, "Unk0": 319, "Unk1": 252, "Unk2": 248 }
+        ]
+      }, {
+        "name": "ATavern",
+        "ip": "",
+        "type": 4,
+        "recommended": 1,
+        "season": 3,
+        "allowedclientflags": 0,
+        "channels": [
+          { "port": 54004, "MaxPlayers": 50, "Unk0": 319, "Unk1": 252, "Unk2": 248 }
+        ]
+      }, {
+        "name": "AReturn",
+        "ip": "",
+        "type": 5,
+        "recommended": 1,
+        "season": 3,
+        "allowedclientflags": 0,
+        "channels": [
+          { "port": 54005, "MaxPlayers": 50, "Unk0": 319, "Unk1": 252, "Unk2": 248 }
+        ]
+      }, {
+        "name": "AMezFes",
+        "ip": "",
+        "type": 6,
+        "recommended": 1,
+        "season": 3,
+        "allowedclientflags": 0,
+        "channels": [
+          { "port": 54006, "MaxPlayers": 50, "Unk0": 319, "Unk1": 252, "Unk2": 248 }
+        ]
+      }
+    ]
+  }
 }

@@ -4,6 +4,10 @@ import (
 	"fmt"
 	"math/rand"
 	"time"
+	"encoding/hex"
+	"io/ioutil"
+	"path/filepath"
+	"erupe-ce/server/channelserver"
 
 	"github.com/Andoryuuta/byteframe"
 	"go.uber.org/zap"
@@ -56,22 +60,20 @@ func (s *Session) makeSignInResp(uid int) []byte {
 	token := randSeq(16)
 	// TODO: register token to db, users table
 
+	t := japanese.ShiftJIS.NewEncoder()
 	bf := byteframe.NewByteFrame()
 
-	bf.WriteUint8(1)                       // resp_code
-	bf.WriteUint8(0)                       // file/patch server count
-	bf.WriteUint8(4)                       // entrance server count
-	bf.WriteUint8(uint8(len(chars)))       // character count
-	bf.WriteUint32(0xFFFFFFFF)             // login_token_number
-	bf.WriteBytes(paddedString(token, 16)) // login_token (16 byte padded string)
-	bf.WriteUint32(1576761190)
+	bf.WriteUint8(1)                          // resp_code
+	bf.WriteUint8(0)                          // file/patch server count
+	bf.WriteUint8(1)                          // entrance server count
+	bf.WriteUint8(uint8(len(chars)))          // character count
+	bf.WriteUint32(0xFFFFFFFF)                // login_token_number
+	bf.WriteBytes(paddedString(token, 16))    // login_token (16 byte padded string)
+	bf.WriteUint32(uint32(time.Now().Unix())) // unk timestamp
 	uint8PascalString(bf, fmt.Sprintf("%s:%d", s.server.erupeConfig.HostIP, s.server.erupeConfig.Entrance.Port))
-	uint8PascalString(bf, "")
-	uint8PascalString(bf, "")
-	uint8PascalString(bf, "mhf-n.capcom.com.tw")
 
 	for _, char := range chars {
-		bf.WriteUint32(char.ID) // character ID 469153291
+		bf.WriteUint32(char.ID)
 
 		// Exp, HR[x] is split by 0, 1, 30, 50, 99, 299, 998, 999
 		if s.server.erupeConfig.DevMode && s.server.erupeConfig.DevModeOptions.MaxLauncherHR {
@@ -80,12 +82,11 @@ func (s *Session) makeSignInResp(uid int) []byte {
 			bf.WriteUint16(char.HRP)
 		}
 
-		t := japanese.ShiftJIS.NewEncoder()
 		str_name, _, err := transform.String(t, char.Name)
 		if err != nil {
 		  str_name = char.Name
 		}
-		
+
 		bf.WriteUint16(char.WeaponType)                     // Weapon, 0-13.
 		bf.WriteUint32(char.LastLogin)                      // Last login date, unix timestamp in seconds.
 		bf.WriteBool(char.IsFemale)                         // Sex, 0=male, 1=female.
@@ -101,23 +102,48 @@ func (s *Session) makeSignInResp(uid int) []byte {
 	bf.WriteUint8(0)           // friends_list_count
 	bf.WriteUint8(0)           // guild_members_count
 	bf.WriteUint8(0)           // notice_count
-	bf.WriteUint32(0xDEADBEEF) // some_last_played_character_id
+
+	// noticeText := "<BODY><CENTER><SIZE_3><C_4>Welcome to Erupe SU9!<BR><BODY><LEFT><SIZE_2><C_5>Erupe is experimental software<C_7>, we are not liable for any<BR><BODY>issues caused by installing the software!<BR><BODY><BR><BODY><C_4>■Report bugs on Discord!<C_7><BR><BODY><BR><BODY><C_4>■Test everything!<C_7><BR><BODY><BR><BODY><C_4>■Don't talk to softlocking NPCs!<C_7><BR><BODY><BR><BODY><C_4>■Fork the code on GitHub!<C_7><BR><BODY><BR><BODY>Thank you to all of the contributors,<BR><BODY><BR><BODY>this wouldn't exist without you."
+	// notice_transformed, _, err := transform.String(t, noticeText)
+	// if err != nil {
+	// 	panic(err)
+	// }
+	// bf.WriteUint32(uint32(len(notice_transformed)+1))
+	// bf.WriteNullTerminatedBytes([]byte(notice_transformed))
+
+	bf.WriteUint32(0)          // some_last_played_character_id
 	bf.WriteUint32(14)         // unk_flags
-	uint8PascalString(bf, "")  // unk_data_blob PascalString
 
-	bf.WriteUint16(51728)
-	bf.WriteUint16(20000)
-	uint16PascalString(bf, "1000672925")
+	filters, err := ioutil.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, "filters.bin")) //dsmc name and msg obj
+	if err != nil {
+		panic(err)
+	}
+	bf.WriteBytes(filters)
 
-	bf.WriteUint8(0)
+	bf.WriteUint32(0xCA104E20)
+	uint16PascalString(bf, "")
+	bf.WriteUint8(0x00)
+	bf.WriteUint32(0xCA110001)
+	bf.WriteUint32(0x4E200000)
 
-	bf.WriteUint16(51729)
-	bf.WriteUint16(1)
-	bf.WriteUint16(20000)
-	uint16PascalString(bf, "203.191.249.36:8080")
+	returning := false
+	// return course end time
+	if returning {
+		bf.WriteUint32(uint32(channelserver.Time_Current_Adjusted().Add(30 * 24 * time.Hour).Unix()))
+	} else {
+		bf.WriteUint32(0)
+	}
 
-	bf.WriteUint32(1578905116)
-	bf.WriteUint32(0)
+	bf.WriteUint32(0x00000000)
+	bf.WriteBool(true) // mezfes active
+	bf.WriteUint16(0x0000)
+	bf.WriteUint8(0x00)
+
+	bf.WriteUint32(uint32(channelserver.Time_Current_Adjusted().Add(-5 * time.Minute).Unix())) // mezfes start time
+	bf.WriteUint32(uint32(channelserver.Time_Current_Adjusted().Add(24 * time.Hour * 7).Unix())) // mezfes end time
+
+	endBytes, _ := hex.DecodeString("020000002700000027080A03060904080507")
+	bf.WriteBytes(endBytes)
 
 	return bf.Data()
 }

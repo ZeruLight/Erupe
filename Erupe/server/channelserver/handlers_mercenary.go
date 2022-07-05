@@ -1,7 +1,6 @@
 package channelserver
 
 import (
-	"fmt"
 	"math/rand"
 	"os"
 	"io"
@@ -187,7 +186,6 @@ func handleMsgMhfReadMercenaryW(s *Session, p mhfpacket.MHFPacket) {
 	resp.WriteBytes(data)
 	resp.WriteUint16(0)
 	resp.WriteUint32(gcp)
-	fmt.Printf("% x", resp.Data())
 	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
 }
 

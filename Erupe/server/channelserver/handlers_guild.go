@@ -987,13 +987,13 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 			if err != nil {
 				bf.WriteUint32(0) // Error, no alliance
 			} else {
-				allianceName, _ := stringsupport.ConvertUTF8ToShiftJIS(alliance.Name)
-				allianceParentName, _ := stringsupport.ConvertUTF8ToShiftJIS(alliance.ParentGuild.Name)
-				allianceParentOwner, _ := stringsupport.ConvertUTF8ToShiftJIS(alliance.ParentGuild.LeaderName)
-				allianceSub1Name, _ := stringsupport.ConvertUTF8ToShiftJIS(alliance.SubGuild1.Name)
-				allianceSub1Owner, _ := stringsupport.ConvertUTF8ToShiftJIS(alliance.SubGuild1.LeaderName)
-				allianceSub2Name, _ := stringsupport.ConvertUTF8ToShiftJIS(alliance.SubGuild2.Name)
-				allianceSub2Owner, _ := stringsupport.ConvertUTF8ToShiftJIS(alliance.SubGuild2.LeaderName)
+				allianceName := s.clientContext.StrConv.MustEncode(alliance.Name)
+				allianceParentName := s.clientContext.StrConv.MustEncode(alliance.ParentGuild.Name)
+				allianceParentOwner := s.clientContext.StrConv.MustEncode(alliance.ParentGuild.LeaderName)
+				allianceSub1Name := s.clientContext.StrConv.MustEncode(alliance.SubGuild1.Name)
+				allianceSub1Owner := s.clientContext.StrConv.MustEncode(alliance.SubGuild1.LeaderName)
+				allianceSub2Name := s.clientContext.StrConv.MustEncode(alliance.SubGuild2.Name)
+				allianceSub2Owner := s.clientContext.StrConv.MustEncode(alliance.SubGuild2.LeaderName)
 				bf.WriteUint32(alliance.ID)
 				bf.WriteUint32(uint32(alliance.CreatedAt.Unix()))
 				bf.WriteUint16(uint16(alliance.TotalMembers))

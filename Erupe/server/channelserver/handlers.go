@@ -344,7 +344,11 @@ func handleMsgMhfPresentBox(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfServerCommand(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfAnnounce(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfAnnounce(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfAnnounce)
+	s.server.BroadcastRaviente(pkt.IPAddress, pkt.Port, pkt.StageID)
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+}
 
 func handleMsgMhfSetLoginwindow(s *Session, p mhfpacket.MHFPacket) {}
 

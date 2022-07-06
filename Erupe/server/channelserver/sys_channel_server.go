@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net"
 	"sync"
+	"encoding/hex"
 
 	"github.com/Andoryuuta/byteframe"
 	"erupe-ce/config"
@@ -304,6 +305,30 @@ func (s *Server) BroadcastChatMessage(message string) {
 	s.BroadcastMHF(&mhfpacket.MsgSysCastedBinary{
 		CharID:         0xFFFFFFFF,
 		MessageType:    BinaryMessageTypeChat,
+		RawDataPayload: bf.Data(),
+	}, nil)
+}
+
+func (s *Server) BroadcastRaviente(ip uint32, port uint16, stage []byte) {
+	bf := byteframe.NewByteFrame()
+	bf.SetLE()
+	bf.WriteUint16(0) // Unk
+	bf.WriteUint16(0x43) // Data len
+	bf.WriteUint16(3) // Unk len
+	bf.WriteUint16(0x29) // String len
+	d, _ := hex.DecodeString("3C91E593A294B0814696D28BB68AFA81798BC9817A3E82AA8A4A8DC382B382EA82DC82B582BD814900")
+	bf.WriteBytes(d)
+	bf.WriteBytes([]byte{0x5F, 0x53, 0x00})
+	bf.WriteUint32(ip) // IP address
+	bf.WriteUint16(port) // Port
+	bf.WriteUint16(0) // Unk
+	bf.WriteNullTerminatedBytes(stage)
+	bf.WriteBytes(make([]byte, 17))
+
+	s.BroadcastMHF(&mhfpacket.MsgSysCastedBinary{
+		CharID: 0x00000000,
+		BroadcastType: BroadcastTypeSemaphore,
+		MessageType: BinaryMessageTypeChat,
 		RawDataPayload: bf.Data(),
 	}, nil)
 }

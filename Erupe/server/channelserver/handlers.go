@@ -171,6 +171,10 @@ func handleMsgSysLogin(s *Session, p mhfpacket.MHFPacket) {
 		panic(err)
 	}
 
+	s.server.BroadcastMHF(&mhfpacket.MsgSysInsertUser {
+		CharID: s.charID,
+	}, s)
+
 	doAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
 }
 

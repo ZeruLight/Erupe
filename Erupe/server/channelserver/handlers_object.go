@@ -39,6 +39,14 @@ func handleMsgSysCreateObject(s *Session, p mhfpacket.MHFPacket) {
 		Z:           pkt.Z,
 		OwnerCharID: s.charID,
 	}
+
+	for i := 1; i <= 3; i++ {
+		s.server.BroadcastMHF(&mhfpacket.MsgSysNotifyUserBinary{
+			CharID: s.charID,
+			BinaryType: uint8(i),
+		}, s)
+	}
+
 	s.logger.Info("Duplicate a new characters to others clients")
 	s.stage.BroadcastMHF(dupObjUpdate, s)
 }

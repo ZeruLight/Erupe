@@ -66,69 +66,40 @@ func doStageTransfer(s *Session, ackHandle uint32, stageID string) {
 	doAckSimpleSucceed(s, ackHandle, []byte{0x00, 0x00, 0x00, 0x00})
 
 	// Notify existing stage clients that this new client has entered.
-	s.logger.Info("Sending MsgSysInsertUser")
 	if s.stage != nil { // avoids lock up when using bed for dream quests
-		// Add character to everyone elses stage
-		s.stage.BroadcastMHF(&mhfpacket.MsgSysInsertUser {
-			CharID: s.charID,
-		}, s)
-
-		// Update others binary of your session
-		s.server.BroadcastMHF(&mhfpacket.MsgSysNotifyUserBinary {
-			CharID:     s.charID,
-			BinaryType: 1,
-		}, s)
-		s.server.BroadcastMHF(&mhfpacket.MsgSysNotifyUserBinary {
-			CharID:     s.charID,
-			BinaryType: 2,
-		}, s)
-		s.server.BroadcastMHF(&mhfpacket.MsgSysNotifyUserBinary {
-			CharID:     s.charID,
-			BinaryType: 3,
-		}, s)
+		var pkt mhfpacket.MHFPacket
 
 		// Notify the entree client about all of the existing clients in the stage.
 		s.logger.Info("Notifying entree about existing stage clients")
-		s.stage.RLock()
+
 		clientNotif := byteframe.NewByteFrame()
+		s.server.Lock()
+		s.server.BroadcastMHF(&mhfpacket.MsgSysDeleteUser{
+			CharID: s.charID,
+		}, s)
+		s.server.BroadcastMHF(&mhfpacket.MsgSysInsertUser {
+			CharID: s.charID,
+		}, s)
 
-		// Get other players in the stage
-		for session := range s.stage.clients {
-			var cur mhfpacket.MHFPacket
-			cur = &mhfpacket.MsgSysInsertUser{
-				CharID: session.charID,
-			}
-			clientNotif.WriteUint16(uint16(cur.Opcode()))
-			cur.Build(clientNotif, session.clientContext)
-		}
-
-		// Get every players binary
 		for session := range s.server.sessions {
-			var cur mhfpacket.MHFPacket
 			session := s.server.sessions[session]
 
-			cur = &mhfpacket.MsgSysNotifyUserBinary{
-				CharID:     session.charID,
-				BinaryType: 1,
+			// Send existing players back to the client
+			pkt = &mhfpacket.MsgSysInsertUser{
+				CharID: session.charID,
 			}
-			clientNotif.WriteUint16(uint16(cur.Opcode()))
-			cur.Build(clientNotif, session.clientContext)
-
-			cur = &mhfpacket.MsgSysNotifyUserBinary{
-				CharID:     session.charID,
-				BinaryType: 2,
+			clientNotif.WriteUint16(uint16(pkt.Opcode()))
+			pkt.Build(clientNotif, session.clientContext)
+			for i := 1; i <= 3; i++ {
+				pkt = &mhfpacket.MsgSysNotifyUserBinary{
+					CharID:     session.charID,
+					BinaryType: uint8(i),
+				}
+				clientNotif.WriteUint16(uint16(pkt.Opcode()))
+				pkt.Build(clientNotif, session.clientContext)
 			}
-			clientNotif.WriteUint16(uint16(cur.Opcode()))
-			cur.Build(clientNotif, session.clientContext)
-
-			cur = &mhfpacket.MsgSysNotifyUserBinary{
-				CharID:     session.charID,
-				BinaryType: 3,
-			}
-			clientNotif.WriteUint16(uint16(cur.Opcode()))
-			cur.Build(clientNotif, session.clientContext)
 		}
-		s.stage.RUnlock()
+		s.server.Unlock()
 		clientNotif.WriteUint16(0x0010) // End it.
 		s.QueueSend(clientNotif.Data())
 

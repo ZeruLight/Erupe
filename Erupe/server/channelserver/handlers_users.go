@@ -23,7 +23,7 @@ func handleMsgSysSetUserBinary(s *Session, p mhfpacket.MHFPacket) {
 		BinaryType: pkt.BinaryType,
 	}
 
-	s.stage.BroadcastMHF(msg, s)
+	s.server.BroadcastMHF(msg, s)
 }
 
 func handleMsgSysGetUserBinary(s *Session, p mhfpacket.MHFPacket) {

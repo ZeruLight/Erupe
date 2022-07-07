@@ -64,17 +64,22 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
   }
 
 	// Parse out the real casted binary payload
-	var realPayload []byte
 	var msgBinTargeted *binpacket.MsgBinTargeted
+	var authorLen, msgLen uint16
+	var msg []byte
 
 	isDiceCommand := false
-	tmp.SetLE()
-	tmp.Seek(int64(0), 0)
-	_ = tmp.ReadUint32()
-	authorLen := tmp.ReadUint16()
-	msgLen := tmp.ReadUint16()
-	msg := tmp.ReadNullTerminatedBytes()
+	if pkt.MessageType == BinaryMessageTypeChat {
+		tmp.SetLE()
+		tmp.Seek(int64(0), 0)
+		_ = tmp.ReadUint32()
+		authorLen = tmp.ReadUint16()
+		msgLen = tmp.ReadUint16()
+		msg = tmp.ReadNullTerminatedBytes()
+	}
 
+	// Customise payload
+	realPayload := pkt.RawDataPayload
 	if pkt.BroadcastType == BroadcastTypeTargeted {
 		tmp.SetBE()
 		tmp.Seek(int64(0), 0)
@@ -85,21 +90,21 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 			return
 		}
 		realPayload = msgBinTargeted.RawDataPayload
-	} else if msgLen == 6 && string(msg) == "@dice" {
-		isDiceCommand = true
-		roll := byteframe.NewByteFrame()
-		roll.WriteInt16(1) // Unk
-		roll.SetLE()
-		roll.WriteUint16(4) // Unk
-		roll.WriteUint16(authorLen)
-		rand.Seed(time.Now().UnixNano())
-		dice := fmt.Sprintf("%d", rand.Intn(100)+1)
-		roll.WriteUint16(uint16(len(dice)+1))
-		roll.WriteNullTerminatedBytes([]byte(dice))
-		roll.WriteNullTerminatedBytes(tmp.ReadNullTerminatedBytes())
-		realPayload = roll.Data()
-	} else {
-		realPayload = pkt.RawDataPayload
+	} else if pkt.MessageType == BinaryMessageTypeChat {
+		if msgLen == 6 && string(msg) == "@dice" {
+			isDiceCommand = true
+			roll := byteframe.NewByteFrame()
+			roll.WriteInt16(1) // Unk
+			roll.SetLE()
+			roll.WriteUint16(4) // Unk
+			roll.WriteUint16(authorLen)
+			rand.Seed(time.Now().UnixNano())
+			dice := fmt.Sprintf("%d", rand.Intn(100)+1)
+			roll.WriteUint16(uint16(len(dice)+1))
+			roll.WriteNullTerminatedBytes([]byte(dice))
+			roll.WriteNullTerminatedBytes(tmp.ReadNullTerminatedBytes())
+			realPayload = roll.Data()
+		}
 	}
 
 	// Make the response to forward to the other client(s).

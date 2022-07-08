@@ -4,9 +4,6 @@ import (
 	"fmt"
 	"math/rand"
 	"time"
-	"encoding/hex"
-	"io/ioutil"
-	"path/filepath"
 	"erupe-ce/server/channelserver"
 
 	"github.com/Andoryuuta/byteframe"
@@ -113,15 +110,9 @@ func (s *Session) makeSignInResp(uid int) []byte {
 
 	bf.WriteUint32(0)          // some_last_played_character_id
 	bf.WriteUint32(14)         // unk_flags
-
-	filters, err := ioutil.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, "filters.bin")) //dsmc name and msg obj
-	if err != nil {
-		panic(err)
-	}
-	bf.WriteBytes(filters)
-
+	uint16PascalString(bf, "") // filters
 	bf.WriteUint32(0xCA104E20)
-	uint16PascalString(bf, "")
+	uint16PascalString(bf, "") // encryption
 	bf.WriteUint8(0x00)
 	bf.WriteUint32(0xCA110001)
 	bf.WriteUint32(0x4E200000)
@@ -138,16 +129,29 @@ func (s *Session) makeSignInResp(uid int) []byte {
 	bf.WriteUint32(0x0A5197DF)
 
 	mezfes := true
+	alt := false
 	if mezfes {
-		bf.WriteUint32(uint32(channelserver.Time_Current_Adjusted().Add(-5 * time.Minute).Unix())) // mezfes start time
-		bf.WriteUint32(uint32(channelserver.Time_Current_Adjusted().Add(24 * time.Hour * 7).Unix())) // mezfes end time
+		bf.WriteUint32(uint32(channelserver.Time_Current_Adjusted().Add(-5 * time.Minute).Unix())) // Start time
+		bf.WriteUint32(uint32(channelserver.Time_Current_Adjusted().Add(24 * time.Hour * 7).Unix())) // End time
+		bf.WriteUint8(2) // Unk
+		bf.WriteUint32(0) // Single tickets
+		bf.WriteUint32(0) // Group tickets
+		bf.WriteUint8(8) // Stalls open
+		bf.WriteUint8(0xA) // Unk
+		bf.WriteUint8(0x3) // Pachinko
+		bf.WriteUint8(0x6) // Nyanrendo
+		bf.WriteUint8(0x9) // Point stall
+		if alt {
+			bf.WriteUint8(0x2) // Tokotoko
+		} else {
+			bf.WriteUint8(0x4) // Volpkun
+		}
+		bf.WriteUint8(0x8) // Battle cats
+		bf.WriteUint8(0x5) // Gook
+		bf.WriteUint8(0x7) // Honey
 	} else {
 		bf.WriteUint32(0)
 		bf.WriteUint32(0)
 	}
-
-	endBytes, _ := hex.DecodeString("020000002700000027080A03060904080507")
-	bf.WriteBytes(endBytes)
-
 	return bf.Data()
 }

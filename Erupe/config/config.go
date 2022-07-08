@@ -81,7 +81,7 @@ type EntranceServerInfo struct {
 	Season uint8  // Server activity. 0 = green, 1 = orange, 2 = blue
 	Recommended uint8  // Something to do with server recommendation on 0, 3, and 5.
 	Name   string // Server name, 66 byte null terminated Shift-JIS(JP) or Big5(TW).
-
+	Description string // Server description
 	// 4096(PC, PS3/PS4)?, 8258(PC, PS3/PS4)?, 8192 == nothing?
 	// THIS ONLY EXISTS IF Binary8Header.type == "SV2", NOT "SVR"!
 	AllowedClientFlags uint32

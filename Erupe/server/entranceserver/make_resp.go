@@ -50,11 +50,18 @@ func encodeServerInfo(serverInfos []config.EntranceServerInfo, s *Server) []byte
 		bf.WriteUint8(si.Type)
 		bf.WriteUint8(season)
 		bf.WriteUint8(si.Recommended)
-		shiftjisName, err := stringsupport.ConvertUTF8ToShiftJIS(si.Name)
+		sjisName, err := stringsupport.ConvertUTF8ToShiftJIS(si.Name)
 		if err != nil {
 			panic(err)
 		}
-		bf.WriteBytes(paddedString(string(shiftjisName), 66))
+		sjisDesc, err := stringsupport.ConvertUTF8ToShiftJIS(si.Description)
+		if err != nil {
+			panic(err)
+		}
+		combined := append([]byte{0x00}, sjisName...)
+		combined = append(combined, []byte{0x00}...)
+		combined = append(combined, sjisDesc...)
+		bf.WriteBytes(paddedString(string(combined), 66))
 		bf.WriteUint32(si.AllowedClientFlags)
 
 		for channelIdx, ci := range si.Channels {

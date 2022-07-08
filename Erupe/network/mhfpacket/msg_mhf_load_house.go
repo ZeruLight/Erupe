@@ -1,7 +1,7 @@
 package mhfpacket
 
-import ( 
- "errors" 
+import (
+ "errors"
 
  	"erupe-ce/network/clientctx"
 	"erupe-ce/network"
@@ -10,12 +10,12 @@ import (
 
 // MsgMhfLoadHouse represents the MSG_MHF_LOAD_HOUSE
 type MsgMhfLoadHouse struct {
-	AckHandle      uint32
-	Unk0           uint32
-	Unk1           uint8
-	Unk2           uint8
-	Unk3           uint16 // Hardcoded 0 in binary
-	DataSize       uint8
+	AckHandle uint32
+	CharID uint32
+	Unk1 uint8
+	Unk2 uint8
+	Unk3 uint16 // Hardcoded 0 in binary
+	DataSize uint8
 	RawDataPayload []byte
 }
 
@@ -27,7 +27,7 @@ func (m *MsgMhfLoadHouse) Opcode() network.PacketID {
 // Parse parses the packet from binary
 func (m *MsgMhfLoadHouse) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
-	m.Unk0 = bf.ReadUint32()
+	m.CharID = bf.ReadUint32()
 	m.Unk1 = bf.ReadUint8()
 	m.Unk2 = bf.ReadUint8()
 	m.Unk3 = bf.ReadUint16()

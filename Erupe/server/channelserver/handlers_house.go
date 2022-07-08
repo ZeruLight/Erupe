@@ -8,7 +8,14 @@ import (
 	"go.uber.org/zap"
 )
 
-func handleMsgMhfUpdateInterior(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfUpdateInterior(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfUpdateInterior)
+	_, err := s.server.db.Exec("UPDATE characters SET house=$1 WHERE id=$2", pkt.InteriorData, s.charID)
+	if err != nil {
+		panic(err)
+	}
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+}
 
 func handleMsgMhfEnumerateHouse(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateHouse)
@@ -19,8 +26,14 @@ func handleMsgMhfUpdateHouse(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfLoadHouse(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfLoadHouse)
-	// Seems to generate same response regardless of upgrade tier
-	data, _ := hex.DecodeString("0000000000000000000000000000000000000000")
+	var data []byte
+	err := s.server.db.QueryRow("SELECT house FROM characters WHERE id=$1", s.charID).Scan(&data)
+	if err != nil {
+		panic(err)
+	}
+	if data == nil {
+		data, _ = hex.DecodeString("0000000000000000000000000000000000000000")
+	}
 	doAckBufSucceed(s, pkt.AckHandle, data)
 }
 

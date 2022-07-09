@@ -1,7 +1,7 @@
 package mhfpacket
 
-import ( 
- "errors" 
+import (
+ "errors"
 
  	"erupe-ce/network/clientctx"
 	"erupe-ce/network"
@@ -11,7 +11,7 @@ import (
 // MsgMhfLoadGuildCooking represents the MSG_MHF_LOAD_GUILD_COOKING
 type MsgMhfLoadGuildCooking struct{
 	AckHandle   uint32
-	Unk0      		uint8
+	MaxMeals    uint8
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -22,7 +22,7 @@ func (m *MsgMhfLoadGuildCooking) Opcode() network.PacketID {
 // Parse parses the packet from binary
 func (m *MsgMhfLoadGuildCooking) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
-	m.Unk0 = bf.ReadUint8()
+	_ = bf.ReadUint8()
 	return nil
 }
 

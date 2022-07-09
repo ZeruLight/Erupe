@@ -1637,31 +1637,56 @@ func handleMsgMhfGetGuildMissionRecord(s *Session, p mhfpacket.MHFPacket) {
 	doAckBufSucceed(s, pkt.AckHandle, make([]byte, 0x190))
 }
 
+type GuildMeal struct {
+	ID      uint32 `db:"id"`
+	MealID  uint32 `db:"meal_id"`
+	Level   uint32 `db:"level"`
+	Expires uint32 `db:"expires"`
+}
+
 func handleMsgMhfLoadGuildCooking(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfLoadGuildCooking)
-	// MealData
-	// uint16 meal count
-	// Meal
-	// uint32 hash?
-	// uint32 unk
-	// uint32 success level
-	// uint32 expiration timestamp
 
-	// encourage food
-	data := []byte{0x00, 0x06,
-		0x0F, 0x51, 0x97, 0xFF, 0x00, 0x00, 0x02, 0xc4, 0x00, 0x00, 0x00, 0x03, 0xFF, 0xFC, 0x0B, 0x51,
-		0x0F, 0x51, 0x97, 0xFF, 0x00, 0x00, 0x02, 0x9c, 0x00, 0x00, 0x00, 0x03, 0xFF, 0xFC, 0x0B, 0x52,
-		0x0F, 0x51, 0x97, 0xFF, 0x00, 0x00, 0x02, 0x07, 0x00, 0x00, 0x00, 0x03, 0xFF, 0xFC, 0x0B, 0x51,
-		0x0F, 0x51, 0x97, 0xFF, 0x00, 0x00, 0x01, 0x8b, 0x00, 0x00, 0x00, 0x03, 0xFF, 0xFD, 0x0B, 0x51,
-		0x0F, 0x51, 0x97, 0xFF, 0x00, 0x00, 0x02, 0x54, 0x00, 0x00, 0x00, 0x03, 0xFF, 0xFC, 0x0B, 0x51,
-		0x0F, 0x51, 0x97, 0xFF, 0x00, 0x00, 0x00, 0x7f, 0x00, 0x00, 0x00, 0x03, 0xF3, 0xFC, 0x0B, 0x51}
-	doAckBufSucceed(s, pkt.AckHandle, data)
-	//data := []byte{0x00, 0x01, 0x1C, 0x72, 0x54, 0x15, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0x5F, 0xF8, 0x2F, 0xE1}
-	//doAckBufSucceed(s, pkt.AckHandle, data)
+	guild, _ := GetGuildInfoByCharacterId(s, s.charID)
+	data, err := s.server.db.Queryx("SELECT id, meal_id, level, expires FROM guild_meals WHERE guild_id = $1", guild.ID)
+	if err != nil {
+		s.logger.Fatal("Failed to get guild meals from db", zap.Error(err))
+	}
+	temp := byteframe.NewByteFrame()
+	count := 0
+	for data.Next() {
+		mealData := &GuildMeal{}
+		err = data.StructScan(&mealData)
+		if err != nil {
+			s.logger.Fatal("Failed to scan meal data", zap.Error(err))
+		}
+		if mealData.Expires > uint32(Time_Current_Adjusted().Add(-60 * time.Minute).Unix()) {
+			count++
+			temp.WriteUint32(mealData.ID)
+			temp.WriteUint32(mealData.MealID)
+			temp.WriteUint32(mealData.Level)
+			temp.WriteUint32(mealData.Expires)
+		}
+	}
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint16(uint16(count))
+	bf.WriteBytes(temp.Data())
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfRegistGuildCooking(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfRegistGuildCooking)
+	guild, _ := GetGuildInfoByCharacterId(s, s.charID)
+	if pkt.OverwriteID != 0 {
+		_, err := s.server.db.Exec("DELETE FROM guild_meals WHERE id = $1", pkt.OverwriteID)
+		if err != nil {
+			s.logger.Fatal("Failed to delete meal in db", zap.Error(err))
+		}
+	}
+	_, err := s.server.db.Exec("INSERT INTO guild_meals (guild_id, meal_id, level, expires) VALUES ($1, $2, $3, $4)", guild.ID, pkt.MealID, pkt.Success, Time_Current_Adjusted().Add(30 * time.Minute).Unix())
+	if err != nil {
+		s.logger.Fatal("Failed to register meal in db", zap.Error(err))
+	}
 	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x01, 0x00})
 }
 

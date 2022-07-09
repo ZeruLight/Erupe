@@ -100,8 +100,6 @@ func handleMsgSysReserve19F(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgSysReserve204(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgSysReserve205(s *Session, p mhfpacket.MHFPacket) {}
-
 func handleMsgSysReserve206(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgSysReserve207(s *Session, p mhfpacket.MHFPacket) {}

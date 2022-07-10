@@ -1,7 +1,7 @@
 package mhfpacket
 
-import ( 
- "errors" 
+import (
+ "errors"
 
  	"erupe-ce/network/clientctx"
 	"erupe-ce/network"
@@ -11,9 +11,8 @@ import (
 // MsgMhfStateFestaG represents the MSG_MHF_STATE_FESTA_G
 type MsgMhfStateFestaG struct {
 	AckHandle uint32
-	Unk0      uint32 // Shared ID of something.
-	Unk1      uint32
-	Unk2      uint16 // Hardcoded 0 in the binary.
+	FestaID uint32
+	GuildID uint32
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -24,10 +23,9 @@ func (m *MsgMhfStateFestaG) Opcode() network.PacketID {
 // Parse parses the packet from binary
 func (m *MsgMhfStateFestaG) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
-	m.Unk0 = bf.ReadUint32()
-	m.Unk1 = bf.ReadUint32()
-	m.Unk2 = bf.ReadUint16()
-
+	m.FestaID = bf.ReadUint32()
+	m.GuildID = bf.ReadUint32()
+	_ = bf.ReadUint16() // Hardcoded 0 in the binary.
 	return nil
 }
 

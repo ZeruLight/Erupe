@@ -1,8 +1,10 @@
 package channelserver
 
 import (
+	"time"
+
 	"erupe-ce/network/mhfpacket"
-	"erupe-ce/common/stringsupport"
+	ps "erupe-ce/common/pascalstring"
 	"erupe-ce/common/byteframe"
 	"go.uber.org/zap"
 )
@@ -68,14 +70,13 @@ func handleMsgMhfEnumerateDistItem(s *Session, p mhfpacket.MHFPacket) {
 			bf.WriteUint16(distData.MaxGR)
 			bf.WriteUint32(0) // Unk
 			bf.WriteUint32(0) // Unk
-			eventName, _ := stringsupport.ConvertUTF8ToShiftJIS(distData.EventName)
-			bf.WriteUint16(uint16(len(eventName)+1))
-			bf.WriteNullTerminatedBytes(eventName)
+			ps.Uint16(bf, distData.EventName, true)
 			bf.WriteBytes(make([]byte, 391))
 		}
 		resp := byteframe.NewByteFrame()
 		resp.WriteUint16(uint16(distCount))
 		resp.WriteBytes(bf.Data())
+		resp.WriteUint8(0)
 		doAckBufSucceed(s, pkt.AckHandle, resp.Data())
 	}
 }
@@ -96,8 +97,9 @@ func handleMsgMhfApplyDistItem(s *Session, p mhfpacket.MHFPacket) {
 		}
 
 		bf := byteframe.NewByteFrame()
-		bf.WriteUint32(0)
+		bf.WriteUint32(pkt.DistributionID)
 		bf.WriteBytes(dist.Data)
+		bf.WriteUint32(uint32(time.Now().Unix()))
     doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 
 		_, err = s.server.db.Exec(`
@@ -125,8 +127,7 @@ func handleMsgMhfGetDistDescription(s *Session, p mhfpacket.MHFPacket) {
 		return
 	}
 	bf := byteframe.NewByteFrame()
-	description, _ := stringsupport.ConvertUTF8ToShiftJIS(desc)
-	bf.WriteUint16(uint16(len(description)+1))
-	bf.WriteNullTerminatedBytes(description)
+	ps.Uint16(bf, desc, true)
+	ps.Uint16(bf, "", false)
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }

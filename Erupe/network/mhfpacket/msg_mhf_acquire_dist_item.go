@@ -11,9 +11,8 @@ import (
 // MsgMhfAcquireDistItem represents the MSG_MHF_ACQUIRE_DIST_ITEM
 type MsgMhfAcquireDistItem struct {
 	AckHandle uint32
-	// Valid field size(s), not sure about the types.
-	Unk0 uint8
-	Unk1 uint32
+	DistributionType uint8
+	DistributionID uint32
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -24,8 +23,8 @@ func (m *MsgMhfAcquireDistItem) Opcode() network.PacketID {
 // Parse parses the packet from binary
 func (m *MsgMhfAcquireDistItem) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
-	m.Unk0 = bf.ReadUint8()
-	m.Unk1 = bf.ReadUint32()
+	m.DistributionType = bf.ReadUint8()
+	m.DistributionID = bf.ReadUint32()
 	return nil
 }
 

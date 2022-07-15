@@ -4,7 +4,7 @@ import (
 	"errors"
 
 	"erupe-ce/common/byteframe"
-	"erupe-ce/common/bfutil"
+	"erupe-ce/common/stringsupport"
 	"erupe-ce/network"
 	"erupe-ce/network/clientctx"
 )
@@ -27,10 +27,8 @@ func (m *MsgMhfCreateGuild) Parse(bf *byteframe.ByteFrame, ctx *clientctx.Client
 	m.AckHandle = bf.ReadUint32()
 	m.Unk0 = bf.ReadUint8()
 	m.Unk1 = bf.ReadUint8()
-	nameLength := bf.ReadUint16()
-	nameBytes := bfutil.UpToNull(bf.ReadBytes(uint(nameLength)))
-	m.Name = ctx.StrConv.MustDecode(nameBytes)
-
+	_ = bf.ReadUint16() // len
+	m.Name = stringsupport.SJISToUTF8(bf.ReadNullTerminatedBytes())
 	return nil
 }
 

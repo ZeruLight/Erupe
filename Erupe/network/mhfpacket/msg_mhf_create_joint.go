@@ -3,8 +3,8 @@ package mhfpacket
 import (
  "errors"
 
- 	"erupe-ce/common/bfutil"
  	"erupe-ce/network/clientctx"
+  "erupe-ce/common/stringsupport"
 	"erupe-ce/network"
 	"erupe-ce/common/byteframe"
 )
@@ -25,9 +25,8 @@ func (m *MsgMhfCreateJoint) Opcode() network.PacketID {
 func (m *MsgMhfCreateJoint) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
   m.AckHandle = bf.ReadUint32()
   m.GuildID = bf.ReadUint32()
-  nameLength := bf.ReadUint32()
-  nameBytes := bfutil.UpToNull(bf.ReadBytes(uint(nameLength)))
-  m.Name = ctx.StrConv.MustDecode(nameBytes)
+  _ = bf.ReadUint32() // len
+  m.Name = stringsupport.SJISToUTF8(bf.ReadNullTerminatedBytes())
   return nil
 }
 

@@ -5,7 +5,7 @@ import (
 
  	"erupe-ce/network/clientctx"
 	"erupe-ce/network"
-	"github.com/Andoryuuta/byteframe"
+	"erupe-ce/common/byteframe"
 )
 
 // TerminalLogEntry represents an entry in the MSG_SYS_TERMINAL_LOG packet.

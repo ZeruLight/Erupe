@@ -3,7 +3,7 @@ package mhfpacket
 import (
 	"erupe-ce/network"
 	"erupe-ce/network/clientctx"
-	"github.com/Andoryuuta/byteframe"
+	"erupe-ce/common/byteframe"
 )
 
 // MsgMhfAcquireExchangeShop represents the MSG_MHF_ACQUIRE_EXCHANGE_SHOP

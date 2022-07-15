@@ -5,7 +5,7 @@ import (
 
  	"erupe-ce/network/clientctx"
 	"erupe-ce/network"
-	"github.com/Andoryuuta/byteframe"
+	"erupe-ce/common/byteframe"
 )
 
 // MsgMhfApplyBbsArticle represents the MSG_MHF_APPLY_BBS_ARTICLE

@@ -5,7 +5,7 @@ import (
 
  	"erupe-ce/network/clientctx"
 	"erupe-ce/network"
-	"github.com/Andoryuuta/byteframe"
+	"erupe-ce/common/byteframe"
 )
 
 // MsgMhfEnumerateFestaMember represents the MSG_MHF_ENUMERATE_FESTA_MEMBER

@@ -5,7 +5,7 @@ import (
 
  	"erupe-ce/network/clientctx"
 	"erupe-ce/network"
-	"github.com/Andoryuuta/byteframe"
+	"erupe-ce/common/byteframe"
 )
 
 // MsgSysCollectBinary represents the MSG_SYS_COLLECT_BINARY

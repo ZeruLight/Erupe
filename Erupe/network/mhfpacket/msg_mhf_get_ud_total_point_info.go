@@ -5,7 +5,7 @@ import (
 
  	"erupe-ce/network/clientctx"
 	"erupe-ce/network"
-	"github.com/Andoryuuta/byteframe"
+	"erupe-ce/common/byteframe"
 )
 
 // MsgMhfGetUdTotalPointInfo represents the MSG_MHF_GET_UD_TOTAL_POINT_INFO

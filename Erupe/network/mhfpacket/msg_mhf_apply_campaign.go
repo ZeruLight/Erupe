@@ -3,7 +3,7 @@ package mhfpacket
 import (
 	"erupe-ce/network"
 	"erupe-ce/network/clientctx"
-	"github.com/Andoryuuta/byteframe"
+	"erupe-ce/common/byteframe"
 )
 
 // MsgMhfApplyCampaign represents the MSG_MHF_APPLY_CAMPAIGN

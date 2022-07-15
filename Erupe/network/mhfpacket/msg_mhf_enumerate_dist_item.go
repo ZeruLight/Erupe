@@ -3,7 +3,7 @@ package mhfpacket
 import (
 	"erupe-ce/network"
 	"erupe-ce/network/clientctx"
-	"github.com/Andoryuuta/byteframe"
+	"erupe-ce/common/byteframe"
 )
 
 // MsgMhfEnumerateDistItem represents the MSG_MHF_ENUMERATE_DIST_ITEM

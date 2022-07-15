@@ -2,7 +2,7 @@ package binpacket
 
 import (
 	"erupe-ce/network"
-	"github.com/Andoryuuta/byteframe"
+	"erupe-ce/common/byteframe"
 )
 
 // ChatType represents the chat message type (Thanks to @Alice on discord for identifying these!)

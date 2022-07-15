@@ -6,7 +6,7 @@ import (
 	"erupe-ce/common/bfutil"
 	"erupe-ce/network"
 	"erupe-ce/network/clientctx"
-	"github.com/Andoryuuta/byteframe"
+	"erupe-ce/common/byteframe"
 )
 
 type scenarioFileIdentifer struct {

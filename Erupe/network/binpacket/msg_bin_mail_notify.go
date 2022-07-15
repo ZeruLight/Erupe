@@ -3,7 +3,7 @@ package binpacket
 import (
 	"erupe-ce/common/stringsupport"
 	"erupe-ce/network"
-	"github.com/Andoryuuta/byteframe"
+	"erupe-ce/common/byteframe"
 )
 
 type MsgBinMailNotify struct {

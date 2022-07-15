@@ -6,7 +6,7 @@ import (
 
 	"erupe-ce/common/stringsupport"
 
-	"github.com/Andoryuuta/byteframe"
+	"erupe-ce/common/byteframe"
 	"erupe-ce/config"
 	"erupe-ce/server/channelserver"
 )

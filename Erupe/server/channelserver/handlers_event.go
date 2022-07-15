@@ -5,7 +5,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/Andoryuuta/byteframe"
+	"erupe-ce/common/byteframe"
 	"erupe-ce/network/mhfpacket"
 	timeServerFix "erupe-ce/server/channelserver/timeserver"
 )

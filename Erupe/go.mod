@@ -6,7 +6,6 @@ require (
 	cloud.google.com/go v0.98.0 // indirect
 	cloud.google.com/go/spanner v1.27.0 // indirect
 	cloud.google.com/go/storage v1.18.2 // indirect
-	github.com/Andoryuuta/byteframe v0.0.0-20200114030334-8979c5cc4c4a
 	github.com/Azure/go-autorest/autorest/adal v0.9.17 // indirect
 	github.com/ClickHouse/clickhouse-go v1.5.1 // indirect
 	github.com/apache/arrow/go/arrow v0.0.0-20211112161151-bc219186db40 // indirect

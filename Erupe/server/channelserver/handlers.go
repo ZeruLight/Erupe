@@ -11,7 +11,7 @@ import (
 	"math/rand"
 	"time"
 
-	"github.com/Andoryuuta/byteframe"
+	"erupe-ce/common/byteframe"
 	"erupe-ce/network/mhfpacket"
 	"go.uber.org/zap"
 	"golang.org/x/text/encoding/japanese"

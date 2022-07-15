@@ -2,7 +2,7 @@ package channelserver
 
 import (
 	"encoding/hex"
-	"github.com/Andoryuuta/byteframe"
+	"erupe-ce/common/byteframe"
 	"erupe-ce/network/mhfpacket"
 )
 

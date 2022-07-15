@@ -11,7 +11,7 @@ import (
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/server/channelserver/compression/deltacomp"
 	"erupe-ce/server/channelserver/compression/nullcomp"
-	"github.com/Andoryuuta/byteframe"
+	"erupe-ce/common/byteframe"
 	"go.uber.org/zap"
 )
 

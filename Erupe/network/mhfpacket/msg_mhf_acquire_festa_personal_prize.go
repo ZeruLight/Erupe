@@ -5,7 +5,7 @@ import (
 
  	"erupe-ce/network/clientctx"
 	"erupe-ce/network"
-	"github.com/Andoryuuta/byteframe"
+	"erupe-ce/common/byteframe"
 )
 
 // MsgMhfAcquireFestaPersonalPrize represents the MSG_MHF_ACQUIRE_FESTA_PERSONAL_PRIZE

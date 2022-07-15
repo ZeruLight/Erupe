@@ -6,7 +6,7 @@ import (
 	"strings"
 
 	"erupe-ce/network/mhfpacket"
-	"github.com/Andoryuuta/byteframe"
+	"erupe-ce/common/byteframe"
 	"go.uber.org/zap"
 )
 

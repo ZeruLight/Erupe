@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"erupe-ce/network/mhfpacket"
-	"github.com/Andoryuuta/byteframe"
+	"erupe-ce/common/byteframe"
 )
 
 func handleMsgSysInsertUser(s *Session, p mhfpacket.MHFPacket) {}

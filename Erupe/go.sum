@@ -54,8 +54,6 @@ cloud.google.com/go/storage v1.18.2 h1:5NQw6tOn3eMm0oE8vTkfjau18kjL79FlMjy/CHTpm
 cloud.google.com/go/storage v1.18.2/go.mod h1:AiIj7BWXyhO5gGVmYJ+S8tbkCx3yb0IMjua8Aw4naVM=
 dmitri.shuralyov.com/gpu/mtl v0.0.0-20190408044501-666a987793e9/go.mod h1:H6x//7gZCb22OMCxBHrMx7a5I7Hp++hsVxbQ4BYO7hU=
 gioui.org v0.0.0-20210308172011-57750fc8a0a6/go.mod h1:RSH6KIUZ0p2xy5zHDxgAM4zumjgTw83q2ge/PI+yyw8=
-github.com/Andoryuuta/byteframe v0.0.0-20200114030334-8979c5cc4c4a h1:41dzqxDfdVhYjpkr8lxwrBdJe0RE/AXsGV1AGpP6wig=
-github.com/Andoryuuta/byteframe v0.0.0-20200114030334-8979c5cc4c4a/go.mod h1:koVyx+gN3TfE70rpOidywETVODk87304YpwW69Y27J4=
 github.com/Azure/azure-pipeline-go v0.2.3 h1:7U9HBg1JFK3jHl5qmo4CTZKFTVgMwdFHMVtCdfBE21U=
 github.com/Azure/azure-pipeline-go v0.2.3/go.mod h1:x841ezTBIMG6O3lAcl8ATHnsOPVl2bqk7S3ta6S6u4k=
 github.com/Azure/azure-sdk-for-go v16.2.1+incompatible/go.mod h1:9XXNKU+eRnpl9moKnB4QOLf1HestfXbmab5FXxiDBjc=

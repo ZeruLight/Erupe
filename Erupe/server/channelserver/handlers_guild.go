@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/Andoryuuta/byteframe"
+	"erupe-ce/common/byteframe"
 	"erupe-ce/common/bfutil"
 	"erupe-ce/common/stringsupport"
 	"erupe-ce/network/mhfpacket"

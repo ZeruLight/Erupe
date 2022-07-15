@@ -7,7 +7,7 @@ import (
 	"sync"
 
 	"erupe-ce/network"
-	"github.com/Andoryuuta/byteframe"
+	"erupe-ce/common/byteframe"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 )

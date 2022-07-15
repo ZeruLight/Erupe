@@ -2,7 +2,7 @@ package binpacket
 
 import (
 	"erupe-ce/network"
-	"github.com/Andoryuuta/byteframe"
+	"erupe-ce/common/byteframe"
 )
 
 // MsgBinTargeted is a format used for some broadcast types

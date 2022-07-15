@@ -5,7 +5,7 @@ import (
 
  	"erupe-ce/network/clientctx"
 	"erupe-ce/network"
-	"github.com/Andoryuuta/byteframe"
+	"erupe-ce/common/byteframe"
 )
 
 // MsgMhfGetGuildWeeklyBonusMaster represents the MSG_MHF_GET_GUILD_WEEKLY_BONUS_MASTER

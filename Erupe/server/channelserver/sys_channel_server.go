@@ -5,7 +5,7 @@ import (
 	"net"
 	"sync"
 
-	"github.com/Andoryuuta/byteframe"
+	"erupe-ce/common/byteframe"
 	"erupe-ce/config"
 	"erupe-ce/network/binpacket"
 	"erupe-ce/network/mhfpacket"

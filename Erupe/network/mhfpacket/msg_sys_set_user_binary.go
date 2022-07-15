@@ -3,7 +3,7 @@ package mhfpacket
 import (
 	"errors"
 
-	"github.com/Andoryuuta/byteframe"
+	"erupe-ce/common/byteframe"
 	"erupe-ce/network"
 	"erupe-ce/network/clientctx"
 )

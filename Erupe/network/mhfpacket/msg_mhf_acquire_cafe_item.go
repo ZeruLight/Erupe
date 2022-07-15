@@ -5,7 +5,7 @@ import (
 
 	"erupe-ce/network"
 	"erupe-ce/network/clientctx"
-	"github.com/Andoryuuta/byteframe"
+	"erupe-ce/common/byteframe"
 )
 
 // MsgMhfAcquireCafeItem represents the MSG_MHF_ACQUIRE_CAFE_ITEM

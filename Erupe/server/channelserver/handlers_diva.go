@@ -4,7 +4,7 @@ import (
 	"encoding/hex"
 
 	"erupe-ce/network/mhfpacket"
-	"github.com/Andoryuuta/byteframe"
+	"erupe-ce/common/byteframe"
 )
 
 func handleMsgMhfGetKijuInfo(s *Session, p mhfpacket.MHFPacket) {

@@ -7,7 +7,7 @@ import (
 	"time"
 
 	//"erupe-ce/common/stringsupport"
-	"github.com/Andoryuuta/byteframe"
+	"erupe-ce/common/byteframe"
 	"erupe-ce/network/mhfpacket"
 	"github.com/lib/pq"
 	"github.com/sachaos/lottery"

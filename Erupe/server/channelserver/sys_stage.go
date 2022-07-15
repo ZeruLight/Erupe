@@ -5,7 +5,7 @@ import (
 
 	"time"
 
-	"github.com/Andoryuuta/byteframe"
+	"erupe-ce/common/byteframe"
 	"erupe-ce/network/mhfpacket"
 )
 

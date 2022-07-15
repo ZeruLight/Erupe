@@ -6,7 +6,7 @@ import (
  	"erupe-ce/common/bfutil"
  	"erupe-ce/network/clientctx"
 	"erupe-ce/network"
-	"github.com/Andoryuuta/byteframe"
+	"erupe-ce/common/byteframe"
 )
 
 // MsgMhfCreateJoint represents the MSG_MHF_CREATE_JOINT

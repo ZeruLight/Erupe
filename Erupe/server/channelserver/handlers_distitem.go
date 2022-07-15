@@ -3,7 +3,7 @@ package channelserver
 import (
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/common/stringsupport"
-	"github.com/Andoryuuta/byteframe"
+	"erupe-ce/common/byteframe"
 	"go.uber.org/zap"
 )
 

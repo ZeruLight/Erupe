@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 
 	"erupe-ce/network/mhfpacket"
-	"github.com/Andoryuuta/byteframe"
+	"erupe-ce/common/byteframe"
 )
 
 func handleMsgSysGetFile(s *Session, p mhfpacket.MHFPacket) {

@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/Andoryuuta/byteframe"
+	"erupe-ce/common/byteframe"
 	"erupe-ce/common/bfutil"
 	"erupe-ce/network"
 	"erupe-ce/network/clientctx"

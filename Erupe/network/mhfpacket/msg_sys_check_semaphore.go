@@ -6,7 +6,7 @@ import (
  	"erupe-ce/network/clientctx"
 	"erupe-ce/common/bfutil"
 	"erupe-ce/network"
-	"github.com/Andoryuuta/byteframe"
+	"erupe-ce/common/byteframe"
 )
 
 // MsgSysCheckSemaphore represents the MSG_SYS_CHECK_SEMAPHORE

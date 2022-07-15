@@ -5,7 +5,7 @@ import (
  
  	"erupe-ce/network/clientctx"
 	"erupe-ce/network"
-	"github.com/Andoryuuta/byteframe"
+	"erupe-ce/common/byteframe"
 )
 
 // MsgMhfEnumerateGuildMessageBoard represents the MSG_MHF_ENUMERATE_GUILD_MESSAGE_BOARD

@@ -5,7 +5,7 @@ import (
 
 	"erupe-ce/network"
 	"erupe-ce/network/clientctx"
-	"github.com/Andoryuuta/byteframe"
+	"erupe-ce/common/byteframe"
 )
 
 // MsgMhfUseKeepLoginBoost represents the MSG_MHF_USE_KEEP_LOGIN_BOOST

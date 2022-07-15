@@ -7,7 +7,7 @@ import (
 	"net"
 	"sync"
 
-	"github.com/Andoryuuta/byteframe"
+	"erupe-ce/common/byteframe"
 	"erupe-ce/common/stringstack"
 	"erupe-ce/common/stringsupport"
 	"erupe-ce/network"

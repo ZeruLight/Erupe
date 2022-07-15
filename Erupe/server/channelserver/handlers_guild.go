@@ -1783,6 +1783,10 @@ func handleMsgMhfUpdateGuildMessageBoard(s *Session, p mhfpacket.MHFPacket) {
 	bf := byteframe.NewByteFrameFromBytes(pkt.Request)
 	guild, _ := GetGuildInfoByCharacterId(s, s.charID)
 	if guild == nil {
+		if pkt.MessageOp == 5 {
+			doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+			return
+		}
 		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}

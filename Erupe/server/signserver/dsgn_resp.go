@@ -10,7 +10,7 @@ import (
 
 	"go.uber.org/zap"
 	"golang.org/x/text/encoding/japanese"
-	"golang.org/x/text/transform"
+  "golang.org/x/text/transform"
 )
 
 func paddedString(x string, size uint) []byte {
@@ -58,7 +58,7 @@ func (s *Session) makeSignInResp(uid int) []byte {
 	bf.WriteUint32(0xFFFFFFFF)                // login_token_number
 	bf.WriteBytes(paddedString(token, 16))    // login_token (16 byte padded string)
 	bf.WriteUint32(uint32(time.Now().Unix())) // unk timestamp
-	ps.Uint8(bf, fmt.Sprintf("%s:%d", s.server.erupeConfig.HostIP, s.server.erupeConfig.Entrance.Port))
+	ps.Uint8(bf, fmt.Sprintf("%s:%d", s.server.erupeConfig.HostIP, s.server.erupeConfig.Entrance.Port), false)
 
 	for _, char := range chars {
 		bf.WriteUint32(char.ID)
@@ -92,17 +92,13 @@ func (s *Session) makeSignInResp(uid int) []byte {
 	bf.WriteUint8(0)           // notice_count
 
 	// noticeText := "<BODY><CENTER><SIZE_3><C_4>Welcome to Erupe SU9!<BR><BODY><LEFT><SIZE_2><C_5>Erupe is experimental software<C_7>, we are not liable for any<BR><BODY>issues caused by installing the software!<BR><BODY><BR><BODY><C_4>■Report bugs on Discord!<C_7><BR><BODY><BR><BODY><C_4>■Test everything!<C_7><BR><BODY><BR><BODY><C_4>■Don't talk to softlocking NPCs!<C_7><BR><BODY><BR><BODY><C_4>■Fork the code on GitHub!<C_7><BR><BODY><BR><BODY>Thank you to all of the contributors,<BR><BODY><BR><BODY>this wouldn't exist without you."
-	// notice_transformed, _, err := transform.String(t, noticeText)
-	// if err != nil {
-	// 	panic(err)
-	// }
-	// ps.Uint32(bf, notice_transformed)
+	// ps.Uint32(bf, noticeText, true)
 
 	bf.WriteUint32(0)          // some_last_played_character_id
 	bf.WriteUint32(14)         // unk_flags
-	ps.Uint16(bf, "") // filters
+	ps.Uint16(bf, "", false) // filters
 	bf.WriteUint32(0xCA104E20)
-	ps.Uint16(bf, "") // encryption
+	ps.Uint16(bf, "", false) // encryption
 	bf.WriteUint8(0x00)
 	bf.WriteUint32(0xCA110001)
 	bf.WriteUint32(0x4E200000)

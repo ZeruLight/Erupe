@@ -5,22 +5,12 @@ import (
 	"math/rand"
 	"time"
 	"erupe-ce/server/channelserver"
+	"erupe-ce/common/stringsupport"
 	ps "erupe-ce/common/pascalstring"
 	"erupe-ce/common/byteframe"
 
 	"go.uber.org/zap"
-	"golang.org/x/text/encoding/japanese"
-  "golang.org/x/text/transform"
 )
-
-func paddedString(x string, size uint) []byte {
-	out := make([]byte, size)
-	copy(out, x)
-
-	// Null terminate it.
-	out[len(out)-1] = 0
-	return out
-}
 
 func makeSignInFailureResp(respID RespID) []byte {
 	bf := byteframe.NewByteFrame()
@@ -48,7 +38,6 @@ func (s *Session) makeSignInResp(uid int) []byte {
 	token := randSeq(16)
 	// TODO: register token to db, users table
 
-	t := japanese.ShiftJIS.NewEncoder()
 	bf := byteframe.NewByteFrame()
 
 	bf.WriteUint8(1)                          // resp_code
@@ -56,7 +45,7 @@ func (s *Session) makeSignInResp(uid int) []byte {
 	bf.WriteUint8(1)                          // entrance server count
 	bf.WriteUint8(uint8(len(chars)))          // character count
 	bf.WriteUint32(0xFFFFFFFF)                // login_token_number
-	bf.WriteBytes(paddedString(token, 16))    // login_token (16 byte padded string)
+	bf.WriteBytes(stringsupport.PaddedString(token, 16, false))    // login_token (16 byte padded string)
 	bf.WriteUint32(uint32(time.Now().Unix())) // unk timestamp
 	ps.Uint8(bf, fmt.Sprintf("%s:%d", s.server.erupeConfig.HostIP, s.server.erupeConfig.Entrance.Port), false)
 
@@ -70,19 +59,14 @@ func (s *Session) makeSignInResp(uid int) []byte {
 			bf.WriteUint16(char.HRP)
 		}
 
-		str_name, _, err := transform.String(t, char.Name)
-		if err != nil {
-		  str_name = char.Name
-		}
-
 		bf.WriteUint16(char.WeaponType)                     // Weapon, 0-13.
 		bf.WriteUint32(char.LastLogin)                      // Last login date, unix timestamp in seconds.
 		bf.WriteBool(char.IsFemale)                         // Sex, 0=male, 1=female.
 		bf.WriteBool(char.IsNewCharacter)                   // Is new character, 1 replaces character name with ?????.
 		bf.WriteUint8(0)                                    // Old GR
 		bf.WriteBool(true)                                  // Use uint16 GR, no reason not to
-		bf.WriteBytes(paddedString(str_name, 16))          // Character name
-		bf.WriteBytes(paddedString(char.UnkDescString, 32)) // unk str
+		bf.WriteBytes(stringsupport.PaddedString(char.Name, 16, true))          // Character name
+		bf.WriteBytes(stringsupport.PaddedString(char.UnkDescString, 32, false)) // unk str
 		bf.WriteUint16(char.GR)
 		bf.WriteUint16(0) // Unk
 	}

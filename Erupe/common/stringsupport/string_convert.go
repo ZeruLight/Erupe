@@ -99,6 +99,21 @@ func SJISToUTF8(b []byte) (string) {
 	return string(result)
 }
 
+func PaddedString(x string, size uint, t bool) []byte {
+	if t {
+    e := japanese.ShiftJIS.NewEncoder()
+    xt, _, err := transform.String(e, x)
+    if err != nil {
+      panic(err)
+    }
+    x = xt
+  }
+	out := make([]byte, size)
+	copy(out, x)
+	out[len(out)-1] = 0
+	return out
+}
+
 // ConvertUTF8ToShiftJIS converts a UTF8 string to a Shift-JIS []byte.
 func ConvertUTF8ToShiftJIS(text string) ([]byte, error) {
 	r := bytes.NewBuffer([]byte(text))

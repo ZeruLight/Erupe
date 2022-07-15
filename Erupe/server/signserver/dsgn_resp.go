@@ -5,8 +5,9 @@ import (
 	"math/rand"
 	"time"
 	"erupe-ce/server/channelserver"
+	ps "erupe-ce/common/pascalstring"
+	"erupe-ce/common/byteframe"
 
-	"github.com/Andoryuuta/byteframe"
 	"go.uber.org/zap"
 	"golang.org/x/text/encoding/japanese"
 	"golang.org/x/text/transform"
@@ -19,16 +20,6 @@ func paddedString(x string, size uint) []byte {
 	// Null terminate it.
 	out[len(out)-1] = 0
 	return out
-}
-
-func uint8PascalString(bf *byteframe.ByteFrame, x string) {
-	bf.WriteUint8(uint8(len(x) + 1))
-	bf.WriteNullTerminatedBytes([]byte(x))
-}
-
-func uint16PascalString(bf *byteframe.ByteFrame, x string) {
-	bf.WriteUint16(uint16(len(x) + 1))
-	bf.WriteNullTerminatedBytes([]byte(x))
 }
 
 func makeSignInFailureResp(respID RespID) []byte {
@@ -67,7 +58,7 @@ func (s *Session) makeSignInResp(uid int) []byte {
 	bf.WriteUint32(0xFFFFFFFF)                // login_token_number
 	bf.WriteBytes(paddedString(token, 16))    // login_token (16 byte padded string)
 	bf.WriteUint32(uint32(time.Now().Unix())) // unk timestamp
-	uint8PascalString(bf, fmt.Sprintf("%s:%d", s.server.erupeConfig.HostIP, s.server.erupeConfig.Entrance.Port))
+	ps.Uint8(bf, fmt.Sprintf("%s:%d", s.server.erupeConfig.HostIP, s.server.erupeConfig.Entrance.Port))
 
 	for _, char := range chars {
 		bf.WriteUint32(char.ID)
@@ -105,14 +96,13 @@ func (s *Session) makeSignInResp(uid int) []byte {
 	// if err != nil {
 	// 	panic(err)
 	// }
-	// bf.WriteUint32(uint32(len(notice_transformed)+1))
-	// bf.WriteNullTerminatedBytes([]byte(notice_transformed))
+	// ps.Uint32(bf, notice_transformed)
 
 	bf.WriteUint32(0)          // some_last_played_character_id
 	bf.WriteUint32(14)         // unk_flags
-	uint16PascalString(bf, "") // filters
+	ps.Uint16(bf, "") // filters
 	bf.WriteUint32(0xCA104E20)
-	uint16PascalString(bf, "") // encryption
+	ps.Uint16(bf, "") // encryption
 	bf.WriteUint8(0x00)
 	bf.WriteUint32(0xCA110001)
 	bf.WriteUint32(0x4E200000)

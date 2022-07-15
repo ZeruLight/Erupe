@@ -99,7 +99,7 @@ func handleMsgMhfApplyDistItem(s *Session, p mhfpacket.MHFPacket) {
 		bf := byteframe.NewByteFrame()
 		bf.WriteUint32(pkt.DistributionID)
 		bf.WriteBytes(dist.Data)
-		bf.WriteUint32(uint32(time.Now().Unix()))
+		bf.WriteUint32(0) // Unk, purchase ID?
     doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 
 		_, err = s.server.db.Exec(`

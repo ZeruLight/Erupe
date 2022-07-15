@@ -254,10 +254,7 @@ function switchPrompt() {
     let uid = localStorage.getItem('uid');
     if (uid != 'null' && uids.indexOf(uid) >= 0) {
       setUidIndex(uids.indexOf(uid));
-    } else {
-			addLog('Error setting character ID: '+e, 'error');
-			switchPrompt();
-		}
+    }
   }
 }
 

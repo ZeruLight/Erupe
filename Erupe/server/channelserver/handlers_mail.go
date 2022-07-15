@@ -330,10 +330,8 @@ func handleMsgMhfListMail(s *Session, p mhfpacket.MHFPacket) {
 		// System message, hides ID
 		// flags |= 0x04
 
-		// Mitigate game crash
-		flags |= 0x08
 		if m.AttachedItemReceived {
-			// flags |= 0x08
+			flags |= 0x08
 		}
 
 		if m.IsGuildInvite {
@@ -347,7 +345,6 @@ func handleMsgMhfListMail(s *Session, p mhfpacket.MHFPacket) {
 		msg.WriteNullTerminatedBytes(subject)
 		msg.WriteNullTerminatedBytes(sender)
 
-		// TODO: The game will crash if it attempts to receive items
 		if itemAttached {
 			msg.WriteUint16(m.AttachedItemAmount)
 			msg.WriteUint16(m.AttachedItemID)
@@ -361,12 +358,10 @@ func handleMsgMhfOprtMail(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfOprtMail)
 
 	mail, err := GetMailByID(s, s.mailList[pkt.AccIndex])
-
 	if err != nil {
 		doAckSimpleFail(s, pkt.AckHandle, nil)
 		panic(err)
 	}
-
 	switch mhfpacket.OperateMailOperation(pkt.Operation) {
 	case mhfpacket.OPERATE_MAIL_DELETE:
 		err = mail.MarkDeleted(s)
@@ -393,8 +388,8 @@ func handleMsgMhfOprtMail(s *Session, p mhfpacket.MHFPacket) {
 			panic(err)
 		}
 	}
-
-	doAckSimpleSucceed(s, pkt.AckHandle, nil)
+	
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfSendMail(s *Session, p mhfpacket.MHFPacket) {

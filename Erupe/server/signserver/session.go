@@ -63,6 +63,10 @@ func (s *Session) handlePacket(pkt []byte) error {
 		characterID := int(bf.ReadUint32())
 		s.server.deleteCharacter(characterID, loginTokenString)
 		sugar.Infof("Deleted character ID: %v\n", characterID)
+		err := s.cryptConn.SendPacket([]byte{0x01}) // DEL_SUCCESS
+		if err != nil {
+			return nil
+		}
 	default:
 		sugar.Infof("Got unknown request type %s, data:\n%s\n", reqType, hex.Dump(bf.DataFromCurrent()))
 	}

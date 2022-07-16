@@ -162,7 +162,7 @@ func (s *Server) getGuildmatesForCharacters(chars []character) ([]members) {
 				charGuildmates[i].CID = char.ID
 			}
 			guildmates = append(guildmates, charGuildmates...)
-		}	
+		}
 	}
 	if len(guildmates) > 255 { // Uint8
 		guildmates = guildmates[:255]
@@ -176,7 +176,13 @@ func (s *Server) deleteCharacter(cid int, token string) error {
 	if err != nil {
 		return err // Invalid token
 	}
-	_, err = s.db.Exec("UPDATE characters SET deleted = true WHERE id = $1", cid)
+	var isNew bool
+	err = s.db.QueryRow("SELECT is_new_character FROM characters WHERE id = $1", cid).Scan(&isNew)
+	if isNew {
+		_, err = s.db.Exec("DELETE FROM characters WHERE id = $1", cid)
+	} else {
+		_, err = s.db.Exec("UPDATE characters SET deleted = true WHERE id = $1", cid)
+	}
 	if err != nil {
 		return err
 	}

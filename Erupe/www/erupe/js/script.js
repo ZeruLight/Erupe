@@ -305,6 +305,18 @@ function checkAuth() {
   document.getElementById('processing').style.display = 'none';
 }
 
+function checkDelete() {
+	let deleteResult = window.external.getLastAuthResult();
+	if (deleteResult == 'DEL_PROGRESS') {
+		setTimeout(checkDelete, 10);
+		return;
+	} else if (deleteResult == 'DEL_SUCCESS') {
+		doLogin(0);
+		switchPrompt();
+		toggleModal(0);
+	}
+}
+
 function launch() {
   document.getElementById('game_starting').style.display = 'block';
   try {
@@ -324,6 +336,11 @@ function launch() {
   setTimeout(function () {
     window.external.exitLauncher();
   }, 3000);
+}
+
+function deleteCharacter(id) {
+	window.external.deleteCharacter(id);
+	checkDelete();
 }
 
 function autoWarning() {
@@ -404,18 +421,16 @@ function setModalContent(preset, url) {
 					<br>it will be gone forever. \
 				</span> \
 			';
-			modal.querySelector('.dialog .btns').innerHTML = ' \
+			modal.querySelector(".dialog .btns").innerHTML = ' \
 				<ul> \
 					<li> \
-						<div onmouseover="soundSel()" onclick="soundOk(); addLog(\'Not yet implemented.\', \'error\'); toggleModal(0)">Yes</div> \
+						<div onmouseover="soundSel();" onclick="soundOk(); deleteCharacter(\''+selectedUid+'\')">Yes</div> \
 					</li> \
 					<li> \
-						<div onmouseover="soundSel()" onclick="soundOk(); toggleModal(0)">Cancel</div> \
+						<div onmouseover="soundSel();" onclick="soundOk(); toggleModal(0)">Cancel</div> \
 					</li> \
 				</ul> \
 			';
-			// Uses the launcher delete
-			// modal.querySelector(".dialog .btns").innerHTML = "<ul><li><div unselectable=\"on\" onselectstart=\"return false;\" onmouseover=\"soundSel();\" onclick=\"soundOk(); window.external.deleteCharacter('"+selectedUid+"');  toggleModal(0);\" style=\"opacity: 1;\">Yes</div></li><li><div onmouseover=\"soundSel();\" onclick=\"soundOk(); toggleModal(0);\" unselectable=\"on\" onselectstart=\"return false;\" class=\"\">Cancel</div></li></ul>";
 			break;
 		case 'addCharNew':
 			modal.querySelector('.dialog p').innerHTML = ' \

@@ -88,24 +88,23 @@ func makeSv2Resp(servers []config.EntranceServerInfo, s *Server) []byte {
 	return bf.Data()
 }
 
-func makeUsrResp(pkt []byte) []byte {
-	// TODO(Andoryuuta): Figure out what this user data is.
-	// Is it for the friends list at the world selection screen?
-	// If so, how does it work without the entrance server connection being authenticated?
-
-	// uint16 for number of requested ids
-	// uint32 for each id
-	// response seems to be server number starting from 10 10 00 00 for server 1 channel 1?
+func makeUsrResp(pkt []byte, s *Server) []byte {
 	bf := byteframe.NewByteFrameFromBytes(pkt)
 	_ = bf.ReadUint32() // ALL+
 	_ = bf.ReadUint8()  // 0x00
-
 	userEntries := bf.ReadUint16()
-	// actual process will be reading all ids and returning real server, just returning all in server 1 for now
-	bf = byteframe.NewByteFrame()
+	resp := byteframe.NewByteFrame()
 	for i := 0; i < int(userEntries); i++ {
-		bf.WriteBytes([]byte{0x10, 0x10, 0x00, 0x00})
+		cid := bf.ReadUint32()
+		var sid uint16
+		err := s.db.QueryRow("SELECT(SELECT server_id FROM sign_sessions WHERE char_id=$1) AS _", cid).Scan(&sid)
+		if err != nil {
+			resp.WriteBytes(make([]byte, 4))
+			continue
+		} else {
+			resp.WriteUint16(sid)
+			resp.WriteUint16(0)
+		}
 	}
-	return makeHeader(bf.Data(), "USR", userEntries, 0x00)
-
+	return makeHeader(resp.Data(), "USR", userEntries, 0x00)
 }

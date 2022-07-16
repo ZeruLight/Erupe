@@ -46,10 +46,14 @@ func (s *Session) makeSignInResp(uid int) []byte {
 	bf.WriteUint8(uint8(len(chars)))          // character count
 	bf.WriteUint32(0xFFFFFFFF)                // login_token_number
 	bf.WriteBytes([]byte(token))              // login_token
-	bf.WriteUint32(uint32(time.Now().Unix())) // unk timestamp
+	bf.WriteUint32(uint32(time.Now().Unix())) // current time
 	ps.Uint8(bf, fmt.Sprintf("%s:%d", s.server.erupeConfig.HostIP, s.server.erupeConfig.Entrance.Port), false)
 
+	lastPlayed := uint32(0)
 	for _, char := range chars {
+		if lastPlayed == 0 {
+			lastPlayed = char.ID
+		}
 		bf.WriteUint32(char.ID)
 
 		// Exp, HR[x] is split by 0, 1, 30, 50, 99, 299, 998, 999
@@ -71,18 +75,39 @@ func (s *Session) makeSignInResp(uid int) []byte {
 		bf.WriteUint16(0) // Unk
 	}
 
-	bf.WriteUint8(0)           // friends_list_count
-	bf.WriteUint8(0)           // guild_members_count
+	friends, err := s.server.getFriendsForCharacter(lastPlayed)
+	if err != nil || friends == nil {
+		bf.WriteUint8(0)
+	} else {
+		bf.WriteUint8(uint8(len(friends)))
+		for _, friend := range friends {
+			bf.WriteUint32(lastPlayed)
+			bf.WriteUint32(friend.ID)
+			ps.Uint8(bf, friend.Name, true)
+		}
+	}
+
+	guildmates, err := s.server.getGuildmatesForCharacter(lastPlayed)
+	if err != nil || guildmates == nil {
+		bf.WriteUint8(0)
+	} else {
+		for _, guildmate := range guildmates {
+			bf.WriteUint32(lastPlayed)
+			bf.WriteUint32(guildmate.ID)
+			ps.Uint8(bf, guildmate.Name, true)
+		}
+	}
+
 	bf.WriteUint8(0)           // notice_count
 
 	// noticeText := "<BODY><CENTER><SIZE_3><C_4>Welcome to Erupe SU9!<BR><BODY><LEFT><SIZE_2><C_5>Erupe is experimental software<C_7>, we are not liable for any<BR><BODY>issues caused by installing the software!<BR><BODY><BR><BODY><C_4>■Report bugs on Discord!<C_7><BR><BODY><BR><BODY><C_4>■Test everything!<C_7><BR><BODY><BR><BODY><C_4>■Don't talk to softlocking NPCs!<C_7><BR><BODY><BR><BODY><C_4>■Fork the code on GitHub!<C_7><BR><BODY><BR><BODY>Thank you to all of the contributors,<BR><BODY><BR><BODY>this wouldn't exist without you."
 	// ps.Uint32(bf, noticeText, true)
 
-	bf.WriteUint32(0)          // some_last_played_character_id
-	bf.WriteUint32(14)         // unk_flags
-	ps.Uint16(bf, "", false) // filters
+	bf.WriteUint32(lastPlayed) // last played character id
+	bf.WriteUint32(14)         // course bitfield
+	ps.Uint16(bf, "", false)   // filters
 	bf.WriteUint32(0xCA104E20)
-	ps.Uint16(bf, "", false) // encryption
+	ps.Uint16(bf, "", false)   // encryption
 	bf.WriteUint8(0x00)
 	bf.WriteUint32(0xCA110001)
 	bf.WriteUint32(0x4E200000)

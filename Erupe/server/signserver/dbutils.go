@@ -2,6 +2,7 @@ package signserver
 
 import (
 	"time"
+	"strings"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -87,11 +88,58 @@ type character struct {
 
 func (s *Server) getCharactersForUser(uid int) ([]character, error) {
 	characters := []character{}
-	err := s.db.Select(&characters, "SELECT id, is_female, is_new_character, name, unk_desc_string, hrp, gr, weapon_type, last_login FROM characters WHERE user_id = $1 AND deleted = false", uid)
+	err := s.db.Select(&characters, "SELECT id, is_female, is_new_character, name, unk_desc_string, hrp, gr, weapon_type, last_login FROM characters WHERE user_id = $1 AND deleted = false ORDER BY last_login DESC", uid)
 	if err != nil {
 		return nil, err
 	}
 	return characters, nil
+}
+
+type members struct {
+	ID   uint32 `db:"id"`
+	Name string `db:"name"`
+}
+
+func (s *Server) getFriendsForCharacter(cid uint32) ([]members, error) {
+	friends := []members{}
+	var friendsCSV string
+	err := s.db.QueryRow("SELECT friends FROM characters WHERE id=$1", cid).Scan(&friendsCSV)
+	friendsSlice := strings.Split(friendsCSV, ",")
+	if friendsSlice[0] == "" {
+		return nil, nil
+	}
+	friendQuery := "SELECT id, name FROM characters WHERE id="
+	for i := 0; i < len(friendsSlice); i++ {
+		friendQuery += friendsSlice[i]
+		if i + 1 != len(friendsSlice) {
+			friendQuery += " OR id="
+		}
+	}
+	err = s.db.Select(&friends, friendQuery)
+	if err != nil {
+		return nil, err
+	}
+	return friends, nil
+}
+
+func (s *Server) getGuildmatesForCharacter(cid uint32) ([]members, error) {
+	guildmates := []members{}
+	var inGuild int
+	_ = s.db.QueryRow("SELECT count(*) FROM guild_characters WHERE character_id=$1", cid).Scan(&inGuild)
+	if inGuild > 0 {
+		var guildID int
+		err := s.db.QueryRow("SELECT guild_id FROM guild_characters WHERE character_id=$1", cid).Scan(&guildID)
+		if err != nil {
+			return nil, err
+		}
+		err = s.db.Select(&guildmates, "SELECT character_id AS id, c.name FROM guild_characters gc JOIN characters c ON c.id = gc.character_id WHERE guild_id=$1 AND character_id!=$2", guildID, cid)
+		if err != nil {
+			return nil, err
+		}
+		return guildmates, nil
+	} else {
+		return nil, nil
+	}
 }
 
 func (s *Server) deleteCharacter(cid int, token string) error {

@@ -165,7 +165,7 @@ func handleMsgSysLogin(s *Session, p mhfpacket.MHFPacket) {
 		panic(err)
 	}
 
-	_, err = s.server.db.Exec("UPDATE sign_sessions SET server_id=$1 WHERE token=$2", s.server.ID, s.token)
+	_, err = s.server.db.Exec("UPDATE sign_sessions SET server_id=$1, char_id=$2 WHERE token=$3", s.server.ID, s.charID, s.token)
 	if err != nil {
 		panic(err)
 	}
@@ -198,7 +198,7 @@ func logoutPlayer(s *Session) {
 	delete(s.server.sessions, s.rawConn)
 	s.rawConn.Close()
 
-	_, err := s.server.db.Exec("UPDATE sign_sessions SET server_id=NULL WHERE token=$1", s.token)
+	_, err := s.server.db.Exec("UPDATE sign_sessions SET server_id=NULL, char_id=NULL WHERE token=$1", s.token)
 	if err != nil {
 		panic(err)
 	}

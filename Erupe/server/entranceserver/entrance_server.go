@@ -113,7 +113,7 @@ func (s *Server) handleEntranceServerConnection(conn net.Conn) {
 
 	data := makeSv2Resp(s.erupeConfig.Entrance.Entries, s)
 	if len(pkt) > 5 {
-		data = append(data, makeUsrResp(pkt)...)
+		data = append(data, makeUsrResp(pkt, s)...)
 	}
 	cc.SendPacket(data)
 	// Close because we only need to send the response once.

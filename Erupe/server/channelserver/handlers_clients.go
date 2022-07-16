@@ -1,6 +1,7 @@
 package channelserver
 
 import (
+	"erupe-ce/common/stringsupport"
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/common/byteframe"
 	"go.uber.org/zap"
@@ -60,8 +61,26 @@ func handleMsgMhfListMember(s *Session, p mhfpacket.MHFPacket) {
 }
 
 func handleMsgMhfOprMember(s *Session, p mhfpacket.MHFPacket) {
-	pkt := p.(*mhfpacket.MsgMhfListMember)
-	// TODO: add targetid(uint32) to charid(uint32)'s database under new field
+	pkt := p.(*mhfpacket.MsgMhfOprMember)
+	var csv string
+	if pkt.Blacklist {
+		if pkt.Operation {
+			// remove from blacklist
+		} else {
+			// add to blacklist
+		}
+	} else { // Friendlist
+		err := s.server.db.QueryRow("SELECT friends FROM characters WHERE id=$1", s.charID).Scan(&csv)
+		if err != nil {
+			panic(err)
+		}
+		if pkt.Operation {
+			csv = stringsupport.CSVRemove(csv, int(pkt.CharID))
+		} else {
+			csv = stringsupport.CSVAdd(csv, int(pkt.CharID))
+		}
+		_, _ = s.server.db.Exec("UPDATE characters SET friends=$1 WHERE id=$2", csv, s.charID)
+	}
 	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 

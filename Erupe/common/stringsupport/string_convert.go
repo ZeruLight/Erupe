@@ -1,6 +1,8 @@
 package stringsupport
 
 import (
+	"strings"
+	"strconv"
 	"bytes"
 	"io/ioutil"
 
@@ -112,6 +114,35 @@ func PaddedString(x string, size uint, t bool) []byte {
 	copy(out, x)
 	out[len(out)-1] = 0
 	return out
+}
+
+func CSVAdd(csv string, v int) string {
+	if len(csv) == 0 {
+		return strconv.Itoa(v)
+	}
+	return csv + "," + strconv.Itoa(v)
+}
+
+func CSVRemove(csv string, v int) string {
+	s := strings.Split(csv, ",")
+	for i, e := range s {
+		if e == strconv.Itoa(v) {
+			s[i] = s[len(s) - 1]
+			s = s[:len(s) - 1]
+		}
+	}
+	return strings.Join(s, ",")
+}
+
+func CSVContains(csv string, v int) bool {
+	s := strings.Split(csv, ",")
+	for i := 0; i < len(s); i++ {
+		j, _ := strconv.ParseInt(s[i], 10, 64)
+		if int(j) == v {
+			return true
+		}
+	}
+	return false
 }
 
 // ConvertUTF8ToShiftJIS converts a UTF8 string to a Shift-JIS []byte.

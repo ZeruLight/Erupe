@@ -88,7 +88,7 @@ type character struct {
 
 func (s *Server) getCharactersForUser(uid int) ([]character, error) {
 	characters := []character{}
-	err := s.db.Select(&characters, "SELECT id, is_female, is_new_character, name, unk_desc_string, hrp, gr, weapon_type, last_login FROM characters WHERE user_id = $1 AND deleted = false ORDER BY last_login DESC", uid)
+	err := s.db.Select(&characters, "SELECT id, is_female, is_new_character, name, unk_desc_string, hrp, gr, weapon_type, last_login FROM characters WHERE user_id = $1 AND deleted = false", uid)
 	if err != nil {
 		return nil, err
 	}
@@ -96,28 +96,36 @@ func (s *Server) getCharactersForUser(uid int) ([]character, error) {
 }
 
 type members struct {
+	CID  uint32 // Local character ID
 	ID   uint32 `db:"id"`
 	Name string `db:"name"`
 }
 
-func (s *Server) getFriendsForCharacter(cid uint32) ([]members, error) {
-	friends := []members{}
-	var friendsCSV string
-	err := s.db.QueryRow("SELECT friends FROM characters WHERE id=$1", cid).Scan(&friendsCSV)
-	friendsSlice := strings.Split(friendsCSV, ",")
-	if friendsSlice[0] == "" {
-		return nil, nil
-	}
-	friendQuery := "SELECT id, name FROM characters WHERE id="
-	for i := 0; i < len(friendsSlice); i++ {
-		friendQuery += friendsSlice[i]
-		if i + 1 != len(friendsSlice) {
-			friendQuery += " OR id="
+func (s *Server) getFriendsForCharacters(chars []character) ([]members, error) {
+	friends := make([]members, 0)
+	for _, char := range chars {
+		friendsCSV := ""
+		err := s.db.QueryRow("SELECT friends FROM characters WHERE id=$1", char.ID).Scan(&friendsCSV)
+		friendsSlice := strings.Split(friendsCSV, ",")
+		friendQuery := "SELECT id, name FROM characters WHERE id="
+		for i := 0; i < len(friendsSlice); i++ {
+			friendQuery += friendsSlice[i]
+			if i + 1 != len(friendsSlice) {
+				friendQuery += " OR id="
+			}
 		}
+		charFriends := []members{}
+		err = s.db.Select(&charFriends, friendQuery)
+		if err != nil {
+			continue
+		}
+		for i, _ := range charFriends {
+			charFriends[i].CID = char.ID
+		}
+		friends = append(friends, charFriends...)
 	}
-	err = s.db.Select(&friends, friendQuery)
-	if err != nil {
-		return nil, err
+	if len(friends) > 255 { // Uint8
+		friends = friends[:255]
 	}
 	return friends, nil
 }

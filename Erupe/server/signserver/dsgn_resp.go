@@ -75,13 +75,13 @@ func (s *Session) makeSignInResp(uid int) []byte {
 		bf.WriteUint16(0) // Unk
 	}
 
-	friends, err := s.server.getFriendsForCharacter(lastPlayed)
-	if err != nil || friends == nil {
+	friends, err := s.server.getFriendsForCharacters(chars)
+	if err != nil || len(friends) == 0 {
 		bf.WriteUint8(0)
 	} else {
 		bf.WriteUint8(uint8(len(friends)))
 		for _, friend := range friends {
-			bf.WriteUint32(lastPlayed)
+			bf.WriteUint32(friend.CID)
 			bf.WriteUint32(friend.ID)
 			ps.Uint8(bf, friend.Name, true)
 		}

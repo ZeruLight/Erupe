@@ -145,7 +145,7 @@ func GetMailListForCharacter(s *Session, charID uint32) ([]Mail, error) {
 			c.name as sender_name
 		FROM mail m
 			JOIN characters c ON c.id = m.sender_id
-		WHERE recipient_id = $1 AND deleted = false
+		WHERE recipient_id = $1 AND m.deleted = false
 		ORDER BY m.created_at DESC, id DESC
 		LIMIT 32
 	`, charID)
@@ -388,7 +388,7 @@ func handleMsgMhfOprtMail(s *Session, p mhfpacket.MHFPacket) {
 			panic(err)
 		}
 	}
-	
+
 	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 

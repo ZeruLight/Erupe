@@ -14,8 +14,7 @@ type MsgMhfTransitMessage struct {
   Unk0 uint8
   Unk1 uint8
   Unk2 uint16
-  Unk3 uint16
-  TargetID uint32
+  MessageData []byte
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -29,8 +28,7 @@ func (m *MsgMhfTransitMessage) Parse(bf *byteframe.ByteFrame, ctx *clientctx.Cli
   m.Unk0 = bf.ReadUint8()
   m.Unk1 = bf.ReadUint8()
   m.Unk2 = bf.ReadUint16()
-  m.Unk3 = bf.ReadUint16()
-  m.TargetID = bf.ReadUint32()
+  m.MessageData = bf.ReadBytes(uint(bf.ReadUint16()))
   return nil
 }
 

@@ -1,7 +1,7 @@
 package mhfpacket
 
-import ( 
- "errors" 
+import (
+ "errors"
 
  	"erupe-ce/network/clientctx"
 	"erupe-ce/network"
@@ -36,8 +36,7 @@ func (m *MsgSysLogin) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContex
 	m.CharID1 = bf.ReadUint32()
 	m.HardcodedZero1 = bf.ReadUint16()
 	m.LoginTokenStringLength = bf.ReadUint16()
-	m.LoginTokenString = string(bf.ReadBytes(17)) // TODO(Andoryuuta): What encoding is this string?
-
+	m.LoginTokenString = string(bf.ReadNullTerminatedBytes())
 	return nil
 }
 

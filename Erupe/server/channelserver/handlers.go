@@ -155,15 +155,19 @@ func handleMsgSysLogin(s *Session, p mhfpacket.MHFPacket) {
 	s.Name = name
 	s.charID = pkt.CharID0
 	s.rights = rights
+	s.token = pkt.LoginTokenString
 	s.Unlock()
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint32(uint32(Time_Current_Adjusted().Unix())) // Unix timestamp
 
-	if s.server.erupeConfig.DevModeOptions.ServerName != "" {
-		_, err := s.server.db.Exec("UPDATE servers SET current_players=$1 WHERE server_name=$2", uint32(len(s.server.sessions)), s.server.erupeConfig.DevModeOptions.ServerName)
-		if err != nil {
-			panic(err)
-		}
+	_, err = s.server.db.Exec("UPDATE servers SET current_players=$1 WHERE server_id=$2", len(s.server.sessions), s.server.ID)
+	if err != nil {
+		panic(err)
+	}
+
+	_, err = s.server.db.Exec("UPDATE sign_sessions SET server_id=$1 WHERE token=$2", s.server.ID, s.token)
+	if err != nil {
+		panic(err)
 	}
 
 	_, err = s.server.db.Exec("UPDATE characters SET last_login=$1 WHERE id=$2", Time_Current().Unix(), s.charID)
@@ -194,11 +198,14 @@ func logoutPlayer(s *Session) {
 	delete(s.server.sessions, s.rawConn)
 	s.rawConn.Close()
 
-	if s.server.erupeConfig.DevModeOptions.ServerName != "" {
-		_, err := s.server.db.Exec("UPDATE servers SET current_players=$1 WHERE server_name=$2", uint32(len(s.server.sessions)), s.server.erupeConfig.DevModeOptions.ServerName)
-		if err != nil {
-			panic(err)
-		}
+	_, err := s.server.db.Exec("UPDATE sign_sessions SET server_id=NULL WHERE token=$1", s.token)
+	if err != nil {
+		panic(err)
+	}
+
+	_, err = s.server.db.Exec("UPDATE servers SET current_players=$1 WHERE server_id=$2", len(s.server.sessions), s.server.ID)
+	if err != nil {
+		panic(err)
 	}
 
 	s.server.Lock()
@@ -213,7 +220,7 @@ func logoutPlayer(s *Session) {
 	removeSessionFromStage(s)
 
 	var timePlayed int
-	err := s.server.db.QueryRow("SELECT time_played FROM characters WHERE id = $1", s.charID).Scan(&timePlayed)
+	_ = s.server.db.QueryRow("SELECT time_played FROM characters WHERE id = $1", s.charID).Scan(&timePlayed)
 
 	timePlayed = (int(Time_Current_Adjusted().Unix()) - int(s.sessionStart)) + timePlayed
 

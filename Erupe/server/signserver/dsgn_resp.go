@@ -36,7 +36,7 @@ func (s *Session) makeSignInResp(uid int) []byte {
 
 	rand.Seed(time.Now().UnixNano())
 	token := randSeq(16)
-	// TODO: register token to db, users table
+	s.server.registerToken(uid, token)
 
 	bf := byteframe.NewByteFrame()
 
@@ -45,7 +45,7 @@ func (s *Session) makeSignInResp(uid int) []byte {
 	bf.WriteUint8(1)                          // entrance server count
 	bf.WriteUint8(uint8(len(chars)))          // character count
 	bf.WriteUint32(0xFFFFFFFF)                // login_token_number
-	bf.WriteBytes(stringsupport.PaddedString(token, 16, false))    // login_token (16 byte padded string)
+	bf.WriteBytes([]byte(token))              // login_token
 	bf.WriteUint32(uint32(time.Now().Unix())) // unk timestamp
 	ps.Uint8(bf, fmt.Sprintf("%s:%d", s.server.erupeConfig.HostIP, s.server.erupeConfig.Entrance.Port), false)
 

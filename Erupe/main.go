@@ -87,6 +87,10 @@ func main() {
 	}
 	logger.Info("Connected to database")
 
+	// Clear existing tokens
+	_ = db.MustExec("DELETE FROM sign_sessions")
+	_ = db.MustExec("DELETE FROM servers")
+
 	// Clean the DB if the option is on.
 	if erupeConfig.DevMode && erupeConfig.DevModeOptions.CleanDB {
 		logger.Info("Cleaning DB")
@@ -137,25 +141,36 @@ func main() {
 	logger.Info("Started sign server")
 
 	var channels []channelserver.Server
+	channelQuery := ""
+	si := 0
+	ci := 0
 	count := 1
 	for _, ee := range erupeConfig.Entrance.Entries {
 		for _, ce := range ee.Channels {
+			sid := (4096 + si * 256) + (16 + ci)
 			c := *channelserver.NewServer(&channelserver.Config{
-				Logger:      logger.Named("channel-"+fmt.Sprint(count)),
-				ErupeConfig: erupeConfig,
-				DB:          db,
-				DiscordBot:  discordBot,
+				ID:           uint16(sid),
+				Logger:       logger.Named("channel-"+fmt.Sprint(count)),
+				ErupeConfig:  erupeConfig,
+				DB:           db,
+				DiscordBot:   discordBot,
 			})
 			err = c.Start(int(ce.Port))
 			if err != nil {
 				logger.Fatal("Failed to start channel", zap.Error(err))
 			} else {
+				channelQuery += fmt.Sprintf("INSERT INTO servers (server_id, season, current_players) VALUES (%d, 0, 0);", sid)
+				channels = append(channels, c)
 				logger.Info(fmt.Sprintf("Started channel server %d on port %d", count, ce.Port))
+				ci++
+				count++
 			}
-			channels = append(channels, c)
-			count++
 		}
+		ci = 0
+		si++
 	}
+
+	_ = db.MustExec(channelQuery)
 
 	// Wait for exit or interrupt with ctrl+C.
 	c := make(chan os.Signal, 1)

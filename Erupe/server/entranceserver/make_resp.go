@@ -11,17 +11,7 @@ import (
 	"erupe-ce/server/channelserver"
 )
 
-func paddedString(x string, size uint) []byte {
-	out := make([]byte, size)
-	copy(out, x)
-
-	// Null terminate it.
-	out[len(out)-1] = 0
-	return out
-}
-
 // Server Entries
-var name string
 var season uint8
 
 // Server Channels
@@ -31,17 +21,10 @@ func encodeServerInfo(serverInfos []config.EntranceServerInfo, s *Server) []byte
 	bf := byteframe.NewByteFrame()
 
 	for serverIdx, si := range serverInfos {
-		err := s.db.QueryRow("SELECT server_name FROM servers WHERE server_name=$1", si.Name).Scan(&name)
+		sid := (4096 + serverIdx * 256) + 16
+		err := s.db.QueryRow("SELECT season FROM servers WHERE server_id=$1", sid).Scan(&season)
 		if err != nil {
-			_, err := s.db.Exec("INSERT INTO servers (server_name, season, current_players, event_id, event_expiration) VALUES ($1, $2, 0, 0, 0)", si.Name, si.Season)
-			if err != nil {
-				panic(err)
-			}
-		} else {
-			err := s.db.QueryRow("SELECT season FROM servers WHERE server_name=$1", si.Name).Scan(&season)
-			if err != nil {
-				panic(err)
-			}
+			panic(err)
 		}
 		bf.WriteUint32(binary.LittleEndian.Uint32(net.ParseIP(si.IP).To4()))
 		bf.WriteUint16(16 + uint16(serverIdx))
@@ -50,25 +33,18 @@ func encodeServerInfo(serverInfos []config.EntranceServerInfo, s *Server) []byte
 		bf.WriteUint8(si.Type)
 		bf.WriteUint8(season)
 		bf.WriteUint8(si.Recommended)
-		sjisName, err := stringsupport.ConvertUTF8ToShiftJIS(si.Name)
-		if err != nil {
-			panic(err)
-		}
-		sjisDesc, err := stringsupport.ConvertUTF8ToShiftJIS(si.Description)
-		if err != nil {
-			panic(err)
-		}
-		combined := append([]byte{0x00}, sjisName...)
+		combined := append([]byte{0x00}, stringsupport.UTF8ToSJIS(si.Name)...)
 		combined = append(combined, []byte{0x00}...)
-		combined = append(combined, sjisDesc...)
-		bf.WriteBytes(paddedString(string(combined), 66))
+		combined = append(combined, stringsupport.UTF8ToSJIS(si.Description)...)
+		bf.WriteBytes(stringsupport.PaddedString(string(combined), 66, false))
 		bf.WriteUint32(si.AllowedClientFlags)
 
 		for channelIdx, ci := range si.Channels {
+			sid = (4096 + serverIdx * 256) + (16 + channelIdx)
 			bf.WriteUint16(ci.Port)
 			bf.WriteUint16(16 + uint16(channelIdx))
 			bf.WriteUint16(ci.MaxPlayers)
-			err := s.db.QueryRow("SELECT current_players FROM servers WHERE server_name=$1", si.Name).Scan(&currentplayers)
+			err := s.db.QueryRow("SELECT current_players FROM servers WHERE server_id=$1", sid).Scan(&currentplayers)
 			if err != nil {
 				panic(err)
 			}

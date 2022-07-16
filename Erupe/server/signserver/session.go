@@ -60,11 +60,9 @@ func (s *Session) handlePacket(pkt []byte) error {
 		}
 	case "DELETE:100":
 		loginTokenString := string(bf.ReadNullTerminatedBytes())
-		_ = loginTokenString
-		characterID := bf.ReadUint32()
-
-		sugar.Infof("Got delete request for character ID: %v\n", characterID)
-		sugar.Infof("remaining unknown data:\n%s\n", hex.Dump(bf.DataFromCurrent()))
+		characterID := int(bf.ReadUint32())
+		s.server.deleteCharacter(characterID, loginTokenString)
+		sugar.Infof("Deleted character ID: %v\n", characterID)
 	default:
 		sugar.Infof("Got unknown request type %s, data:\n%s\n", reqType, hex.Dump(bf.DataFromCurrent()))
 	}
@@ -92,7 +90,6 @@ func (s *Session) handleDSGNRequest(bf *byteframe.ByteFrame) error {
 		newCharaReq = true
 	}
 
-	// TODO(Andoryuuta): remove plaintext password storage if this ever becomes more than a toy project.
 	var (
 		id       int
 		password string
@@ -138,6 +135,13 @@ func (s *Session) handleDSGNRequest(bf *byteframe.ByteFrame) error {
 					break
 				}
 			}
+			// TODO: Need to auto delete user tokens after inactivity
+			// exists, err := s.server.checkToken(id)
+			// if err != nil {
+			// 	s.logger.Info("Error checking for live tokens", zap.Error(err))
+			// 	serverRespBytes = makeSignInFailureResp(SIGN_EABORT)
+			// 	break
+			// }
 			serverRespBytes = s.makeSignInResp(id)
 		} else {
 			s.logger.Info("Passwords don't match!")

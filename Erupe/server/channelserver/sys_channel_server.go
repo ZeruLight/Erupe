@@ -33,6 +33,7 @@ const (
 
 // Config struct allows configuring the server.
 type Config struct {
+	ID          uint16
 	Logger      *zap.Logger
 	DB          *sqlx.DB
 	DiscordBot  *discordbot.DiscordBot
@@ -50,6 +51,7 @@ type userBinaryPartID struct {
 // Server is a MHF channel server.
 type Server struct {
 	sync.Mutex
+	ID             uint16
 	logger         *zap.Logger
 	db             *sqlx.DB
 	erupeConfig    *config.Config
@@ -137,6 +139,7 @@ func NewRaviente() *Raviente {
 // NewServer creates a new Server type.
 func NewServer(config *Config) *Server {
 	s := &Server {
+		ID:              config.ID,
 		logger:          config.Logger,
 		db:              config.DB,
 		erupeConfig:     config.ErupeConfig,

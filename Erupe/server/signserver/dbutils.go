@@ -87,9 +87,43 @@ type character struct {
 
 func (s *Server) getCharactersForUser(uid int) ([]character, error) {
 	characters := []character{}
-	err := s.db.Select(&characters, "SELECT id, is_female, is_new_character, name, unk_desc_string, hrp, gr, weapon_type, last_login FROM characters WHERE user_id = $1", uid)
+	err := s.db.Select(&characters, "SELECT id, is_female, is_new_character, name, unk_desc_string, hrp, gr, weapon_type, last_login FROM characters WHERE user_id = $1 AND deleted = false", uid)
 	if err != nil {
 		return nil, err
 	}
 	return characters, nil
+}
+
+func (s *Server) deleteCharacter(cid int, token string) error {
+	var verify int
+	err := s.db.QueryRow("SELECT count(*) FROM sign_sessions WHERE token = $1", token).Scan(&verify)
+	if err != nil {
+		return err // Invalid token
+	}
+	_, err = s.db.Exec("UPDATE characters SET deleted = true WHERE id = $1", cid)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Unused
+func (s *Server) checkToken(uid int) (bool, error) {
+	var exists int
+	err := s.db.QueryRow("SELECT count(*) FROM sign_sessions WHERE user_id = $1", uid).Scan(&exists)
+	if err != nil {
+		return false, err
+	}
+	if exists > 0 {
+		return true, nil
+	}
+	return false, nil
+}
+
+func (s *Server) registerToken(uid int, token string) error {
+	_, err := s.db.Exec("INSERT INTO sign_sessions (user_id, token) VALUES ($1, $2)", uid, token)
+	if err != nil {
+		return err
+	}
+	return nil
 }

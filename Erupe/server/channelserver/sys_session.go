@@ -34,6 +34,7 @@ type Session struct {
 	logKey           []byte
 	sessionStart     int64
 	rights           uint32
+	token            string
 
 	semaphore *Semaphore // Required for the stateful MsgSysUnreserveStage packet.
 

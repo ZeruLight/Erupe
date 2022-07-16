@@ -1,8 +1,6 @@
 package channelserver
 
 import (
-	"time"
-
 	"erupe-ce/network/mhfpacket"
 	ps "erupe-ce/common/pascalstring"
 	"erupe-ce/common/byteframe"

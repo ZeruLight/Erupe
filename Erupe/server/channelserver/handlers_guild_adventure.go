@@ -1,10 +1,9 @@
 package channelserver
 
 import (
-  "strconv"
-	"strings"
 	"time"
 
+  "erupe-ce/common/stringsupport"
   "erupe-ce/common/byteframe"
   "erupe-ce/network/mhfpacket"
   "go.uber.org/zap"
@@ -40,20 +39,7 @@ func handleMsgMhfLoadGuildAdventure(s *Session, p mhfpacket.MHFPacket) {
 		temp.WriteUint32(adventureData.Charge)
 		temp.WriteUint32(adventureData.Depart)
 		temp.WriteUint32(adventureData.Return)
-		collected := false
-		collectedBySlice := strings.Split(adventureData.CollectedBy, ",")
-		for i := 0; i < len(collectedBySlice); i++ {
-			j, _ := strconv.ParseInt(collectedBySlice[i], 10, 64)
-			if int(j) == int(s.charID) {
-				collected = true
-				break
-			}
-		}
-		if collected {
-			temp.WriteBool(true)
-		} else {
-			temp.WriteBool(false)
-		}
+    temp.WriteBool(stringsupport.CSVContains(adventureData.CollectedBy, int(s.charID)))
 	}
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint8(uint8(count))
@@ -78,11 +64,7 @@ func handleMsgMhfAcquireGuildAdventure(s *Session, p mhfpacket.MHFPacket) {
 	if err != nil {
 		s.logger.Fatal("Error parsing adventure collected by", zap.Error(err))
 	} else {
-		if len(collectedBy) == 0 {
-			collectedBy = strconv.Itoa(int(s.charID))
-		} else {
-			collectedBy += "," + strconv.Itoa(int(s.charID))
-		}
+    collectedBy = stringsupport.CSVAdd(collectedBy, int(s.charID))
 		_, err := s.server.db.Exec("UPDATE guild_adventures SET collected_by = $1 WHERE id = $2", collectedBy, pkt.ID)
 		if err != nil {
 			s.logger.Fatal("Failed to collect adventure in db", zap.Error(err))

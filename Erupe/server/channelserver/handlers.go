@@ -175,6 +175,11 @@ func handleMsgSysLogin(s *Session, p mhfpacket.MHFPacket) {
 		panic(err)
 	}
 
+	_, err = s.server.db.Exec("UPDATE users SET last_character=$1 FROM users u INNER JOIN characters c ON c.user_id = u.id WHERE c.id=$1", s.charID)
+	if err != nil {
+		panic(err)
+	}
+
 	s.server.BroadcastMHF(&mhfpacket.MsgSysInsertUser {
 		CharID: s.charID,
 	}, s)

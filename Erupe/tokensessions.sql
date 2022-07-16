@@ -23,4 +23,7 @@ ALTER TABLE IF EXISTS public.characters
 ALTER TABLE IF EXISTS public.characters
     ADD COLUMN friends text NOT NULL DEFAULT '';
 
+ALTER TABLE IF EXISTS public.users
+    ADD COLUMN last_character int DEFAULT 0;
+
 END;

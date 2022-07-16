@@ -95,6 +95,18 @@ func (s *Server) getCharactersForUser(uid int) ([]character, error) {
 	return characters, nil
 }
 
+func (s *Server) getLastCID(uid int) uint32 {
+	var lastPlayed uint32
+	_ = s.db.QueryRow("SELECT last_character FROM users WHERE id=$1", uid).Scan(&lastPlayed)
+	return lastPlayed
+}
+
+func (s *Server) getUserRights(uid int) uint32 {
+	var rights uint32
+	_ = s.db.QueryRow("SELECT rights FROM users WHERE id=$1", uid).Scan(&rights)
+	return rights
+}
+
 type members struct {
 	CID  uint32 // Local character ID
 	ID   uint32 `db:"id"`

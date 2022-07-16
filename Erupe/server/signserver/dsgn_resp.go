@@ -87,12 +87,13 @@ func (s *Session) makeSignInResp(uid int) []byte {
 		}
 	}
 
-	guildmates, err := s.server.getGuildmatesForCharacter(lastPlayed)
-	if err != nil || guildmates == nil {
+	guildmates, err := s.server.getGuildmatesForCharacters(chars)
+	if err != nil || len(guildmates) == 0 {
 		bf.WriteUint8(0)
 	} else {
+		bf.WriteUint8(uint8(len(guildmates)))
 		for _, guildmate := range guildmates {
-			bf.WriteUint32(lastPlayed)
+			bf.WriteUint32(guildmate.CID)
 			bf.WriteUint32(guildmate.ID)
 			ps.Uint8(bf, guildmate.Name, true)
 		}
@@ -103,8 +104,8 @@ func (s *Session) makeSignInResp(uid int) []byte {
 	// noticeText := "<BODY><CENTER><SIZE_3><C_4>Welcome to Erupe SU9!<BR><BODY><LEFT><SIZE_2><C_5>Erupe is experimental software<C_7>, we are not liable for any<BR><BODY>issues caused by installing the software!<BR><BODY><BR><BODY><C_4>■Report bugs on Discord!<C_7><BR><BODY><BR><BODY><C_4>■Test everything!<C_7><BR><BODY><BR><BODY><C_4>■Don't talk to softlocking NPCs!<C_7><BR><BODY><BR><BODY><C_4>■Fork the code on GitHub!<C_7><BR><BODY><BR><BODY>Thank you to all of the contributors,<BR><BODY><BR><BODY>this wouldn't exist without you."
 	// ps.Uint32(bf, noticeText, true)
 
-	bf.WriteUint32(lastPlayed) // last played character id
-	bf.WriteUint32(14)         // course bitfield
+	bf.WriteUint32(s.server.getLastCID(uid)) // last played character id
+	bf.WriteUint32(s.server.getUserRights(uid)) // course bitfield
 	ps.Uint16(bf, "", false)   // filters
 	bf.WriteUint32(0xCA104E20)
 	ps.Uint16(bf, "", false)   // encryption

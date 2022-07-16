@@ -1704,21 +1704,17 @@ func handleMsgMhfEnumerateGuildMessageBoard(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint32(postData.Type)
 		bf.WriteUint32(postData.AuthorID)
 		bf.WriteUint64(postData.Timestamp)
-		liked := false
 		likedBySlice := strings.Split(postData.LikedBy, ",")
-		for i := 0; i < len(likedBySlice); i++ {
-			j, _ := strconv.ParseInt(likedBySlice[i], 10, 64)
-			if int(j) == int(s.charID) {
-				liked = true
-				break
-			}
-		}
 		if likedBySlice[0] == "" {
 			bf.WriteUint32(0)
 		} else {
 			bf.WriteUint32(uint32(len(likedBySlice)))
 		}
-		bf.WriteBool(liked)
+		if stringsupport.CSVContains(postData.LikedBy, int(s.charID)) {
+			bf.WriteBool(true)
+		} else {
+			bf.WriteBool(false)
+		}
 		bf.WriteUint32(postData.StampID)
 		ps.Uint32(bf, postData.Title, true)
 		ps.Uint32(bf, postData.Body, true)

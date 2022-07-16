@@ -113,7 +113,7 @@ type members struct {
 	Name string `db:"name"`
 }
 
-func (s *Server) getFriendsForCharacters(chars []character) ([]members, error) {
+func (s *Server) getFriendsForCharacters(chars []character) ([]members) {
 	friends := make([]members, 0)
 	for _, char := range chars {
 		friendsCSV := ""
@@ -139,27 +139,35 @@ func (s *Server) getFriendsForCharacters(chars []character) ([]members, error) {
 	if len(friends) > 255 { // Uint8
 		friends = friends[:255]
 	}
-	return friends, nil
+	return friends
 }
 
-func (s *Server) getGuildmatesForCharacter(cid uint32) ([]members, error) {
-	guildmates := []members{}
-	var inGuild int
-	_ = s.db.QueryRow("SELECT count(*) FROM guild_characters WHERE character_id=$1", cid).Scan(&inGuild)
-	if inGuild > 0 {
-		var guildID int
-		err := s.db.QueryRow("SELECT guild_id FROM guild_characters WHERE character_id=$1", cid).Scan(&guildID)
-		if err != nil {
-			return nil, err
-		}
-		err = s.db.Select(&guildmates, "SELECT character_id AS id, c.name FROM guild_characters gc JOIN characters c ON c.id = gc.character_id WHERE guild_id=$1 AND character_id!=$2", guildID, cid)
-		if err != nil {
-			return nil, err
-		}
-		return guildmates, nil
-	} else {
-		return nil, nil
+func (s *Server) getGuildmatesForCharacters(chars []character) ([]members) {
+	guildmates := make([]members, 0)
+	for _, char := range chars {
+		var inGuild int
+		_ = s.db.QueryRow("SELECT count(*) FROM guild_characters WHERE character_id=$1", char.ID).Scan(&inGuild)
+		if inGuild > 0 {
+			var guildID int
+			err := s.db.QueryRow("SELECT guild_id FROM guild_characters WHERE character_id=$1", char.ID).Scan(&guildID)
+			if err != nil {
+				continue
+			}
+			charGuildmates := []members{}
+			err = s.db.Select(&charGuildmates, "SELECT character_id AS id, c.name FROM guild_characters gc JOIN characters c ON c.id = gc.character_id WHERE guild_id=$1 AND character_id!=$2", guildID, char.ID)
+			if err != nil {
+				continue
+			}
+			for i, _ := range charGuildmates {
+				charGuildmates[i].CID = char.ID
+			}
+			guildmates = append(guildmates, charGuildmates...)
+		}	
 	}
+	if len(guildmates) > 255 { // Uint8
+		guildmates = guildmates[:255]
+	}
+	return guildmates
 }
 
 func (s *Server) deleteCharacter(cid int, token string) error {

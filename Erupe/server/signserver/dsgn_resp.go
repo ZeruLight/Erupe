@@ -75,8 +75,8 @@ func (s *Session) makeSignInResp(uid int) []byte {
 		bf.WriteUint16(0) // Unk
 	}
 
-	friends, err := s.server.getFriendsForCharacters(chars)
-	if err != nil || len(friends) == 0 {
+	friends := s.server.getFriendsForCharacters(chars)
+	if len(friends) == 0 {
 		bf.WriteUint8(0)
 	} else {
 		bf.WriteUint8(uint8(len(friends)))
@@ -87,8 +87,8 @@ func (s *Session) makeSignInResp(uid int) []byte {
 		}
 	}
 
-	guildmates, err := s.server.getGuildmatesForCharacters(chars)
-	if err != nil || len(guildmates) == 0 {
+	guildmates := s.server.getGuildmatesForCharacters(chars)
+	if len(guildmates) == 0 {
 		bf.WriteUint8(0)
 	} else {
 		bf.WriteUint8(uint8(len(guildmates)))

@@ -973,13 +973,6 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 			if err != nil {
 				bf.WriteUint32(0) // Error, no alliance
 			} else {
-				// allianceName := stringsupport.UTF8ToSJIS(alliance.Name)
-				// allianceParentName := stringsupport.UTF8ToSJIS(alliance.ParentGuild.Name)
-				// allianceParentOwner := stringsupport.UTF8ToSJIS(alliance.ParentGuild.LeaderName)
-				// allianceSub1Name := stringsupport.UTF8ToSJIS(alliance.SubGuild1.Name)
-				// allianceSub1Owner := stringsupport.UTF8ToSJIS(alliance.SubGuild1.LeaderName)
-				// allianceSub2Name := stringsupport.UTF8ToSJIS(alliance.SubGuild2.Name)
-				// allianceSub2Owner := stringsupport.UTF8ToSJIS(alliance.SubGuild2.LeaderName)
 				bf.WriteUint32(alliance.ID)
 				bf.WriteUint32(uint32(alliance.CreatedAt.Unix()))
 				bf.WriteUint16(uint16(alliance.TotalMembers))

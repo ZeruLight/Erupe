@@ -192,14 +192,6 @@ func handleMsgSysLogout(s *Session, p mhfpacket.MHFPacket) {
 }
 
 func logoutPlayer(s *Session) {
-	if s.stage == nil {
-		return
-	}
-
-	s.server.BroadcastMHF(&mhfpacket.MsgSysDeleteUser {
-		CharID: s.charID,
-	}, s)
-
 	delete(s.server.sessions, s.rawConn)
 	s.rawConn.Close()
 
@@ -212,17 +204,6 @@ func logoutPlayer(s *Session) {
 	if err != nil {
 		panic(err)
 	}
-
-	s.server.Lock()
-  for _, stage := range s.server.stages {
-    if _, exists := stage.reservedClientSlots[s.charID]; exists {
-      delete(stage.reservedClientSlots, s.charID)
-  	}
-	}
-	s.server.Unlock()
-
-	removeSessionFromSemaphore(s)
-	removeSessionFromStage(s)
 
 	var timePlayed int
 	_ = s.server.db.QueryRow("SELECT time_played FROM characters WHERE id = $1", s.charID).Scan(&timePlayed)
@@ -243,6 +224,25 @@ func logoutPlayer(s *Session) {
 	if err != nil {
 		panic(err)
 	}
+
+	if s.stage == nil {
+	 	return
+	}
+
+	s.server.BroadcastMHF(&mhfpacket.MsgSysDeleteUser {
+		CharID: s.charID,
+	}, s)
+
+	s.server.Lock()
+  for _, stage := range s.server.stages {
+    if _, exists := stage.reservedClientSlots[s.charID]; exists {
+      delete(stage.reservedClientSlots, s.charID)
+  	}
+	}
+	s.server.Unlock()
+
+	removeSessionFromSemaphore(s)
+	removeSessionFromStage(s)
 
 	saveData, err := GetCharacterSaveData(s, s.charID)
 	if err != nil {

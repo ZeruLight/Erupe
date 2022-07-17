@@ -282,7 +282,7 @@ func init() {
 	handlerTable[network.MSG_MHF_ACQUIRE_FESTA_INTERMEDIATE_PRIZE] = handleMsgMhfAcquireFestaIntermediatePrize
 	handlerTable[network.MSG_MHF_LOAD_DECO_MYSET] = handleMsgMhfLoadDecoMyset
 	handlerTable[network.MSG_MHF_SAVE_DECO_MYSET] = handleMsgMhfSaveDecoMyset
-	handlerTable[network.MSG_MHF_reserve010F] = handleMsgMhfReserve010F
+	handlerTable[network.MSG_MHF_reserve10F] = handleMsgMhfReserve10F
 	handlerTable[network.MSG_MHF_LOAD_GUILD_COOKING] = handleMsgMhfLoadGuildCooking
 	handlerTable[network.MSG_MHF_REGIST_GUILD_COOKING] = handleMsgMhfRegistGuildCooking
 	handlerTable[network.MSG_MHF_LOAD_GUILD_ADVENTURE] = handleMsgMhfLoadGuildAdventure
@@ -431,16 +431,16 @@ func init() {
 	handlerTable[network.MSG_MHF_RESET_TITLE] = handleMsgMhfResetTitle
 	handlerTable[network.MSG_MHF_ENUMERATE_GUILD_MESSAGE_BOARD] = handleMsgMhfEnumerateGuildMessageBoard
 	handlerTable[network.MSG_MHF_UPDATE_GUILD_MESSAGE_BOARD] = handleMsgMhfUpdateGuildMessageBoard
-	handlerTable[network.MSG_SYS_reserve204] = handleMsgSysReserve204
-	handlerTable[network.MSG_SYS_reserve205] = handleMsgSysReserve205
-	handlerTable[network.MSG_SYS_reserve206] = handleMsgSysReserve206
-	handlerTable[network.MSG_SYS_reserve207] = handleMsgSysReserve207
-	handlerTable[network.MSG_SYS_reserve208] = handleMsgSysReserve208
-	handlerTable[network.MSG_SYS_reserve209] = handleMsgSysReserve209
-	handlerTable[network.MSG_SYS_reserve20A] = handleMsgSysReserve20A
-	handlerTable[network.MSG_SYS_reserve20B] = handleMsgSysReserve20B
-	handlerTable[network.MSG_SYS_reserve20C] = handleMsgSysReserve20C
-	handlerTable[network.MSG_SYS_reserve20D] = handleMsgSysReserve20D
-	handlerTable[network.MSG_SYS_reserve20E] = handleMsgSysReserve20E
-	handlerTable[network.MSG_SYS_reserve20F] = handleMsgSysReserve20F
+	handlerTable[network.MSG_SYS_reserve1A4] = handleMsgSysReserve1A4
+	handlerTable[network.MSG_MHF_REGIST_GUILD_ADVENTURE_DIVA] = handleMsgMhfRegistGuildAdventureDiva
+	handlerTable[network.MSG_SYS_reserve1A6] = handleMsgSysReserve1A6
+	handlerTable[network.MSG_SYS_reserve1A7] = handleMsgSysReserve1A7
+	handlerTable[network.MSG_SYS_reserve1A8] = handleMsgSysReserve1A8
+	handlerTable[network.MSG_SYS_reserve1A9] = handleMsgSysReserve1A9
+	handlerTable[network.MSG_SYS_reserve1AA] = handleMsgSysReserve1AA
+	handlerTable[network.MSG_SYS_reserve1AB] = handleMsgSysReserve1AB
+	handlerTable[network.MSG_SYS_reserve1AC] = handleMsgSysReserve1AC
+	handlerTable[network.MSG_SYS_reserve1AD] = handleMsgSysReserve1AD
+	handlerTable[network.MSG_SYS_reserve1AE] = handleMsgSysReserve1AE
+	handlerTable[network.MSG_SYS_reserve1AF] = handleMsgSysReserve1AF
 }

@@ -82,9 +82,8 @@ func handleMsgMhfChargeGuildAdventure(s *Session, p mhfpacket.MHFPacket) {
 	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
-// handleMsgMhfRegistGuildAdventureDiva
-func handleMsgSysReserve205(s *Session, p mhfpacket.MHFPacket) {
-	pkt := p.(*mhfpacket.MsgSysReserve205)
+func handleMsgMhfRegistGuildAdventureDiva(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfRegistGuildAdventureDiva)
 	guild, _ := GetGuildInfoByCharacterId(s, s.charID)
 	_, err := s.server.db.Exec("INSERT INTO guild_adventures (guild_id, destination, charge, depart, return) VALUES ($1, $2, $3, $4, $5)", guild.ID, pkt.Destination, pkt.Charge, Time_Current_Adjusted().Unix(), Time_Current_Adjusted().Add(1 * time.Hour).Unix())
 	if err != nil {

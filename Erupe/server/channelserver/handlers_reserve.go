@@ -86,7 +86,7 @@ func handleMsgSysReserve7C(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgSysReserve7E(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfReserve010F(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfReserve10F(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgSysReserve180(s *Session, p mhfpacket.MHFPacket) {}
 
@@ -98,27 +98,27 @@ func handleMsgSysReserve19E(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgSysReserve19F(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgSysReserve204(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysReserve1A4(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgSysReserve206(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysReserve1A6(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgSysReserve207(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysReserve1A7(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgSysReserve208(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysReserve1A8(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgSysReserve209(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysReserve1A9(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgSysReserve20A(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysReserve1AA(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgSysReserve20B(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysReserve1AB(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgSysReserve20C(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysReserve1AC(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgSysReserve20D(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysReserve1AD(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgSysReserve20E(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysReserve1AE(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgSysReserve20F(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysReserve1AF(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgSysReserve19B(s *Session, p mhfpacket.MHFPacket) {}
 

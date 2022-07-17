@@ -8,20 +8,20 @@ import (
 	"erupe-ce/common/byteframe"
 )
 
-// MsgSysReserve205 represents the MSG_SYS_reserve205
-type MsgSysReserve205 struct {
+// MsgMhfRegistGuildAdventureDiva represents the MSG_MHF_REGIST_GUILD_ADVENTURE_DIVA
+type MsgMhfRegistGuildAdventureDiva struct {
   AckHandle uint32
   Destination uint32
   Charge uint32
 }
 
 // Opcode returns the ID associated with this packet type.
-func (m *MsgSysReserve205) Opcode() network.PacketID {
-	return network.MSG_SYS_reserve205
+func (m *MsgMhfRegistGuildAdventureDiva) Opcode() network.PacketID {
+	return network.MSG_MHF_REGIST_GUILD_ADVENTURE_DIVA
 }
 
 // Parse parses the packet from binary
-func (m *MsgSysReserve205) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgMhfRegistGuildAdventureDiva) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
   m.AckHandle = bf.ReadUint32()
   m.Destination = bf.ReadUint32()
   m.Charge = bf.ReadUint32()
@@ -30,6 +30,6 @@ func (m *MsgSysReserve205) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientC
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgSysReserve205) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgMhfRegistGuildAdventureDiva) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	return errors.New("NOT IMPLEMENTED")
 }

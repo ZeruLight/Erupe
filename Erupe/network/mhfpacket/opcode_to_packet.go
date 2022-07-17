@@ -547,8 +547,8 @@ func FromOpcode(opcode network.PacketID) MHFPacket {
 		return &MsgMhfLoadDecoMyset{}
 	case network.MSG_MHF_SAVE_DECO_MYSET:
 		return &MsgMhfSaveDecoMyset{}
-	case network.MSG_MHF_reserve010F:
-		return &MsgMhfReserve010F{}
+	case network.MSG_MHF_reserve10F:
+		return &MsgMhfReserve10F{}
 	case network.MSG_MHF_LOAD_GUILD_COOKING:
 		return &MsgMhfLoadGuildCooking{}
 	case network.MSG_MHF_REGIST_GUILD_COOKING:
@@ -845,30 +845,30 @@ func FromOpcode(opcode network.PacketID) MHFPacket {
 		return &MsgMhfEnumerateGuildMessageBoard{}
 	case network.MSG_MHF_UPDATE_GUILD_MESSAGE_BOARD:
 		return &MsgMhfUpdateGuildMessageBoard{}
-	case network.MSG_SYS_reserve204:
-		return &MsgSysReserve204{}
-	case network.MSG_SYS_reserve205:
-		return &MsgSysReserve205{}
-	case network.MSG_SYS_reserve206:
-		return &MsgSysReserve206{}
-	case network.MSG_SYS_reserve207:
-		return &MsgSysReserve207{}
-	case network.MSG_SYS_reserve208:
-		return &MsgSysReserve208{}
-	case network.MSG_SYS_reserve209:
-		return &MsgSysReserve209{}
-	case network.MSG_SYS_reserve20A:
-		return &MsgSysReserve20A{}
-	case network.MSG_SYS_reserve20B:
-		return &MsgSysReserve20B{}
-	case network.MSG_SYS_reserve20C:
-		return &MsgSysReserve20C{}
-	case network.MSG_SYS_reserve20D:
-		return &MsgSysReserve20D{}
-	case network.MSG_SYS_reserve20E:
-		return &MsgSysReserve20E{}
-	case network.MSG_SYS_reserve20F:
-		return &MsgSysReserve20F{}
+	case network.MSG_SYS_reserve1A4:
+		return &MsgSysReserve1A4{}
+	case network.MSG_MHF_REGIST_GUILD_ADVENTURE_DIVA:
+		return &MsgMhfRegistGuildAdventureDiva{}
+	case network.MSG_SYS_reserve1A6:
+		return &MsgSysReserve1A6{}
+	case network.MSG_SYS_reserve1A7:
+		return &MsgSysReserve1A7{}
+	case network.MSG_SYS_reserve1A8:
+		return &MsgSysReserve1A8{}
+	case network.MSG_SYS_reserve1A9:
+		return &MsgSysReserve1A9{}
+	case network.MSG_SYS_reserve1AA:
+		return &MsgSysReserve1AA{}
+	case network.MSG_SYS_reserve1AB:
+		return &MsgSysReserve1AB{}
+	case network.MSG_SYS_reserve1AC:
+		return &MsgSysReserve1AC{}
+	case network.MSG_SYS_reserve1AD:
+		return &MsgSysReserve1AD{}
+	case network.MSG_SYS_reserve1AE:
+		return &MsgSysReserve1AE{}
+	case network.MSG_SYS_reserve1AF:
+		return &MsgSysReserve1AF{}
 	}
 	return nil
 }

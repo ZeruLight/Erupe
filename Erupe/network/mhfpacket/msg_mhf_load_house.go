@@ -12,11 +12,18 @@ import (
 type MsgMhfLoadHouse struct {
 	AckHandle uint32
 	CharID uint32
+  // dest?
+  // 0x3 = house
+  // 0x4 = bookshelf
+  // 0x5 = gallery
+  // 0x8 = tore
+  // 0x9 = own house
+  // 0xA = garden
 	Unk1 uint8
+  // bool inMezSquare?
 	Unk2 uint8
 	Unk3 uint16 // Hardcoded 0 in binary
-	DataSize uint8
-	RawDataPayload []byte
+	Password []byte
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -30,9 +37,9 @@ func (m *MsgMhfLoadHouse) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientCo
 	m.CharID = bf.ReadUint32()
 	m.Unk1 = bf.ReadUint8()
 	m.Unk2 = bf.ReadUint8()
-	m.Unk3 = bf.ReadUint16()
-	m.DataSize = bf.ReadUint8()
-	m.RawDataPayload = bf.ReadBytes(uint(m.DataSize))
+	_ = bf.ReadUint16()
+  _ = bf.ReadUint8() // Password length
+	m.Password = bf.ReadNullTerminatedBytes()
 	return nil
 }
 

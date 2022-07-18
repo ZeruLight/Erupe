@@ -406,26 +406,6 @@ func handleMsgMhfEnumeratePrice(s *Session, p mhfpacket.MHFPacket) {
 	doAckBufSucceed(s, pkt.AckHandle, data)
 }
 
-func handleMsgMhfEnumerateRanking(s *Session, p mhfpacket.MHFPacket) {
-	pkt := p.(*mhfpacket.MsgMhfEnumerateRanking)
-
-	resp := byteframe.NewByteFrame()
-	resp.WriteUint32(0)
-	resp.WriteUint32(0)
-	resp.WriteUint32(0)
-	resp.WriteUint32(0)
-	resp.WriteUint32(0)
-	resp.WriteUint8(0)
-	resp.WriteUint8(0)  // Some string length following this field.
-	resp.WriteUint16(0) // Entry type 1 count
-	resp.WriteUint8(0)  // Entry type 2 count
-
-	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
-
-	// Update the client's rights as well:
-	updateRights(s)
-}
-
 func handleMsgMhfEnumerateOrder(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateOrder)
 	stubEnumerateNoResults(s, pkt.AckHandle)

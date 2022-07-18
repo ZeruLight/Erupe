@@ -27,9 +27,12 @@ type DevModeOptions struct {
 	CleanDB             bool   // Automatically wipes the DB on server reset.
 	MaxLauncherHR       bool   // Sets the HR returned in the launcher to HR9 so that you can join non-beginner worlds.
 	FixedStageID        bool   // Causes all move_stage to use the ID sl1Ns200p0a0u0 to get you into all stages
+	LogInboundMessages  bool   // Log all messages sent to the server
 	LogOutboundMessages bool   // Log all messages sent to the clients
-	Event               int    // Changes the current event
-	OpcodeMessages      bool   // Get all message for Opcodes
+	DivaEvent           int    // Diva Defense event status
+	FestaEvent          int    // Hunter's Festa event status
+	TournamentEvent     int    // VS Tournament event status
+	MezFesEvent         bool   // MezFes status
 	SaveDumps           SaveDumpOptions
 }
 

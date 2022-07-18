@@ -237,7 +237,7 @@ func handleMsgMhfUseKeepLoginBoost(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfGetUdSchedule(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetUdSchedule)
 	var t = timeServerFix.Tstatic_midnight()
-	var event int = s.server.erupeConfig.DevModeOptions.Event
+	var event int = s.server.erupeConfig.DevModeOptions.DivaEvent
 
 	year, month, day := t.Date()
 	midnight := time.Date(year, month, day, 0, 0, 0, 0, t.Location())

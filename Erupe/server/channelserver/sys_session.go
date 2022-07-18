@@ -84,13 +84,8 @@ func (s *Session) Start() {
 
 // QueueSend queues a packet (raw []byte) to be sent.
 func (s *Session) QueueSend(data []byte) {
-	if s.server.erupeConfig.DevMode && s.server.erupeConfig.DevModeOptions.LogOutboundMessages {
-		fmt.Printf("Server send to [%s]\n", s.Name)
-		bf := byteframe.NewByteFrameFromBytes(data[:2])
-		opcode := network.PacketID(bf.ReadUint16())
-		fmt.Printf("Opcode: %s\n", opcode)
-		fmt.Printf("Data [%d bytes]:\n%s\n", len(data), hex.Dump(data))
-	}
+	bf := byteframe.NewByteFrameFromBytes(data[:2])
+	s.logMessage(bf.ReadUint16(), data, "Server", s.Name)
 	s.sendPackets <- data
 }
 
@@ -168,7 +163,8 @@ func (s *Session) recvLoop() {
 
 func (s *Session) handlePacketGroup(pktGroup []byte) {
 	bf := byteframe.NewByteFrameFromBytes(pktGroup)
-	opcode := network.PacketID(bf.ReadUint16())
+	opcodeUint16 := bf.ReadUint16()
+	opcode := network.PacketID(opcodeUint16)
 
 	// This shouldn't be needed, but it's better to recover and let the connection die than to panic the server.
 	defer func() {
@@ -178,19 +174,8 @@ func (s *Session) handlePacketGroup(pktGroup []byte) {
 		}
 	}()
 
-	// Print any (non-common spam) packet opcodes and data.
-	if s.server.erupeConfig.DevMode && s.server.erupeConfig.DevModeOptions.OpcodeMessages {
-		if opcode != network.MSG_SYS_END &&
-			opcode != network.MSG_SYS_PING &&
-			opcode != network.MSG_SYS_NOP &&
-			opcode != network.MSG_SYS_TIME &&
-			opcode != network.MSG_SYS_POSITION_OBJECT &&
-			opcode != network.MSG_SYS_EXTEND_THRESHOLD {
-			fmt.Printf("[%s] send to Server\n", s.Name)
-			fmt.Printf("Opcode: %s\n", opcode)
-			fmt.Printf("Data [%d bytes]:\n%s\n", len(pktGroup), hex.Dump(pktGroup))
-		}
-	}
+	s.logMessage(opcodeUint16, pktGroup, s.Name, "Server")
+
 	if opcode == network.MSG_SYS_LOGOUT {
 		s.rawConn.Close()
 	}
@@ -213,4 +198,43 @@ func (s *Session) handlePacketGroup(pktGroup []byte) {
 	if len(remainingData) >= 2 {
 		s.handlePacketGroup(remainingData)
 	}
+}
+
+func ignored(opcode network.PacketID) bool {
+	ignoreList := []network.PacketID{
+		network.MSG_SYS_END,
+		network.MSG_SYS_PING,
+		network.MSG_SYS_NOP,
+		network.MSG_SYS_TIME,
+		network.MSG_SYS_EXTEND_THRESHOLD,
+		network.MSG_SYS_POSITION_OBJECT,
+		network.MSG_MHF_ENUMERATE_QUEST,
+		network.MSG_MHF_SAVEDATA,
+	}
+	set := make(map[network.PacketID]struct{}, len(ignoreList))
+	for _, s := range ignoreList {
+		set[s] = struct{}{}
+	}
+	_, r := set[opcode]
+	return r
+}
+
+func (s *Session) logMessage(opcode uint16, data []byte, sender string, recipient string) {
+	if !s.server.erupeConfig.DevMode {
+		return
+	}
+
+	if sender == "Server" && !s.server.erupeConfig.DevModeOptions.LogOutboundMessages {
+		return
+	} else if !s.server.erupeConfig.DevModeOptions.LogInboundMessages {
+		return
+	}
+
+	opcodePID := network.PacketID(opcode)
+	if ignored(opcodePID) {
+		return
+	}
+	fmt.Printf("[%s] -> [%s]\n", sender, recipient)
+	fmt.Printf("Opcode: %s\n", opcodePID)
+	fmt.Printf("Data [%d bytes]:\n%s\n", len(data), hex.Dump(data))
 }

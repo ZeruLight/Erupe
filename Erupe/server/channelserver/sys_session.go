@@ -86,7 +86,10 @@ func (s *Session) Start() {
 func (s *Session) QueueSend(data []byte) {
 	if s.server.erupeConfig.DevMode && s.server.erupeConfig.DevModeOptions.LogOutboundMessages {
 		fmt.Printf("Server send to [%s]\n", s.Name)
-		fmt.Printf("Sent Data:\n%s\n", hex.Dump(data))
+		bf := byteframe.NewByteFrameFromBytes(data[:2])
+		opcode := network.PacketID(bf.ReadUint16())
+		fmt.Printf("Opcode: %s\n", opcode)
+		fmt.Printf("Data [%d bytes]:\n%s\n", len(data), hex.Dump(data))
 	}
 	s.sendPackets <- data
 }

@@ -1,7 +1,7 @@
 package mhfpacket
 
-import ( 
- "errors" 
+import (
+ "errors"
 
  	"erupe-ce/network/clientctx"
 	"erupe-ce/network"
@@ -27,8 +27,8 @@ func (m *MsgSysLockGlobalSema) Parse(bf *byteframe.ByteFrame, ctx *clientctx.Cli
 	m.AckHandle = bf.ReadUint32()
 	m.UserIDLength = bf.ReadUint16()
 	m.ServerChannelIDLength = bf.ReadUint16()
-	m.UserIDString = string(bf.ReadBytes(uint(m.UserIDLength)))
-	m.ServerChannelIDString = string(bf.ReadBytes(uint(m.ServerChannelIDLength)))
+	m.UserIDString = string(bf.ReadNullTerminatedBytes())
+	m.ServerChannelIDString = string(bf.ReadNullTerminatedBytes())
 	return nil
 }
 

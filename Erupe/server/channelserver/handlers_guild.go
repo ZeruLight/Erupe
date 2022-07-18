@@ -1596,6 +1596,20 @@ func handleMsgMhfGetGuildMissionRecord(s *Session, p mhfpacket.MHFPacket) {
 
 	// No guild mission records = 0x190 empty bytes
 	doAckBufSucceed(s, pkt.AckHandle, make([]byte, 0x190))
+
+func handleMsgMhfAddGuildMissionCount(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfAddGuildMissionCount)
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+}
+
+func handleMsgMhfSetGuildMissionTarget(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfSetGuildMissionTarget)
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+}
+
+func handleMsgMhfCancelGuildMissionTarget(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfCancelGuildMissionTarget)
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 type GuildMeal struct {
@@ -1843,15 +1857,6 @@ func handleMsgMhfAddGuildWeeklyBonusExceptionalUser(s *Session, p mhfpacket.MHFP
 	// must use addition
 	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
-
-func handleMsgMhfAddGuildMissionCount(s *Session, p mhfpacket.MHFPacket) {}
-
-func handleMsgMhfSetGuildMissionTarget(s *Session, p mhfpacket.MHFPacket) {
-	pkt := p.(*mhfpacket.MsgMhfSetGuildMissionTarget)
-	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
-}
-
-func handleMsgMhfCancelGuildMissionTarget(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfGenerateUdGuildMap(s *Session, p mhfpacket.MHFPacket) {}
 

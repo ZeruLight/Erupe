@@ -1310,6 +1310,12 @@ func handleMsgMhfEnumerateGuildMember(s *Session, p mhfpacket.MHFPacket) {
 		return
 	}
 
+	alliance, err := GetAllianceData(s, guild.AllianceID)
+	if err != nil {
+		s.logger.Error("Failed to get alliance data")
+		return
+	}
+
 	bf := byteframe.NewByteFrame()
 
 	bf.WriteUint16(guild.MemberCount)
@@ -1336,7 +1342,38 @@ func handleMsgMhfEnumerateGuildMember(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint32(member.LastLogin)
 	}
 
-	bf.WriteBytes([]byte{0x00, 0x00}) // Unk, might be to do with alliance, 0x00 == no alliance
+	if guild.AllianceID > 0 {
+		bf.WriteUint16(alliance.TotalMembers - guild.MemberCount)
+		if guild.ID != alliance.ParentGuildID {
+			mems, err := GetGuildMembers(s, alliance.ParentGuildID, false)
+			if err != nil {
+				panic(err)
+			}
+			for _, m := range mems {
+				bf.WriteUint32(m.CharID)
+			}
+		}
+		if guild.ID != alliance.SubGuild1ID {
+			mems, err := GetGuildMembers(s, alliance.SubGuild1ID, false)
+			if err != nil {
+				panic(err)
+			}
+			for _, m := range mems {
+				bf.WriteUint32(m.CharID)
+			}
+		}
+		if guild.ID != alliance.SubGuild2ID {
+			mems, err := GetGuildMembers(s, alliance.SubGuild2ID, false)
+			if err != nil {
+				panic(err)
+			}
+			for _, m := range mems {
+				bf.WriteUint32(m.CharID)
+			}
+		}
+	} else {
+		bf.WriteUint16(0)
+	}
 
 	for range guildMembers {
 		bf.WriteUint32(0x00) // Unk

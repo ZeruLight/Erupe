@@ -17,7 +17,8 @@ var season uint8
 // Server Channels
 var currentplayers uint16
 
-func encodeServerInfo(serverInfos []config.EntranceServerInfo, s *Server) []byte {
+func encodeServerInfo(config *config.Config, s *Server) []byte {
+	serverInfos := config.Entrance.Entries
 	bf := byteframe.NewByteFrame()
 
 	for serverIdx, si := range serverInfos {
@@ -25,6 +26,9 @@ func encodeServerInfo(serverInfos []config.EntranceServerInfo, s *Server) []byte
 		err := s.db.QueryRow("SELECT season FROM servers WHERE server_id=$1", sid).Scan(&season)
 		if err != nil {
 			panic(err)
+		}
+		if si.IP == "" {
+			si.IP = config.HostIP
 		}
 		bf.WriteUint32(binary.LittleEndian.Uint32(net.ParseIP(si.IP).To4()))
 		bf.WriteUint16(16 + uint16(serverIdx))
@@ -81,10 +85,11 @@ func makeHeader(data []byte, respType string, entryCount uint16, key byte) []byt
 	return bf.Data()
 }
 
-func makeSv2Resp(servers []config.EntranceServerInfo, s *Server) []byte {
-	rawServerData := encodeServerInfo(servers, s)
+func makeSv2Resp(config *config.Config, s *Server) []byte {
+	serverInfos := config.Entrance.Entries
+	rawServerData := encodeServerInfo(config, s)
 	bf := byteframe.NewByteFrame()
-	bf.WriteBytes(makeHeader(rawServerData, "SV2", uint16(len(servers)), 0x00))
+	bf.WriteBytes(makeHeader(rawServerData, "SV2", uint16(len(serverInfos)), 0x00))
 	return bf.Data()
 }
 

@@ -1,14 +1,18 @@
 {
-  "host_ip": "",
+  "host_ip": "127.0.0.1",
   "bin_path": "bin",
   "devmode": true,
   "devmodeoptions": {
     "serverName" : "",
     "cleandb": false,
     "maxlauncherhr": true,
+    "LogInboundMessages": false,
     "LogOutboundMessages": false,
     "Event": 0,
-    "OpcodeMessages": false,
+    "DivaEvent": 0,
+    "FestaEvent": 0,
+    "TournamentEvent": 0,
+    "MezFesEvent": true,
     "SaveDumps": {
       "Enabled": true,
       "OutputDir": "savedata"
@@ -40,64 +44,36 @@
     "port": 53310,
     "entries": [
       {
-        "name": "ANewbie",
-        "ip": "",
-        "type": 3,
-        "recommended": 1,
-        "season": 3,
-        "allowedclientflags": 4096,
+        "name": "Newbie", "description": "", "ip": "", "type": 3, "recommended": 2, "allowedclientflags": 0,
         "channels": [
-          { "port": 54001, "MaxPlayers": 50, "Unk0": 319, "Unk1": 252, "Unk2": 248 }
-        ]
-      }, {
-        "name": "ANormal",
-        "ip": "",
-        "type": 1,
-        "recommended": 0,
-        "season": 3,
-        "allowedclientflags": 0,
-        "channels": [
+          { "port": 54001, "MaxPlayers": 50, "Unk0": 319, "Unk1": 252, "Unk2": 248 },
           { "port": 54002, "MaxPlayers": 50, "Unk0": 319, "Unk1": 252, "Unk2": 248 }
         ]
       }, {
-        "name": "ACities",
-        "ip": "",
-        "type": 2,
-        "recommended": 1,
-        "season": 3,
-        "allowedclientflags": 0,
+        "name": "Normal", "description": "", "ip": "", "type": 1, "recommended": 0, "allowedclientflags": 0,
         "channels": [
-          { "port": 54003, "MaxPlayers": 50, "Unk0": 319, "Unk1": 252, "Unk2": 248 }
-        ]
-      }, {
-        "name": "ATavern",
-        "ip": "",
-        "type": 4,
-        "recommended": 1,
-        "season": 3,
-        "allowedclientflags": 0,
-        "channels": [
+          { "port": 54003, "MaxPlayers": 50, "Unk0": 319, "Unk1": 252, "Unk2": 248 },
           { "port": 54004, "MaxPlayers": 50, "Unk0": 319, "Unk1": 252, "Unk2": 248 }
         ]
       }, {
-        "name": "AReturn",
-        "ip": "",
-        "type": 5,
-        "recommended": 1,
-        "season": 3,
-        "allowedclientflags": 0,
+        "name": "Cities", "description": "", "ip": "", "type": 2, "recommended": 0, "allowedclientflags": 0,
         "channels": [
           { "port": 54005, "MaxPlayers": 50, "Unk0": 319, "Unk1": 252, "Unk2": 248 }
         ]
       }, {
-        "name": "AMezFes",
-        "ip": "",
-        "type": 6,
-        "recommended": 1,
-        "season": 3,
-        "allowedclientflags": 0,
+        "name": "Tavern", "description": "", "ip": "", "type": 4, "recommended": 0, "allowedclientflags": 0,
         "channels": [
           { "port": 54006, "MaxPlayers": 50, "Unk0": 319, "Unk1": 252, "Unk2": 248 }
+        ]
+      }, {
+        "name": "Return", "description": "", "ip": "", "type": 5, "recommended": 0, "allowedclientflags": 0,
+        "channels": [
+          { "port": 54007, "MaxPlayers": 50, "Unk0": 319, "Unk1": 252, "Unk2": 248 }
+        ]
+      }, {
+        "name": "MezFes", "description": "", "ip": "", "type": 6, "recommended": 6, "allowedclientflags": 0,
+        "channels": [
+          { "port": 54008, "MaxPlayers": 50, "Unk0": 319, "Unk1": 252, "Unk2": 248 }
         ]
       }
     ]

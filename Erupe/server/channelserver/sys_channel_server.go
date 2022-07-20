@@ -5,6 +5,7 @@ import (
 	"net"
 	"sync"
 
+	ps "erupe-ce/common/pascalstring"
 	"erupe-ce/common/byteframe"
 	"erupe-ce/config"
 	"erupe-ce/network/binpacket"
@@ -51,6 +52,7 @@ type userBinaryPartID struct {
 // Server is a MHF channel server.
 type Server struct {
 	sync.Mutex
+	Channels       []*Server
 	ID             uint16
 	logger         *zap.Logger
 	db             *sqlx.DB
@@ -291,6 +293,20 @@ func (s *Server) BroadcastMHF(pkt mhfpacket.MHFPacket, ignoredSession *Session) 
 	}
 }
 
+func (s *Server) WorldcastMHF(pkt mhfpacket.MHFPacket, ignoredSession *Session) {
+	for _, c := range s.Channels {
+		for _, s := range c.sessions {
+			if s == ignoredSession {
+				continue
+			}
+			bf := byteframe.NewByteFrame()
+			bf.WriteUint16(uint16(pkt.Opcode()))
+			pkt.Build(bf, s.clientContext)
+			s.QueueSendNonBlocking(bf.Data())
+		}
+	}
+}
+
 // BroadcastChatMessage broadcasts a simple chat message to all the sessions.
 func (s *Server) BroadcastChatMessage(message string) {
 	bf := byteframe.NewByteFrame()
@@ -317,27 +333,25 @@ func (s *Server) BroadcastRaviente(ip uint32, port uint16, stage []byte, _type u
 	bf.WriteUint16(0) // Unk
 	bf.WriteUint16(0x43) // Data len
 	bf.WriteUint16(3) // Unk len
-	var d []byte
+	var text string
 	switch _type {
 	case 2:
-		d = []byte("<Great Slaying: Berserk> is being held!")
+		text = "<Great Slaying: Berserk> is being held!"
 	case 4:
-		d = []byte("<Great Slaying: Extreme> is being held!")
+		text = "<Great Slaying: Extreme> is being held!"
 	case 5:
-		d = []byte("<Great Slaying: Berserk Practice> is being held!")
+		text = "<Great Slaying: Berserk Practice> is being held!"
 	default:
 		s.logger.Error("Unk raviente type", zap.Uint8("_type", _type))
 	}
-	bf.WriteUint16(uint16(len(d)+1))
-	bf.WriteNullTerminatedBytes(d)
+	ps.Uint16(bf, text, false)
 	bf.WriteBytes([]byte{0x5F, 0x53, 0x00})
 	bf.WriteUint32(ip) // IP address
 	bf.WriteUint16(port) // Port
 	bf.WriteUint16(0) // Unk
 	bf.WriteNullTerminatedBytes(stage)
 	bf.WriteBytes(make([]byte, 17))
-
-	s.BroadcastMHF(&mhfpacket.MsgSysCastedBinary{
+	s.WorldcastMHF(&mhfpacket.MsgSysCastedBinary{
 		CharID: 0x00000000,
 		BroadcastType: BroadcastTypeSemaphore,
 		MessageType: BinaryMessageTypeChat,
@@ -353,19 +367,20 @@ func (s *Server) DiscordChannelSend(charName string, content string) {
 }
 
 func (s *Server) FindSessionByCharID(charID uint32) *Session {
-	s.stagesLock.RLock()
-	defer s.stagesLock.RUnlock()
-	for _, stage := range s.stages {
-		stage.RLock()
-		for client := range stage.clients {
-			if client.charID == charID {
-				stage.RUnlock()
-				return client
+	for _, c := range s.Channels {
+		c.stagesLock.RLock()
+		for _, stage := range c.stages {
+			stage.RLock()
+			for client := range stage.clients {
+				if client.charID == charID {
+					stage.RUnlock()
+					return client
+				}
 			}
+			stage.RUnlock()
 		}
-		stage.RUnlock()
+		c.stagesLock.RUnlock()
 	}
-
 	return nil
 }
 

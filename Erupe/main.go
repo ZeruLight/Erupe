@@ -141,7 +141,7 @@ func main() {
 	}
 	logger.Info("Started sign server")
 
-	var channels []channelserver.Server
+	var channels []*channelserver.Server
 	channelQuery := ""
 	si := 0
 	ci := 0
@@ -164,7 +164,7 @@ func main() {
 				logger.Fatal("Failed to start channel", zap.Error(err))
 			} else {
 				channelQuery += fmt.Sprintf("INSERT INTO servers (server_id, season, current_players) VALUES (%d, %d, 0);", sid, season)
-				channels = append(channels, c)
+				channels = append(channels, &c)
 				logger.Info(fmt.Sprintf("Started channel server %d on port %d", count, ce.Port))
 				ci++
 				count++
@@ -174,7 +174,12 @@ func main() {
 		si++
 	}
 
+	// Register all servers in DB
 	_ = db.MustExec(channelQuery)
+
+	for _, c := range channels {
+		c.Channels = channels
+	}
 
 	// Wait for exit or interrupt with ctrl+C.
 	c := make(chan os.Signal, 1)

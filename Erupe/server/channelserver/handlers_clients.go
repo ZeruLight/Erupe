@@ -10,41 +10,35 @@ import (
 func handleMsgSysEnumerateClient(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysEnumerateClient)
 
-	// Read-lock the stages map.
 	s.server.stagesLock.RLock()
-
 	stage, ok := s.server.stages[pkt.StageID]
 	if !ok {
 		s.logger.Fatal("Can't enumerate clients for stage that doesn't exist!", zap.String("stageID", pkt.StageID))
 	}
-
-	// Unlock the stages map.
 	s.server.stagesLock.RUnlock()
 
 	// Read-lock the stage and make the response with all of the charID's in the stage.
 	resp := byteframe.NewByteFrame()
 	stage.RLock()
-
-	// TODO(Andoryuuta): Is only the reservations needed? Do clients send this packet for mezeporta as well?
-
-	// Make a map to deduplicate the charIDs between the unreserved clients and the reservations.
-	deduped := make(map[uint32]interface{})
-
-	// Add the charIDs
-	for session := range stage.clients {
-		deduped[session.charID] = nil
+	var clients []uint32
+	switch pkt.Unk1 {
+	case 1: // Not ready
+		for cid, ready := range stage.reservedClientSlots {
+			if !ready {
+				clients = append(clients, cid)
+			}
+		}
+	case 2: // Ready
+	for cid, ready := range stage.reservedClientSlots {
+		if ready {
+			clients = append(clients, cid)
+		}
 	}
-
-	for charid := range stage.reservedClientSlots {
-		deduped[charid] = nil
 	}
-
-	// Write the deduplicated response
-	resp.WriteUint16(uint16(len(deduped))) // Client count
-	for charid := range deduped {
-		resp.WriteUint32(charid)
+	resp.WriteUint16(uint16(len(clients)))
+	for _, cid := range clients {
+		resp.WriteUint32(cid)
 	}
-
 	stage.RUnlock()
 
 	doAckBufSucceed(s, pkt.AckHandle, resp.Data())

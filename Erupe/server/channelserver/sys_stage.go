@@ -47,9 +47,9 @@ type Stage struct {
 	// These are clients that are CURRENTLY in the stage
 	clients map[*Session]uint32
 
-	// Map of charID -> interface{}, only the key is used, value is always nil.
+	// Map of charID -> bool, key represents whether they are ready
 	// These are clients that aren't in the stage, but have reserved a slot (for quests, etc).
-	reservedClientSlots map[uint32]interface{}
+	reservedClientSlots map[uint32]bool
 
 	// These are raw binary blobs that the stage owner sets,
 	// other clients expect the server to echo them back in the exact same format.
@@ -66,7 +66,7 @@ func NewStage(ID string) *Stage {
 	s := &Stage{
 		id:                  ID,
 		clients:             make(map[*Session]uint32),
-		reservedClientSlots: make(map[uint32]interface{}),
+		reservedClientSlots: make(map[uint32]bool),
 		objects:             make(map[uint32]*StageObject),
 		rawBinaryData:       make(map[stageBinaryKey][]byte),
 		maxPlayers:          4,

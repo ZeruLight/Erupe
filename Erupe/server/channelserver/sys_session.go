@@ -30,6 +30,7 @@ type Session struct {
 	stageID          string
 	stage            *Stage
 	reservationStage *Stage // Required for the stateful MsgSysUnreserveStage packet.
+	stagePass        string // Temporary storage
 	charID           uint32
 	logKey           []byte
 	sessionStart     int64

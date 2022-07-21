@@ -1,7 +1,7 @@
 package mhfpacket
 
-import ( 
- "errors" 
+import (
+ "errors"
 
  	"erupe-ce/network/clientctx"
 	"erupe-ce/network"
@@ -11,7 +11,6 @@ import (
 // MsgSysSetStagePass represents the MSG_SYS_SET_STAGE_PASS
 type MsgSysSetStagePass struct {
 	Unk0           uint8 // Hardcoded 0 in the binary
-	PasswordLength uint8
 	Password       string // NULL-terminated string
 }
 
@@ -23,8 +22,8 @@ func (m *MsgSysSetStagePass) Opcode() network.PacketID {
 // Parse parses the packet from binary
 func (m *MsgSysSetStagePass) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.Unk0 = bf.ReadUint8()
-	m.PasswordLength = bf.ReadUint8()
-	m.Password = string(bf.ReadBytes(uint(m.PasswordLength)))
+	_ = bf.ReadUint8() // Password length
+	m.Password = string(bf.ReadNullTerminatedBytes())
 	return nil
 }
 

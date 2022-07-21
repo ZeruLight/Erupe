@@ -205,13 +205,11 @@ func handleMsgMhfContractMercenary(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfLoadOtomoAirou(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfLoadOtomoAirou)
-	// load partnyaa from database
 	var data []byte
 	err := s.server.db.QueryRow("SELECT otomoairou FROM characters WHERE id = $1", s.charID).Scan(&data)
 	if err != nil {
 		s.logger.Fatal("Failed to get partnyaa savedata from db", zap.Error(err))
 	}
-
 	if len(data) > 0 {
 		doAckBufSucceed(s, pkt.AckHandle, data)
 	} else {
@@ -221,13 +219,33 @@ func handleMsgMhfLoadOtomoAirou(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfSaveOtomoAirou(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSaveOtomoAirou)
-	dumpSaveData(s, pkt.RawDataPayload, "_otomoairou")
-
-	_, err := s.server.db.Exec("UPDATE characters SET otomoairou=$1 WHERE id=$2", pkt.RawDataPayload, s.charID)
+	decomp, err := nullcomp.Decompress(pkt.RawDataPayload[1:])
 	if err != nil {
-		s.logger.Fatal("Failed to update partnyaa savedata in db", zap.Error(err))
+		s.logger.Error("Failed to decompress airou", zap.Error(err))
+		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+		return
 	}
-	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+	bf := byteframe.NewByteFrameFromBytes(decomp)
+	cats := bf.ReadUint8()
+	for i := 0; i < int(cats); i++ {
+		dataLen := bf.ReadUint32()
+		catID := bf.ReadUint32()
+		if catID == 0 {
+			var nextID uint32
+			_ = s.server.db.QueryRow("SELECT nextval('airou_id_seq')").Scan(&nextID)
+			bf.Seek(-4, io.SeekCurrent)
+			bf.WriteUint32(nextID)
+		}
+		_ = bf.ReadBytes(uint(dataLen)-4)
+	}
+	comp, err := nullcomp.Compress(bf.Data())
+	if err != nil {
+		s.logger.Error("Failed to compress airou", zap.Error(err))
+	} else {
+		comp = append([]byte{0x01}, comp...)
+		s.server.db.Exec("UPDATE characters SET otomoairou=$1 WHERE id=$2", comp, s.charID)
+	}
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfEnumerateAiroulist(s *Session, p mhfpacket.MHFPacket) {
@@ -239,22 +257,11 @@ func handleMsgMhfEnumerateAiroulist(s *Session, p mhfpacket.MHFPacket) {
 		doAckBufSucceed(s, pkt.AckHandle, resp.Data())
 		return
 	}
-
-	// Guild's Palico count. It seems we have to put the value on both ¯\_(ツ)_/¯
 	airouList := getGuildAirouList(s)
 	resp.WriteUint16(uint16(len(airouList)))
 	resp.WriteUint16(uint16(len(airouList)))
-	for k, cat := range airouList {
-		// an id of 0 breaks everything pretty badly
-		// erupe does not currently ever assign cats IDs
-		// these presumably need to be added for the fatigue expiration for the final uint32
-		// seems like it should happen in MSG_MHF_LOAD_OTOMO_AIROU requests as the initial creation operation is saving straight into a load
-		// and the client is obviously not aware of global ID availability
-		if cat.CatID == 0 {
-			resp.WriteUint32(uint32(k + 1))
-		} else {
-			resp.WriteUint32(cat.CatID)
-		}
+	for _, cat := range airouList {
+		resp.WriteUint32(cat.CatID)
 		resp.WriteBytes(cat.CatName)
 		resp.WriteUint32(cat.Experience)
 		resp.WriteUint8(cat.Personality)
@@ -276,8 +283,6 @@ type CatDefinition struct {
 	Experience  uint32
 	WeaponType  uint8
 	WeaponID    uint16
-	// there is a unix timestamp at the end of the cat for fatigue status
-	// it's -probably- not pulled from cat saves as that would allow someone other than the owner to actively manipulate a save for another session
 }
 
 func getGuildAirouList(s *Session) []CatDefinition {
@@ -293,7 +298,7 @@ func getGuildAirouList(s *Session) []CatDefinition {
 	}
 
 	// ellie's GetGuildMembers didn't seem to pull leader?
-	rows, err := s.server.db.Query(`SELECT c.otomoairou, c.name 
+	rows, err := s.server.db.Query(`SELECT c.otomoairou
 	FROM characters c
 	INNER JOIN guild_characters gc
 	ON gc.character_id = c.id
@@ -307,8 +312,7 @@ func getGuildAirouList(s *Session) []CatDefinition {
 
 	for rows.Next() {
 		var data []byte
-		var charName string
-		err = rows.Scan(&data, &charName)
+		err = rows.Scan(&data)
 		if err != nil {
 			s.logger.Warn("select failure", zap.Error(err))
 			continue

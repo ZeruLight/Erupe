@@ -169,7 +169,7 @@ func debug(s *Server) string {
 		list += fmt.Sprintf("    '-> isQuest: %s\n", isQuest)
 
 		if stage.isQuest() {
-			if stage.hasDeparted {
+			if len(stage.clients) > 0 {
 				hasDeparted = "true"
 			}
 

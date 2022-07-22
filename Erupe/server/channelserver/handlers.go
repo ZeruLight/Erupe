@@ -239,6 +239,7 @@ func logoutPlayer(s *Session) {
 
 	removeSessionFromSemaphore(s)
 	removeSessionFromStage(s)
+	treasureHuntUnregister(s)
 
 	saveData, err := GetCharacterSaveData(s, s.charID)
 	if err != nil {

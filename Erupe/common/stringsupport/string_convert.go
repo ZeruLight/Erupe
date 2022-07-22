@@ -145,6 +145,14 @@ func CSVContains(csv string, v int) bool {
 	return false
 }
 
+func CSVLength(csv string) int {
+	if csv == "" {
+		return 0
+	}
+	s := strings.Split(csv, ",")
+	return len(s)
+}
+
 // ConvertUTF8ToShiftJIS converts a UTF8 string to a Shift-JIS []byte.
 func ConvertUTF8ToShiftJIS(text string) ([]byte, error) {
 	r := bytes.NewBuffer([]byte(text))

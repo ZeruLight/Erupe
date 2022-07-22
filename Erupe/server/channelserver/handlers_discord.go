@@ -206,7 +206,7 @@ func questlist(s *Server) string {
 		}
 
 		hasDeparted := ""
-		if stage.hasDeparted {
+		if len(stage.clients) > 0 {
 			hasDeparted = " - departed"
 		}
 		list += fmt.Sprintf("    '-> StageId: %s (%d/%d) %s - %s\n", stage.id, len(stage.reservedClientSlots), stage.maxPlayers, hasDeparted, stage.createdAt)

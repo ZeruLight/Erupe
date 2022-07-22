@@ -3,6 +3,7 @@ www/jp/
 .idea/
 vendor/
 bin/*.bin
+bin/*.bak
 bin/quests/*.bin
 bin/questlists/*.bin
 bin/scenarios/*.bin

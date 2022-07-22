@@ -82,10 +82,12 @@ func handleMsgMhfRegistGuildTresure(s *Session, p mhfpacket.MHFPacket) {
 	level := bf.ReadUint32()
 	huntData.WriteUint32(s.charID)
 	huntData.WriteBytes(stringsupport.PaddedString(s.Name, 18, true))
+	catsUsed := ""
 	for i := 0; i < 5; i++ {
 		catID := bf.ReadUint32()
 		huntData.WriteUint32(catID)
 		if catID > 0 {
+			catsUsed = stringsupport.CSVAdd(catsUsed, int(catID))
 			for _, cat := range guildCats {
 				if cat.CatID == catID {
 					huntData.WriteBytes(cat.CatName)
@@ -95,8 +97,8 @@ func handleMsgMhfRegistGuildTresure(s *Session, p mhfpacket.MHFPacket) {
 			huntData.WriteBytes(bf.ReadBytes(9))
 		}
 	}
-	_, err = s.server.db.Exec("INSERT INTO guild_hunts (guild_id, host_id, destination, level, return, hunt_data) VALUES ($1, $2, $3, $4, $5, $6)",
-		guild.ID, s.charID, destination, level, Time_Current_Adjusted().Unix(), huntData.Data())
+	_, err = s.server.db.Exec("INSERT INTO guild_hunts (guild_id, host_id, destination, level, return, hunt_data, cats_used) VALUES ($1, $2, $3, $4, $5, $6, $7)",
+		guild.ID, s.charID, destination, level, Time_Current_Adjusted().Unix(), huntData.Data(), catsUsed)
 	if err != nil {
 		panic(err)
 	}

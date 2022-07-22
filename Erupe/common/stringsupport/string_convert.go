@@ -1,10 +1,10 @@
 package stringsupport
 
 import (
-	"strings"
-	"strconv"
 	"bytes"
 	"io/ioutil"
+	"strconv"
+	"strings"
 
 	"golang.org/x/text/encoding"
 	"golang.org/x/text/encoding/japanese"
@@ -83,16 +83,16 @@ func ConvertShiftJISToUTF8(text string) (string, error) {
 }
 */
 
-func UTF8ToSJIS(x string) ([]byte) {
-  e := japanese.ShiftJIS.NewEncoder()
-  xt, _, err := transform.String(e, x)
-  if err != nil {
-    panic(err)
-  }
+func UTF8ToSJIS(x string) []byte {
+	e := japanese.ShiftJIS.NewEncoder()
+	xt, _, err := transform.String(e, x)
+	if err != nil {
+		panic(err)
+	}
 	return []byte(xt)
 }
 
-func SJISToUTF8(b []byte) (string) {
+func SJISToUTF8(b []byte) string {
 	d := japanese.ShiftJIS.NewDecoder()
 	result, err := ioutil.ReadAll(transform.NewReader(bytes.NewReader(b), d))
 	if err != nil {
@@ -103,13 +103,13 @@ func SJISToUTF8(b []byte) (string) {
 
 func PaddedString(x string, size uint, t bool) []byte {
 	if t {
-    e := japanese.ShiftJIS.NewEncoder()
-    xt, _, err := transform.String(e, x)
-    if err != nil {
-      panic(err)
-    }
-    x = xt
-  }
+		e := japanese.ShiftJIS.NewEncoder()
+		xt, _, err := transform.String(e, x)
+		if err != nil {
+			panic(err)
+		}
+		x = xt
+	}
 	out := make([]byte, size)
 	copy(out, x)
 	out[len(out)-1] = 0
@@ -127,8 +127,8 @@ func CSVRemove(csv string, v int) string {
 	s := strings.Split(csv, ",")
 	for i, e := range s {
 		if e == strconv.Itoa(v) {
-			s[i] = s[len(s) - 1]
-			s = s[:len(s) - 1]
+			s[i] = s[len(s)-1]
+			s = s[:len(s)-1]
 		}
 	}
 	return strings.Join(s, ",")
@@ -151,6 +151,19 @@ func CSVLength(csv string) int {
 	}
 	s := strings.Split(csv, ",")
 	return len(s)
+}
+
+func CSVElems(csv string) []int {
+	var r []int
+	if csv == "" {
+		return r
+	}
+	s := strings.Split(csv, ",")
+	for i := 0; i < len(s); i++ {
+		j, _ := strconv.ParseInt(s[i], 10, 64)
+		r = append(r, int(j))
+	}
+	return r
 }
 
 // ConvertUTF8ToShiftJIS converts a UTF8 string to a Shift-JIS []byte.

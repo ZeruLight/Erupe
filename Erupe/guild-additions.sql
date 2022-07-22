@@ -49,7 +49,8 @@ CREATE TABLE IF NOT EXISTS public.guild_hunts
     claimed bool NOT NULL DEFAULT false,
     hunters text NOT NULL DEFAULT '',
     treasure text NOT NULL DEFAULT '',
-    hunt_data bytea NOT NULL
+    hunt_data bytea NOT NULL,
+    cats_used text NOT NULL
 );
 
 END;

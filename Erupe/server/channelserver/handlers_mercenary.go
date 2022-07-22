@@ -1,20 +1,18 @@
 package channelserver
 
 import (
-	"math/rand"
-	"os"
-	"io"
-   	"io/ioutil"
-    "path/filepath"
-
-
+	"erupe-ce/common/byteframe"
+	"erupe-ce/common/stringsupport"
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/server/channelserver/compression/deltacomp"
 	"erupe-ce/server/channelserver/compression/nullcomp"
-	"erupe-ce/common/byteframe"
 	"go.uber.org/zap"
+	"io"
+	"io/ioutil"
+	"math/rand"
+	"os"
+	"path/filepath"
 )
-
 
 // THERE ARE [PARTENER] [MERCENARY] [OTOMO AIRU]
 
@@ -236,7 +234,7 @@ func handleMsgMhfSaveOtomoAirou(s *Session, p mhfpacket.MHFPacket) {
 			bf.Seek(-4, io.SeekCurrent)
 			bf.WriteUint32(nextID)
 		}
-		_ = bf.ReadBytes(uint(dataLen)-4)
+		_ = bf.ReadBytes(uint(dataLen) - 4)
 	}
 	comp, err := nullcomp.Compress(bf.Data())
 	if err != nil {
@@ -297,8 +295,28 @@ func getGuildAirouList(s *Session) []CatDefinition {
 		return guildCats
 	}
 
+	// Get cats used recently
+	// Retail reset at midday, 12 hours is a midpoint
+	tempBanDuration := 43200 - (1800) // Minus hunt time
+	bannedCats := make(map[uint32]int)
+	var csvTemp string
+	rows, err := s.server.db.Query(`SELECT cats_used
+	FROM guild_hunts gh
+	INNER JOIN characters c
+	ON gh.host_id = c.id
+	WHERE c.id=$1 AND gh.return+$2>$3`, s.charID, tempBanDuration, Time_Current_Adjusted().Unix())
+	if err != nil {
+		s.logger.Warn("Failed to get recently used airous", zap.Error(err))
+	}
+	for rows.Next() {
+		rows.Scan(&csvTemp)
+		for i, j := range stringsupport.CSVElems(csvTemp) {
+			bannedCats[uint32(j)] = i
+		}
+	}
+
 	// ellie's GetGuildMembers didn't seem to pull leader?
-	rows, err := s.server.db.Query(`SELECT c.otomoairou
+	rows, err = s.server.db.Query(`SELECT c.otomoairou
 	FROM characters c
 	INNER JOIN guild_characters gc
 	ON gc.character_id = c.id
@@ -330,7 +348,8 @@ func getGuildAirouList(s *Session) []CatDefinition {
 			bf := byteframe.NewByteFrameFromBytes(decomp)
 			cats := GetCatDetails(bf)
 			for _, cat := range cats {
-				if cat.CurrentTask == 4 {
+				_, exists := bannedCats[cat.CatID]
+				if cat.CurrentTask == 4 && !exists {
 					guildCats = append(guildCats, cat)
 				}
 			}

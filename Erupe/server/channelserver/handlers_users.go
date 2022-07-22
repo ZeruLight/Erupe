@@ -4,8 +4,8 @@ import (
 	"encoding/base64"
 	"fmt"
 
-	"erupe-ce/network/mhfpacket"
 	"erupe-ce/common/byteframe"
+	"erupe-ce/network/mhfpacket"
 )
 
 func handleMsgSysInsertUser(s *Session, p mhfpacket.MHFPacket) {}
@@ -17,6 +17,21 @@ func handleMsgSysSetUserBinary(s *Session, p mhfpacket.MHFPacket) {
 	s.server.userBinaryPartsLock.Lock()
 	s.server.userBinaryParts[userBinaryPartID{charID: s.charID, index: pkt.BinaryType}] = pkt.RawDataPayload
 	s.server.userBinaryPartsLock.Unlock()
+
+	// Insert user once all binary parts exist
+	if !s.binariesDone {
+		for i := 0; i < 3; i++ {
+			_, exists := s.server.userBinaryParts[userBinaryPartID{charID: s.charID, index: uint8(i + 1)}]
+			if !exists {
+				return
+			}
+		}
+		s.binariesDone = true
+		s.server.BroadcastMHF(&mhfpacket.MsgSysInsertUser{
+			CharID: s.charID,
+		}, s)
+		return
+	}
 
 	msg := &mhfpacket.MsgSysNotifyUserBinary{
 		CharID:     s.charID,

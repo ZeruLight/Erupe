@@ -150,15 +150,11 @@ func handleMsgSysEnterStage(s *Session, p mhfpacket.MHFPacket) {
 	}
 
 	if pkt.StageID == "sl1Ns200p0a0u0" { // First entry
-		s.server.BroadcastMHF(&mhfpacket.MsgSysInsertUser{
-			CharID: s.charID,
-		}, s)
-
 		var temp mhfpacket.MHFPacket
 		loginNotif := byteframe.NewByteFrame()
 		s.server.Lock()
 		for _, session := range s.server.sessions {
-			if s == session {
+			if s == session || !session.binariesDone {
 				continue
 			}
 			temp = &mhfpacket.MsgSysInsertUser{
@@ -181,7 +177,6 @@ func handleMsgSysEnterStage(s *Session, p mhfpacket.MHFPacket) {
 			s.QueueSend(loginNotif.Data())
 		}
 	}
-
 	doStageTransfer(s, pkt.AckHandle, pkt.StageID)
 }
 

@@ -31,6 +31,7 @@ type Session struct {
 	stage            *Stage
 	reservationStage *Stage // Required for the stateful MsgSysUnreserveStage packet.
 	stagePass        string // Temporary storage
+	binariesDone     bool
 	charID           uint32
 	logKey           []byte
 	sessionStart     int64
@@ -66,7 +67,8 @@ func NewSession(server *Server, conn net.Conn) *Session {
 				Encoding: japanese.ShiftJIS,
 			},
 		},
-		sessionStart: Time_Current_Adjusted().Unix(),
+		binariesDone:   false,
+		sessionStart:   Time_Current_Adjusted().Unix(),
 		stageMoveStack: stringstack.New(),
 	}
 	return s

@@ -1,10 +1,8 @@
 package channelserver
 
 import (
-	"encoding/hex"
-
-	"erupe-ce/network/mhfpacket"
 	"erupe-ce/common/byteframe"
+	"erupe-ce/network/mhfpacket"
 	"go.uber.org/zap"
 )
 
@@ -26,15 +24,20 @@ func handleMsgMhfUpdateHouse(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfLoadHouse(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfLoadHouse)
+	bf := byteframe.NewByteFrame()
 	var data []byte
 	err := s.server.db.QueryRow("SELECT house FROM characters WHERE id=$1", s.charID).Scan(&data)
 	if err != nil {
 		panic(err)
 	}
 	if data == nil {
-		data, _ = hex.DecodeString("0000000000000000000000000000000000000000")
+		data = make([]byte, 20)
 	}
-	doAckBufSucceed(s, pkt.AckHandle, data)
+	if pkt.CharID != s.charID {
+		bf.WriteBytes(make([]byte, 219))
+	}
+	bf.WriteBytes(data)
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfGetMyhouseInfo(s *Session, p mhfpacket.MHFPacket) {
@@ -142,9 +145,9 @@ func handleMsgMhfSaveDecoMyset(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfEnumerateTitle(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateTitle)
 	bf := byteframe.NewByteFrame()
-	titleCount := 114 // all titles unlocked
+	titleCount := 114                  // all titles unlocked
 	bf.WriteUint16(uint16(titleCount)) // title count
-	bf.WriteUint16(0) // unk
+	bf.WriteUint16(0)                  // unk
 	for i := 0; i < titleCount; i++ {
 		bf.WriteUint16(uint16(i))
 		bf.WriteUint16(0) // unk

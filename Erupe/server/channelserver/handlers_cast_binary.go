@@ -173,6 +173,20 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 
 		fmt.Printf("Got chat message: %+v\n", chatMessage)
 
+		// Set account rights
+		if strings.HasPrefix(chatMessage.Message, "!rights") {
+			var v uint32
+			n, err := fmt.Sscanf(chatMessage.Message, "!rights %d", &v)
+			if err != nil || n != 1 {
+				sendServerChatMessage(s, "Error in command. Format: !rights n")
+			} else {
+				_, err = s.server.db.Exec("UPDATE users u SET rights=$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)", v, s.charID)
+				if err == nil {
+					sendServerChatMessage(s, fmt.Sprintf("Set rights integer: %d", v))
+				}
+			}
+		}
+
 		// Discord integration
 		if chatMessage.Type == binpacket.ChatTypeLocal || chatMessage.Type == binpacket.ChatTypeParty {
 			s.server.DiscordChannelSend(chatMessage.SenderName, chatMessage.Message)

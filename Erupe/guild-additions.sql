@@ -37,4 +37,19 @@ CREATE TABLE IF NOT EXISTS public.guild_meals
     expires int NOT NULL
 );
 
+CREATE TABLE IF NOT EXISTS public.guild_hunts
+(
+    id serial NOT NULL PRIMARY KEY,
+    guild_id int NOT NULL,
+    host_id int NOT NULL,
+    destination int NOT NULL,
+    level int NOT NULL,
+    return int NOT NULL,
+    acquired bool NOT NULL DEFAULT false,
+    claimed bool NOT NULL DEFAULT false,
+    hunters text NOT NULL DEFAULT '',
+    treasure text NOT NULL DEFAULT '',
+    hunt_data bytea NOT NULL
+);
+
 END;

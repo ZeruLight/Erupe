@@ -1,11 +1,11 @@
 BEGIN;
 
 ALTER TABLE IF EXISTS public.guilds
-    ADD COLUMN pugi_name_1 varchar(12) DEFAULT '';
+    ADD COLUMN IF NOT EXISTS pugi_name_1 varchar(12) DEFAULT '';
 ALTER TABLE IF EXISTS public.guilds
-    ADD COLUMN pugi_name_2 varchar(12) DEFAULT '';
+    ADD COLUMN IF NOT EXISTS pugi_name_2 varchar(12) DEFAULT '';
 ALTER TABLE IF EXISTS public.guilds
-    ADD COLUMN pugi_name_3 varchar(12) DEFAULT '';
+    ADD COLUMN IF NOT EXISTS pugi_name_3 varchar(12) DEFAULT '';
 
 CREATE TABLE IF NOT EXISTS public.guild_alliances
 (
@@ -30,7 +30,7 @@ CREATE TABLE IF NOT EXISTS public.guild_adventures
 
 CREATE TABLE IF NOT EXISTS public.guild_meals
 (
-	  id serial NOT NULL PRIMARY KEY,
+	id serial NOT NULL PRIMARY KEY,
     guild_id int NOT NULL,
     meal_id int NOT NULL,
     level int NOT NULL,

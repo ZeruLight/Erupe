@@ -55,10 +55,9 @@ type Stage struct {
 	// other clients expect the server to echo them back in the exact same format.
 	rawBinaryData map[stageBinaryKey][]byte
 
-	maxPlayers  uint16
-	hasDeparted bool
-	password    string
-	createdAt   string
+	maxPlayers uint16
+	password   string
+	createdAt  string
 }
 
 // NewStage creates a new stage with intialized values.
@@ -71,7 +70,7 @@ func NewStage(ID string) *Stage {
 		rawBinaryData:       make(map[stageBinaryKey][]byte),
 		maxPlayers:          4,
 		gameObjectCount:     1,
-		objectList:			 make(map[uint8]*ObjectMap),
+		objectList:          make(map[uint8]*ObjectMap),
 		createdAt:           time.Now().Format("01-02-2006 15:04:05"),
 	}
 	s.InitObjectList()

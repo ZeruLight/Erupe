@@ -1,12 +1,13 @@
 package channelserver
 
 import (
-	"time"
 	"encoding/hex"
 	"math/rand"
+	"time"
 
-	"erupe-ce/network/mhfpacket"
 	"erupe-ce/common/byteframe"
+	ps "erupe-ce/common/pascalstring"
+	"erupe-ce/network/mhfpacket"
 )
 
 func handleMsgMhfSaveMezfesData(s *Session, p mhfpacket.MHFPacket) {
@@ -84,28 +85,27 @@ func handleMsgMhfInfoFesta(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint32(uint32(midnight.Unix()))
 		bf.WriteUint32(uint32(midnight.Add(24 * 7 * time.Hour).Unix()))
 		bf.WriteUint32(uint32(midnight.Add(24 * 14 * time.Hour).Unix()))
-		bf.WriteUint32(uint32(midnight.Add(24 * 14 * time.Hour + 150 * time.Minute).Unix()))
-		bf.WriteUint32(uint32(midnight.Add(24 * 28 * time.Hour + 11 * time.Hour).Unix()))
+		bf.WriteUint32(uint32(midnight.Add(24*14*time.Hour + 150*time.Minute).Unix()))
+		bf.WriteUint32(uint32(midnight.Add(24*28*time.Hour + 11*time.Hour).Unix()))
 	case 2:
 		bf.WriteUint32(uint32(midnight.Add(-24 * 7 * time.Hour).Unix()))
 		bf.WriteUint32(uint32(midnight.Unix()))
 		bf.WriteUint32(uint32(midnight.Add(24 * 7 * time.Hour).Unix()))
-		bf.WriteUint32(uint32(midnight.Add(24 * 7 * time.Hour + 150 * time.Minute).Unix()))
+		bf.WriteUint32(uint32(midnight.Add(24*7*time.Hour + 150*time.Minute).Unix()))
 		bf.WriteUint32(uint32(midnight.Add(24 * 21 * time.Hour).Add(11 * time.Hour).Unix()))
 	case 3:
 		bf.WriteUint32(uint32(midnight.Add(-24 * 14 * time.Hour).Unix()))
-		bf.WriteUint32(uint32(midnight.Add(-24 * 7 * time.Hour + 11 * time.Hour).Unix()))
+		bf.WriteUint32(uint32(midnight.Add(-24*7*time.Hour + 11*time.Hour).Unix()))
 		bf.WriteUint32(uint32(midnight.Unix()))
 		bf.WriteUint32(uint32(midnight.Add(150 * time.Minute).Unix()))
-		bf.WriteUint32(uint32(midnight.Add(24 * 14 * time.Hour + 11 * time.Hour).Unix()))
+		bf.WriteUint32(uint32(midnight.Add(24*14*time.Hour + 11*time.Hour).Unix()))
 	default:
 		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
 	bf.WriteUint32(uint32(Time_Current_Adjusted().Unix())) // TS Current Time
 	bf.WriteUint8(4)
-	bf.WriteUint8(2)
-	bf.WriteBytes([]byte{0x61, 0x00}) // uint8pascal
+	ps.Uint8(bf, "", false)
 	bf.WriteUint32(0)
 	bf.WriteUint32(0) // Blue souls
 	bf.WriteUint32(0) // Red souls
@@ -113,24 +113,31 @@ func handleMsgMhfInfoFesta(s *Session, p mhfpacket.MHFPacket) {
 	trials := 0
 	bf.WriteUint16(uint16(trials))
 	for i := 0; i < trials; i++ {
-		bf.WriteUint32(uint32(i+1)) // trialID
-		bf.WriteUint8(0xFF) // unk
-		bf.WriteUint8(uint8(i)) // objective
-		bf.WriteUint32(0x1B) // monID, itemID if deliver
-		bf.WriteUint16(1) // huntsRemain?
-		bf.WriteUint16(0) // location
-		bf.WriteUint16(1) // numSoulsReward
-		bf.WriteUint8(0xFF) // unk
-		bf.WriteUint8(0xFF) // monopolised
-		bf.WriteUint16(0) // unk
+		bf.WriteUint32(uint32(i + 1)) // trialID
+		bf.WriteUint8(0xFF)           // unk
+		bf.WriteUint8(uint8(i))       // objective
+		bf.WriteUint32(0x1B)          // monID, itemID if deliver
+		bf.WriteUint16(1)             // huntsRemain?
+		bf.WriteUint16(0)             // location
+		bf.WriteUint16(1)             // numSoulsReward
+		bf.WriteUint8(0xFF)           // unk
+		bf.WriteUint8(0xFF)           // monopolised
+		bf.WriteUint16(0)             // unk
 	}
 
-	d, _ := hex.DecodeString("0000001901000007015E05F000000000000100000703E81B6300000000010100000C03E8000000000000000100000D0000000000000000000100000100000000000000000002000007015E05F000000000000200000703E81B6300000000010200000C03E8000000000000000200000D0000000000000000000200000400000000000000000003000007015E05F000000000000300000703E81B6300000000010300000C03E8000000000000000300000D0000000000000000000300000100000000000000000004000007015E05F000000000000400000703E81B6300000000010400000C03E8000000000000000400000D0000000000000000000400000400000000000000000005000007015E05F000000000000500000703E81B6300000000010500000C03E8000000000000000500000D000000000000000000050000010000000000000000000001D4C001F4000000000000000100001388000007D0000003E800000064012C00C8009600640032")
+	unk := 0 // static rewards?
+	bf.WriteUint16(uint16(unk))
+	for i := 0; i < unk; i++ {
+		bf.WriteUint32(0)
+		bf.WriteUint16(0)
+		bf.WriteUint16(0)
+		bf.WriteUint32(0)
+		bf.WriteBool(false)
+	}
+
+	d, _ := hex.DecodeString("0001D4C001F4000411B6648100010001152A81F589A497A793C196B18B528E6D926381F52A0011B6648100020001152A81F589A497A793C196B18B528E6D926381F52A000C952CE10003000109E54BE54E89B38F970029FDCE04000400001381818D84836C8352819993A294B091D1818100000811B6648100010001152A81F589A497A793C196B18B528E6D926381F52A0011B6648100020001152A81F589A497A793C196B18B528E6D926381F52A0011B6648100030001152A81F589A497A793C196B18B528E6D926381F52A0011B6648100040001152A81F589A497A793C196B18B528E6D926381F52A0011B6648100050001152A81F589A497A793C196B18B528E6D926381F52A0011B6648100060001152A81F589A497A793C196B18B528E6D926381F52A000C952CE10007000109E54BE54E89B38F9700000000000008000001000000000100001388000007D0000003E800000064012C00C8009600640032")
 	bf.WriteBytes(d)
-
-	bf.WriteUint16(2)
-	bf.WriteBytes([]byte{0x61, 0x00}) // uint16pascal
-
+	ps.Uint16(bf, "", false)
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 

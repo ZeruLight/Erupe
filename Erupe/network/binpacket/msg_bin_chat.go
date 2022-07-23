@@ -1,8 +1,9 @@
 package binpacket
 
 import (
-	"erupe-ce/network"
 	"erupe-ce/common/byteframe"
+	"erupe-ce/common/stringsupport"
+	"erupe-ce/network"
 )
 
 // ChatType represents the chat message type (Thanks to @Alice on discord for identifying these!)
@@ -36,13 +37,10 @@ func (m *MsgBinChat) Parse(bf *byteframe.ByteFrame) error {
 	m.Unk0 = bf.ReadUint8()
 	m.Type = ChatType(bf.ReadUint8())
 	m.Flags = bf.ReadUint16()
-	senderNameSize := bf.ReadUint16()
-	messageSize := bf.ReadUint16()
-
-	// TODO(Andoryuuta): Need proper shift-jis and null termination.
-	m.Message = string(bf.ReadBytes(uint(messageSize))[:messageSize-1])
-	m.SenderName = string(bf.ReadBytes(uint(senderNameSize))[:senderNameSize-1])
-
+	_ = bf.ReadUint16() // lenSenderName
+	_ = bf.ReadUint16() // lenMessage
+	m.Message = stringsupport.SJISToUTF8(bf.ReadNullTerminatedBytes())
+	m.SenderName = stringsupport.SJISToUTF8(bf.ReadNullTerminatedBytes())
 	return nil
 }
 
@@ -51,10 +49,11 @@ func (m *MsgBinChat) Build(bf *byteframe.ByteFrame) error {
 	bf.WriteUint8(m.Unk0)
 	bf.WriteUint8(uint8(m.Type))
 	bf.WriteUint16(m.Flags)
-	bf.WriteUint16(uint16(len(m.SenderName) + 1))
-	bf.WriteUint16(uint16(len(m.Message) + 1))
-	bf.WriteNullTerminatedBytes([]byte(m.Message))
-	bf.WriteNullTerminatedBytes([]byte(m.SenderName))
-
+	cMessage := stringsupport.UTF8ToSJIS(m.Message)
+	cSenderName := stringsupport.UTF8ToSJIS(m.SenderName)
+	bf.WriteUint16(uint16(len(cSenderName) + 1))
+	bf.WriteUint16(uint16(len(cMessage) + 1))
+	bf.WriteNullTerminatedBytes(cMessage)
+	bf.WriteNullTerminatedBytes(cSenderName)
 	return nil
 }

@@ -1,9 +1,9 @@
 package channelserver
 
 import (
+	"erupe-ce/common/byteframe"
 	"erupe-ce/common/stringsupport"
 	"erupe-ce/network/mhfpacket"
-	"erupe-ce/common/byteframe"
 	"go.uber.org/zap"
 )
 
@@ -13,7 +13,10 @@ func handleMsgSysEnumerateClient(s *Session, p mhfpacket.MHFPacket) {
 	s.server.stagesLock.RLock()
 	stage, ok := s.server.stages[pkt.StageID]
 	if !ok {
-		s.logger.Fatal("Can't enumerate clients for stage that doesn't exist!", zap.String("stageID", pkt.StageID))
+		s.server.stagesLock.RUnlock()
+		s.logger.Warn("Can't enumerate clients for stage that doesn't exist!", zap.String("stageID", pkt.StageID))
+		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+		return
 	}
 	s.server.stagesLock.RUnlock()
 
@@ -29,11 +32,11 @@ func handleMsgSysEnumerateClient(s *Session, p mhfpacket.MHFPacket) {
 			}
 		}
 	case 2: // Ready
-	for cid, ready := range stage.reservedClientSlots {
-		if ready {
-			clients = append(clients, cid)
+		for cid, ready := range stage.reservedClientSlots {
+			if ready {
+				clients = append(clients, cid)
+			}
 		}
-	}
 	}
 	resp.WriteUint16(uint16(len(clients)))
 	for _, cid := range clients {

@@ -19,9 +19,7 @@ CREATE TABLE IF NOT EXISTS public.normal_shop_items
 );
 
 ALTER TABLE IF EXISTS public.normal_shop_items
-(
-    ADD COLUMN enable_weeks character varying(8)
-);
+    ADD COLUMN IF NOT EXISTS enable_weeks character varying(8);
 
 CREATE TABLE IF NOT EXISTS public.shop_item_state
 (
@@ -32,8 +30,6 @@ CREATE TABLE IF NOT EXISTS public.shop_item_state
 );
 
 ALTER TABLE IF EXISTS public.shop_item_state
-(
-    ADD COLUMN week int
-);
+    ADD COLUMN IF NOT EXISTS week int;
 
 END;

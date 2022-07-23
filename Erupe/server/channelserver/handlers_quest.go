@@ -6,8 +6,8 @@ import (
 	"os"
 	"path/filepath"
 
-	"erupe-ce/network/mhfpacket"
 	"erupe-ce/common/byteframe"
+	"erupe-ce/network/mhfpacket"
 )
 
 func handleMsgSysGetFile(s *Session, p mhfpacket.MHFPacket) {
@@ -44,8 +44,8 @@ func handleMsgSysGetFile(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfLoadFavoriteQuest(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfLoadFavoriteQuest)
 	var data []byte
-	err := s.server.db.QueryRow("SELECT quest_data FROM favourite_quest WHERE char_id = $1",s.charID).Scan(&data)
-    if err == nil {
+	err := s.server.db.QueryRow("SELECT savefavoritequest FROM characters WHERE id = $1", s.charID).Scan(&data)
+	if err == nil {
 		doAckBufSucceed(s, pkt.AckHandle, data)
 	} else {
 		doAckBufSucceed(s, pkt.AckHandle, []byte{0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
@@ -54,8 +54,7 @@ func handleMsgMhfLoadFavoriteQuest(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfSaveFavoriteQuest(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSaveFavoriteQuest)
-	s.server.db.Exec("INSERT INTO favourite_quest(char_id) VALUES($1)", s.charID)
-	s.server.db.Exec("UPDATE favourite_quest SET quest_data = $1 WHERE char_id = $2", pkt.Data, s.charID)
+	s.server.db.Exec("UPDATE characters SET savefavoritequest=$1 WHERE id=$2", pkt.Data, s.charID)
 	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 

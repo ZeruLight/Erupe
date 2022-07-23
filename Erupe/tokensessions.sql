@@ -18,12 +18,12 @@ CREATE TABLE IF NOT EXISTS public.servers
 );
 
 ALTER TABLE IF EXISTS public.characters
-    ADD COLUMN deleted boolean NOT NULL DEFAULT false;
+    ADD COLUMN IF NOT EXISTS deleted boolean NOT NULL DEFAULT false;
 
 ALTER TABLE IF EXISTS public.characters
-    ADD COLUMN friends text NOT NULL DEFAULT '';
+    ADD COLUMN IF NOT EXISTS friends text NOT NULL DEFAULT '';
 
 ALTER TABLE IF EXISTS public.users
-    ADD COLUMN last_character int DEFAULT 0;
+    ADD COLUMN IF NOT EXISTS last_character int DEFAULT 0;
 
 END;

@@ -1,6 +1,6 @@
 BEGIN;
 
 ALTER TABLE IF EXISTS public.characters
-    ADD COLUMN house bytea;
+    ADD COLUMN IF NOT EXISTS house bytea;
 
 END;

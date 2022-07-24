@@ -4,8 +4,8 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
-
 	"fmt"
+
 	"io/ioutil"
 	"math/bits"
 	"math/rand"
@@ -579,123 +579,48 @@ func handleMsgMhfExchangeWeeklyStamp(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfEnumerateGuacot(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateGuacot)
-	var data bool
-	err := s.server.db.QueryRow("SELECT gook0status FROM gook WHERE id = $1", s.charID).Scan(&data)
-	if err == nil {
-		tempresp := byteframe.NewByteFrame()
-		count := uint16(0)
-		var gook0 []byte
-		var gook1 []byte
-		var gook2 []byte
-		var gook3 []byte
-		var gook4 []byte
-		var gook5 []byte
-		var gook0status bool
-		var gook1status bool
-		var gook2status bool
-		var gook3status bool
-		var gook4status bool
-		var gook5status bool
-		_ = s.server.db.QueryRow("SELECT gook0 FROM gook WHERE id = $1", s.charID).Scan(&gook0)
-		_ = s.server.db.QueryRow("SELECT gook1 FROM gook WHERE id = $1", s.charID).Scan(&gook1)
-		_ = s.server.db.QueryRow("SELECT gook2 FROM gook WHERE id = $1", s.charID).Scan(&gook2)
-		_ = s.server.db.QueryRow("SELECT gook3 FROM gook WHERE id = $1", s.charID).Scan(&gook3)
-		_ = s.server.db.QueryRow("SELECT gook4 FROM gook WHERE id = $1", s.charID).Scan(&gook4)
-		_ = s.server.db.QueryRow("SELECT gook5 FROM gook WHERE id = $1", s.charID).Scan(&gook5)
-		_ = s.server.db.QueryRow("SELECT gook0status FROM gook WHERE id = $1", s.charID).Scan(&gook0status)
-		_ = s.server.db.QueryRow("SELECT gook1status FROM gook WHERE id = $1", s.charID).Scan(&gook1status)
-		_ = s.server.db.QueryRow("SELECT gook2status FROM gook WHERE id = $1", s.charID).Scan(&gook2status)
-		_ = s.server.db.QueryRow("SELECT gook3status FROM gook WHERE id = $1", s.charID).Scan(&gook3status)
-		_ = s.server.db.QueryRow("SELECT gook4status FROM gook WHERE id = $1", s.charID).Scan(&gook4status)
-		_ = s.server.db.QueryRow("SELECT gook5status FROM gook WHERE id = $1", s.charID).Scan(&gook5status)
-		if gook0status == true {
+	var data []byte
+	var count uint16
+	bf := byteframe.NewByteFrame()
+	for i := 0; i < 5; i++ {
+		err := s.server.db.QueryRow(fmt.Sprintf("SELECT gook%d FROM gook WHERE id=$1", i), s.charID).Scan(&data)
+		if err == nil && data != nil {
 			count++
-			tempresp.WriteBytes(gook0)
+			bf.WriteBytes(data)
 		}
-		if gook1status == true {
-			count++
-			tempresp.WriteBytes(gook1)
-		}
-		if gook2status == true {
-			count++
-			tempresp.WriteBytes(gook2)
-		}
-		if gook3status == true {
-			count++
-			tempresp.WriteBytes(gook3)
-		}
-		if gook4status == true {
-			count++
-			tempresp.WriteBytes(gook4)
-		}
-		if gook5status == true {
-			count++
-			tempresp.WriteBytes(gook5)
-		}
-		if count == uint16(0) {
-			doAckBufSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
-		} else {
-			resp := byteframe.NewByteFrame()
-			resp.WriteUint16(count)
-			resp.WriteBytes(tempresp.Data())
-			doAckBufSucceed(s, pkt.AckHandle, resp.Data())
-		}
-	} else {
-		doAckBufSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 	}
+	resp := byteframe.NewByteFrame()
+	resp.WriteUint16(count)
+	resp.WriteBytes(bf.Data())
+	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
 }
 
 func handleMsgMhfUpdateGuacot(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfUpdateGuacot)
-	count := int(pkt.EntryCount)
-	fmt.Printf("handleMsgMhfUpdateGuacot:%d\n", count)
-	if count == 0 {
-		_, err := s.server.db.Exec("INSERT INTO gook(id,gook0status,gook1status,gook2status,gook3status,gook4status,gook5status) VALUES($1,bool(false),bool(false),bool(false),bool(false),bool(false),bool(false))", s.charID)
-		if err != nil {
-			fmt.Printf("INSERT INTO gook failure\n")
-		}
-	} else {
-		for i := 0; i < int(pkt.EntryCount); i++ {
-			gookindex := int(pkt.Entries[i].Unk0)
-			buf := pkt.GuacotUpdateEntryToBytes(pkt.Entries[i])
-			//fmt.Printf("gookindex:%d\n", gookindex)
-			switch gookindex {
-			case 0:
-				s.server.db.Exec("UPDATE gook SET gook0 = $1 WHERE id = $2", buf, s.charID)
-				if pkt.Entries[i].Unk1 != uint16(0) {
-					s.server.db.Exec("UPDATE gook SET gook0status = $1 WHERE id = $2", bool(true), s.charID)
-				} else {
-					s.server.db.Exec("UPDATE gook SET gook0status = $1 WHERE id = $2", bool(false), s.charID)
-				}
-			case 1:
-				s.server.db.Exec("UPDATE gook SET gook1 = $1 WHERE id = $2", buf, s.charID)
-				if pkt.Entries[i].Unk1 != uint16(0) {
-					s.server.db.Exec("UPDATE gook SET gook1status = $1 WHERE id = $2", bool(true), s.charID)
-				} else {
-					s.server.db.Exec("UPDATE gook SET gook1status = $1 WHERE id = $2", bool(false), s.charID)
-				}
-			case 2:
-				s.server.db.Exec("UPDATE gook SET gook2 = $1 WHERE id = $2", buf, s.charID)
-				if pkt.Entries[i].Unk1 != uint16(0) {
-					s.server.db.Exec("UPDATE gook SET gook2status = $1 WHERE id = $2", bool(true), s.charID)
-				} else {
-					s.server.db.Exec("UPDATE gook SET gook2status = $1 WHERE id = $2", bool(false), s.charID)
-				}
-			case 3:
-				s.server.db.Exec("UPDATE gook SET gook3 = $1 WHERE id = $2", buf, s.charID)
-				if pkt.Entries[i].Unk1 != uint16(0) {
-					s.server.db.Exec("UPDATE gook SET gook3status = $1 WHERE id = $2", bool(true), s.charID)
-				} else {
-					s.server.db.Exec("UPDATE gook SET gook3status = $1 WHERE id = $2", bool(false), s.charID)
-				}
-			case 4:
-				s.server.db.Exec("UPDATE gook SET gook4 = $1 WHERE id = $2", buf, s.charID)
-				if pkt.Entries[i].Unk1 != uint16(0) {
-					s.server.db.Exec("UPDATE gook SET gook4status = $1 WHERE id = $2", bool(true), s.charID)
-				} else {
-					s.server.db.Exec("UPDATE gook SET gook4status = $1 WHERE id = $2", bool(false), s.charID)
-				}
+	for _, gook := range pkt.Gooks {
+		if !gook.Exists {
+			s.server.db.Exec(fmt.Sprintf("UPDATE gook SET gook%d=NULL WHERE id=$1", gook.Index), s.charID)
+		} else {
+			// TODO: Birthdays are still 7 years in the past
+			//var data []byte
+			//err := s.server.db.QueryRow(fmt.Sprintf("SELECT gook%d FROM gook WHERE id=$1", gook.Index), s.charID).Scan(&data)
+			//if err != nil && data == nil { // If index doesn't exist
+			//	// Give gook a birthday not 7 years ago
+			//	gook.Birthday1 = uint32(time.Now().Unix())
+			//	gook.Birthday2 = uint32(time.Now().Unix())
+			//}
+			bf := byteframe.NewByteFrame()
+			bf.WriteUint32(gook.Index)
+			if gook.Index == 0 {
+				bf.WriteUint16(gook.Type)
 			}
+			bf.WriteUint16(gook.Type)
+			bf.WriteBytes(gook.Data)
+			bf.WriteUint32(gook.Birthday1)
+			bf.WriteUint32(gook.Birthday2)
+			bf.WriteUint8(gook.NameLen)
+			bf.WriteBytes(gook.Name)
+			s.server.db.Exec(fmt.Sprintf("UPDATE gook SET gook%d=$1 WHERE id=$2", gook.Index), bf.Data(), s.charID)
 		}
 	}
 	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})

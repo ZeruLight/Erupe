@@ -1,0 +1,24 @@
+BEGIN;
+
+ALTER TABLE IF EXISTS public.gook
+    DROP COLUMN IF EXISTS gook0status;
+
+ALTER TABLE IF EXISTS public.gook
+    DROP COLUMN IF EXISTS gook1status;
+
+ALTER TABLE IF EXISTS public.gook
+    DROP COLUMN IF EXISTS gook2status;
+
+ALTER TABLE IF EXISTS public.gook
+    DROP COLUMN IF EXISTS gook3status;
+
+ALTER TABLE IF EXISTS public.gook
+    DROP COLUMN IF EXISTS gook4status;
+
+ALTER TABLE IF EXISTS public.gook
+    DROP COLUMN IF EXISTS gook5status;
+
+ALTER TABLE IF EXISTS public.gook
+    DROP COLUMN IF EXISTS gook5;
+
+END;

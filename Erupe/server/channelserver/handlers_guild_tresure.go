@@ -116,8 +116,8 @@ func handleMsgMhfAcquireGuildTresure(s *Session, p mhfpacket.MHFPacket) {
 
 func treasureHuntUnregister(s *Session) {
 	guild, err := GetGuildInfoByCharacterId(s, s.charID)
-	if err != nil {
-		panic(err)
+	if err != nil || guild == nil {
+		return
 	}
 	var huntID int
 	var hunters string
@@ -125,10 +125,7 @@ func treasureHuntUnregister(s *Session) {
 	for rows.Next() {
 		rows.Scan(&huntID, &hunters)
 		hunters = stringsupport.CSVRemove(hunters, int(s.charID))
-		_, err = s.server.db.Exec("UPDATE guild_hunts SET hunters=$1 WHERE id=$2", hunters, huntID)
-		if err != nil {
-			panic(err)
-		}
+		s.server.db.Exec("UPDATE guild_hunts SET hunters=$1 WHERE id=$2", hunters, huntID)
 	}
 }
 

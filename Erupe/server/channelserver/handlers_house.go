@@ -2,6 +2,8 @@ package channelserver
 
 import (
 	"erupe-ce/common/byteframe"
+	ps "erupe-ce/common/pascalstring"
+	"erupe-ce/common/stringsupport"
 	"erupe-ce/network/mhfpacket"
 	"go.uber.org/zap"
 )
@@ -15,28 +17,160 @@ func handleMsgMhfUpdateInterior(s *Session, p mhfpacket.MHFPacket) {
 	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
-func handleMsgMhfEnumerateHouse(s *Session, p mhfpacket.MHFPacket) {
-	pkt := p.(*mhfpacket.MsgMhfEnumerateHouse)
-	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+type HouseData struct {
+	CharID uint32 `db:"id"`
+	HRP    uint16 `db:"hrp"`
+	GR     uint16 `db:"gr"`
+	Name   string `db:"name"`
 }
 
-func handleMsgMhfUpdateHouse(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfEnumerateHouse(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfEnumerateHouse)
+	bf := byteframe.NewByteFrame()
+	var houses []HouseData
+	switch pkt.Method {
+	case 1:
+		var friendsList string
+		s.server.db.QueryRow("SELECT friends FROM characters WHERE id=$1", s.charID).Scan(&friendsList)
+		cids := stringsupport.CSVElems(friendsList)
+		for _, cid := range cids {
+			house := HouseData{}
+			row := s.server.db.QueryRowx("SELECT id, hrp, gr, name FROM characters WHERE id=$1", cid)
+			err := row.StructScan(&house)
+			if err != nil {
+				panic(err)
+			} else {
+				houses = append(houses, house)
+			}
+		}
+	case 2:
+		guild, err := GetGuildInfoByCharacterId(s, s.charID)
+		if err != nil {
+			break
+		}
+		guildMembers, err := GetGuildMembers(s, guild.ID, false)
+		if err != nil {
+			break
+		}
+		for _, member := range guildMembers {
+			house := HouseData{}
+			row := s.server.db.QueryRowx("SELECT id, hrp, gr, name FROM characters WHERE id=$1", member.CharID)
+			err := row.StructScan(&house)
+			if err != nil {
+				panic(err)
+			} else {
+				houses = append(houses, house)
+			}
+		}
+	case 3:
+		house := HouseData{}
+		row := s.server.db.QueryRowx("SELECT id, hrp, gr, name FROM characters WHERE name=$1", pkt.Name)
+		err := row.StructScan(&house)
+		if err != nil {
+			panic(err)
+		} else {
+			houses = append(houses, house)
+		}
+	case 4:
+		house := HouseData{}
+		row := s.server.db.QueryRowx("SELECT id, hrp, gr, name FROM characters WHERE id=$1", pkt.CharID)
+		err := row.StructScan(&house)
+		if err != nil {
+			panic(err)
+		} else {
+			houses = append(houses, house)
+		}
+	case 5: // Recent visitors
+		break
+	}
+	var exists int
+	for _, house := range houses {
+		for _, session := range s.server.sessions {
+			if session.charID == house.CharID {
+				exists++
+				bf.WriteUint32(house.CharID)
+				bf.WriteUint8(session.house.state)
+				if len(session.house.password) > 0 {
+					bf.WriteUint8(3)
+				} else {
+					bf.WriteUint8(0)
+				}
+				bf.WriteUint16(house.HRP)
+				bf.WriteUint16(house.GR)
+				ps.Uint8(bf, house.Name, true)
+				break
+			}
+		}
+	}
+	resp := byteframe.NewByteFrame()
+	resp.WriteUint16(uint16(exists))
+	resp.WriteBytes(bf.Data())
+	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
+}
+
+func handleMsgMhfUpdateHouse(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfUpdateHouse)
+	// 01 = closed
+	// 02 = open anyone
+	// 03 = open friends
+	// 04 = open guild
+	// 05 = open friends+guild
+	s.house.state = pkt.State
+	s.house.password = pkt.Password
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+}
 
 func handleMsgMhfLoadHouse(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfLoadHouse)
 	bf := byteframe.NewByteFrame()
 	var data []byte
-	err := s.server.db.QueryRow("SELECT house FROM characters WHERE id=$1", s.charID).Scan(&data)
+	err := s.server.db.QueryRow("SELECT house FROM characters WHERE id=$1", pkt.CharID).Scan(&data)
 	if err != nil {
 		panic(err)
 	}
 	if data == nil {
 		data = make([]byte, 20)
 	}
-	if pkt.CharID != s.charID {
-		bf.WriteBytes(make([]byte, 219))
+	// TODO: Find where the missing data comes from, savefile offset?
+	switch pkt.Destination {
+	case 3: // Others house
+		houseTier := uint8(2) // Fallback if can't find
+		for _, session := range s.server.sessions {
+			if session.charID == pkt.CharID {
+				if pkt.Password != session.house.password {
+					// Not the correct error code but works
+					doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+					return
+				}
+				houseTier = session.house.tier
+			}
+		}
+		bf.WriteBytes(make([]byte, 4))
+		bf.WriteUint8(houseTier) // House tier 0x1FB70
+		// Item box style
+		// Rastae
+		// Partner
+		bf.WriteBytes(make([]byte, 214))
+		bf.WriteBytes(data)
+	case 4: // Bookshelf
+		// Hunting log
+		// Street names/Aliases
+		bf.WriteBytes(make([]byte, 5576))
+	case 5: // Gallery
+		// Furniture placement
+		bf.WriteBytes(make([]byte, 1748))
+	case 8: // Tore
+		// Sister
+		// Cat shops
+		// Pugis
+		bf.WriteBytes(make([]byte, 240))
+	case 9: // Own house
+		bf.WriteBytes(data)
+	case 10: // Garden
+		// Gardening upgrades
+		// Gooks
+		bf.WriteBytes(make([]byte, 72))
 	}
-	bf.WriteBytes(data)
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 

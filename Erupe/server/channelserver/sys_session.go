@@ -27,6 +27,7 @@ type Session struct {
 	sendPackets   chan []byte
 	clientContext *clientctx.ClientContext
 
+	house            House
 	stageID          string
 	stage            *Stage
 	reservationStage *Stage // Required for the stateful MsgSysUnreserveStage packet.
@@ -52,6 +53,12 @@ type Session struct {
 
 	// For Debuging
 	Name string
+}
+
+type House struct {
+	tier     uint8
+	state    uint8
+	password string
 }
 
 // NewSession creates a new Session type.

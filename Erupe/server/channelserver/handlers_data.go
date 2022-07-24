@@ -61,6 +61,8 @@ func handleMsgMhfSavedata(s *Session, p mhfpacket.MHFPacket) {
 		s.logger.Fatal("Failed to character weapon type in db", zap.Error(err))
 	}
 
+	s.house.tier = decompressedData[129904]
+
 	isMale := uint8(decompressedData[80]) // 0x50
 	if isMale == 1 {
 		_, err = s.server.db.Exec("UPDATE characters SET is_female=true WHERE id=$1", s.charID)

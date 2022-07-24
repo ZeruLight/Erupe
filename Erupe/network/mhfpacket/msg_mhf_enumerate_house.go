@@ -2,6 +2,7 @@ package mhfpacket
 
 import (
 	"errors"
+	"erupe-ce/common/stringsupport"
 
 	"erupe-ce/common/byteframe"
 	"erupe-ce/network"
@@ -14,7 +15,7 @@ type MsgMhfEnumerateHouse struct {
 	CharID    uint32
 	Method    uint8
 	Unk       uint16
-	Name      []byte
+	Name      string
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -29,7 +30,7 @@ func (m *MsgMhfEnumerateHouse) Parse(bf *byteframe.ByteFrame, ctx *clientctx.Cli
 	m.Method = bf.ReadUint8()
 	m.Unk = bf.ReadUint16()
 	_ = bf.ReadUint8() // len
-	m.Name = bf.ReadNullTerminatedBytes()
+	m.Name = stringsupport.SJISToUTF8(bf.ReadNullTerminatedBytes())
 	return nil
 }
 

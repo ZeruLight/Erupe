@@ -154,7 +154,6 @@ func handleMsgMhfLoadHouse(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteBytes(data)
 	case 4: // Bookshelf
 		// Hunting log
-		// Street names/Aliases
 		bf.WriteBytes(make([]byte, 5576))
 	case 5: // Gallery
 		// Furniture placement
@@ -279,14 +278,18 @@ func handleMsgMhfSaveDecoMyset(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfEnumerateTitle(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateTitle)
 	bf := byteframe.NewByteFrame()
-	titleCount := 114                  // all titles unlocked
-	bf.WriteUint16(uint16(titleCount)) // title count
-	bf.WriteUint16(0)                  // unk
-	for i := 0; i < titleCount; i++ {
-		bf.WriteUint16(uint16(i))
-		bf.WriteUint16(0) // unk
-		bf.WriteUint32(0) // timestamp acquired
-		bf.WriteUint32(0) // timestamp updated
+	if pkt.CharID == s.charID {
+		titleCount := 114                  // all titles unlocked
+		bf.WriteUint16(uint16(titleCount)) // title count
+		bf.WriteUint16(0)                  // unk
+		for i := 0; i < titleCount; i++ {
+			bf.WriteUint16(uint16(i))
+			bf.WriteUint16(0) // unk
+			bf.WriteUint32(0) // timestamp acquired
+			bf.WriteUint32(0) // timestamp updated
+		}
+	} else {
+		bf.WriteUint16(0)
 	}
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }

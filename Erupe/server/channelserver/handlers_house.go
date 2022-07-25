@@ -152,8 +152,11 @@ func handleMsgMhfLoadHouse(s *Session, p mhfpacket.MHFPacket) {
 			}
 		}
 	case 4: // Bookshelf
-		// TODO: Find where the hunting log data offset is in the savefile
-		bf.WriteBytes(make([]byte, 5576))
+		for _, session := range s.server.sessions {
+			if session.charID == pkt.CharID {
+				bf.WriteBytes(session.myseries.bookshelfData)
+			}
+		}
 	case 5: // Gallery
 		for _, session := range s.server.sessions {
 			if session.charID == pkt.CharID {

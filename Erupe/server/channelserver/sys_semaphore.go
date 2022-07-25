@@ -14,6 +14,8 @@ type Semaphore struct {
 	// Stage ID string
 	id_semaphore string
 
+	id uint32
+
 	// Map of session -> charID.
 	// These are clients that are CURRENTLY in the stage
 	clients map[*Session]uint32
@@ -26,20 +28,20 @@ type Semaphore struct {
 }
 
 // NewStage creates a new stage with intialized values.
-func NewSemaphore(ID string, MaxPlayers uint16) *Semaphore {
-	s := &Semaphore{
+func NewSemaphore(s *Server, ID string, MaxPlayers uint16) *Semaphore {
+	sema := &Semaphore{
 		id_semaphore:        ID,
+		id:                  s.NextSemaphoreID(),
 		clients:             make(map[*Session]uint32),
 		reservedClientSlots: make(map[uint32]interface{}),
 		maxPlayers:          MaxPlayers,
 	}
-	return s
+	return sema
 }
 
 func (s *Semaphore) BroadcastRavi(pkt mhfpacket.MHFPacket) {
 	// Broadcast the data.
 	for session := range s.clients {
-
 
 		// Make the header
 		bf := byteframe.NewByteFrame()

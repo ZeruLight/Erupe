@@ -86,7 +86,7 @@ func doStageTransfer(s *Session, ackHandle uint32, stageID string) {
 	}
 }
 
-func removeEmptyStages(s *Session) {
+func destructEmptyStages(s *Session) {
 	s.server.Lock()
 	defer s.server.Unlock()
 	for _, stage := range s.server.stages {
@@ -134,7 +134,8 @@ func removeSessionFromStage(s *Session) {
 		}
 	}
 	s.stage.Unlock()
-	removeEmptyStages(s)
+	destructEmptyStages(s)
+	destructEmptySemaphores(s)
 }
 
 func handleMsgSysEnterStage(s *Session, p mhfpacket.MHFPacket) {

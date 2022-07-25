@@ -21,4 +21,6 @@ ALTER TABLE IF EXISTS public.gook
 ALTER TABLE IF EXISTS public.gook
     DROP COLUMN IF EXISTS gook5;
 
+UPDATE public.gook SET gook1=NULL, gook2=NULL, gook3=NULL, gook4=NULL;
+
 END;

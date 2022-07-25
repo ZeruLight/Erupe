@@ -9,14 +9,12 @@ import (
 )
 
 type Gook struct {
-	Exists    bool
-	Index     uint32
-	Type      uint16
-	Data      []byte
-	Birthday1 uint32
-	Birthday2 uint32
-	NameLen   uint8
-	Name      []byte
+	Exists  bool
+	Index   uint32
+	Type    uint16
+	Data    []byte
+	NameLen uint8
+	Name    []byte
 }
 
 // MsgMhfUpdateGuacot represents the MSG_MHF_UPDATE_GUACOT
@@ -41,9 +39,7 @@ func (m *MsgMhfUpdateGuacot) Parse(bf *byteframe.ByteFrame, ctx *clientctx.Clien
 		e := Gook{}
 		e.Index = bf.ReadUint32()
 		e.Type = bf.ReadUint16()
-		e.Data = bf.ReadBytes(42)
-		e.Birthday1 = bf.ReadUint32()
-		e.Birthday2 = bf.ReadUint32()
+		e.Data = bf.ReadBytes(50)
 		e.NameLen = bf.ReadUint8()
 		e.Name = bf.ReadBytes(uint(e.NameLen))
 		if e.Type > 0 {

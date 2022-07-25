@@ -123,35 +123,54 @@ func handleMsgMhfUpdateHouse(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfLoadHouse(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfLoadHouse)
 	bf := byteframe.NewByteFrame()
-	var data []byte
-	err := s.server.db.QueryRow("SELECT house FROM characters WHERE id=$1", pkt.CharID).Scan(&data)
+	if pkt.Destination != 9 && len(pkt.Password) > 0 && pkt.CheckPass {
+		for _, session := range s.server.sessions {
+			if session.charID == pkt.CharID && pkt.Password != session.house.password {
+				doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+				return
+			}
+		}
+	}
+
+	var furniture []byte
+	err := s.server.db.QueryRow("SELECT house FROM characters WHERE id=$1", pkt.CharID).Scan(&furniture)
 	if err != nil {
 		panic(err)
 	}
-	if data == nil {
-		data = make([]byte, 20)
+	if furniture == nil {
+		furniture = make([]byte, 20)
 	}
+
 	// TODO: Find where the missing data comes from, savefile offset?
 	switch pkt.Destination {
 	case 3: // Others house
 		houseTier := uint8(2) // Fallback if can't find
 		for _, session := range s.server.sessions {
 			if session.charID == pkt.CharID {
-				if pkt.Password != session.house.password {
-					// Not the correct error code but works
-					doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
-					return
-				}
 				houseTier = session.house.tier
 			}
 		}
 		bf.WriteBytes(make([]byte, 4))
 		bf.WriteUint8(houseTier) // House tier 0x1FB70
-		// Item box style
+		bf.WriteBytes(make([]byte, 80))
+		// Item box style bitfield
+		// tier 1 = 0x09FE
+		// tier 2 = 0x69FF
+		// tier 3 = 0xE9FF
+		// unused = 0x0001
+		// unused = 0x6000
+		switch houseTier {
+		case 0:
+			bf.WriteUint16(0x0000)
+		case 1:
+			bf.WriteUint16(0x69FF)
+		case 2:
+			bf.WriteUint16(0xE9FF)
+		}
 		// Rastae
 		// Partner
-		bf.WriteBytes(make([]byte, 214))
-		bf.WriteBytes(data)
+		bf.WriteBytes(make([]byte, 132))
+		bf.WriteBytes(furniture)
 	case 4: // Bookshelf
 		// Hunting log
 		bf.WriteBytes(make([]byte, 5576))
@@ -164,7 +183,7 @@ func handleMsgMhfLoadHouse(s *Session, p mhfpacket.MHFPacket) {
 		// Pugis
 		bf.WriteBytes(make([]byte, 240))
 	case 9: // Own house
-		bf.WriteBytes(data)
+		bf.WriteBytes(furniture)
 	case 10: // Garden
 		// Gardening upgrades
 		// Gooks

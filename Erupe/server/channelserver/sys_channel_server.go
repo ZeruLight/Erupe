@@ -71,8 +71,9 @@ type Server struct {
 	userBinaryParts     map[userBinaryPartID][]byte
 
 	// Semaphore
-	semaphoreLock sync.RWMutex
-	semaphore     map[string]*Semaphore
+	semaphoreLock  sync.RWMutex
+	semaphore      map[string]*Semaphore
+	semaphoreIndex uint32
 
 	// Discord chat integration
 	discordBot *discordbot.DiscordBot
@@ -92,55 +93,58 @@ type Raviente struct {
 }
 
 type RavienteRegister struct {
-	nextTime uint32
-	startTime uint32
-	postTime uint32
-	killedTime uint32
+	semaphoreID  uint32
+	nextTime     uint32
+	startTime    uint32
+	postTime     uint32
+	killedTime   uint32
 	ravienteType uint32
-	maxPlayers uint32
-	carveQuest uint32
-	register []uint32
+	maxPlayers   uint32
+	carveQuest   uint32
+	register     []uint32
 }
 
 type RavienteState struct {
+	semaphoreID      uint32
 	damageMultiplier uint32
-	stateData []uint32
+	stateData        []uint32
 }
 
 type RavienteSupport struct {
+	semaphoreID uint32
 	supportData []uint32
 }
 
 // Set up the Raviente variables for the server
 func NewRaviente() *Raviente {
-	ravienteRegister := &RavienteRegister {
-		nextTime: 0,
-		startTime: 0,
-		killedTime: 0,
-		postTime: 0,
+	ravienteRegister := &RavienteRegister{
+		nextTime:     0,
+		startTime:    0,
+		killedTime:   0,
+		postTime:     0,
 		ravienteType: 0,
-		maxPlayers: 0,
-		carveQuest: 0,
+		maxPlayers:   0,
+		carveQuest:   0,
 	}
-	ravienteState := &RavienteState {
+	ravienteState := &RavienteState{
 		damageMultiplier: 1,
 	}
-	ravienteSupport := &RavienteSupport { }
+	ravienteSupport := &RavienteSupport{}
 	ravienteRegister.register = []uint32{0, 0, 0, 0, 0}
 	ravienteState.stateData = []uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 	ravienteSupport.supportData = []uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 
-	raviente := &Raviente {
+	raviente := &Raviente{
 		register: ravienteRegister,
-		state: ravienteState,
-		support: ravienteSupport,
+		state:    ravienteState,
+		support:  ravienteSupport,
 	}
 	return raviente
 }
 
 // NewServer creates a new Server type.
 func NewServer(config *Config) *Server {
-	s := &Server {
+	s := &Server{
 		ID:              config.ID,
 		logger:          config.Logger,
 		db:              config.DB,
@@ -151,6 +155,7 @@ func NewServer(config *Config) *Server {
 		stages:          make(map[string]*Stage),
 		userBinaryParts: make(map[userBinaryPartID][]byte),
 		semaphore:       make(map[string]*Semaphore),
+		semaphoreIndex:  0,
 		discordBot:      config.DiscordBot,
 		name:            config.Name,
 		enable:          config.Enable,
@@ -400,4 +405,9 @@ func (s *Server) FindStageObjectByChar(charID uint32) *StageObject {
 	}
 
 	return nil
+}
+
+func (s *Server) NextSemaphoreID() uint32 {
+	s.semaphoreIndex = s.semaphoreIndex + 1
+	return s.semaphoreIndex
 }

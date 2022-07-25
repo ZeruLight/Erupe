@@ -11,7 +11,7 @@ import (
 // MsgSysOperateRegister represents the MSG_SYS_OPERATE_REGISTER
 type MsgSysOperateRegister struct {
 	AckHandle      uint32
-	RegisterID     uint32
+	SemaphoreID    uint32
 	fixedZero      uint16
 	RawDataPayload []byte
 }
@@ -24,7 +24,7 @@ func (m *MsgSysOperateRegister) Opcode() network.PacketID {
 // Parse parses the packet from binary
 func (m *MsgSysOperateRegister) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
-	m.RegisterID = bf.ReadUint32()
+	m.SemaphoreID = bf.ReadUint32()
 	m.fixedZero = bf.ReadUint16()
 
 	if m.fixedZero != 0 {
@@ -39,7 +39,7 @@ func (m *MsgSysOperateRegister) Parse(bf *byteframe.ByteFrame, ctx *clientctx.Cl
 // Build builds a binary packet from the current data.
 func (m *MsgSysOperateRegister) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	bf.WriteUint32(m.AckHandle)
-	bf.WriteUint32(m.RegisterID)
+	bf.WriteUint32(m.SemaphoreID)
 	bf.WriteUint16(0)
 	bf.WriteUint16(uint16(len(m.RawDataPayload)))
 	bf.WriteBytes(m.RawDataPayload)

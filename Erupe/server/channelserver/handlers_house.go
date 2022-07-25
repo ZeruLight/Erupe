@@ -5,6 +5,7 @@ import (
 	ps "erupe-ce/common/pascalstring"
 	"erupe-ce/common/stringsupport"
 	"erupe-ce/network/mhfpacket"
+	"fmt"
 	"go.uber.org/zap"
 )
 
@@ -89,8 +90,8 @@ func handleMsgMhfEnumerateHouse(s *Session, p mhfpacket.MHFPacket) {
 			if session.charID == house.CharID {
 				exists++
 				bf.WriteUint32(house.CharID)
-				bf.WriteUint8(session.house.state)
-				if len(session.house.password) > 0 {
+				bf.WriteUint8(session.myseries.state)
+				if len(session.myseries.password) > 0 {
 					bf.WriteUint8(3)
 				} else {
 					bf.WriteUint8(0)
@@ -115,8 +116,8 @@ func handleMsgMhfUpdateHouse(s *Session, p mhfpacket.MHFPacket) {
 	// 03 = open friends
 	// 04 = open guild
 	// 05 = open friends+guild
-	s.house.state = pkt.State
-	s.house.password = pkt.Password
+	s.myseries.state = pkt.State
+	s.myseries.password = pkt.Password
 	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
@@ -125,7 +126,7 @@ func handleMsgMhfLoadHouse(s *Session, p mhfpacket.MHFPacket) {
 	bf := byteframe.NewByteFrame()
 	if pkt.Destination != 9 && len(pkt.Password) > 0 && pkt.CheckPass {
 		for _, session := range s.server.sessions {
-			if session.charID == pkt.CharID && pkt.Password != session.house.password {
+			if session.charID == pkt.CharID && pkt.Password != session.myseries.password {
 				doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 				return
 			}
@@ -141,55 +142,59 @@ func handleMsgMhfLoadHouse(s *Session, p mhfpacket.MHFPacket) {
 		furniture = make([]byte, 20)
 	}
 
-	// TODO: Find where the missing data comes from, savefile offset?
 	switch pkt.Destination {
 	case 3: // Others house
-		houseTier := uint8(2) // Fallback if can't find
 		for _, session := range s.server.sessions {
 			if session.charID == pkt.CharID {
-				houseTier = session.house.tier
+				bf.WriteBytes(session.myseries.houseTier)
+				bf.WriteBytes(session.myseries.houseData)
+				bf.WriteBytes(make([]byte, 19)) // Padding?
+				bf.WriteBytes(furniture)
 			}
 		}
-		bf.WriteBytes(make([]byte, 4))
-		bf.WriteUint8(houseTier) // House tier 0x1FB70
-		bf.WriteBytes(make([]byte, 80))
-		// Item box style bitfield
-		// tier 1 = 0x09FE
-		// tier 2 = 0x69FF
-		// tier 3 = 0xE9FF
-		// unused = 0x0001
-		// unused = 0x6000
-		switch houseTier {
-		case 0:
-			bf.WriteUint16(0x0000)
-		case 1:
-			bf.WriteUint16(0x69FF)
-		case 2:
-			bf.WriteUint16(0xE9FF)
-		}
-		// Rastae
-		// Partner
-		bf.WriteBytes(make([]byte, 132))
-		bf.WriteBytes(furniture)
 	case 4: // Bookshelf
-		// Hunting log
+		// TODO: Find where the hunting log data offset is in the savefile
 		bf.WriteBytes(make([]byte, 5576))
 	case 5: // Gallery
-		// Furniture placement
-		bf.WriteBytes(make([]byte, 1748))
+		for _, session := range s.server.sessions {
+			if session.charID == pkt.CharID {
+				bf.WriteBytes(session.myseries.galleryData)
+			}
+		}
 	case 8: // Tore
-		// Sister
-		// Cat shops
-		// Pugis
-		bf.WriteBytes(make([]byte, 240))
+		for _, session := range s.server.sessions {
+			if session.charID == pkt.CharID {
+				bf.WriteBytes(session.myseries.toreData)
+			}
+		}
 	case 9: // Own house
 		bf.WriteBytes(furniture)
 	case 10: // Garden
-		// Gardening upgrades
-		// Gooks
-		bf.WriteBytes(make([]byte, 72))
+		for _, session := range s.server.sessions {
+			if session.charID == pkt.CharID {
+				bf.WriteBytes(session.myseries.gardenData)
+				// TODO: Convert EnumerateGuacot to function this can also call
+				var data []byte
+				var count uint16
+				gooks := byteframe.NewByteFrame()
+				for i := 0; i < 5; i++ {
+					err := s.server.db.QueryRow(fmt.Sprintf("SELECT gook%d FROM gook WHERE id=$1", i), pkt.CharID).Scan(&data)
+					if err == nil && data != nil {
+						count++
+						gooks.WriteBytes(data)
+					}
+				}
+				bf.WriteUint16(count)
+				bf.WriteUint16(0)
+				bf.WriteBytes(gooks.Data())
+			}
+		}
 	}
-	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	if len(bf.Data()) == 0 {
+		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+	} else {
+		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	}
 }
 
 func handleMsgMhfGetMyhouseInfo(s *Session, p mhfpacket.MHFPacket) {

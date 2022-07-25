@@ -577,7 +577,7 @@ func handleMsgMhfCheckWeeklyStamp(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfExchangeWeeklyStamp(s *Session, p mhfpacket.MHFPacket) {}
 
-func getGookData(s *Session, cid uint32) []byte {
+func getGookData(s *Session, cid uint32) (uint16, []byte) {
 	var data []byte
 	var count uint16
 	bf := byteframe.NewByteFrame()
@@ -597,15 +597,16 @@ func getGookData(s *Session, cid uint32) []byte {
 			}
 		}
 	}
-	resp := byteframe.NewByteFrame()
-	resp.WriteUint16(count)
-	resp.WriteBytes(bf.Data())
-	return resp.Data()
+	return count, bf.Data()
 }
 
 func handleMsgMhfEnumerateGuacot(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateGuacot)
-	doAckBufSucceed(s, pkt.AckHandle, getGookData(s, s.charID))
+	bf := byteframe.NewByteFrame()
+	count, data := getGookData(s, s.charID)
+	bf.WriteUint16(count)
+	bf.WriteBytes(data)
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfUpdateGuacot(s *Session, p mhfpacket.MHFPacket) {

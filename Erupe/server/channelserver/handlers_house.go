@@ -5,7 +5,6 @@ import (
 	ps "erupe-ce/common/pascalstring"
 	"erupe-ce/common/stringsupport"
 	"erupe-ce/network/mhfpacket"
-	"fmt"
 	"go.uber.org/zap"
 )
 
@@ -173,20 +172,10 @@ func handleMsgMhfLoadHouse(s *Session, p mhfpacket.MHFPacket) {
 		for _, session := range s.server.sessions {
 			if session.charID == pkt.CharID {
 				bf.WriteBytes(session.myseries.gardenData)
-				// TODO: Convert EnumerateGuacot to function this can also call
-				var data []byte
-				var count uint16
-				gooks := byteframe.NewByteFrame()
-				for i := 0; i < 5; i++ {
-					err := s.server.db.QueryRow(fmt.Sprintf("SELECT gook%d FROM gook WHERE id=$1", i), pkt.CharID).Scan(&data)
-					if err == nil && data != nil {
-						count++
-						gooks.WriteBytes(data)
-					}
-				}
-				bf.WriteUint16(count)
+				c, d := getGookData(s, pkt.CharID)
+				bf.WriteUint16(c)
 				bf.WriteUint16(0)
-				bf.WriteBytes(gooks.Data())
+				bf.WriteBytes(d)
 			}
 		}
 	}

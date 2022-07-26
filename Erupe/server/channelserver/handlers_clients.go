@@ -51,9 +51,28 @@ func handleMsgSysEnumerateClient(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfListMember(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfListMember)
 
+	var csv string
+	var count uint32
 	resp := byteframe.NewByteFrame()
-	resp.WriteUint32(0) // Members count. (Unsure of what kind of members these actually are, guild, party, COG subscribers, etc.)
-
+	resp.WriteUint32(0) // Blacklist count
+	err := s.server.db.QueryRow("SELECT blocked FROM characters WHERE id=$1", s.charID).Scan(&csv)
+	if err != nil {
+		panic(err)
+	}
+	cids := stringsupport.CSVElems(csv)
+	for _, cid := range cids {
+		var name string
+		err = s.server.db.QueryRow("SELECT name FROM characters WHERE id=$1", cid).Scan(&name)
+		if err != nil {
+			continue
+		}
+		count++
+		resp.WriteUint32(uint32(cid))
+		resp.WriteUint32(16)
+		resp.WriteBytes(stringsupport.PaddedString(name, 16, true))
+	}
+	resp.Seek(0, 0)
+	resp.WriteUint32(count)
 	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
 }
 
@@ -61,11 +80,16 @@ func handleMsgMhfOprMember(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfOprMember)
 	var csv string
 	if pkt.Blacklist {
-		if pkt.Operation {
-			// remove from blacklist
-		} else {
-			// add to blacklist
+		err := s.server.db.QueryRow("SELECT blocked FROM characters WHERE id=$1", s.charID).Scan(&csv)
+		if err != nil {
+			panic(err)
 		}
+		if pkt.Operation {
+			csv = stringsupport.CSVRemove(csv, int(pkt.CharID))
+		} else {
+			csv = stringsupport.CSVAdd(csv, int(pkt.CharID))
+		}
+		s.server.db.Exec("UPDATE characters SET blocked=$1 WHERE id=$2", csv, s.charID)
 	} else { // Friendlist
 		err := s.server.db.QueryRow("SELECT friends FROM characters WHERE id=$1", s.charID).Scan(&csv)
 		if err != nil {
@@ -76,7 +100,7 @@ func handleMsgMhfOprMember(s *Session, p mhfpacket.MHFPacket) {
 		} else {
 			csv = stringsupport.CSVAdd(csv, int(pkt.CharID))
 		}
-		_, _ = s.server.db.Exec("UPDATE characters SET friends=$1 WHERE id=$2", csv, s.charID)
+		s.server.db.Exec("UPDATE characters SET friends=$1 WHERE id=$2", csv, s.charID)
 	}
 	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }

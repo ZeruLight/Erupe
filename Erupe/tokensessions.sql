@@ -23,6 +23,9 @@ ALTER TABLE IF EXISTS public.characters
 ALTER TABLE IF EXISTS public.characters
     ADD COLUMN IF NOT EXISTS friends text NOT NULL DEFAULT '';
 
+ALTER TABLE IF EXISTS public.characters
+    ADD COLUMN IF NOT EXISTS blocked text NOT NULL DEFAULT '';
+
 ALTER TABLE IF EXISTS public.users
     ADD COLUMN IF NOT EXISTS last_character int DEFAULT 0;
 

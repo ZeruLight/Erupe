@@ -1,15 +1,11 @@
-name: Go
+name: Erupe
 
-on:
-  push:
-    branches: [ "main" ]
-  pull_request:
-    branches: [ "main" ]
+on: [push]
 
 jobs:
-
   build:
     runs-on: ubuntu-latest
+    
     steps:
     - uses: actions/checkout@v3
 
@@ -19,16 +15,22 @@ jobs:
         go-version: 1.18
 
     - name: Build
-      run: go build -v ./...
+      run: go build -v Erupe/...
 
     - name: Test
-      run: go test -v ./...
+      run: go test -v Erupe/...
 
-    - name: Upload a Build Artifact
-      uses: actions/upload-artifact@v3.1.0
+    - name: Generate artifacts
+      uses: thatisuday/go-cross-build@v1
       with:
-        # Artifact name
-        name: Erupe.exe
-        # A file, directory or wildcard pattern that describes what to upload
-        path: ./
-        # The desired behavior if no files are found using the provided path.
+        platforms: 'linux/amd64, windows/amd64'
+        package: 'Erupe'
+        name: 'erupe'
+        compress: 'false'
+        dest: 'build'
+        
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: Erupe
+        path: build/

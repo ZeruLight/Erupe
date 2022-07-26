@@ -18,7 +18,7 @@ func broadcastNewUser(s *Session) {
 	clientNotif := byteframe.NewByteFrame()
 	var temp mhfpacket.MHFPacket
 	for _, session := range s.server.sessions {
-		if session == s || !s.binariesDone {
+		if session == s || !session.binariesDone {
 			continue
 		}
 		temp = &mhfpacket.MsgSysInsertUser{CharID: session.charID}

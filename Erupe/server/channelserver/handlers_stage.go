@@ -120,10 +120,14 @@ func removeSessionFromStage(s *Session) {
 
 func handleMsgSysEnterStage(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysEnterStage)
+
 	// Push our current stage ID to the movement stack before entering another one.
-	s.Lock()
-	s.stageMoveStack.Push(s.stageID)
-	s.Unlock()
+	if s.stageID == "" {
+		s.stageMoveStack.Set(pkt.StageID)
+	} else {
+		s.stageMoveStack.Push(s.stageID)
+		s.stageMoveStack.Lock()
+	}
 
 	s.QueueSendMHF(&mhfpacket.MsgSysCleanupObject{})
 	if s.reservationStage != nil {
@@ -137,9 +141,8 @@ func handleMsgSysBackStage(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysBackStage)
 
 	// Transfer back to the saved stage ID before the previous move or enter.
-	s.Lock()
+	s.stageMoveStack.Unlock()
 	backStage, err := s.stageMoveStack.Pop()
-	s.Unlock()
 
 	if err != nil {
 		panic(err)
@@ -151,10 +154,10 @@ func handleMsgSysBackStage(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgSysMoveStage(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysMoveStage)
 
-	// Push our current stage ID to the movement stack before entering another one.
-	s.Lock()
-	s.stageMoveStack.Push(s.stageID)
-	s.Unlock()
+	// Set a new move stack from the given stage ID if unlocked
+	if !s.stageMoveStack.Locked {
+		s.stageMoveStack.Set(pkt.StageID)
+	}
 
 	doStageTransfer(s, pkt.AckHandle, pkt.StageID)
 }

@@ -8,6 +8,7 @@
     "maxlauncherhr": true,
     "LogInboundMessages": false,
     "LogOutboundMessages": false,
+    "MaxHexdumpLength": 256,
     "Event": 0,
     "DivaEvent": 0,
     "FestaEvent": 0,

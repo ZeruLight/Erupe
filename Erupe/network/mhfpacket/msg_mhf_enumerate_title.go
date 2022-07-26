@@ -1,17 +1,17 @@
 package mhfpacket
 
 import (
- "errors"
+	"errors"
 
- 	"erupe-ce/network/clientctx"
-	"erupe-ce/network"
 	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgMhfEnumerateTitle represents the MSG_MHF_ENUMERATE_TITLE
 type MsgMhfEnumerateTitle struct {
-  AckHandle uint32
-  Unk0 uint32
+	AckHandle uint32
+	CharID    uint32
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -21,9 +21,9 @@ func (m *MsgMhfEnumerateTitle) Opcode() network.PacketID {
 
 // Parse parses the packet from binary
 func (m *MsgMhfEnumerateTitle) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
-  m.AckHandle = bf.ReadUint32()
-  m.Unk0 = bf.ReadUint32()
-  return nil
+	m.AckHandle = bf.ReadUint32()
+	m.CharID = bf.ReadUint32()
+	return nil
 }
 
 // Build builds a binary packet from the current data.

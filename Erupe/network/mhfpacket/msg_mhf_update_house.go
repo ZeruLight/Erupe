@@ -2,6 +2,7 @@ package mhfpacket
 
 import (
 	"errors"
+	"erupe-ce/common/stringsupport"
 
 	"erupe-ce/common/byteframe"
 	"erupe-ce/network"
@@ -11,15 +12,10 @@ import (
 // MsgMhfUpdateHouse represents the MSG_MHF_UPDATE_HOUSE
 type MsgMhfUpdateHouse struct {
 	AckHandle uint32
-	// 01 = closed
-	// 02 = open anyone
-	// 03 = open friends
-	// 04 = open guild
-	// 05 = open friends guild
-	State    uint8
-	Unk1     uint8  // Always 0x01
-	Unk2     uint16 // Always 0x0000
-	Password string
+	State     uint8
+	Unk1      uint8  // Always 0x01
+	Unk2      uint16 // Always 0x0000
+	Password  string
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -33,8 +29,8 @@ func (m *MsgMhfUpdateHouse) Parse(bf *byteframe.ByteFrame, ctx *clientctx.Client
 	m.State = bf.ReadUint8()
 	m.Unk1 = bf.ReadUint8()
 	m.Unk2 = bf.ReadUint16()
-	_ = bf.ReadUint8()
-	m.Password = string(bf.ReadNullTerminatedBytes())
+	_ = bf.ReadUint8() // Password length
+	m.Password = stringsupport.SJISToUTF8(bf.ReadNullTerminatedBytes())
 	return nil
 }
 

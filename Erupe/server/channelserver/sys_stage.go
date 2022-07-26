@@ -9,18 +9,13 @@ import (
 	"erupe-ce/network/mhfpacket"
 )
 
-// StageObject holds infomation about a specific stage object.
-type StageObject struct {
+// Object holds infomation about a specific object.
+type Object struct {
 	sync.RWMutex
 	id          uint32
 	ownerCharID uint32
 	x, y, z     float32
-}
-
-type ObjectMap struct {
-	id     uint8
-	charid uint32
-	status bool
+	binary      []byte
 }
 
 // stageBinaryKey is a struct used as a map key for identifying a stage binary part.
@@ -36,13 +31,10 @@ type Stage struct {
 	// Stage ID string
 	id string
 
-	// Total count of objects ever created for this stage. Used for ObjID generation.
-	gameObjectCount uint32
+	// Objects
+	objects     map[uint32]*Object
+	objectIndex uint32
 
-	// Save all object in stage
-	objects map[uint32]*StageObject
-
-	objectList map[uint8]*ObjectMap
 	// Map of session -> charID.
 	// These are clients that are CURRENTLY in the stage
 	clients map[*Session]uint32
@@ -66,14 +58,12 @@ func NewStage(ID string) *Stage {
 		id:                  ID,
 		clients:             make(map[*Session]uint32),
 		reservedClientSlots: make(map[uint32]bool),
-		objects:             make(map[uint32]*StageObject),
+		objects:             make(map[uint32]*Object),
+		objectIndex:         0,
 		rawBinaryData:       make(map[stageBinaryKey][]byte),
 		maxPlayers:          4,
-		gameObjectCount:     1,
-		objectList:          make(map[uint8]*ObjectMap),
 		createdAt:           time.Now().Format("01-02-2006 15:04:05"),
 	}
-	s.InitObjectList()
 	return s
 }
 
@@ -81,7 +71,7 @@ func NewStage(ID string) *Stage {
 func (s *Stage) BroadcastMHF(pkt mhfpacket.MHFPacket, ignoredSession *Session) {
 	// Broadcast the data.
 	for session := range s.clients {
-		if session == ignoredSession {
+		if session == ignoredSession || !session.binariesDone {
 			continue
 		}
 
@@ -97,17 +87,6 @@ func (s *Stage) BroadcastMHF(pkt mhfpacket.MHFPacket, ignoredSession *Session) {
 	}
 }
 
-func (s *Stage) InitObjectList() {
-	for seq := uint8(0x7f); seq > uint8(0); seq-- {
-		newObj := &ObjectMap{
-			id:     seq,
-			charid: uint32(0),
-			status: false,
-		}
-		s.objectList[seq] = newObj
-	}
-}
-
 func (s *Stage) isCharInQuestByID(charID uint32) bool {
 	if _, exists := s.reservedClientSlots[charID]; exists {
 		return exists
@@ -120,8 +99,8 @@ func (s *Stage) isQuest() bool {
 	return len(s.reservedClientSlots) > 0
 }
 
-func (stage *Stage) GetName() string {
-	switch stage.id {
+func (s *Stage) GetName() string {
+	switch s.id {
 	case MezeportaStageId:
 		return "Mezeporta"
 	case GuildHallLv1StageId:
@@ -149,20 +128,7 @@ func (stage *Stage) GetName() string {
 	}
 }
 
-func (s *Stage) GetNewObjectID(CharID uint32) uint32 {
-	ObjId := uint8(0)
-	for seq := uint8(0x7f); seq > uint8(0); seq-- {
-		if s.objectList[seq].status == false {
-			ObjId = seq
-			break
-		}
-	}
-	s.objectList[ObjId].status = true
-	s.objectList[ObjId].charid = CharID
-	bf := byteframe.NewByteFrame()
-	bf.WriteUint8(uint8(0))
-	bf.WriteUint8(ObjId)
-	bf.WriteUint16(uint16(0))
-	obj := uint32(bf.Data()[3]) | uint32(bf.Data()[2])<<8 | uint32(bf.Data()[1])<<16 | uint32(bf.Data()[0])<<32
-	return obj
+func (s *Stage) NextObjectID() uint32 {
+	s.objectIndex = s.objectIndex + 1
+	return s.objectIndex
 }

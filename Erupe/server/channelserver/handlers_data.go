@@ -1,15 +1,15 @@
 package channelserver
 
 import (
-	"encoding/hex"
 	"encoding/binary"
+	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 
-	"erupe-ce/common/byteframe"
 	"erupe-ce/common/bfutil"
+	"erupe-ce/common/byteframe"
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/server/channelserver/compression/deltacomp"
 	"erupe-ce/server/channelserver/compression/nullcomp"
@@ -60,6 +60,14 @@ func handleMsgMhfSavedata(s *Session, p mhfpacket.MHFPacket) {
 	if err != nil {
 		s.logger.Fatal("Failed to character weapon type in db", zap.Error(err))
 	}
+
+	s.myseries.houseTier = decompressedData[129900:129905]     // 0x1FB6C + 5
+	s.myseries.houseData = decompressedData[130561:130756]     // 0x1FE01 + 195
+	s.myseries.bookshelfData = decompressedData[139928:145504] // 0x22298 + 5576
+	// Gallery data also exists at 0x21578, is this the contest submission?
+	s.myseries.galleryData = decompressedData[140064:141812] // 0x22320 + 1748
+	s.myseries.toreData = decompressedData[130228:130468]    // 0x1FCB4 + 240
+	s.myseries.gardenData = decompressedData[142424:142492]  // 0x22C58 + 68
 
 	isMale := uint8(decompressedData[80]) // 0x50
 	if isMale == 1 {

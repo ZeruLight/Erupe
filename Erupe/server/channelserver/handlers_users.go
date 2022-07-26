@@ -12,6 +12,49 @@ func handleMsgSysInsertUser(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgSysDeleteUser(s *Session, p mhfpacket.MHFPacket) {}
 
+func broadcastNewUser(s *Session) {
+	s.logger.Debug(fmt.Sprintf("Broadcasting new user: %s (%d)", s.Name, s.charID))
+
+	clientNotif := byteframe.NewByteFrame()
+	var temp mhfpacket.MHFPacket
+	for _, session := range s.server.sessions {
+		if session == s || !s.binariesDone {
+			continue
+		}
+		temp = &mhfpacket.MsgSysInsertUser{CharID: session.charID}
+		clientNotif.WriteUint16(uint16(temp.Opcode()))
+		temp.Build(clientNotif, s.clientContext)
+		for i := 0; i < 3; i++ {
+			temp = &mhfpacket.MsgSysNotifyUserBinary{
+				CharID:     session.charID,
+				BinaryType: uint8(i + 1),
+			}
+			clientNotif.WriteUint16(uint16(temp.Opcode()))
+			temp.Build(clientNotif, s.clientContext)
+		}
+	}
+	s.QueueSend(clientNotif.Data())
+
+	serverNotif := byteframe.NewByteFrame()
+	temp = &mhfpacket.MsgSysInsertUser{CharID: s.charID}
+	serverNotif.WriteUint16(uint16(temp.Opcode()))
+	temp.Build(serverNotif, s.clientContext)
+	for i := 0; i < 3; i++ {
+		temp = &mhfpacket.MsgSysNotifyUserBinary{
+			CharID:     s.charID,
+			BinaryType: uint8(i + 1),
+		}
+		serverNotif.WriteUint16(uint16(temp.Opcode()))
+		temp.Build(serverNotif, s.clientContext)
+	}
+	for _, session := range s.server.sessions {
+		if session == s || !session.binariesDone {
+			continue
+		}
+		session.QueueSend(serverNotif.Data())
+	}
+}
+
 func handleMsgSysSetUserBinary(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysSetUserBinary)
 	s.server.userBinaryPartsLock.Lock()
@@ -27,9 +70,7 @@ func handleMsgSysSetUserBinary(s *Session, p mhfpacket.MHFPacket) {
 			}
 		}
 		s.binariesDone = true
-		s.server.BroadcastMHF(&mhfpacket.MsgSysInsertUser{
-			CharID: s.charID,
-		}, s)
+		broadcastNewUser(s)
 		return
 	}
 

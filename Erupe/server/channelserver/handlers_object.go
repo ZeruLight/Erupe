@@ -10,44 +10,31 @@ import (
 func handleMsgSysCreateObject(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysCreateObject)
 
-	// Lock the stage.
-	s.server.Lock()
-
-	// Make a new stage object and insert it into the stage.
-	objID := s.stage.GetNewObjectID(s.charID)
-	newObj := &StageObject{
-		id:          objID,
+	s.stage.Lock()
+	newObj := &Object{
+		id:          s.stage.NextObjectID(),
 		ownerCharID: s.charID,
 		x:           pkt.X,
 		y:           pkt.Y,
 		z:           pkt.Z,
 	}
-
 	s.stage.objects[s.charID] = newObj
+	s.stage.Unlock()
 
-	// Unlock the stage.
-	s.server.Unlock()
 	// Response to our requesting client.
 	resp := byteframe.NewByteFrame()
-	resp.WriteUint32(objID) // New local obj handle.
+	resp.WriteUint32(newObj.id) // New local obj handle.
 	doAckSimpleSucceed(s, pkt.AckHandle, resp.Data())
 	// Duplicate the object creation to all sessions in the same stage.
 	dupObjUpdate := &mhfpacket.MsgSysDuplicateObject{
-		ObjID:       objID,
-		X:           pkt.X,
-		Y:           pkt.Y,
-		Z:           pkt.Z,
-		OwnerCharID: s.charID,
+		ObjID:       newObj.id,
+		X:           newObj.x,
+		Y:           newObj.y,
+		Z:           newObj.z,
+		OwnerCharID: newObj.ownerCharID,
 	}
 
-	for i := 1; i <= 3; i++ {
-		s.server.BroadcastMHF(&mhfpacket.MsgSysNotifyUserBinary{
-			CharID: s.charID,
-			BinaryType: uint8(i),
-		}, s)
-	}
-
-	s.logger.Info("Duplicate a new characters to others clients")
+	s.logger.Info(fmt.Sprintf("Broadcasting new object: %s (%d)", s.Name, s.charID))
 	s.stage.BroadcastMHF(dupObjUpdate, s)
 }
 
@@ -74,7 +61,14 @@ func handleMsgSysRotateObject(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgSysDuplicateObject(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgSysSetObjectBinary(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysSetObjectBinary(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgSysSetObjectBinary)
+	for _, object := range s.stage.objects {
+		if object.id == pkt.ObjID {
+			object.binary = pkt.RawDataPayload
+		}
+	}
+}
 
 func handleMsgSysGetObjectBinary(s *Session, p mhfpacket.MHFPacket) {}
 

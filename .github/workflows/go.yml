@@ -1,0 +1,24 @@
+name: Erupe
+
+on: [push]
+
+jobs:
+  build:
+    runs-on: windows-latest
+    
+    steps:
+    - uses: actions/checkout@v3
+
+    - name: Set up Go
+      uses: actions/setup-go@v3
+      with:
+        go-version: 1.18
+
+    - name: Build
+      run: cd Erupe && go build -v
+        
+    - name: Upload artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: Erupe
+        path: ./Erupe/erupe-ce.exe

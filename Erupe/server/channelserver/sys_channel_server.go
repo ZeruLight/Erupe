@@ -282,7 +282,7 @@ func (s *Server) manageSessions() {
 func (s *Server) BroadcastMHF(pkt mhfpacket.MHFPacket, ignoredSession *Session) {
 	// Broadcast the data.
 	for _, session := range s.sessions {
-		if session == ignoredSession {
+		if session == ignoredSession || !session.binariesDone {
 			continue
 		}
 
@@ -300,14 +300,14 @@ func (s *Server) BroadcastMHF(pkt mhfpacket.MHFPacket, ignoredSession *Session) 
 
 func (s *Server) WorldcastMHF(pkt mhfpacket.MHFPacket, ignoredSession *Session) {
 	for _, c := range s.Channels {
-		for _, s := range c.sessions {
-			if s == ignoredSession {
+		for _, session := range c.sessions {
+			if session == ignoredSession || !session.binariesDone {
 				continue
 			}
 			bf := byteframe.NewByteFrame()
 			bf.WriteUint16(uint16(pkt.Opcode()))
-			pkt.Build(bf, s.clientContext)
-			s.QueueSendNonBlocking(bf.Data())
+			pkt.Build(bf, session.clientContext)
+			session.QueueSendNonBlocking(bf.Data())
 		}
 	}
 }
@@ -389,7 +389,7 @@ func (s *Server) FindSessionByCharID(charID uint32) *Session {
 	return nil
 }
 
-func (s *Server) FindStageObjectByChar(charID uint32) *StageObject {
+func (s *Server) FindObjectByChar(charID uint32) *Object {
 	s.stagesLock.RLock()
 	defer s.stagesLock.RUnlock()
 	for _, stage := range s.stages {

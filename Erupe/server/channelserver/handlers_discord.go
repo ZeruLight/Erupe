@@ -263,7 +263,7 @@ func getCharInfo(server *Server, charName string) string {
 
 	objInfo := ""
 
-	obj := server.FindStageObjectByChar(c.charID)
+	obj := server.FindObjectByChar(c.charID)
 	// server.logger.Info("Found object: %+v", zap.Object("obj", obj))
 
 	if obj != nil {

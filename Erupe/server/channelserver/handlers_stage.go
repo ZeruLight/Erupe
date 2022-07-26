@@ -108,29 +108,10 @@ func removeSessionFromStage(s *Session) {
 
 	// Delete old stage objects owned by the client.
 	s.logger.Info("Sending notification to old stage clients")
-	for objID, stageObject := range s.stage.objects {
-		if stageObject.ownerCharID == s.charID {
-			clientNotif := byteframe.NewByteFrame()
-			var pkt mhfpacket.MHFPacket
-			pkt = &mhfpacket.MsgSysDeleteObject{
-				ObjID: stageObject.id,
-			}
-			clientNotif.WriteUint16(uint16(pkt.Opcode()))
-			pkt.Build(clientNotif, s.clientContext)
-			clientNotif.WriteUint16(0x0010)
-			for client, _ := range s.stage.clients {
-				client.QueueSend(clientNotif.Data())
-			}
-			// TODO(Andoryuuta): Should this be sent to the owner's client as well? it currently isn't.
-			// Actually delete it from the objects map.
-			delete(s.stage.objects, objID)
-		}
-	}
-	for objListID, stageObjectList := range s.stage.objectList {
-		if stageObjectList.charid == s.charID {
-			// Added to prevent duplicates from flooding ObjectMap and causing server hangs
-			s.stage.objectList[objListID].status = false
-			s.stage.objectList[objListID].charid = 0
+	for _, object := range s.stage.objects {
+		if object.ownerCharID == s.charID {
+			s.stage.BroadcastMHF(&mhfpacket.MsgSysDeleteObject{ObjID: object.id}, s)
+			delete(s.stage.objects, object.ownerCharID)
 		}
 	}
 	s.stage.Unlock()
@@ -140,44 +121,20 @@ func removeSessionFromStage(s *Session) {
 
 func handleMsgSysEnterStage(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysEnterStage)
+
 	// Push our current stage ID to the movement stack before entering another one.
-	s.Lock()
-	s.stageMoveStack.Push(s.stageID)
-	s.Unlock()
+	if s.stageID == "" {
+		s.stageMoveStack.Set(pkt.StageID)
+	} else {
+		s.stageMoveStack.Push(s.stageID)
+		s.stageMoveStack.Lock()
+	}
 
 	s.QueueSendMHF(&mhfpacket.MsgSysCleanupObject{})
 	if s.reservationStage != nil {
 		s.reservationStage = nil
 	}
 
-	if pkt.StageID == "sl1Ns200p0a0u0" { // First entry
-		var temp mhfpacket.MHFPacket
-		loginNotif := byteframe.NewByteFrame()
-		s.server.Lock()
-		for _, session := range s.server.sessions {
-			if s == session || !session.binariesDone {
-				continue
-			}
-			temp = &mhfpacket.MsgSysInsertUser{
-				CharID: session.charID,
-			}
-			loginNotif.WriteUint16(uint16(temp.Opcode()))
-			temp.Build(loginNotif, s.clientContext)
-			for i := 1; i <= 3; i++ {
-				temp = &mhfpacket.MsgSysNotifyUserBinary{
-					CharID:     session.charID,
-					BinaryType: uint8(i),
-				}
-				loginNotif.WriteUint16(uint16(temp.Opcode()))
-				temp.Build(loginNotif, s.clientContext)
-			}
-		}
-		s.server.Unlock()
-		loginNotif.WriteUint16(0x0010) // End it.
-		if len(loginNotif.Data()) > 2 {
-			s.QueueSend(loginNotif.Data())
-		}
-	}
 	doStageTransfer(s, pkt.AckHandle, pkt.StageID)
 }
 
@@ -185,9 +142,8 @@ func handleMsgSysBackStage(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysBackStage)
 
 	// Transfer back to the saved stage ID before the previous move or enter.
-	s.Lock()
+	s.stageMoveStack.Unlock()
 	backStage, err := s.stageMoveStack.Pop()
-	s.Unlock()
 
 	if err != nil {
 		panic(err)
@@ -199,10 +155,10 @@ func handleMsgSysBackStage(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgSysMoveStage(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysMoveStage)
 
-	// Push our current stage ID to the movement stack before entering another one.
-	s.Lock()
-	s.stageMoveStack.Push(s.stageID)
-	s.Unlock()
+	// Set a new move stack from the given stage ID if unlocked
+	if !s.stageMoveStack.Locked {
+		s.stageMoveStack.Set(pkt.StageID)
+	}
 
 	doStageTransfer(s, pkt.AckHandle, pkt.StageID)
 }
@@ -219,11 +175,9 @@ func handleMsgSysUnlockStage(s *Session, p mhfpacket.MHFPacket) {
 	s.reservationStage.RLock()
 	defer s.reservationStage.RUnlock()
 
-	destructMessage := &mhfpacket.MsgSysStageDestruct{}
-
 	for charID := range s.reservationStage.reservedClientSlots {
 		session := s.server.FindSessionByCharID(charID)
-		session.QueueSendMHF(destructMessage)
+		session.QueueSendMHF(&mhfpacket.MsgSysStageDestruct{})
 	}
 
 	s.server.Lock()

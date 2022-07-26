@@ -181,6 +181,8 @@ func handleMsgSysLogin(s *Session, p mhfpacket.MHFPacket) {
 	}
 
 	doAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
+
+	updateRights(s)
 }
 
 func handleMsgSysLogout(s *Session, p mhfpacket.MHFPacket) {

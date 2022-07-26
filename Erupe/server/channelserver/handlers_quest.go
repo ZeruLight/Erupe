@@ -34,7 +34,7 @@ func handleMsgSysGetFile(s *Session, p mhfpacket.MHFPacket) {
 			// Get quest file.
 			data, err := ioutil.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("quests/%s.bin", pkt.Filename)))
 			if err != nil {
-				panic(err)
+				s.logger.Fatal(fmt.Sprintf("Failed to open quest file: quests/%s.bin", pkt.Filename))
 			}
 			doAckBufSucceed(s, pkt.AckHandle, data)
 		}
@@ -45,7 +45,7 @@ func handleMsgMhfLoadFavoriteQuest(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfLoadFavoriteQuest)
 	var data []byte
 	err := s.server.db.QueryRow("SELECT savefavoritequest FROM characters WHERE id = $1", s.charID).Scan(&data)
-	if err == nil {
+	if err == nil && len(data) > 0 {
 		doAckBufSucceed(s, pkt.AckHandle, data)
 	} else {
 		doAckBufSucceed(s, pkt.AckHandle, []byte{0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
@@ -68,8 +68,6 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 	} else {
 		doAckBufSucceed(s, pkt.AckHandle, data)
 	}
-	// Update the client's rights as well:
-	updateRights(s)
 }
 
 func handleMsgMhfEnterTournamentQuest(s *Session, p mhfpacket.MHFPacket) {}

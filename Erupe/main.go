@@ -2,11 +2,11 @@ package main
 
 import (
 	"fmt"
+	"math/rand"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
-	"math/rand"
 
 	"erupe-ce/config"
 	"erupe-ce/server/channelserver"
@@ -38,7 +38,11 @@ func main() {
 	// Load the configuration.
 	erupeConfig, err := config.LoadConfig()
 	if err != nil {
-		logger.Fatal("Failed to load config", zap.Error(err))
+		preventClose(fmt.Sprintf("Failed to load config: %s", err.Error()))
+	}
+
+	if erupeConfig.Database.Password == "" {
+		preventClose("Database password is blank")
 	}
 
 	// Discord bot
@@ -51,14 +55,14 @@ func main() {
 		})
 
 		if err != nil {
-			logger.Fatal("Failed to create discord bot", zap.Error(err))
+			preventClose(fmt.Sprintf("Failed to create Discord bot: %s", err.Error()))
 		}
 
 		// Discord bot
 		err = bot.Start()
 
 		if err != nil {
-			logger.Fatal("Failed to starts discord bot", zap.Error(err))
+			preventClose(fmt.Sprintf("Failed to start Discord bot: %s", err.Error()))
 		}
 
 		discordBot = bot
@@ -78,13 +82,13 @@ func main() {
 
 	db, err := sqlx.Open("postgres", connectString)
 	if err != nil {
-		logger.Fatal("Failed to open sql database", zap.Error(err))
+		preventClose(fmt.Sprintf("Failed to open SQL database: %s", err.Error()))
 	}
 
 	// Test the DB connection.
 	err = db.Ping()
 	if err != nil {
-		logger.Fatal("Failed to ping database", zap.Error(err))
+		preventClose(fmt.Sprintf("Failed to ping database: %s", err.Error()))
 	}
 	logger.Info("Connected to database")
 
@@ -111,7 +115,7 @@ func main() {
 		})
 	err = launcherServer.Start()
 	if err != nil {
-		logger.Fatal("Failed to start launcher server", zap.Error(err))
+		preventClose(fmt.Sprintf("Failed to start launcher server: %s", err.Error()))
 	}
 	logger.Info("Started launcher server")
 
@@ -124,7 +128,7 @@ func main() {
 		})
 	err = entranceServer.Start()
 	if err != nil {
-		logger.Fatal("Failed to start entrance server", zap.Error(err))
+		preventClose(fmt.Sprintf("Failed to start entrance server: %s", err.Error()))
 	}
 	logger.Info("Started entrance server")
 
@@ -137,7 +141,7 @@ func main() {
 		})
 	err = signServer.Start()
 	if err != nil {
-		logger.Fatal("Failed to start sign server", zap.Error(err))
+		preventClose(fmt.Sprintf("Failed to start sign server: %s", err.Error()))
 	}
 	logger.Info("Started sign server")
 
@@ -149,19 +153,19 @@ func main() {
 	for _, ee := range erupeConfig.Entrance.Entries {
 		rand.Seed(time.Now().UnixNano())
 		// Randomly generate a season for the World
-		season := rand.Intn(3)+1
+		season := rand.Intn(3) + 1
 		for _, ce := range ee.Channels {
-			sid := (4096 + si * 256) + (16 + ci)
+			sid := (4096 + si*256) + (16 + ci)
 			c := *channelserver.NewServer(&channelserver.Config{
-				ID:           uint16(sid),
-				Logger:       logger.Named("channel-"+fmt.Sprint(count)),
-				ErupeConfig:  erupeConfig,
-				DB:           db,
-				DiscordBot:   discordBot,
+				ID:          uint16(sid),
+				Logger:      logger.Named("channel-" + fmt.Sprint(count)),
+				ErupeConfig: erupeConfig,
+				DB:          db,
+				DiscordBot:  discordBot,
 			})
 			err = c.Start(int(ce.Port))
 			if err != nil {
-				logger.Fatal("Failed to start channel", zap.Error(err))
+				preventClose(fmt.Sprintf("Failed to start channel server: %s", err.Error()))
 			} else {
 				channelQuery += fmt.Sprintf("INSERT INTO servers (server_id, season, current_players) VALUES (%d, %d, 0);", sid, season)
 				channels = append(channels, &c)
@@ -196,4 +200,18 @@ func main() {
 	launcherServer.Shutdown()
 
 	time.Sleep(1 * time.Second)
+}
+
+func wait() {
+	for {
+		time.Sleep(time.Millisecond * 100)
+	}
+}
+
+func preventClose(text string) {
+	fmt.Println("\nFailed to start Erupe:\n" + text)
+	go wait()
+	fmt.Println("\nPress Enter/Return to exit...")
+	fmt.Scanln()
+	os.Exit(0)
 }

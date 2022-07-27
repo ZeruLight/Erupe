@@ -585,6 +585,10 @@ func getGookData(s *Session, cid uint32) (uint16, []byte) {
 	bf := byteframe.NewByteFrame()
 	for i := 0; i < 5; i++ {
 		err := s.server.db.QueryRow(fmt.Sprintf("SELECT gook%d FROM gook WHERE id=$1", i), cid).Scan(&data)
+		if err != nil {
+			s.server.db.Exec("INSERT INTO gook (id) VALUES ($1)", s.charID)
+			return 0, bf.Data()
+		}
 		if err == nil && data != nil {
 			count++
 			if s.charID == cid && count == 1 {

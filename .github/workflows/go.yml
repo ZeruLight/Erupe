@@ -21,4 +21,7 @@ jobs:
       uses: actions/upload-artifact@v3
       with:
         name: Erupe
-        path: ./Erupe/erupe-ce.exe
+        path: |
+          ./Erupe/erupe-ce.exe
+          ./Erupe/config.json
+          ./Erupe/www/

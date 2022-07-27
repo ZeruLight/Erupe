@@ -24,4 +24,4 @@ jobs:
         path: |
           ./Erupe/erupe-ce.exe
           ./Erupe/config.json
-          ./Erupe/launcher/
+          ./Erupe/www/

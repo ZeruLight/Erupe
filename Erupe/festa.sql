@@ -33,6 +33,153 @@ CREATE TABLE IF NOT EXISTS public.festa_trials
     reward int NOT NULL
 );
 
+CREATE TYPE prize_type AS ENUM ('personal', 'guild');
+
+CREATE TABLE IF NOT EXISTS public.festa_prizes
+(
+    id serial NOT NULL PRIMARY KEY,
+    type prize_type NOT NULL,
+    tier int NOT NULL,
+    souls_req int NOT NULL,
+    item_id int NOT NULL,
+    num_item int NOT NULL
+);
+
+CREATE TABLE IF NOT EXISTS public.festa_prizes_accepted
+(
+    prize_id int NOT NULL,
+    character_id int NOT NULL
+);
+
+-- Ripped prizes
+INSERT INTO public.festa_prizes
+    (type, tier, souls_req, item_id, num_item)
+VALUES
+    ('personal', 1, 1, 9647, 7),
+    ('personal', 2, 1, 9647, 7),
+    ('personal', 3, 1, 9647, 7),
+    ('personal', 1, 200, 11284, 4),
+    ('personal', 2, 200, 11284, 4),
+    ('personal', 3, 200, 11284, 4),
+    ('personal', 1, 400, 11381, 3),
+    ('personal', 2, 400, 11381, 3),
+    ('personal', 3, 400, 11381, 3),
+    ('personal', 1, 600, 11284, 8),
+    ('personal', 2, 600, 11284, 8),
+    ('personal', 3, 600, 11284, 8),
+    ('personal', 1, 800, 11384, 3),
+    ('personal', 2, 800, 11384, 3),
+    ('personal', 3, 800, 11384, 3),
+    ('personal', 1, 1000, 11284, 12),
+    ('personal', 2, 1000, 11284, 12),
+    ('personal', 3, 1000, 11284, 12),
+    ('personal', 1, 1200, 11381, 5),
+    ('personal', 2, 1200, 11381, 5),
+    ('personal', 3, 1200, 11381, 5),
+    ('personal', 1, 1400, 11284, 16),
+    ('personal', 2, 1400, 11284, 16),
+    ('personal', 3, 1400, 11284, 16),
+    ('personal', 1, 1700, 11384, 5),
+    ('personal', 2, 1700, 11384, 5),
+    ('personal', 3, 1700, 11384, 5),
+    ('personal', 1, 2000, 11284, 16),
+    ('personal', 2, 2000, 11284, 16),
+    ('personal', 3, 2000, 11284, 16),
+    ('personal', 1, 2500, 11382, 4),
+    ('personal', 2, 2500, 11382, 4),
+    ('personal', 3, 2500, 11382, 4),
+    ('personal', 1, 3000, 11284, 24),
+    ('personal', 2, 3000, 11284, 24),
+    ('personal', 3, 3000, 11284, 24),
+    ('personal', 1, 4000, 11385, 4),
+    ('personal', 2, 4000, 11385, 4),
+    ('personal', 3, 4000, 11385, 4),
+    ('personal', 1, 5000, 11381, 11),
+    ('personal', 2, 5000, 11381, 11),
+    ('personal', 3, 5000, 11381, 11),
+    ('personal', 1, 6000, 5177, 5),
+    ('personal', 2, 6000, 5177, 5),
+    ('personal', 3, 6000, 5177, 5),
+    ('personal', 1, 7000, 11384, 11),
+    ('personal', 2, 7000, 11384, 11),
+    ('personal', 3, 7000, 11384, 11),
+    ('personal', 1, 10000, 11382, 8),
+    ('personal', 2, 10000, 11382, 8),
+    ('personal', 3, 10000, 11382, 8),
+    ('personal', 1, 15000, 11385, 4),
+    ('personal', 2, 15000, 11385, 4),
+    ('personal', 3, 15000, 11385, 4),
+    ('personal', 1, 20000, 11381, 13),
+    ('personal', 2, 20000, 11381, 13),
+    ('personal', 3, 20000, 11381, 13),
+    ('personal', 1, 25000, 11385, 4),
+    ('personal', 2, 25000, 11385, 4),
+    ('personal', 3, 25000, 11385, 4),
+    ('personal', 1, 30000, 11383, 1),
+    ('personal', 2, 30000, 11383, 1),
+    ('personal', 3, 30000, 11383, 1);
+
+INSERT INTO public.festa_prizes
+(type, tier, souls_req, item_id, num_item)
+VALUES
+    ('guild', 1, 100, 7468, 5),
+    ('guild', 2, 100, 7468, 5),
+    ('guild', 3, 100, 7465, 5),
+    ('guild', 1, 300, 7469, 5),
+    ('guild', 2, 300, 7469, 5),
+    ('guild', 3, 300, 7466, 5),
+    ('guild', 1, 700, 7470, 5),
+    ('guild', 2, 700, 7470, 5),
+    ('guild', 3, 700, 7467, 5),
+    ('guild', 1, 1500, 13405, 14),
+    ('guild', 1, 1500, 1520, 3),
+    ('guild', 2, 1500, 13405, 14),
+    ('guild', 2, 1500, 1520, 3),
+    ('guild', 3, 1500, 7011, 3),
+    ('guild', 3, 1500, 13405, 14),
+    ('guild', 1, 3000, 10201, 10),
+    ('guild', 2, 3000, 10201, 10),
+    ('guild', 3, 3000, 10201, 10),
+    ('guild', 1, 6000, 13895, 14),
+    ('guild', 1, 6000, 1520, 6),
+    ('guild', 2, 6000, 13895, 14),
+    ('guild', 2, 6000, 1520, 6),
+    ('guild', 3, 6000, 13895, 14),
+    ('guild', 3, 6000, 7011, 4),
+    ('guild', 1, 12000, 13406, 14),
+    ('guild', 1, 12000, 1520, 9),
+    ('guild', 2, 12000, 13406, 14),
+    ('guild', 2, 12000, 1520, 9),
+    ('guild', 3, 12000, 13406, 14),
+    ('guild', 3, 12000, 7011, 5),
+    ('guild', 1, 25000, 10207, 10),
+    ('guild', 2, 25000, 10207, 10),
+    ('guild', 3, 25000, 10207, 10),
+    ('guild', 1, 50000, 1520, 12),
+    ('guild', 1, 50000, 13896, 14),
+    ('guild', 2, 50000, 1520, 12),
+    ('guild', 2, 50000, 13896, 14),
+    ('guild', 3, 50000, 7011, 6),
+    ('guild', 3, 50000, 13896, 14),
+    ('guild', 1, 100000, 10201, 10),
+    ('guild', 2, 100000, 10201, 10),
+    ('guild', 3, 100000, 10201, 10),
+    ('guild', 1, 200000, 13406, 16),
+    ('guild', 2, 200000, 13406, 16),
+    ('guild', 3, 200000, 13406, 16),
+    ('guild', 1, 300000, 13896, 16),
+    ('guild', 2, 300000, 13896, 16),
+    ('guild', 3, 300000, 13896, 16),
+    ('guild', 1, 400000, 10207, 10),
+    ('guild', 2, 400000, 10207, 10),
+    ('guild', 3, 400000, 10207, 10),
+    ('guild', 1, 500000, 13407, 6),
+    ('guild', 1, 500000, 13897, 6),
+    ('guild', 2, 500000, 13407, 6),
+    ('guild', 2, 500000, 13897, 6),
+    ('guild', 3, 500000, 13407, 6),
+    ('guild', 3, 500000, 13897, 6);
+
 -- Ripped trials
 INSERT INTO public.festa_trials
     (objective, goal_id, times_req, locale_req, reward)

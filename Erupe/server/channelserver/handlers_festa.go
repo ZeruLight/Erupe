@@ -71,6 +71,7 @@ func handleMsgMhfEnumerateRanking(s *Session, p mhfpacket.MHFPacket) {
 func cleanupFesta(s *Session) {
 	s.server.db.Exec("DELETE FROM events WHERE event_type='festa'")
 	s.server.db.Exec("DELETE FROM festa_registrations")
+	s.server.db.Exec("DELETE FROM festa_prizes_accepted")
 	s.server.db.Exec("UPDATE guild_characters SET souls=0")
 }
 
@@ -320,32 +321,73 @@ func handleMsgMhfAcquireFesta(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfAcquireFestaPersonalPrize(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfAcquireFestaPersonalPrize)
-	// Set prize as claimed
+	s.server.db.Exec("INSERT INTO public.festa_prizes_accepted VALUES ($1, $2)", pkt.PrizeID, s.charID)
 	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfAcquireFestaIntermediatePrize(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfAcquireFestaIntermediatePrize)
-	// Set prize as claimed
+	s.server.db.Exec("INSERT INTO public.festa_prizes_accepted VALUES ($1, $2)", pkt.PrizeID, s.charID)
 	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
-// uint32 numPrizes
-// struct festaPrize
-// uint32 prizeID
-// uint32 prizeTier (1/2/3, 3 = GR)
-// uint32 soulsReq
-// uint32 unk (00 00 00 07)
-// uint32 itemID
-// uint32 numItem
-// bool claimed
+type Prize struct {
+	ID       uint32 `db:"id"`
+	Tier     uint32 `db:"tier"`
+	SoulsReq uint32 `db:"souls_req"`
+	ItemID   uint32 `db:"item_id"`
+	NumItem  uint32 `db:"num_item"`
+	Claimed  int    `db:"claimed"`
+}
 
 func handleMsgMhfEnumerateFestaPersonalPrize(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateFestaPersonalPrize)
-	doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
+	rows, _ := s.server.db.Queryx("SELECT id, tier, souls_req, item_id, num_item, (SELECT count(*) FROM festa_prizes_accepted fpa WHERE fp.id = fpa.prize_id AND fpa.character_id = 4) AS claimed FROM festa_prizes fp WHERE type='personal'")
+	var count uint32
+	prizeData := byteframe.NewByteFrame()
+	for rows.Next() {
+		prize := &Prize{}
+		err := rows.StructScan(&prize)
+		if err != nil {
+			continue
+		}
+		count++
+		prizeData.WriteUint32(prize.ID)
+		prizeData.WriteUint32(prize.Tier)
+		prizeData.WriteUint32(prize.SoulsReq)
+		prizeData.WriteUint32(7) // Unk
+		prizeData.WriteUint32(prize.ItemID)
+		prizeData.WriteUint32(prize.NumItem)
+		prizeData.WriteBool(prize.Claimed > 0)
+	}
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint32(count)
+	bf.WriteBytes(prizeData.Data())
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfEnumerateFestaIntermediatePrize(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateFestaIntermediatePrize)
-	doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
+	rows, _ := s.server.db.Queryx("SELECT id, tier, souls_req, item_id, num_item, (SELECT count(*) FROM festa_prizes_accepted fpa WHERE fp.id = fpa.prize_id AND fpa.character_id = 4) AS claimed FROM festa_prizes fp WHERE type='guild'")
+	var count uint32
+	prizeData := byteframe.NewByteFrame()
+	for rows.Next() {
+		prize := &Prize{}
+		err := rows.StructScan(&prize)
+		if err != nil {
+			continue
+		}
+		count++
+		prizeData.WriteUint32(prize.ID)
+		prizeData.WriteUint32(prize.Tier)
+		prizeData.WriteUint32(prize.SoulsReq)
+		prizeData.WriteUint32(7) // Unk
+		prizeData.WriteUint32(prize.ItemID)
+		prizeData.WriteUint32(prize.NumItem)
+		prizeData.WriteBool(prize.Claimed > 0)
+	}
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint32(count)
+	bf.WriteBytes(prizeData.Data())
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }

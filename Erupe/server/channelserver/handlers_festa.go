@@ -2,12 +2,11 @@ package channelserver
 
 import (
 	"encoding/hex"
-	"math/rand"
-	"time"
-
 	"erupe-ce/common/byteframe"
 	ps "erupe-ce/common/pascalstring"
 	"erupe-ce/network/mhfpacket"
+	"math/rand"
+	"time"
 )
 
 func handleMsgMhfSaveMezfesData(s *Session, p mhfpacket.MHFPacket) {
@@ -69,65 +68,129 @@ func handleMsgMhfEnumerateRanking(s *Session, p mhfpacket.MHFPacket) {
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
+func cleanupFesta(s *Session) {
+	s.server.db.Exec("DELETE FROM events WHERE event_type='festa'")
+	s.server.db.Exec("DELETE FROM festa_registrations")
+	s.server.db.Exec("UPDATE guild_characters SET souls=0")
+}
+
+func generateFestaTimestamps(s *Session, start uint32, debug bool) []uint32 {
+	timestamps := make([]uint32, 5)
+	midnight := Time_Current_Midnight()
+	if debug && start <= 3 {
+		switch start {
+		case 1:
+			timestamps[0] = uint32(midnight.Unix())
+			timestamps[1] = uint32(midnight.Add(24 * 7 * time.Hour).Unix())
+			timestamps[2] = uint32(midnight.Add(24 * 14 * time.Hour).Unix())
+			timestamps[3] = uint32(midnight.Add(24*14*time.Hour + 150*time.Minute).Unix())
+			timestamps[4] = uint32(midnight.Add(24*28*time.Hour + 11*time.Hour).Unix())
+		case 2:
+			timestamps[0] = uint32(midnight.Add(-24 * 7 * time.Hour).Unix())
+			timestamps[1] = uint32(midnight.Unix())
+			timestamps[2] = uint32(midnight.Add(24 * 7 * time.Hour).Unix())
+			timestamps[3] = uint32(midnight.Add(24*7*time.Hour + 150*time.Minute).Unix())
+			timestamps[4] = uint32(midnight.Add(24 * 21 * time.Hour).Add(11 * time.Hour).Unix())
+		case 3:
+			timestamps[0] = uint32(midnight.Add(-24 * 14 * time.Hour).Unix())
+			timestamps[1] = uint32(midnight.Add(-24*7*time.Hour + 11*time.Hour).Unix())
+			timestamps[2] = uint32(midnight.Unix())
+			timestamps[3] = uint32(midnight.Add(150 * time.Minute).Unix())
+			timestamps[4] = uint32(midnight.Add(24*14*time.Hour + 11*time.Hour).Unix())
+		}
+		return timestamps
+	}
+	if start == 0 || Time_Current_Adjusted().Unix() > int64(start)+2977200 {
+		cleanupFesta(s)
+		// Generate a new festa, starting midnight tomorrow
+		start = uint32(midnight.Add(24 * time.Hour).Unix())
+		s.server.db.Exec("INSERT INTO events (event_type, start_time) VALUES ('festa', to_timestamp($1)::timestamp without time zone)", start)
+	}
+	timestamps[0] = start
+	timestamps[1] = timestamps[0] + 604800
+	timestamps[2] = timestamps[1] + 604800
+	timestamps[3] = timestamps[2] + 9000
+	timestamps[4] = timestamps[3] + 1240200
+	return timestamps
+}
+
+type Trial struct {
+	ID        uint32 `db:"id"`
+	Objective uint8  `db:"objective"`
+	GoalID    uint32 `db:"goal_id"`
+	TimesReq  uint16 `db:"times_req"`
+	Locale    uint16 `db:"locale_req"`
+	Reward    uint16 `db:"reward"`
+}
+
 func handleMsgMhfInfoFesta(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfInfoFesta)
 	bf := byteframe.NewByteFrame()
-	state := s.server.erupeConfig.DevModeOptions.FestaEvent
-	bf.WriteUint32(0xdeadbeef) // festaID
-	// Registration Week Start
-	// Introductory Week Start
-	// Totalling Time
-	// Reward Festival Start (2.5hrs after totalling)
-	// 2 weeks after RewardFes (next fes?)
-	midnight := Time_Current_Midnight()
-	switch state {
-	case 1:
-		bf.WriteUint32(uint32(midnight.Unix()))
-		bf.WriteUint32(uint32(midnight.Add(24 * 7 * time.Hour).Unix()))
-		bf.WriteUint32(uint32(midnight.Add(24 * 14 * time.Hour).Unix()))
-		bf.WriteUint32(uint32(midnight.Add(24*14*time.Hour + 150*time.Minute).Unix()))
-		bf.WriteUint32(uint32(midnight.Add(24*28*time.Hour + 11*time.Hour).Unix()))
-	case 2:
-		bf.WriteUint32(uint32(midnight.Add(-24 * 7 * time.Hour).Unix()))
-		bf.WriteUint32(uint32(midnight.Unix()))
-		bf.WriteUint32(uint32(midnight.Add(24 * 7 * time.Hour).Unix()))
-		bf.WriteUint32(uint32(midnight.Add(24*7*time.Hour + 150*time.Minute).Unix()))
-		bf.WriteUint32(uint32(midnight.Add(24 * 21 * time.Hour).Add(11 * time.Hour).Unix()))
-	case 3:
-		bf.WriteUint32(uint32(midnight.Add(-24 * 14 * time.Hour).Unix()))
-		bf.WriteUint32(uint32(midnight.Add(-24*7*time.Hour + 11*time.Hour).Unix()))
-		bf.WriteUint32(uint32(midnight.Unix()))
-		bf.WriteUint32(uint32(midnight.Add(150 * time.Minute).Unix()))
-		bf.WriteUint32(uint32(midnight.Add(24*14*time.Hour + 11*time.Hour).Unix()))
-	default:
+
+	id, start := uint32(0xDEADBEEF), uint32(0)
+	rows, _ := s.server.db.Queryx("SELECT id, (EXTRACT(epoch FROM start_time)::int) as start_time FROM events WHERE event_type='festa'")
+	for rows.Next() {
+		rows.Scan(&id, &start)
+	}
+
+	var timestamps []uint32
+	if s.server.erupeConfig.DevMode && s.server.erupeConfig.DevModeOptions.FestaEvent >= 0 {
+		if s.server.erupeConfig.DevModeOptions.FestaEvent == 0 {
+			doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
+			return
+		}
+		timestamps = generateFestaTimestamps(s, uint32(s.server.erupeConfig.DevModeOptions.FestaEvent), true)
+	} else {
+		timestamps = generateFestaTimestamps(s, start, false)
+	}
+
+	if timestamps[0] > uint32(Time_Current_Adjusted().Unix()) {
 		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
-	bf.WriteUint32(uint32(Time_Current_Adjusted().Unix())) // TS Current Time
+
+	var blueSouls, redSouls uint32
+	s.server.db.QueryRow("SELECT SUM(gc.souls) FROM guild_characters gc INNER JOIN festa_registrations fr ON fr.guild_id = gc.guild_id WHERE fr.team = 'blue'").Scan(&blueSouls)
+	s.server.db.QueryRow("SELECT SUM(gc.souls) FROM guild_characters gc INNER JOIN festa_registrations fr ON fr.guild_id = gc.guild_id WHERE fr.team = 'red'").Scan(&redSouls)
+
+	bf.WriteUint32(id)
+	for _, timestamp := range timestamps {
+		bf.WriteUint32(timestamp)
+	}
+	bf.WriteUint32(uint32(Time_Current_Adjusted().Unix()))
 	bf.WriteUint8(4)
 	ps.Uint8(bf, "", false)
 	bf.WriteUint32(0)
-	bf.WriteUint32(0) // Blue souls
-	bf.WriteUint32(0) // Red souls
+	bf.WriteUint32(blueSouls)
+	bf.WriteUint32(redSouls)
 
-	trials := 0
-	bf.WriteUint16(uint16(trials))
-	for i := 0; i < trials; i++ {
-		bf.WriteUint32(uint32(i + 1)) // trialID
-		bf.WriteUint8(0xFF)           // unk
-		bf.WriteUint8(uint8(i))       // objective
-		bf.WriteUint32(0x1B)          // monID, itemID if deliver
-		bf.WriteUint16(1)             // huntsRemain?
-		bf.WriteUint16(0)             // location
-		bf.WriteUint16(1)             // numSoulsReward
-		bf.WriteUint8(0xFF)           // unk
-		bf.WriteUint8(0xFF)           // monopolised
-		bf.WriteUint16(0)             // unk
+	rows, _ = s.server.db.Queryx("SELECT * FROM festa_trials")
+	trialData := byteframe.NewByteFrame()
+	var count uint16
+	for rows.Next() {
+		trial := &Trial{}
+		err := rows.StructScan(&trial)
+		if err != nil {
+			continue
+		}
+		count++
+		trialData.WriteUint32(trial.ID)
+		trialData.WriteUint8(0) // Unk
+		trialData.WriteUint8(trial.Objective)
+		trialData.WriteUint32(trial.GoalID)
+		trialData.WriteUint16(trial.TimesReq)
+		trialData.WriteUint16(trial.Locale)
+		trialData.WriteUint16(trial.Reward)
+		trialData.WriteUint8(0xFF) // Unk
+		trialData.WriteUint8(0xFF) // MonopolyState
+		trialData.WriteUint16(0)   // Unk
 	}
+	bf.WriteUint16(count)
+	bf.WriteBytes(trialData.Data())
 
-	unk := 0 // static rewards?
-	bf.WriteUint16(uint16(unk))
-	for i := 0; i < unk; i++ {
+	unk := uint16(0) // static rewards?
+	bf.WriteUint16(unk)
+	for i := uint16(0); i < unk; i++ {
 		bf.WriteUint32(0)
 		bf.WriteUint16(0)
 		bf.WriteUint16(0)
@@ -144,8 +207,15 @@ func handleMsgMhfInfoFesta(s *Session, p mhfpacket.MHFPacket) {
 // state festa (U)ser
 func handleMsgMhfStateFestaU(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfStateFestaU)
+	guild, err := GetGuildInfoByCharacterId(s, s.charID)
+	if err != nil || guild == nil {
+		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+		return
+	}
+	var souls uint32
+	s.server.db.QueryRow("SELECT souls FROM guild_characters WHERE character_id=$1", s.charID).Scan(&souls)
 	bf := byteframe.NewByteFrame()
-	bf.WriteUint32(0) // souls
+	bf.WriteUint32(souls)
 	bf.WriteUint32(0) // unk
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
@@ -153,8 +223,13 @@ func handleMsgMhfStateFestaU(s *Session, p mhfpacket.MHFPacket) {
 // state festa (G)uild
 func handleMsgMhfStateFestaG(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfStateFestaG)
+	guild, err := GetGuildInfoByCharacterId(s, s.charID)
+	if err != nil || guild == nil {
+		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+		return
+	}
 	resp := byteframe.NewByteFrame()
-	resp.WriteUint32(0) // souls
+	resp.WriteUint32(guild.Souls)
 	resp.WriteUint32(1) // unk
 	resp.WriteUint32(1) // unk
 	resp.WriteUint32(1) // unk, rank?
@@ -164,31 +239,54 @@ func handleMsgMhfStateFestaG(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfEnumerateFestaMember(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateFestaMember)
+	guild, err := GetGuildInfoByCharacterId(s, s.charID)
+	if err != nil || guild == nil {
+		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+		return
+	}
+	members, err := GetGuildMembers(s, guild.ID, false)
+	if err != nil {
+		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+		return
+	}
 	bf := byteframe.NewByteFrame()
-	bf.WriteUint16(0) // numMembers
-	// uint16 unk
-	// uint32 charID
-	// uint32 souls
+	bf.WriteUint16(uint16(len(members)))
+	for _, member := range members {
+		bf.WriteUint16(0)
+		bf.WriteUint32(member.CharID)
+		bf.WriteUint32(member.Souls)
+	}
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfVoteFesta(s *Session, p mhfpacket.MHFPacket) {
-	pkt := p.(*mhfpacket.MsgMhfEntryFesta)
+	pkt := p.(*mhfpacket.MsgMhfVoteFesta)
 	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfEntryFesta(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEntryFesta)
-	bf := byteframe.NewByteFrame()
+	guild, err := GetGuildInfoByCharacterId(s, s.charID)
+	if err != nil || guild == nil {
+		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+		return
+	}
 	rand.Seed(time.Now().UnixNano())
-	bf.WriteUint32(uint32(rand.Intn(2)))
-	// Update guild table
+	team := uint32(rand.Intn(2))
+	switch team {
+	case 0:
+		s.server.db.Exec("INSERT INTO festa_registrations VALUES ($1, 'blue')", guild.ID)
+	case 1:
+		s.server.db.Exec("INSERT INTO festa_registrations VALUES ($1, 'red')", guild.ID)
+	}
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint32(team)
 	doAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfChargeFesta(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfChargeFesta)
-	// Update festa state table
+	s.server.db.Exec("UPDATE guild_characters SET souls=souls+$1 WHERE character_id=$2", pkt.Souls, s.charID)
 	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 

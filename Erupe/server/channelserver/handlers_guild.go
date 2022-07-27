@@ -163,8 +163,8 @@ SELECT
 
 func (guild *Guild) Save(s *Session) error {
 	_, err := s.server.db.Exec(`
-		UPDATE guilds SET main_motto=$2, sub_motto=$3, comment=$4, pugi_name_1=$5, pugi_name_2=$6, pugi_name_3=$7, festival_colour=$8, icon=$9 WHERE id=$1
-	`, guild.ID, guild.MainMotto, guild.SubMotto, guild.Comment, guild.PugiName1, guild.PugiName2, guild.PugiName3, guild.FestivalColour, guild.Icon)
+		UPDATE guilds SET main_motto=$2, sub_motto=$3, comment=$4, pugi_name_1=$5, pugi_name_2=$6, pugi_name_3=$7, icon=$8 WHERE id=$1
+	`, guild.ID, guild.MainMotto, guild.SubMotto, guild.Comment, guild.PugiName1, guild.PugiName2, guild.PugiName3, guild.Icon)
 
 	if err != nil {
 		s.logger.Error("failed to update guild data", zap.Error(err), zap.Uint32("guildID", guild.ID))

@@ -79,25 +79,26 @@ func generateFestaTimestamps(s *Session, start uint32, debug bool) []uint32 {
 	timestamps := make([]uint32, 5)
 	midnight := Time_Current_Midnight()
 	if debug && start <= 3 {
+		midnight := uint32(midnight.Unix())
 		switch start {
 		case 1:
-			timestamps[0] = uint32(midnight.Unix())
-			timestamps[1] = uint32(midnight.Add(24 * 7 * time.Hour).Unix())
-			timestamps[2] = uint32(midnight.Add(24 * 14 * time.Hour).Unix())
-			timestamps[3] = uint32(midnight.Add(24*14*time.Hour + 150*time.Minute).Unix())
-			timestamps[4] = uint32(midnight.Add(24*28*time.Hour + 11*time.Hour).Unix())
+			timestamps[0] = midnight
+			timestamps[1] = timestamps[0] + 604800
+			timestamps[2] = timestamps[1] + 604800
+			timestamps[3] = timestamps[2] + 9000
+			timestamps[4] = timestamps[3] + 1240200
 		case 2:
-			timestamps[0] = uint32(midnight.Add(-24 * 7 * time.Hour).Unix())
-			timestamps[1] = uint32(midnight.Unix())
-			timestamps[2] = uint32(midnight.Add(24 * 7 * time.Hour).Unix())
-			timestamps[3] = uint32(midnight.Add(24*7*time.Hour + 150*time.Minute).Unix())
-			timestamps[4] = uint32(midnight.Add(24 * 21 * time.Hour).Add(11 * time.Hour).Unix())
+			timestamps[0] = midnight - 604800
+			timestamps[1] = midnight
+			timestamps[2] = timestamps[1] + 604800
+			timestamps[3] = timestamps[2] + 9000
+			timestamps[4] = timestamps[3] + 1240200
 		case 3:
-			timestamps[0] = uint32(midnight.Add(-24 * 14 * time.Hour).Unix())
-			timestamps[1] = uint32(midnight.Add(-24*7*time.Hour + 11*time.Hour).Unix())
-			timestamps[2] = uint32(midnight.Unix())
-			timestamps[3] = uint32(midnight.Add(150 * time.Minute).Unix())
-			timestamps[4] = uint32(midnight.Add(24*14*time.Hour + 11*time.Hour).Unix())
+			timestamps[0] = midnight - 1209600
+			timestamps[1] = midnight - 604800
+			timestamps[2] = midnight
+			timestamps[3] = timestamps[2] + 9000
+			timestamps[4] = timestamps[3] + 1240200
 		}
 		return timestamps
 	}
@@ -189,15 +190,9 @@ func handleMsgMhfInfoFesta(s *Session, p mhfpacket.MHFPacket) {
 	bf.WriteUint16(count)
 	bf.WriteBytes(trialData.Data())
 
-	unk := uint16(0) // static rewards?
-	bf.WriteUint16(unk)
-	for i := uint16(0); i < unk; i++ {
-		bf.WriteUint32(0)
-		bf.WriteUint16(0)
-		bf.WriteUint16(0)
-		bf.WriteUint32(0)
-		bf.WriteBool(false)
-	}
+	// Static bonus rewards
+	rewards, _ := hex.DecodeString("001901000007015E05F000000000000100000703E81B6300000000010100000C03E8000000000000000100000D0000000000000000000100000100000000000000000002000007015E05F000000000000200000703E81B6300000000010200000C03E8000000000000000200000D0000000000000000000200000400000000000000000003000007015E05F000000000000300000703E81B6300000000010300000C03E8000000000000000300000D0000000000000000000300000100000000000000000004000007015E05F000000000000400000703E81B6300000000010400000C03E8000000000000000400000D0000000000000000000400000400000000000000000005000007015E05F000000000000500000703E81B6300000000010500000C03E8000000000000000500000D00000000000000000005000001000000000000000000")
+	bf.WriteBytes(rewards)
 
 	bf.WriteUint16(0x0001)
 	bf.WriteUint32(0xD4C001F4)
@@ -238,7 +233,16 @@ func handleMsgMhfStateFestaU(s *Session, p mhfpacket.MHFPacket) {
 	s.server.db.QueryRow("SELECT souls FROM guild_characters WHERE character_id=$1", s.charID).Scan(&souls)
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint32(souls)
-	bf.WriteUint32(0) // unk
+
+	// This definitely isn't right, but it does stop you from claiming the festa infinitely.
+	var claimed uint32
+	s.server.db.QueryRow("SELECT count(*) FROM festa_prizes_accepted fpa WHERE fpa.prize_id=0 AND fpa.character_id=$1", s.charID).Scan(&claimed)
+	if claimed > 0 {
+		bf.WriteUint32(0) // unk
+	} else {
+		bf.WriteUint32(0x01000000) // unk
+	}
+
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
@@ -314,8 +318,7 @@ func handleMsgMhfChargeFesta(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfAcquireFesta(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfAcquireFesta)
-	// Mark festa as claimed
-	// Update guild table?
+	s.server.db.Exec("INSERT INTO public.festa_prizes_accepted VALUES (0, $1)", s.charID)
 	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 

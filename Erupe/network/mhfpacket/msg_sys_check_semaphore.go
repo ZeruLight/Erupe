@@ -2,6 +2,7 @@ package mhfpacket
 
 import (
 	"errors"
+	"erupe-ce/common/bfutil"
 
 	"erupe-ce/common/byteframe"
 	"erupe-ce/network"
@@ -22,8 +23,8 @@ func (m *MsgSysCheckSemaphore) Opcode() network.PacketID {
 // Parse parses the packet from binary
 func (m *MsgSysCheckSemaphore) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
-	stageIDLength := bf.ReadUint8()
-	m.StageID = string(bfutil.UpToNull(bf.ReadBytes(uint(stageIDLength))))
+	semaphoreIDLength := bf.ReadUint8()
+	m.SemaphoreID = string(bfutil.UpToNull(bf.ReadBytes(uint(semaphoreIDLength))))
 	return nil
 }
 

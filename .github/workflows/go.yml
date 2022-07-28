@@ -25,3 +25,4 @@ jobs:
           ./Erupe/erupe-ce.exe
           ./Erupe/config.json
           ./Erupe/www/
+          ./Erupe/savedata/

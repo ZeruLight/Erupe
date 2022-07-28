@@ -9,6 +9,6 @@ bin/questlists/*.bin
 bin/scenarios/*.bin
 bin/debug/*.bin
 savedata/
-Erupe.exe
+*.exe
 *.lnk
 *.bat

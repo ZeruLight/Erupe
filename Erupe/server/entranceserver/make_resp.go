@@ -22,7 +22,7 @@ func encodeServerInfo(config *config.Config, s *Server) []byte {
 	bf := byteframe.NewByteFrame()
 
 	for serverIdx, si := range serverInfos {
-		sid := (4096 + serverIdx * 256) + 16
+		sid := (4096 + serverIdx*256) + 16
 		err := s.db.QueryRow("SELECT season FROM servers WHERE server_id=$1", sid).Scan(&season)
 		if err != nil {
 			panic(err)
@@ -37,14 +37,14 @@ func encodeServerInfo(config *config.Config, s *Server) []byte {
 		bf.WriteUint8(si.Type)
 		bf.WriteUint8(season)
 		bf.WriteUint8(si.Recommended)
-		combined := append([]byte{0x00}, stringsupport.UTF8ToSJIS(si.Name)...)
-		combined = append(combined, []byte{0x00}...)
+		bf.WriteUint8(0) // Prevents malformed server name
+		combined := append(stringsupport.UTF8ToSJIS(si.Name), []byte{0x00}...)
 		combined = append(combined, stringsupport.UTF8ToSJIS(si.Description)...)
-		bf.WriteBytes(stringsupport.PaddedString(string(combined), 66, false))
+		bf.WriteBytes(stringsupport.PaddedString(string(combined), 65, false))
 		bf.WriteUint32(si.AllowedClientFlags)
 
 		for channelIdx, ci := range si.Channels {
-			sid = (4096 + serverIdx * 256) + (16 + channelIdx)
+			sid = (4096 + serverIdx*256) + (16 + channelIdx)
 			bf.WriteUint16(ci.Port)
 			bf.WriteUint16(16 + uint16(channelIdx))
 			bf.WriteUint16(ci.MaxPlayers)
@@ -56,9 +56,9 @@ func encodeServerInfo(config *config.Config, s *Server) []byte {
 			bf.WriteUint32(0)
 			bf.WriteUint32(0)
 			bf.WriteUint32(0)
-			bf.WriteUint16(ci.Unk0)
-			bf.WriteUint16(ci.Unk1)
-			bf.WriteUint16(ci.Unk2)
+			bf.WriteUint16(319) // Unk
+			bf.WriteUint16(252) // Unk
+			bf.WriteUint16(248) // Unk
 			bf.WriteUint16(0x3039)
 		}
 	}

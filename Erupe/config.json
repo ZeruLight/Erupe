@@ -5,7 +5,7 @@
   "devmodeoptions": {
     "serverName" : "",
     "cleandb": false,
-    "maxlauncherhr": true,
+    "maxlauncherhr": false,
     "LogInboundMessages": false,
     "LogOutboundMessages": false,
     "MaxHexdumpLength": 256,
@@ -47,34 +47,34 @@
       {
         "name": "Newbie", "description": "", "ip": "", "type": 3, "recommended": 2, "allowedclientflags": 0,
         "channels": [
-          { "port": 54001, "MaxPlayers": 50, "Unk0": 319, "Unk1": 252, "Unk2": 248 },
-          { "port": 54002, "MaxPlayers": 50, "Unk0": 319, "Unk1": 252, "Unk2": 248 }
+          { "port": 54001, "MaxPlayers": 100 },
+          { "port": 54002, "MaxPlayers": 100 }
         ]
       }, {
         "name": "Normal", "description": "", "ip": "", "type": 1, "recommended": 0, "allowedclientflags": 0,
         "channels": [
-          { "port": 54003, "MaxPlayers": 50, "Unk0": 319, "Unk1": 252, "Unk2": 248 },
-          { "port": 54004, "MaxPlayers": 50, "Unk0": 319, "Unk1": 252, "Unk2": 248 }
+          { "port": 54003, "MaxPlayers": 100 },
+          { "port": 54004, "MaxPlayers": 100 }
         ]
       }, {
         "name": "Cities", "description": "", "ip": "", "type": 2, "recommended": 0, "allowedclientflags": 0,
         "channels": [
-          { "port": 54005, "MaxPlayers": 50, "Unk0": 319, "Unk1": 252, "Unk2": 248 }
+          { "port": 54005, "MaxPlayers": 100 }
         ]
       }, {
         "name": "Tavern", "description": "", "ip": "", "type": 4, "recommended": 0, "allowedclientflags": 0,
         "channels": [
-          { "port": 54006, "MaxPlayers": 50, "Unk0": 319, "Unk1": 252, "Unk2": 248 }
+          { "port": 54006, "MaxPlayers": 100 }
         ]
       }, {
         "name": "Return", "description": "", "ip": "", "type": 5, "recommended": 0, "allowedclientflags": 0,
         "channels": [
-          { "port": 54007, "MaxPlayers": 50, "Unk0": 319, "Unk1": 252, "Unk2": 248 }
+          { "port": 54007, "MaxPlayers": 100 }
         ]
       }, {
         "name": "MezFes", "description": "", "ip": "", "type": 6, "recommended": 6, "allowedclientflags": 0,
         "channels": [
-          { "port": 54008, "MaxPlayers": 50, "Unk0": 319, "Unk1": 252, "Unk2": 248 }
+          { "port": 54008, "MaxPlayers": 100 }
         ]
       }
     ]

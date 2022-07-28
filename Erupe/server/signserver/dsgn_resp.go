@@ -1,13 +1,13 @@
 package signserver
 
 import (
+	"erupe-ce/common/byteframe"
+	ps "erupe-ce/common/pascalstring"
+	"erupe-ce/common/stringsupport"
+	"erupe-ce/server/channelserver"
 	"fmt"
 	"math/rand"
 	"time"
-	"erupe-ce/server/channelserver"
-	"erupe-ce/common/stringsupport"
-	ps "erupe-ce/common/pascalstring"
-	"erupe-ce/common/byteframe"
 
 	"go.uber.org/zap"
 )
@@ -99,16 +99,15 @@ func (s *Session) makeSignInResp(uid int) []byte {
 		}
 	}
 
-	bf.WriteUint8(0)           // notice_count
+	bf.WriteUint8(1) // Notice count
+	noticeText := "<BODY><CENTER><SIZE_3><C_4>Welcome to Erupe SU9 Beta 2!<BR><BODY><LEFT><SIZE_2><C_5>Erupe is experimental software<C_7>, we are not liable for any<BR><BODY>issues caused by installing the software!<BR><BODY><BR><BODY><C_4>■Report bugs on Discord!<C_7><BR><BODY><BR><BODY><C_4>■Test everything!<C_7><BR><BODY><BR><BODY><C_4>■Don't talk to softlocking NPCs!<C_7><BR><BODY><BR><BODY><C_4>■Fork the code on GitHub!<C_7><BR><BODY><BR><BODY>Thank you to all of the contributors,<BR><BODY><BR><BODY>this wouldn't exist without you."
+	ps.Uint32(bf, noticeText, true)
 
-	// noticeText := "<BODY><CENTER><SIZE_3><C_4>Welcome to Erupe SU9!<BR><BODY><LEFT><SIZE_2><C_5>Erupe is experimental software<C_7>, we are not liable for any<BR><BODY>issues caused by installing the software!<BR><BODY><BR><BODY><C_4>■Report bugs on Discord!<C_7><BR><BODY><BR><BODY><C_4>■Test everything!<C_7><BR><BODY><BR><BODY><C_4>■Don't talk to softlocking NPCs!<C_7><BR><BODY><BR><BODY><C_4>■Fork the code on GitHub!<C_7><BR><BODY><BR><BODY>Thank you to all of the contributors,<BR><BODY><BR><BODY>this wouldn't exist without you."
-	// ps.Uint32(bf, noticeText, true)
-
-	bf.WriteUint32(s.server.getLastCID(uid)) // last played character id
-	bf.WriteUint32(s.server.getUserRights(uid)) // course bitfield
-	ps.Uint16(bf, "", false)   // filters
+	bf.WriteUint32(s.server.getLastCID(uid))
+	bf.WriteUint32(s.server.getUserRights(uid))
+	ps.Uint16(bf, "", false) // filters
 	bf.WriteUint32(0xCA104E20)
-	ps.Uint16(bf, "", false)   // encryption
+	ps.Uint16(bf, "", false) // encryption
 	bf.WriteUint8(0x00)
 	bf.WriteUint32(0xCA110001)
 	bf.WriteUint32(0x4E200000)
@@ -127,12 +126,14 @@ func (s *Session) makeSignInResp(uid int) []byte {
 	mezfes := s.server.erupeConfig.DevModeOptions.MezFesEvent
 	alt := false
 	if mezfes {
-		bf.WriteUint32(uint32(channelserver.Time_Current_Adjusted().Add(-5 * time.Minute).Unix())) // Start time
-		bf.WriteUint32(uint32(channelserver.Time_Current_Adjusted().Add(24 * time.Hour * 7).Unix())) // End time
-		bf.WriteUint8(2) // Unk
-		bf.WriteUint32(0) // Single tickets
-		bf.WriteUint32(0) // Group tickets
-		bf.WriteUint8(8) // Stalls open
+		// Start time
+		bf.WriteUint32(uint32(channelserver.Time_Current_Adjusted().Add(-5 * time.Minute).Unix()))
+		// End time
+		bf.WriteUint32(uint32(channelserver.Time_Current_Adjusted().Add(24 * time.Hour * 7).Unix()))
+		bf.WriteUint8(2)   // Unk
+		bf.WriteUint32(20) // Single tickets
+		bf.WriteUint32(0)  // Group tickets
+		bf.WriteUint8(8)   // Stalls open
 		bf.WriteUint8(0xA) // Unk
 		bf.WriteUint8(0x3) // Pachinko
 		bf.WriteUint8(0x6) // Nyanrendo
@@ -140,7 +141,7 @@ func (s *Session) makeSignInResp(uid int) []byte {
 		if alt {
 			bf.WriteUint8(0x2) // Tokotoko
 		} else {
-			bf.WriteUint8(0x4) // Volpkun
+			bf.WriteUint8(0x4) // Volpakkun
 		}
 		bf.WriteUint8(0x8) // Battle cats
 		bf.WriteUint8(0x5) // Gook

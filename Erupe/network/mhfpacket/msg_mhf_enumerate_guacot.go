@@ -1,9 +1,11 @@
 package mhfpacket
 
 import (
+	"errors"
+
+	"erupe-ce/common/byteframe"
 	"erupe-ce/network"
 	"erupe-ce/network/clientctx"
-	"erupe-ce/common/byteframe"
 )
 
 // MsgMhfEnumerateGuacot represents the MSG_MHF_ENUMERATE_GUACOT
@@ -30,9 +32,5 @@ func (m *MsgMhfEnumerateGuacot) Parse(bf *byteframe.ByteFrame, ctx *clientctx.Cl
 
 // Build builds a binary packet from the current data.
 func (m *MsgMhfEnumerateGuacot) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
-	bf.WriteUint32(m.AckHandle)
-	bf.WriteUint16(m.Unk0)
-	bf.WriteUint16(m.Unk1)
-	bf.WriteUint16(m.Unk2)
-	return nil
+	return errors.New("NOT IMPLEMENTED")
 }

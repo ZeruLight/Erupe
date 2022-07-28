@@ -1,18 +1,18 @@
 package mhfpacket
 
-import ( 
- "errors" 
+import (
+	"errors"
 
- 	"erupe-ce/network/clientctx"
-	"erupe-ce/network"
 	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgMhfReadMercenaryM represents the MSG_MHF_READ_MERCENARY_M
-type MsgMhfReadMercenaryM struct{
-	AckHandle   uint32
-	CharID   uint32
-	Unk0        uint32
+type MsgMhfReadMercenaryM struct {
+	AckHandle uint32
+	CharID    uint32
+	Unk0      uint32
 }
 
 // Opcode returns the ID associated with this packet type.

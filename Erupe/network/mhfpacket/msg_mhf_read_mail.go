@@ -1,11 +1,11 @@
 package mhfpacket
 
 import (
- "errors"
+	"errors"
 
- 	"erupe-ce/network/clientctx"
-	"erupe-ce/network"
 	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgMhfReadMail represents the MSG_MHF_READ_MAIL
@@ -19,7 +19,7 @@ type MsgMhfReadMail struct {
 
 	// This is the index within the current mail list
 	Index uint8
-  Unk0 uint16
+	Unk0  uint16
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -32,7 +32,7 @@ func (m *MsgMhfReadMail) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientCon
 	m.AckHandle = bf.ReadUint32()
 	m.AccIndex = bf.ReadUint8()
 	m.Index = bf.ReadUint8()
-  m.Unk0 = bf.ReadUint16()
+	m.Unk0 = bf.ReadUint16()
 	return nil
 }
 

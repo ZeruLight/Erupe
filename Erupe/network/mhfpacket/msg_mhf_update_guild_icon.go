@@ -1,11 +1,11 @@
 package mhfpacket
 
 import (
- "errors"
+	"errors"
 
- 	"erupe-ce/network/clientctx"
-	"erupe-ce/network"
 	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 type GuildIconMsgPart struct {
@@ -16,7 +16,7 @@ type GuildIconMsgPart struct {
 	Rotation uint8
 	Red      uint8
 	Green    uint8
-  Blue     uint8
+	Blue     uint8
 	PosX     uint16
 	PosY     uint16
 }
@@ -52,8 +52,8 @@ func (m *MsgMhfUpdateGuildIcon) Parse(bf *byteframe.ByteFrame, ctx *clientctx.Cl
 			Size:     bf.ReadUint8(),
 			Rotation: bf.ReadUint8(),
 			Red:      bf.ReadUint8(),
-      Green:    bf.ReadUint8(),
-      Blue:     bf.ReadUint8(),
+			Green:    bf.ReadUint8(),
+			Blue:     bf.ReadUint8(),
 			PosX:     bf.ReadUint16(),
 			PosY:     bf.ReadUint16(),
 		}

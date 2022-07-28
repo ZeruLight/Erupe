@@ -5,8 +5,8 @@ import (
 	"net"
 	"sync"
 
-	ps "erupe-ce/common/pascalstring"
 	"erupe-ce/common/byteframe"
+	ps "erupe-ce/common/pascalstring"
 	"erupe-ce/config"
 	"erupe-ce/network/binpacket"
 	"erupe-ce/network/mhfpacket"
@@ -19,17 +19,17 @@ type StageIdType = string
 
 const (
 	// GlobalStage is the stage that is used for all users.
-	MezeportaStageId 		   StageIdType = "sl1Ns200p0a0u0"
-	GuildHallLv1StageId		   StageIdType = "sl1Ns202p0a0u0"
-	GuildHallLv2StageId		   StageIdType = "sl1Ns203p0a0u0"
-	GuildHallLv3StageId  	   StageIdType = "sl1Ns204p0a0u0"
-	PugiFarmStageId  		   StageIdType = "sl1Ns205p0a0u0"
-	RastaBarStageId  		   StageIdType = "sl1Ns211p0a0u0"
-	PalloneCaravanStageId      StageIdType = "sl1Ns260p0a0u0"
-	GookFarmStageId  		   StageIdType = "sl1Ns265p0a0u0"
-	DivaFountainStageId  	   StageIdType = "sl2Ns379p0a0u0"
-	DivaHallStageId  		   StageIdType = "sl1Ns445p0a0u0"
-	MezFesStageId    		   StageIdType = "sl1Ns462p0a0u0"
+	MezeportaStageId      StageIdType = "sl1Ns200p0a0u0"
+	GuildHallLv1StageId   StageIdType = "sl1Ns202p0a0u0"
+	GuildHallLv2StageId   StageIdType = "sl1Ns203p0a0u0"
+	GuildHallLv3StageId   StageIdType = "sl1Ns204p0a0u0"
+	PugiFarmStageId       StageIdType = "sl1Ns205p0a0u0"
+	RastaBarStageId       StageIdType = "sl1Ns211p0a0u0"
+	PalloneCaravanStageId StageIdType = "sl1Ns260p0a0u0"
+	GookFarmStageId       StageIdType = "sl1Ns265p0a0u0"
+	DivaFountainStageId   StageIdType = "sl2Ns379p0a0u0"
+	DivaHallStageId       StageIdType = "sl1Ns445p0a0u0"
+	MezFesStageId         StageIdType = "sl1Ns462p0a0u0"
 )
 
 // Config struct allows configuring the server.
@@ -335,9 +335,9 @@ func (s *Server) BroadcastChatMessage(message string) {
 func (s *Server) BroadcastRaviente(ip uint32, port uint16, stage []byte, _type uint8) {
 	bf := byteframe.NewByteFrame()
 	bf.SetLE()
-	bf.WriteUint16(0) // Unk
+	bf.WriteUint16(0)    // Unk
 	bf.WriteUint16(0x43) // Data len
-	bf.WriteUint16(3) // Unk len
+	bf.WriteUint16(3)    // Unk len
 	var text string
 	switch _type {
 	case 2:
@@ -351,15 +351,15 @@ func (s *Server) BroadcastRaviente(ip uint32, port uint16, stage []byte, _type u
 	}
 	ps.Uint16(bf, text, false)
 	bf.WriteBytes([]byte{0x5F, 0x53, 0x00})
-	bf.WriteUint32(ip) // IP address
+	bf.WriteUint32(ip)   // IP address
 	bf.WriteUint16(port) // Port
-	bf.WriteUint16(0) // Unk
+	bf.WriteUint16(0)    // Unk
 	bf.WriteNullTerminatedBytes(stage)
 	bf.WriteBytes(make([]byte, 17))
 	s.WorldcastMHF(&mhfpacket.MsgSysCastedBinary{
-		CharID: 0x00000000,
-		BroadcastType: BroadcastTypeSemaphore,
-		MessageType: BinaryMessageTypeChat,
+		CharID:         0x00000000,
+		BroadcastType:  BroadcastTypeSemaphore,
+		MessageType:    BinaryMessageTypeChat,
 		RawDataPayload: bf.Data(),
 	}, nil)
 }

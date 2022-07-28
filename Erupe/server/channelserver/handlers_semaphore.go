@@ -134,7 +134,7 @@ func handleMsgSysCheckSemaphore(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysCheckSemaphore)
 	resp := []byte{0x00, 0x00, 0x00, 0x00}
 	s.server.semaphoreLock.Lock()
-	if _, exists := s.server.semaphore[pkt.StageID]; exists {
+	if _, exists := s.server.semaphore[pkt.SemaphoreID]; exists {
 		resp = []byte{0x00, 0x00, 0x00, 0x01}
 	}
 	s.server.semaphoreLock.Unlock()

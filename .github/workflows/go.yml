@@ -26,4 +26,5 @@ jobs:
           ./Erupe/config.json
           ./Erupe/www/
           ./Erupe/savedata/
-          ./RoadShopItems.csv
+          ./Erupe/bin/
+          ./Erupe/RoadShopItems.csv

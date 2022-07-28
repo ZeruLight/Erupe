@@ -4,6 +4,7 @@ import (
 	"erupe-ce/common/byteframe"
 	"fmt"
 	"go.uber.org/zap"
+	"strconv"
 	"strings"
 
 	"erupe-ce/network/mhfpacket"
@@ -34,7 +35,7 @@ func destructEmptySemaphores(s *Session) {
 			s.server.semaphoreLock.Unlock()
 			delete(s.server.semaphore, id)
 			s.server.semaphoreLock.Lock()
-			if strings.HasPrefix(id, "hs_l0u3B51") {
+			if strings.HasPrefix(id, "hs_l0u3B5") {
 				releaseRaviSemaphore(s, sema)
 			}
 			s.logger.Debug("Destructed semaphore", zap.String("sema.id_semaphore", id))
@@ -62,7 +63,7 @@ func handleMsgSysDeleteSemaphore(s *Session, p mhfpacket.MHFPacket) {
 		s.server.semaphoreLock.Lock()
 		for id, sema := range s.server.semaphore {
 			if sema.id == sem {
-				if strings.HasPrefix(id, "hs_l0u3B51") {
+				if strings.HasPrefix(id, "hs_l0u3B5") {
 					releaseRaviSemaphore(s, sema)
 					s.server.semaphoreLock.Unlock()
 					return
@@ -86,14 +87,14 @@ func handleMsgSysCreateAcquireSemaphore(s *Session, p mhfpacket.MHFPacket) {
 	fmt.Printf("Got reserve stage req, StageID: %v\n\n", SemaphoreID)
 	if !exists {
 		s.server.semaphoreLock.Lock()
-		if strings.HasPrefix(SemaphoreID, "hs_l0u3B51") {
-			s.server.semaphore[SemaphoreID] = NewSemaphore(s.server, SemaphoreID, 32)
-			if strings.HasSuffix(SemaphoreID, "3") {
-				s.server.raviente.state.semaphoreID = s.server.semaphore[SemaphoreID].id
-			} else if strings.HasSuffix(SemaphoreID, "4") {
-				s.server.raviente.support.semaphoreID = s.server.semaphore[SemaphoreID].id
-			} else if strings.HasSuffix(SemaphoreID, "5") {
-				s.server.raviente.register.semaphoreID = s.server.semaphore[SemaphoreID].id
+		if strings.HasPrefix(SemaphoreID, "hs_l0u3B5") {
+			suffix, _ := strconv.ParseUint(pkt.SemaphoreID[len(pkt.SemaphoreID)-1:], 10, 32)
+			s.server.semaphore[SemaphoreID] = &Semaphore{
+				id_semaphore:        pkt.SemaphoreID,
+				id:                  uint32(suffix),
+				clients:             make(map[*Session]uint32),
+				reservedClientSlots: make(map[uint32]interface{}),
+				maxPlayers:          32,
 			}
 		} else {
 			s.server.semaphore[SemaphoreID] = NewSemaphore(s.server, SemaphoreID, 1)

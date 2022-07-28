@@ -93,7 +93,6 @@ type Raviente struct {
 }
 
 type RavienteRegister struct {
-	semaphoreID  uint32
 	nextTime     uint32
 	startTime    uint32
 	postTime     uint32
@@ -105,13 +104,11 @@ type RavienteRegister struct {
 }
 
 type RavienteState struct {
-	semaphoreID      uint32
 	damageMultiplier uint32
 	stateData        []uint32
 }
 
 type RavienteSupport struct {
-	semaphoreID uint32
 	supportData []uint32
 }
 
@@ -155,7 +152,7 @@ func NewServer(config *Config) *Server {
 		stages:          make(map[string]*Stage),
 		userBinaryParts: make(map[userBinaryPartID][]byte),
 		semaphore:       make(map[string]*Semaphore),
-		semaphoreIndex:  0,
+		semaphoreIndex:  5,
 		discordBot:      config.DiscordBot,
 		name:            config.Name,
 		enable:          config.Enable,
@@ -408,6 +405,17 @@ func (s *Server) FindObjectByChar(charID uint32) *Object {
 }
 
 func (s *Server) NextSemaphoreID() uint32 {
-	s.semaphoreIndex = s.semaphoreIndex + 1
+	for {
+		exists := false
+		s.semaphoreIndex = s.semaphoreIndex + 1
+		for _, semaphore := range s.semaphore {
+			if semaphore.id == s.semaphoreIndex {
+				exists = true
+			}
+		}
+		if exists == false {
+			break
+		}
+	}
 	return s.semaphoreIndex
 }

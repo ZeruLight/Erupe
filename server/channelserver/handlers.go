@@ -273,8 +273,6 @@ func handleMsgSysTime(s *Session, p mhfpacket.MHFPacket) {
 		Timestamp:     uint32(Time_Current_Adjusted().Unix()), // JP timezone
 	}
 	s.QueueSendMHF(resp)
-
-	s.notifyticker()
 }
 
 func handleMsgSysIssueLogkey(s *Session, p mhfpacket.MHFPacket) {

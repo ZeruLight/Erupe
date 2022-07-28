@@ -3,13 +3,15 @@ package channelserver
 import (
 	"erupe-ce/common/byteframe"
 	"erupe-ce/network/mhfpacket"
+	"strings"
 )
 
 func handleMsgSysOperateRegister(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysOperateRegister)
 	bf := byteframe.NewByteFrameFromBytes(pkt.RawDataPayload)
 	s.server.raviente.Lock()
-	if pkt.SemaphoreID == s.server.raviente.state.semaphoreID {
+	switch pkt.SemaphoreID {
+	case 3:
 		resp := byteframe.NewByteFrame()
 		size := 6
 		for i := 0; i < len(bf.Data())-1; i += size {
@@ -31,7 +33,7 @@ func handleMsgSysOperateRegister(s *Session, p mhfpacket.MHFPacket) {
 						resp.WriteUint32(*ref + data)
 						*ref += data
 					} else {
-						resp.WriteUint32(*ref + data)
+						resp.WriteUint32(*ref)
 					}
 				} else {
 					resp.WriteUint32(*ref + data*damageMultiplier)
@@ -47,7 +49,7 @@ func handleMsgSysOperateRegister(s *Session, p mhfpacket.MHFPacket) {
 		}
 		resp.WriteUint8(0)
 		doAckBufSucceed(s, pkt.AckHandle, resp.Data())
-	} else if pkt.SemaphoreID == s.server.raviente.support.semaphoreID {
+	case 4:
 		resp := byteframe.NewByteFrame()
 		size := 6
 		for i := 0; i < len(bf.Data())-1; i += size {
@@ -72,7 +74,7 @@ func handleMsgSysOperateRegister(s *Session, p mhfpacket.MHFPacket) {
 		}
 		resp.WriteUint8(0)
 		doAckBufSucceed(s, pkt.AckHandle, resp.Data())
-	} else if pkt.SemaphoreID == s.server.raviente.register.semaphoreID {
+	case 5:
 		resp := byteframe.NewByteFrame()
 		size := 6
 		for i := 0; i < len(bf.Data())-1; i += size {
@@ -103,7 +105,7 @@ func handleMsgSysOperateRegister(s *Session, p mhfpacket.MHFPacket) {
 				switch op {
 				case 2:
 					resp.WriteUint32(*ref)
-					resp.WriteUint32(*ref + uint32(data))
+					resp.WriteUint32(*ref + data)
 					*ref += data
 				case 13:
 					resp.WriteUint32(0)
@@ -122,7 +124,7 @@ func handleMsgSysOperateRegister(s *Session, p mhfpacket.MHFPacket) {
 				switch op {
 				case 2:
 					resp.WriteUint32(*ref)
-					resp.WriteUint32(*ref + uint32(data))
+					resp.WriteUint32(*ref + data)
 					*ref += data
 				case 13:
 					resp.WriteUint32(0)
@@ -137,7 +139,7 @@ func handleMsgSysOperateRegister(s *Session, p mhfpacket.MHFPacket) {
 				switch op {
 				case 2:
 					resp.WriteUint32(*ref)
-					resp.WriteUint32(*ref + uint32(data))
+					resp.WriteUint32(*ref + data)
 					*ref += data
 				case 13:
 					resp.WriteUint32(0)
@@ -152,7 +154,7 @@ func handleMsgSysOperateRegister(s *Session, p mhfpacket.MHFPacket) {
 				switch op {
 				case 2:
 					resp.WriteUint32(*ref)
-					resp.WriteUint32(*ref + uint32(data))
+					resp.WriteUint32(*ref + data)
 					*ref += data
 				case 13:
 					resp.WriteUint32(0)
@@ -175,7 +177,7 @@ func handleMsgSysOperateRegister(s *Session, p mhfpacket.MHFPacket) {
 				switch op {
 				case 2:
 					resp.WriteUint32(*ref)
-					resp.WriteUint32(*ref + uint32(data))
+					resp.WriteUint32(*ref + data)
 					*ref += data
 				case 13:
 					resp.WriteUint32(0)
@@ -193,7 +195,7 @@ func handleMsgSysOperateRegister(s *Session, p mhfpacket.MHFPacket) {
 		resp.WriteUint8(0)
 		doAckBufSucceed(s, pkt.AckHandle, resp.Data())
 	}
-	s.notifyall()
+	s.notifyRavi()
 	s.server.raviente.Unlock()
 }
 
@@ -237,64 +239,35 @@ func handleMsgSysLoadRegister(s *Session, p mhfpacket.MHFPacket) {
 	}
 }
 
-func (s *Session) notifyall() {
+func (s *Session) notifyRavi() {
 	var temp mhfpacket.MHFPacket
 	raviNotif := byteframe.NewByteFrame()
-	temp = &mhfpacket.MsgSysNotifyRegister{RegisterID: s.server.raviente.support.semaphoreID}
+	temp = &mhfpacket.MsgSysNotifyRegister{RegisterID: 3}
 	raviNotif.WriteUint16(uint16(temp.Opcode()))
 	temp.Build(raviNotif, s.clientContext)
-	temp = &mhfpacket.MsgSysNotifyRegister{RegisterID: s.server.raviente.state.semaphoreID}
+	temp = &mhfpacket.MsgSysNotifyRegister{RegisterID: 4}
 	raviNotif.WriteUint16(uint16(temp.Opcode()))
 	temp.Build(raviNotif, s.clientContext)
-	temp = &mhfpacket.MsgSysNotifyRegister{RegisterID: s.server.raviente.register.semaphoreID}
+	temp = &mhfpacket.MsgSysNotifyRegister{RegisterID: 5}
 	raviNotif.WriteUint16(uint16(temp.Opcode()))
 	temp.Build(raviNotif, s.clientContext)
 	raviNotif.WriteUint16(0x0010) // End it.
-	if _, exists := s.server.semaphore["hs_l0u3B51J9k3"]; exists {
-		for session := range s.server.semaphore["hs_l0u3B51J9k3"].clients {
-			session.QueueSend(raviNotif.Data())
-		}
-	} else if _, exists := s.server.semaphore["hs_l0u3B5129k3"]; exists {
-		for session := range s.server.semaphore["hs_l0u3B5129k3"].clients {
-			session.QueueSend(raviNotif.Data())
-		}
-	} else if _, exists := s.server.semaphore["hs_l0u3B512Ak3"]; exists {
-		for session := range s.server.semaphore["hs_l0u3B512Ak3"].clients {
+	sema := getRaviSemaphore(s)
+	if sema != "" {
+		for session := range s.server.semaphore[sema].clients {
 			session.QueueSend(raviNotif.Data())
 		}
 	}
 }
 
-func checkRaviSemaphore(s *Session) bool {
-	if _, exists := s.server.semaphore["hs_l0u3B51J9k3"]; exists {
-		return true
-	} else if _, exists := s.server.semaphore["hs_l0u3B5129k3"]; exists {
-		return true
-	} else if _, exists := s.server.semaphore["hs_l0u3B512Ak3"]; exists {
-		return true
+func getRaviSemaphore(s *Session) string {
+	for _, semaphore := range s.server.semaphore {
+		if strings.HasPrefix(semaphore.id_semaphore, "hs_l0u3B5") && strings.HasSuffix(semaphore.id_semaphore, "3") {
+			return semaphore.id_semaphore
+		}
 	}
-	return false
+	return ""
 }
-
-//func releaseRaviSemaphore(s *Session) {
-//	s.server.raviente.Lock()
-//	if _, exists := s.server.semaphore["hs_l0u3B51J9k3"]; exists {
-//		if len(s.server.semaphore["hs_l0u3B51J9k3"].reservedClientSlots) == 0 {
-//			resetRavi(s)
-//		}
-//	}
-//	if _, exists := s.server.semaphore["hs_l0u3B5129k3"]; exists {
-//		if len(s.server.semaphore["hs_l0u3B5129k3"].reservedClientSlots) == 0 {
-//			resetRavi(s)
-//		}
-//	}
-//	if _, exists := s.server.semaphore["hs_l0u3B512Ak3"]; exists {
-//		if len(s.server.semaphore["hs_l0u3B512Ak3"].reservedClientSlots) == 0 {
-//			resetRavi(s)
-//		}
-//	}
-//	s.server.raviente.Unlock()
-//}
 
 func resetRavi(s *Session) {
 	s.server.raviente.Lock()
@@ -310,18 +283,6 @@ func resetRavi(s *Session) {
 	s.server.raviente.state.stateData = []uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 	s.server.raviente.support.supportData = []uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 	s.server.raviente.Unlock()
-}
-
-// Unused
-func (s *Session) notifyticker() {
-	if _, exists := s.server.semaphore["hs_l0u3B51J9k3"]; exists {
-		s.server.semaphoreLock.Lock()
-		getSemaphore := s.server.semaphore["hs_l0u3B51J9k3"]
-		s.server.semaphoreLock.Unlock()
-		if _, exists := getSemaphore.reservedClientSlots[s.charID]; exists {
-			s.notifyall()
-		}
-	}
 }
 
 func handleMsgSysNotifyRegister(s *Session, p mhfpacket.MHFPacket) {}

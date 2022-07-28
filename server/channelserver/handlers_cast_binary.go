@@ -194,7 +194,7 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 
 		// RAVI COMMANDS V2
 		if strings.HasPrefix(chatMessage.Message, "!ravi") {
-			if checkRaviSemaphore(s) {
+			if getRaviSemaphore(s) != "" {
 				s.server.raviente.Lock()
 				if !strings.HasPrefix(chatMessage.Message, "!ravi ") {
 					sendServerChatMessage(s, "No Raviente command specified!")
@@ -203,7 +203,7 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 						if s.server.raviente.register.startTime == 0 {
 							s.server.raviente.register.startTime = s.server.raviente.register.postTime
 							sendServerChatMessage(s, "The Great Slaying will begin in a moment")
-							s.notifyall()
+							s.notifyRavi()
 						} else {
 							sendServerChatMessage(s, "The Great Slaying has already begun!")
 						}
@@ -213,9 +213,9 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 						if numerr != nil || n != 1 {
 							sendServerChatMessage(s, "Error in command. Format: !ravi sm n")
 						} else if s.server.raviente.state.damageMultiplier == 1 {
-							if num > 65535 {
-								sendServerChatMessage(s, "Raviente multiplier too high, defaulting to 20x")
-								s.server.raviente.state.damageMultiplier = 65535
+							if num > 32 {
+								sendServerChatMessage(s, "Raviente multiplier too high, defaulting to 32x")
+								s.server.raviente.state.damageMultiplier = 32
 							} else {
 								sendServerChatMessage(s, fmt.Sprintf("Raviente multiplier set to %dx", num))
 								s.server.raviente.state.damageMultiplier = uint32(num)

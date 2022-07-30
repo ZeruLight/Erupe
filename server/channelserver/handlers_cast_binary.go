@@ -127,15 +127,11 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 		}
 	case BroadcastTypeSemaphore:
 		if pkt.MessageType == 1 {
-			var session *Semaphore
-			if _, exists := s.server.semaphore["hs_l0u3B51J9k3"]; exists {
-				session = s.server.semaphore["hs_l0u3B51J9k3"]
-			} else if _, exists := s.server.semaphore["hs_l0u3B5129k3"]; exists {
-				session = s.server.semaphore["hs_l0u3B5129k3"]
-			} else if _, exists := s.server.semaphore["hs_l0u3B512Ak3"]; exists {
-				session = s.server.semaphore["hs_l0u3B512Ak3"]
+			raviSema := getRaviSemaphore(s)
+			if raviSema != "" {
+				sema := s.server.semaphore[raviSema]
+				(*sema).BroadcastMHF(resp, s)
 			}
-			(*session).BroadcastMHF(resp, s)
 		} else {
 			s.Lock()
 			if s.stage != nil {
@@ -246,10 +242,10 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 						sendServerChatMessage(s, "Raviente command not recognised!")
 					}
 				}
+				s.server.raviente.Unlock()
 			} else {
 				sendServerChatMessage(s, "No one has joined the Great Slaying!")
 			}
-			s.server.raviente.Unlock()
 		}
 		// END RAVI COMMANDS V2
 

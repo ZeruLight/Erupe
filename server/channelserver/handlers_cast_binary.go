@@ -22,10 +22,10 @@ const (
 
 // MSG_SYS_CAST[ED]_BINARY broadcast types enum
 const (
-	BroadcastTypeTargeted  = 0x01
-	BroadcastTypeStage     = 0x03
-	BroadcastTypeSemaphore = 0x06
-	BroadcastTypeWorld     = 0x0a
+	BroadcastTypeTargeted = 0x01
+	BroadcastTypeStage    = 0x03
+	BroadcastTypeServer   = 0x06
+	BroadcastTypeWorld    = 0x0a
 )
 
 func sendServerChatMessage(s *Session, message string) {
@@ -125,7 +125,7 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 		} else {
 			s.stage.BroadcastMHF(resp, s)
 		}
-	case BroadcastTypeSemaphore:
+	case BroadcastTypeServer:
 		if pkt.MessageType == 1 {
 			raviSema := getRaviSemaphore(s)
 			if raviSema != "" {
@@ -133,11 +133,7 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 				(*sema).BroadcastMHF(resp, s)
 			}
 		} else {
-			s.Lock()
-			if s.stage != nil {
-				s.stage.BroadcastMHF(resp, s)
-			}
-			s.Unlock()
+			s.server.BroadcastMHF(resp, s)
 		}
 	case BroadcastTypeTargeted:
 		for _, targetID := range (*msgBinTargeted).TargetCharIDs {

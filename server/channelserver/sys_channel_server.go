@@ -355,7 +355,7 @@ func (s *Server) BroadcastRaviente(ip uint32, port uint16, stage []byte, _type u
 	bf.WriteBytes(make([]byte, 17))
 	s.WorldcastMHF(&mhfpacket.MsgSysCastedBinary{
 		CharID:         0x00000000,
-		BroadcastType:  BroadcastTypeSemaphore,
+		BroadcastType:  BroadcastTypeServer,
 		MessageType:    BinaryMessageTypeChat,
 		RawDataPayload: bf.Data(),
 	}, nil)

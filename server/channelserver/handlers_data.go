@@ -3,7 +3,9 @@ package channelserver
 import (
 	"encoding/binary"
 	"encoding/hex"
+	"erupe-ce/common/stringsupport"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -308,6 +310,18 @@ func handleMsgMhfLoaddata(s *Session, p mhfpacket.MHFPacket) {
 		s.logger.Fatal("Failed to get savedata from db", zap.Error(err))
 	}
 	doAckBufSucceed(s, pkt.AckHandle, data)
+
+	decompSaveData, err := nullcomp.Decompress(data)
+	if err != nil {
+		s.logger.Error("Failed to decompress savedata", zap.Error(err))
+	}
+	bf := byteframe.NewByteFrameFromBytes(decompSaveData)
+	bf.Seek(88, io.SeekStart)
+	binary1 := bf.ReadNullTerminatedBytes()
+	s.server.userBinaryPartsLock.Lock()
+	s.server.userBinaryParts[userBinaryPartID{charID: s.charID, index: 1}] = append(binary1, []byte{0x00}...)
+	s.server.userBinaryPartsLock.Unlock()
+	s.Name = stringsupport.SJISToUTF8(binary1)
 }
 
 func handleMsgMhfSaveScenarioData(s *Session, p mhfpacket.MHFPacket) {

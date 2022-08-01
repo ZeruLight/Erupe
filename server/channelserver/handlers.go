@@ -134,7 +134,6 @@ func handleMsgSysTerminalLog(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgSysLogin(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysLogin)
-	name := ""
 
 	rights := uint32(0x0E)
 	// 0e with normal sub 4e when having premium
@@ -150,9 +149,7 @@ func handleMsgSysLogin(s *Session, p mhfpacket.MHFPacket) {
 		panic(err)
 	}
 
-	s.server.db.QueryRow("SELECT name FROM characters WHERE id = $1", pkt.CharID0).Scan(&name)
 	s.Lock()
-	s.Name = name
 	s.charID = pkt.CharID0
 	s.rights = rights
 	s.token = pkt.LoginTokenString

@@ -1,7 +1,6 @@
 package channelserver
 
 import (
-	"encoding/base64"
 	"fmt"
 
 	"erupe-ce/common/byteframe"

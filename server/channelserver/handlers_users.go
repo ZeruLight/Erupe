@@ -12,67 +12,18 @@ func handleMsgSysInsertUser(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgSysDeleteUser(s *Session, p mhfpacket.MHFPacket) {}
 
-func broadcastNewUser(s *Session) {
-	s.logger.Debug(fmt.Sprintf("Broadcasting new user: %s (%d)", s.Name, s.charID))
-
-	clientNotif := byteframe.NewByteFrame()
-	var temp mhfpacket.MHFPacket
-	for _, session := range s.server.sessions {
-		if session == s || !session.binariesDone {
-			continue
-		}
-		temp = &mhfpacket.MsgSysInsertUser{CharID: session.charID}
-		clientNotif.WriteUint16(uint16(temp.Opcode()))
-		temp.Build(clientNotif, s.clientContext)
-		for i := 0; i < 3; i++ {
-			temp = &mhfpacket.MsgSysNotifyUserBinary{
-				CharID:     session.charID,
-				BinaryType: uint8(i + 1),
-			}
-			clientNotif.WriteUint16(uint16(temp.Opcode()))
-			temp.Build(clientNotif, s.clientContext)
-		}
-	}
-	s.QueueSend(clientNotif.Data())
-
-	serverNotif := byteframe.NewByteFrame()
-	temp = &mhfpacket.MsgSysInsertUser{CharID: s.charID}
-	serverNotif.WriteUint16(uint16(temp.Opcode()))
-	temp.Build(serverNotif, s.clientContext)
-	for i := 0; i < 3; i++ {
-		temp = &mhfpacket.MsgSysNotifyUserBinary{
-			CharID:     s.charID,
-			BinaryType: uint8(i + 1),
-		}
-		serverNotif.WriteUint16(uint16(temp.Opcode()))
-		temp.Build(serverNotif, s.clientContext)
-	}
-	for _, session := range s.server.sessions {
-		if session == s || !session.binariesDone {
-			continue
-		}
-		session.QueueSend(serverNotif.Data())
-	}
-}
-
 func handleMsgSysSetUserBinary(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysSetUserBinary)
 	s.server.userBinaryPartsLock.Lock()
 	s.server.userBinaryParts[userBinaryPartID{charID: s.charID, index: pkt.BinaryType}] = pkt.RawDataPayload
 	s.server.userBinaryPartsLock.Unlock()
 
-	// Insert user once all binary parts exist
-	if !s.binariesDone {
-		for i := 0; i < 3; i++ {
-			_, exists := s.server.userBinaryParts[userBinaryPartID{charID: s.charID, index: uint8(i + 1)}]
-			if !exists {
-				return
-			}
-		}
-		s.binariesDone = true
-		broadcastNewUser(s)
-		return
+	err := s.server.db.QueryRow("SELECT type1 FROM user_binaries WHERE id=$1", s.charID)
+	if err != nil {
+		s.server.db.Exec("INSERT INTO user_binaries (id) VALUES ($1)", s.charID)
 	}
+
+	s.server.db.Exec(fmt.Sprintf("UPDATE user_binaries SET type%d=$1 WHERE id=$2", pkt.BinaryType), pkt.RawDataPayload, s.charID)
 
 	msg := &mhfpacket.MsgSysNotifyUserBinary{
 		CharID:     s.charID,
@@ -91,25 +42,18 @@ func handleMsgSysGetUserBinary(s *Session, p mhfpacket.MHFPacket) {
 	data, ok := s.server.userBinaryParts[userBinaryPartID{charID: pkt.CharID, index: pkt.BinaryType}]
 	resp := byteframe.NewByteFrame()
 
-	// If we can't get the real data, use a placeholder.
+	// If we can't get the real data, try to get it from the database.
 	if !ok {
-		if pkt.BinaryType == 1 {
-			// Stub name response with character ID
-			resp.WriteBytes([]byte(fmt.Sprintf("CID%d", s.charID)))
-			resp.WriteUint8(0) // NULL terminator.
-		} else if pkt.BinaryType == 2 {
-			data, err := base64.StdEncoding.DecodeString("AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBn8AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAAAAAAAAAAAAAwAAAAAAAAAAAAAABAAAAAAAAAAAAAAABQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA==")
-			if err != nil {
-				panic(err)
-			}
+		var data []byte
+		rows, _ := s.server.db.Queryx(fmt.Sprintf("SELECT type%d FROM user_binaries WHERE id=$1", pkt.BinaryType), pkt.CharID)
+		for rows.Next() {
+			rows.Scan(&data)
 			resp.WriteBytes(data)
-		} else if pkt.BinaryType == 3 {
-			data, err := base64.StdEncoding.DecodeString("AQAAA2ea5P8ATgEA/wEAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAABBn8AAAAAAAAAAAABAKAMAAAAAAAAAAAAACgAAAAAAAAAAAABAsQOAAAAAAAAAAABA6UMAAAAAAAAAAABBKAMAAAAAAAAAAABBToNAAAAAAAAAAAAAAMAAAAAAAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAQAAAgACAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAD/////AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA")
-			if err != nil {
-				panic(err)
-			}
-			resp.WriteBytes(data)
+			doAckBufSucceed(s, pkt.AckHandle, resp.Data())
+			return
 		}
+		doAckBufFail(s, pkt.AckHandle, make([]byte, 4))
+		return
 	} else {
 		resp.WriteBytes(data)
 	}

@@ -27,12 +27,12 @@ type Session struct {
 	sendPackets   chan []byte
 	clientContext *clientctx.ClientContext
 
+	userEnteredStage bool // If the user has entered a stage before
 	myseries         MySeries
 	stageID          string
 	stage            *Stage
 	reservationStage *Stage // Required for the stateful MsgSysUnreserveStage packet.
 	stagePass        string // Temporary storage
-	binariesDone     bool
 	charID           uint32
 	logKey           []byte
 	sessionStart     int64
@@ -79,9 +79,9 @@ func NewSession(server *Server, conn net.Conn) *Session {
 				Encoding: japanese.ShiftJIS,
 			},
 		},
-		binariesDone:   false,
-		sessionStart:   Time_Current_Adjusted().Unix(),
-		stageMoveStack: stringstack.New(),
+		userEnteredStage: false,
+		sessionStart:     Time_Current_Adjusted().Unix(),
+		stageMoveStack:   stringstack.New(),
 	}
 	return s
 }

@@ -34,7 +34,7 @@ func handleMsgSysCreateObject(s *Session, p mhfpacket.MHFPacket) {
 		OwnerCharID: newObj.ownerCharID,
 	}
 
-	s.logger.Info(fmt.Sprintf("Broadcasting new object: %s (%d)", s.Name, s.charID))
+	s.logger.Info(fmt.Sprintf("Broadcasting new object: %s (%d)", s.Name, newObj.id))
 	s.stage.BroadcastMHF(dupObjUpdate, s)
 }
 
@@ -63,9 +63,16 @@ func handleMsgSysDuplicateObject(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgSysSetObjectBinary(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysSetObjectBinary)
-	for _, object := range s.stage.objects {
-		if object.id == pkt.ObjID {
-			object.binary = pkt.RawDataPayload
+	for _, session := range s.server.sessions {
+		if session.charID == s.charID {
+			s.server.userBinaryPartsLock.Lock()
+			s.server.userBinaryParts[userBinaryPartID{charID: s.charID, index: 3}] = pkt.RawDataPayload
+			s.server.userBinaryPartsLock.Unlock()
+			msg := &mhfpacket.MsgSysNotifyUserBinary{
+				CharID:     s.charID,
+				BinaryType: 3,
+			}
+			s.server.BroadcastMHF(msg, s)
 		}
 	}
 }

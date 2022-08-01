@@ -15,7 +15,6 @@ type Object struct {
 	id          uint32
 	ownerCharID uint32
 	x, y, z     float32
-	binary      []byte
 }
 
 // stageBinaryKey is a struct used as a map key for identifying a stage binary part.
@@ -33,7 +32,7 @@ type Stage struct {
 
 	// Objects
 	objects     map[uint32]*Object
-	objectIndex uint32
+	objectIndex uint8
 
 	// Map of session -> charID.
 	// These are clients that are CURRENTLY in the stage
@@ -71,7 +70,7 @@ func NewStage(ID string) *Stage {
 func (s *Stage) BroadcastMHF(pkt mhfpacket.MHFPacket, ignoredSession *Session) {
 	// Broadcast the data.
 	for session := range s.clients {
-		if session == ignoredSession || !session.binariesDone {
+		if session == ignoredSession {
 			continue
 		}
 
@@ -130,5 +129,10 @@ func (s *Stage) GetName() string {
 
 func (s *Stage) NextObjectID() uint32 {
 	s.objectIndex = s.objectIndex + 1
-	return s.objectIndex
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint8(0)
+	bf.WriteUint8(s.objectIndex)
+	bf.WriteUint16(0)
+	obj := uint32(bf.Data()[3]) | uint32(bf.Data()[2])<<8 | uint32(bf.Data()[1])<<16 | uint32(bf.Data()[0])<<24
+	return obj
 }

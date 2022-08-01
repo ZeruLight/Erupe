@@ -279,7 +279,7 @@ func (s *Server) manageSessions() {
 func (s *Server) BroadcastMHF(pkt mhfpacket.MHFPacket, ignoredSession *Session) {
 	// Broadcast the data.
 	for _, session := range s.sessions {
-		if session == ignoredSession || !session.binariesDone {
+		if session == ignoredSession {
 			continue
 		}
 
@@ -298,7 +298,7 @@ func (s *Server) BroadcastMHF(pkt mhfpacket.MHFPacket, ignoredSession *Session) 
 func (s *Server) WorldcastMHF(pkt mhfpacket.MHFPacket, ignoredSession *Session) {
 	for _, c := range s.Channels {
 		for _, session := range c.sessions {
-			if session == ignoredSession || !session.binariesDone {
+			if session == ignoredSession {
 				continue
 			}
 			bf := byteframe.NewByteFrame()

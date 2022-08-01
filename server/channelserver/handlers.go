@@ -183,6 +183,8 @@ func handleMsgSysLogin(s *Session, p mhfpacket.MHFPacket) {
 	doAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
 
 	updateRights(s)
+
+	s.server.BroadcastMHF(&mhfpacket.MsgSysInsertUser{CharID: s.charID}, s)
 }
 
 func handleMsgSysLogout(s *Session, p mhfpacket.MHFPacket) {

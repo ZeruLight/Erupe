@@ -1,6 +1,7 @@
 package channelserver
 
 import (
+	"fmt"
 	"time"
 
 	"erupe-ce/common/byteframe"
@@ -51,7 +52,7 @@ func doStageTransfer(s *Session, ackHandle uint32, stageID string) {
 
 	// Save our new stage ID and pointer to the new stage itself.
 	s.Lock()
-	s.stageID = string(stageID)
+	s.stageID = stageID
 	s.stage = s.server.stages[stageID]
 	s.Unlock()
 
@@ -61,13 +62,41 @@ func doStageTransfer(s *Session, ackHandle uint32, stageID string) {
 	// Confirm the stage entry.
 	doAckSimpleSucceed(s, ackHandle, []byte{0x00, 0x00, 0x00, 0x00})
 
+	var temp mhfpacket.MHFPacket
+	newNotif := byteframe.NewByteFrame()
+
+	// Cast existing user data to new user
+	if !s.userEnteredStage {
+		s.userEnteredStage = true
+
+		for _, session := range s.server.sessions {
+			if s == session {
+				continue
+			}
+			temp = &mhfpacket.MsgSysInsertUser{CharID: session.charID}
+			newNotif.WriteUint16(uint16(temp.Opcode()))
+			temp.Build(newNotif, s.clientContext)
+			for i := 0; i < 3; i++ {
+				temp = &mhfpacket.MsgSysNotifyUserBinary{
+					CharID:     session.charID,
+					BinaryType: uint8(i + 1),
+				}
+				newNotif.WriteUint16(uint16(temp.Opcode()))
+				temp.Build(newNotif, s.clientContext)
+			}
+		}
+	}
+
 	if s.stage != nil { // avoids lock up when using bed for dream quests
 		// Notify the client to duplicate the existing objects.
-		s.logger.Info("Sending existing stage objects")
-		clientDupObjNotif := byteframe.NewByteFrame()
+		s.logger.Info(fmt.Sprintf("Sending existing stage objects to %s", s.Name))
 		s.stage.RLock()
+		var temp mhfpacket.MHFPacket
 		for _, obj := range s.stage.objects {
-			cur := &mhfpacket.MsgSysDuplicateObject{
+			if obj.ownerCharID == s.charID {
+				continue
+			}
+			temp = &mhfpacket.MsgSysDuplicateObject{
 				ObjID:       obj.id,
 				X:           obj.x,
 				Y:           obj.y,
@@ -75,14 +104,15 @@ func doStageTransfer(s *Session, ackHandle uint32, stageID string) {
 				Unk0:        0,
 				OwnerCharID: obj.ownerCharID,
 			}
-			clientDupObjNotif.WriteUint16(uint16(cur.Opcode()))
-			cur.Build(clientDupObjNotif, s.clientContext)
+			newNotif.WriteUint16(uint16(temp.Opcode()))
+			temp.Build(newNotif, s.clientContext)
 		}
 		s.stage.RUnlock()
-		clientDupObjNotif.WriteUint16(0x0010) // End it.
-		if len(clientDupObjNotif.Data()) > 2 {
-			s.QueueSend(clientDupObjNotif.Data())
-		}
+	}
+
+	newNotif.WriteUint16(0x0010) // End it.
+	if len(newNotif.Data()) > 2 {
+		s.QueueSend(newNotif.Data())
 	}
 }
 

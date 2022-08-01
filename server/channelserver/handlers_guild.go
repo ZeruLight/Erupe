@@ -220,6 +220,30 @@ func (guild *Guild) Disband(s *Session) error {
 		return err
 	}
 
+	_, err = transaction.Exec("DELETE FROM guild_alliances WHERE parent_id=$1", guild.ID)
+
+	if err != nil {
+		s.logger.Error("failed to remove guild alliance", zap.Error(err), zap.Uint32("guildID", guild.ID))
+		rollbackTransaction(s, transaction)
+		return err
+	}
+
+	_, err = transaction.Exec("UPDATE guild_alliances SET sub1_id=NULL WHERE sub1_id=$1", guild.ID)
+
+	if err != nil {
+		s.logger.Error("failed to remove guild from alliance", zap.Error(err), zap.Uint32("guildID", guild.ID))
+		rollbackTransaction(s, transaction)
+		return err
+	}
+
+	_, err = transaction.Exec("UPDATE guild_alliances SET sub2_id=NULL WHERE sub2_id=$1", guild.ID)
+
+	if err != nil {
+		s.logger.Error("failed to remove guild from alliance", zap.Error(err), zap.Uint32("guildID", guild.ID))
+		rollbackTransaction(s, transaction)
+		return err
+	}
+
 	err = transaction.Commit()
 
 	if err != nil {

@@ -2,6 +2,7 @@ package channelserver
 
 import (
 	"database/sql"
+	"erupe-ce/common/stringsupport"
 	"time"
 
 	"erupe-ce/common/byteframe"
@@ -275,7 +276,7 @@ func handleMsgMhfReadMail(s *Session, p mhfpacket.MHFPacket) {
 
 	bf := byteframe.NewByteFrame()
 
-	body := s.clientContext.StrConv.MustEncode(mail.Body)
+	body := stringsupport.UTF8ToSJIS(mail.Body)
 	bf.WriteNullTerminatedBytes(body)
 
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
@@ -307,13 +308,13 @@ func handleMsgMhfListMail(s *Session, p mhfpacket.MHFPacket) {
 		s.mailAccIndex++
 
 		itemAttached := m.AttachedItemID != 0
-		subject := s.clientContext.StrConv.MustEncode(m.Subject)
-		sender := s.clientContext.StrConv.MustEncode(m.SenderName)
+		subject := stringsupport.UTF8ToSJIS(m.Subject)
+		sender := stringsupport.UTF8ToSJIS(m.SenderName)
 
 		msg.WriteUint32(m.SenderID)
 		msg.WriteUint32(uint32(m.CreatedAt.Unix()))
 
-		msg.WriteUint8(uint8(accIndex))
+		msg.WriteUint8(accIndex)
 		msg.WriteUint8(uint8(i))
 
 		flags := uint8(0x00)
@@ -361,7 +362,7 @@ func handleMsgMhfOprtMail(s *Session, p mhfpacket.MHFPacket) {
 		doAckSimpleFail(s, pkt.AckHandle, nil)
 		panic(err)
 	}
-	switch mhfpacket.OperateMailOperation(pkt.Operation) {
+	switch pkt.Operation {
 	case mhfpacket.OPERATE_MAIL_DELETE:
 		err = mail.MarkDeleted(s)
 		if err != nil {

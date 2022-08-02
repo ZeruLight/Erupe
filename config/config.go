@@ -24,6 +24,8 @@ type Config struct {
 // DevModeOptions holds various debug/temporary options for use while developing Erupe.
 type DevModeOptions struct {
 	ServerName          string // To get specific instance server about (Current Players/Event Week)
+	HideLoginNotice     bool   // Hide the Erupe notice on login
+	LoginNotice         string // MHFML string of the login notice displayed
 	CleanDB             bool   // Automatically wipes the DB on server reset.
 	MaxLauncherHR       bool   // Sets the HR returned in the launcher to HR9 so that you can join non-beginner worlds.
 	FixedStageID        bool   // Causes all move_stage to use the ID sl1Ns200p0a0u0 to get you into all stages

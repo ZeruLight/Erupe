@@ -99,9 +99,13 @@ func (s *Session) makeSignInResp(uid int) []byte {
 		}
 	}
 
-	bf.WriteUint8(1) // Notice count
-	noticeText := "<BODY><CENTER><SIZE_3><C_4>Welcome to Erupe SU9 Beta 2!<BR><BODY><LEFT><SIZE_2><C_5>Erupe is experimental software<C_7>, we are not liable for any<BR><BODY>issues caused by installing the software!<BR><BODY><BR><BODY><C_4>■Report bugs on Discord!<C_7><BR><BODY><BR><BODY><C_4>■Test everything!<C_7><BR><BODY><BR><BODY><C_4>■Don't talk to softlocking NPCs!<C_7><BR><BODY><BR><BODY><C_4>■Fork the code on GitHub!<C_7><BR><BODY><BR><BODY>Thank you to all of the contributors,<BR><BODY><BR><BODY>this wouldn't exist without you."
-	ps.Uint32(bf, noticeText, true)
+	if s.server.erupeConfig.DevModeOptions.HideLoginNotice {
+		bf.WriteUint8(0)
+	} else {
+		bf.WriteUint8(1) // Notice count
+		noticeText := s.server.erupeConfig.DevModeOptions.LoginNotice
+		ps.Uint32(bf, noticeText, true)
+	}
 
 	bf.WriteUint32(s.server.getLastCID(uid))
 	bf.WriteUint32(s.server.getUserRights(uid))

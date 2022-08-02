@@ -294,7 +294,7 @@ func handleMsgMhfSaveDecoMyset(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfEnumerateTitle(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateTitle)
 	bf := byteframe.NewByteFrame()
-	if pkt.CharID == s.charID {
+	if pkt.CharID == 0 {
 		titleCount := 114                  // all titles unlocked
 		bf.WriteUint16(uint16(titleCount)) // title count
 		bf.WriteUint16(0)                  // unk

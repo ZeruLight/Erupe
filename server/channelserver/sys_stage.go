@@ -129,6 +129,11 @@ func (s *Stage) GetName() string {
 
 func (s *Stage) NextObjectID() uint32 {
 	s.objectIndex = s.objectIndex + 1
+	// Objects beyond 127 do not duplicate correctly
+	// Indexes 0 and 127 does not update position correctly
+	if s.objectIndex == 127 {
+		s.objectIndex = 1
+	}
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint8(0)
 	bf.WriteUint8(s.objectIndex)

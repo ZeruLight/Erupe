@@ -351,8 +351,7 @@ func (s *Server) BroadcastRaviente(ip uint32, port uint16, stage []byte, _type u
 	bf.WriteUint32(ip)   // IP address
 	bf.WriteUint16(port) // Port
 	bf.WriteUint16(0)    // Unk
-	bf.WriteNullTerminatedBytes(stage)
-	bf.WriteBytes(make([]byte, 17))
+	bf.WriteBytes(stage)
 	s.WorldcastMHF(&mhfpacket.MsgSysCastedBinary{
 		CharID:         0x00000000,
 		BroadcastType:  BroadcastTypeServer,

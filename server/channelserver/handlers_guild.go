@@ -54,6 +54,7 @@ type Guild struct {
 	PugiName1      string         `db:"pugi_name_1"`
 	PugiName2      string         `db:"pugi_name_2"`
 	PugiName3      string         `db:"pugi_name_3"`
+	Recruiting     bool           `db:"recruiting"`
 	FestivalColour FestivalColour `db:"festival_colour"`
 	Rank           uint16         `db:"rank"`
 	AllianceID     uint32         `db:"alliance_id"`
@@ -123,6 +124,7 @@ SELECT
 	pugi_name_1,
 	pugi_name_2,
 	pugi_name_3,
+	recruiting,
 	festival_colour,
 	CASE
 		WHEN rank_rp <= 48 THEN rank_rp/24
@@ -639,6 +641,8 @@ func handleMsgMhfOperateGuild(s *Session, p mhfpacket.MHFPacket) {
 		}
 
 		bf.WriteUint32(uint32(response))
+		doAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
+		return
 	case mhfpacket.OPERATE_GUILD_APPLY:
 		err = guild.CreateApplication(s, s.charID, GuildApplicationTypeApplied, nil)
 
@@ -648,6 +652,8 @@ func handleMsgMhfOperateGuild(s *Session, p mhfpacket.MHFPacket) {
 		} else {
 			bf.WriteUint32(guild.LeaderCharID)
 		}
+		doAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
+		return
 	case mhfpacket.OPERATE_GUILD_LEAVE:
 		var err error
 
@@ -664,81 +670,53 @@ func handleMsgMhfOperateGuild(s *Session, p mhfpacket.MHFPacket) {
 		}
 
 		bf.WriteUint32(uint32(response))
+		doAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
+		return
 	case mhfpacket.OPERATE_GUILD_DONATE_RANK:
 		handleDonateRP(s, pkt, bf, guild, false)
 	case mhfpacket.OPERATE_GUILD_SET_APPLICATION_DENY:
-		// TODO: close applications for guild
-		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
-		return
+		s.server.db.Exec("UPDATE guilds SET recruiting=false WHERE id=$1", guild.ID)
 	case mhfpacket.OPERATE_GUILD_SET_APPLICATION_ALLOW:
-		// TODO: open applications for guild
-		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
-		return
+		s.server.db.Exec("UPDATE guilds SET recruiting=true WHERE id=$1", guild.ID)
 	case mhfpacket.OPERATE_GUILD_SET_AVOID_LEADERSHIP_TRUE:
 		handleAvoidLeadershipUpdate(s, pkt, true)
 	case mhfpacket.OPERATE_GUILD_SET_AVOID_LEADERSHIP_FALSE:
 		handleAvoidLeadershipUpdate(s, pkt, false)
 	case mhfpacket.OPERATE_GUILD_UPDATE_COMMENT:
 		pbf := byteframe.NewByteFrameFromBytes(pkt.UnkData)
-
 		if !characterGuildInfo.IsLeader && !characterGuildInfo.IsSubLeader() {
 			doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 			return
 		}
-
 		_ = pbf.ReadUint8() // len
 		_ = pbf.ReadUint32()
 		guild.Comment = stringsupport.SJISToUTF8(pbf.ReadNullTerminatedBytes())
-		err = guild.Save(s)
-		if err != nil {
-			doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
-			return
-		}
-
-		bf.WriteUint32(0x00)
+		guild.Save(s)
 	case mhfpacket.OPERATE_GUILD_UPDATE_MOTTO:
 		if !characterGuildInfo.IsLeader && !characterGuildInfo.IsSubLeader() {
 			doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 			return
 		}
-
 		guild.SubMotto = pkt.UnkData[3]
 		guild.MainMotto = pkt.UnkData[4]
-
-		err := guild.Save(s)
-
-		if err != nil {
-			doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
-			return
-		}
+		guild.Save(s)
 	case mhfpacket.OPERATE_GUILD_RENAME_PUGI_1:
 		handleRenamePugi(s, pkt.UnkData, guild, 1)
-		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
-		return
 	case mhfpacket.OPERATE_GUILD_RENAME_PUGI_2:
 		handleRenamePugi(s, pkt.UnkData, guild, 2)
-		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
-		return
 	case mhfpacket.OPERATE_GUILD_RENAME_PUGI_3:
 		handleRenamePugi(s, pkt.UnkData, guild, 3)
-		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
-		return
 	case mhfpacket.OPERATE_GUILD_CHANGE_PUGI_1:
-		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
-		return
+		// TODO: decode guild poogie outfits
 	case mhfpacket.OPERATE_GUILD_CHANGE_PUGI_2:
-		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
-		return
 	case mhfpacket.OPERATE_GUILD_CHANGE_PUGI_3:
-		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
-		return
 	case mhfpacket.OPERATE_GUILD_DONATE_EVENT:
 		handleDonateRP(s, pkt, bf, guild, true)
 	default:
 		panic(fmt.Sprintf("unhandled operate guild action '%d'", pkt.Action))
 	}
 
-	doAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleRenamePugi(s *Session, data []byte, guild *Guild, num int) {
@@ -1220,7 +1198,7 @@ func handleMsgMhfEnumerateGuild(s *Session, p mhfpacket.MHFPacket) {
 		ps.Uint8(bf, guild.Name, true)
 		ps.Uint8(bf, guild.LeaderName, true)
 		bf.WriteUint8(0x01) // Unk
-		bf.WriteBool(false) // closed
+		bf.WriteBool(!guild.Recruiting)
 	}
 
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())

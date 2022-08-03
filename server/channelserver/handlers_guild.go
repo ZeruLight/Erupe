@@ -56,6 +56,7 @@ type Guild struct {
 	PugiName2      string         `db:"pugi_name_2"`
 	PugiName3      string         `db:"pugi_name_3"`
 	FestivalColour FestivalColour `db:"festival_colour"`
+	Souls          uint32         `db:"souls"`
 	Rank           uint16         `db:"rank"`
 	AllianceID     uint32         `db:"alliance_id"`
 	Icon           *GuildIcon     `db:"icon"`
@@ -124,7 +125,14 @@ SELECT
 	pugi_name_1,
 	pugi_name_2,
 	pugi_name_3,
-	festival_colour,
+	CASE WHEN (
+		SELECT team FROM festa_registrations fr WHERE fr.guild_id = g.id
+	) IS NULL THEN 'none' ELSE (
+		SELECT team FROM festa_registrations fr WHERE fr.guild_id = g.id
+	) END festival_colour,
+	(
+		SELECT SUM(souls) FROM guild_characters gc WHERE gc.guild_id = g.id
+	) AS souls,
 	CASE
 		WHEN rank_rp <= 48 THEN rank_rp/24
 		WHEN rank_rp <= 288 THEN rank_rp/48+1
@@ -138,14 +146,12 @@ SELECT
 	 	ga.parent_id = g.id OR
 	 	ga.sub1_id = g.id OR
 	 	ga.sub2_id = g.id
-	) IS NULL THEN 0
-	ELSE (
+	) IS NULL THEN 0 ELSE (
 		SELECT id FROM guild_alliances ga WHERE
 	 	ga.parent_id = g.id OR
 	 	ga.sub1_id = g.id OR
 	 	ga.sub2_id = g.id
-	)
-	END alliance_id,
+	) END alliance_id,
 	icon,
 	(
 		SELECT count(1) FROM guild_characters gc WHERE gc.guild_id = g.id
@@ -157,8 +163,8 @@ SELECT
 
 func (guild *Guild) Save(s *Session) error {
 	_, err := s.server.db.Exec(`
-		UPDATE guilds SET main_motto=$2, sub_motto=$3, comment=$4, pugi_name_1=$5, pugi_name_2=$6, pugi_name_3=$7, festival_colour=$8, icon=$9 WHERE id=$1
-	`, guild.ID, guild.MainMotto, guild.SubMotto, guild.Comment, guild.PugiName1, guild.PugiName2, guild.PugiName3, guild.FestivalColour, guild.Icon)
+		UPDATE guilds SET main_motto=$2, sub_motto=$3, comment=$4, pugi_name_1=$5, pugi_name_2=$6, pugi_name_3=$7, icon=$8 WHERE id=$1
+	`, guild.ID, guild.MainMotto, guild.SubMotto, guild.Comment, guild.PugiName1, guild.PugiName2, guild.PugiName3, guild.Icon)
 
 	if err != nil {
 		s.logger.Error("failed to update guild data", zap.Error(err), zap.Uint32("guildID", guild.ID))

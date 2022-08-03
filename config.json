@@ -16,6 +16,7 @@
     "FestaEvent": 0,
     "TournamentEvent": 0,
     "MezFesEvent": true,
+    "DisableMailItems": true,
     "SaveDumps": {
       "Enabled": true,
       "OutputDir": "savedata"

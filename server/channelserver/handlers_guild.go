@@ -889,7 +889,9 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint8(guild.SubMotto)
 
 		// Unk appears to be static
-		bf.WriteBytes([]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
+		bf.WriteBytes([]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
+
+		bf.WriteBool(!guild.Recruiting)
 
 		if characterGuildData == nil || characterGuildData.IsApplicant {
 			bf.WriteUint16(0x00)
@@ -1385,7 +1387,8 @@ func handleMsgMhfGetGuildManageRight(s *Session, p mhfpacket.MHFPacket) {
 
 	for _, member := range members {
 		bf.WriteUint32(member.CharID)
-		bf.WriteUint32(0x0)
+		bf.WriteBool(member.Recruiter)
+		bf.WriteBytes(make([]byte, 3))
 	}
 
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
@@ -1877,7 +1880,12 @@ func handleMsgMhfGenerateUdGuildMap(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfUpdateGuild(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfSetGuildManageRight(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfSetGuildManageRight(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfSetGuildManageRight)
+	s.server.db.Exec("UPDATE guild_characters SET recruiter=$1 WHERE character_id=$2", pkt.Allowed, pkt.CharID)
+	// TODO: What is this supposed to return? This works for now
+	doAckBufSucceed(s, pkt.AckHandle, []byte{0x01})
+}
 
 func handleMsgMhfEnumerateInvGuild(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateInvGuild)

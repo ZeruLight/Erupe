@@ -2,6 +2,7 @@ package mhfpacket
 
 import (
 	"errors"
+	"io"
 
 	"erupe-ce/common/byteframe"
 	"erupe-ce/network"
@@ -30,6 +31,7 @@ const (
 type MsgMhfEnumerateGuild struct {
 	AckHandle      uint32
 	Type           EnumerateGuildType
+	Page           uint8
 	RawDataPayload []byte
 }
 
@@ -42,8 +44,9 @@ func (m *MsgMhfEnumerateGuild) Opcode() network.PacketID {
 func (m *MsgMhfEnumerateGuild) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
 	m.Type = EnumerateGuildType(bf.ReadUint8())
+	m.Page = bf.ReadUint8()
 	m.RawDataPayload = bf.DataFromCurrent()
-	bf.Seek(int64(len(bf.Data())-2), 0)
+	bf.Seek(-2, io.SeekEnd)
 	return nil
 }
 

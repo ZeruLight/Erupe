@@ -190,13 +190,15 @@ func handleMsgMhfGetGuildScoutList(s *Session, p mhfpacket.MHFPacket) {
 
 	guildInfo, err := GetGuildInfoByCharacterId(s, s.charID)
 
-	if err != nil {
-		panic(err)
-	}
-
-	if guildInfo == nil {
+	if guildInfo == nil && s.prevGuildID == 0 {
 		doAckSimpleFail(s, pkt.AckHandle, nil)
 		return
+	} else {
+		guildInfo, err = GetGuildInfoByID(s, s.prevGuildID)
+		if guildInfo == nil || err != nil {
+			doAckSimpleFail(s, pkt.AckHandle, nil)
+			return
+		}
 	}
 
 	rows, err := s.server.db.Queryx(`

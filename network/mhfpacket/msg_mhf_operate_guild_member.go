@@ -1,11 +1,11 @@
 package mhfpacket
 
-import ( 
- "errors" 
+import (
+	"errors"
 
- 	"erupe-ce/network/clientctx"
-	"erupe-ce/network"
 	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 type OperateGuildMemberAction uint8
@@ -23,6 +23,7 @@ type MsgMhfOperateGuildMember struct {
 	GuildID   uint32
 	CharID    uint32
 	Action    uint8
+	Unk       []byte
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -36,7 +37,7 @@ func (m *MsgMhfOperateGuildMember) Parse(bf *byteframe.ByteFrame, ctx *clientctx
 	m.GuildID = bf.ReadUint32()
 	m.CharID = bf.ReadUint32()
 	m.Action = bf.ReadUint8()
-
+	m.Unk = bf.ReadBytes(3)
 	return nil
 }
 

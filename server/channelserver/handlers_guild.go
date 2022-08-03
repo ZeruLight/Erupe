@@ -1163,7 +1163,14 @@ func handleMsgMhfEnumerateGuild(s *Session, p mhfpacket.MHFPacket) {
 			}
 		}
 	case mhfpacket.ENUMERATE_GUILD_TYPE_RECRUITING:
-		//
+		// Assume the player wants the newest guilds with open recruitment
+		rows, err = s.server.db.Queryx(fmt.Sprintf(`%s WHERE recruiting=true ORDER BY id DESC OFFSET $1`, guildInfoSelectQuery), pkt.Page*10)
+		if err == nil {
+			for rows.Next() {
+				guild, _ := buildGuildObjectFromDbResult(rows, err, s)
+				guilds = append(guilds, guild)
+			}
+		}
 	case mhfpacket.ENUMERATE_ALLIANCE_TYPE_ALLIANCE_NAME:
 		//
 	case mhfpacket.ENUMERATE_ALLIANCE_TYPE_LEADER_NAME:
@@ -1872,7 +1879,10 @@ func handleMsgMhfUpdateGuild(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfSetGuildManageRight(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfEnumerateInvGuild(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfEnumerateInvGuild(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfEnumerateInvGuild)
+	stubEnumerateNoResults(s, pkt.AckHandle)
+}
 
 func handleMsgMhfOperationInvGuild(s *Session, p mhfpacket.MHFPacket) {}
 

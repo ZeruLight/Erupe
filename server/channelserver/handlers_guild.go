@@ -511,36 +511,6 @@ func rollbackTransaction(s *Session, transaction *sql.Tx) {
 	}
 }
 
-func FindGuildsByName(s *Session, name string) ([]*Guild, error) {
-	searchTerm := fmt.Sprintf("%%%s%%", name)
-
-	rows, err := s.server.db.Queryx(fmt.Sprintf(`
-		%s
-		WHERE g.name ILIKE $1
-	`, guildInfoSelectQuery), searchTerm)
-
-	if err != nil {
-		s.logger.Error("failed to find guilds for search term", zap.Error(err), zap.String("searchTerm", name))
-		return nil, err
-	}
-
-	defer rows.Close()
-
-	guilds := make([]*Guild, 0)
-
-	for rows.Next() {
-		guild, err := buildGuildObjectFromDbResult(rows, err, s)
-
-		if err != nil {
-			return nil, err
-		}
-
-		guilds = append(guilds, guild)
-	}
-
-	return guilds, nil
-}
-
 func GetGuildInfoByID(s *Session, guildID uint32) (*Guild, error) {
 	rows, err := s.server.db.Queryx(fmt.Sprintf(`
 		%s
@@ -1136,12 +1106,18 @@ func handleMsgMhfEnumerateGuild(s *Session, p mhfpacket.MHFPacket) {
 	switch pkt.Type {
 	case mhfpacket.ENUMERATE_GUILD_TYPE_GUILD_NAME:
 		bf.ReadBytes(10)
-		searchTerm := stringsupport.SJISToUTF8(bf.ReadNullTerminatedBytes())
-		guilds, err = FindGuildsByName(s, searchTerm)
+		searchTerm := fmt.Sprintf(`%%%s%%`, stringsupport.SJISToUTF8(bf.ReadNullTerminatedBytes()))
+		rows, err = s.server.db.Queryx(fmt.Sprintf(`%s WHERE g.name ILIKE $1 OFFSET $2`, guildInfoSelectQuery), searchTerm, pkt.Page*10)
+		if err == nil {
+			for rows.Next() {
+				guild, _ := buildGuildObjectFromDbResult(rows, err, s)
+				guilds = append(guilds, guild)
+			}
+		}
 	case mhfpacket.ENUMERATE_GUILD_TYPE_LEADER_NAME:
 		bf.ReadBytes(10)
-		searchTerm := stringsupport.SJISToUTF8(bf.ReadNullTerminatedBytes())
-		rows, err = s.server.db.Queryx(fmt.Sprintf(`%s WHERE lc.name ILIKE $1`, guildInfoSelectQuery), searchTerm)
+		searchTerm := fmt.Sprintf(`%%%s%%`, stringsupport.SJISToUTF8(bf.ReadNullTerminatedBytes()))
+		rows, err = s.server.db.Queryx(fmt.Sprintf(`%s WHERE lc.name ILIKE $1 OFFSET $2`, guildInfoSelectQuery), searchTerm, pkt.Page*10)
 		if err == nil {
 			for rows.Next() {
 				guild, _ := buildGuildObjectFromDbResult(rows, err, s)
@@ -1161,9 +1137,9 @@ func handleMsgMhfEnumerateGuild(s *Session, p mhfpacket.MHFPacket) {
 	case mhfpacket.ENUMERATE_GUILD_TYPE_ORDER_MEMBERS:
 		sorting := bf.ReadUint8()
 		if sorting == 1 {
-			rows, err = s.server.db.Queryx(fmt.Sprintf(`%s ORDER BY member_count DESC`, guildInfoSelectQuery))
+			rows, err = s.server.db.Queryx(fmt.Sprintf(`%s ORDER BY member_count DESC OFFSET $1`, guildInfoSelectQuery), pkt.Page*10)
 		} else {
-			rows, err = s.server.db.Queryx(fmt.Sprintf(`%s ORDER BY member_count ASC`, guildInfoSelectQuery))
+			rows, err = s.server.db.Queryx(fmt.Sprintf(`%s ORDER BY member_count ASC OFFSET $1`, guildInfoSelectQuery), pkt.Page*10)
 		}
 		if err == nil {
 			for rows.Next() {
@@ -1174,9 +1150,9 @@ func handleMsgMhfEnumerateGuild(s *Session, p mhfpacket.MHFPacket) {
 	case mhfpacket.ENUMERATE_GUILD_TYPE_ORDER_REGISTRATION:
 		sorting := bf.ReadUint8()
 		if sorting == 1 {
-			rows, err = s.server.db.Queryx(fmt.Sprintf(`%s ORDER BY id ASC`, guildInfoSelectQuery))
+			rows, err = s.server.db.Queryx(fmt.Sprintf(`%s ORDER BY id ASC OFFSET $1`, guildInfoSelectQuery), pkt.Page*10)
 		} else {
-			rows, err = s.server.db.Queryx(fmt.Sprintf(`%s ORDER BY id DESC`, guildInfoSelectQuery))
+			rows, err = s.server.db.Queryx(fmt.Sprintf(`%s ORDER BY id DESC OFFSET $1`, guildInfoSelectQuery), pkt.Page*10)
 		}
 		if err == nil {
 			for rows.Next() {
@@ -1187,9 +1163,9 @@ func handleMsgMhfEnumerateGuild(s *Session, p mhfpacket.MHFPacket) {
 	case mhfpacket.ENUMERATE_GUILD_TYPE_ORDER_RANK:
 		sorting := bf.ReadUint8()
 		if sorting == 1 {
-			rows, err = s.server.db.Queryx(fmt.Sprintf(`%s ORDER BY rank_rp DESC`, guildInfoSelectQuery))
+			rows, err = s.server.db.Queryx(fmt.Sprintf(`%s ORDER BY rank_rp DESC OFFSET $1`, guildInfoSelectQuery), pkt.Page*10)
 		} else {
-			rows, err = s.server.db.Queryx(fmt.Sprintf(`%s ORDER BY rank_rp ASC`, guildInfoSelectQuery))
+			rows, err = s.server.db.Queryx(fmt.Sprintf(`%s ORDER BY rank_rp ASC OFFSET $1`, guildInfoSelectQuery), pkt.Page*10)
 		}
 		if err == nil {
 			for rows.Next() {
@@ -1201,7 +1177,7 @@ func handleMsgMhfEnumerateGuild(s *Session, p mhfpacket.MHFPacket) {
 		bf.ReadBytes(2)
 		mainMotto := bf.ReadUint16()
 		subMotto := bf.ReadUint16()
-		rows, err = s.server.db.Queryx(fmt.Sprintf(`%s WHERE main_motto = $1 AND sub_motto = $2`, guildInfoSelectQuery), mainMotto, subMotto)
+		rows, err = s.server.db.Queryx(fmt.Sprintf(`%s WHERE main_motto = $1 AND sub_motto = $2 OFFSET $3`, guildInfoSelectQuery), mainMotto, subMotto, pkt.Page*10)
 		if err == nil {
 			for rows.Next() {
 				guild, _ := buildGuildObjectFromDbResult(rows, err, s)

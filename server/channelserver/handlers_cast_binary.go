@@ -118,7 +118,7 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 	// Send to the proper recipients.
 	switch pkt.BroadcastType {
 	case BroadcastTypeWorld:
-		s.server.WorldcastMHF(resp, s)
+		s.server.WorldcastMHF(resp, s, nil)
 	case BroadcastTypeStage:
 		if isDiceCommand {
 			s.stage.BroadcastMHF(resp, nil) // send dice result back to caller
@@ -129,8 +129,7 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 		if pkt.MessageType == 1 {
 			raviSema := getRaviSemaphore(s)
 			if raviSema != "" {
-				sema := s.server.semaphore[raviSema]
-				(*sema).BroadcastMHF(resp, s)
+				s.server.BroadcastMHF(resp, s)
 			}
 		} else {
 			s.server.BroadcastMHF(resp, s)

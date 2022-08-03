@@ -295,8 +295,11 @@ func (s *Server) BroadcastMHF(pkt mhfpacket.MHFPacket, ignoredSession *Session) 
 	}
 }
 
-func (s *Server) WorldcastMHF(pkt mhfpacket.MHFPacket, ignoredSession *Session) {
+func (s *Server) WorldcastMHF(pkt mhfpacket.MHFPacket, ignoredSession *Session, ignoredChannel *Server) {
 	for _, c := range s.Channels {
+		if c == ignoredChannel {
+			continue
+		}
 		for _, session := range c.sessions {
 			if session == ignoredSession {
 				continue
@@ -357,7 +360,7 @@ func (s *Server) BroadcastRaviente(ip uint32, port uint16, stage []byte, _type u
 		BroadcastType:  BroadcastTypeServer,
 		MessageType:    BinaryMessageTypeChat,
 		RawDataPayload: bf.Data(),
-	}, nil)
+	}, nil, s)
 }
 
 func (s *Server) DiscordChannelSend(charName string, content string) {

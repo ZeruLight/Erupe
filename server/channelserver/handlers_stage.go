@@ -121,7 +121,7 @@ func destructEmptyStages(s *Session) {
 	defer s.server.Unlock()
 	for _, stage := range s.server.stages {
 		// Destroy empty Quest/My series/Guild stages.
-		if stage.id[3:5] == "Qs" || stage.id[3:5] == "Ms" || stage.id[3:5] == "Gs" {
+		if stage.id[3:5] == "Qs" || stage.id[3:5] == "Ms" || stage.id[3:5] == "Gs" || stage.id[3:5] == "Ls" {
 			if len(stage.reservedClientSlots) == 0 && len(stage.clients) == 0 {
 				delete(s.server.stages, stage.id)
 				s.logger.Debug("Destructed stage", zap.String("stage.id", stage.id))
@@ -367,7 +367,7 @@ func handleMsgSysEnumerateStage(s *Session, p mhfpacket.MHFPacket) {
 		}
 
 		// Check for valid stage type
-		if sid[3:5] != "Qs" && sid[3:5] != "Ms" {
+		if sid[3:5] != "Qs" && sid[3:5] != "Ms" && sid[3:5] != "Ls" {
 			continue
 		}
 

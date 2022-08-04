@@ -2,27 +2,14 @@ package channelserver
 
 import (
 	"encoding/hex"
-	"fmt"
-	"strings"
 	"time"
 
-	//"erupe-ce/common/stringsupport"
 	"erupe-ce/common/byteframe"
 	"erupe-ce/network/mhfpacket"
 	"github.com/lib/pq"
 	"github.com/sachaos/lottery"
 	"go.uber.org/zap"
 )
-
-func contains(s []string, str string) bool {
-	for _, v := range s {
-		if v == str {
-			return true
-		}
-	}
-
-	return false
-}
 
 func handleMsgMhfEnumerateShop(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateShop)
@@ -162,27 +149,19 @@ func handleMsgMhfEnumerateShop(s *Session, p mhfpacket.MHFPacket) {
 			doAckBufSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 		}
 	} else {
-		_, week := time.Now().ISOWeek()
-		season := fmt.Sprintf("%d", week%4)
-		shopEntries, err := s.server.db.Query("SELECT itemhash,itemID,Points,TradeQuantity,rankReqLow,rankReqHigh,rankReqG,storeLevelReq,maximumQuantity,boughtQuantity,roadFloorsRequired,weeklyFatalisKills, COALESCE(enable_weeks, '') FROM normal_shop_items WHERE shoptype=$1 AND shopid=$2", pkt.ShopType, pkt.ShopID)
+		shopEntries, err := s.server.db.Query("SELECT itemhash,itemID,Points,TradeQuantity,rankReqLow,rankReqHigh,rankReqG,storeLevelReq,maximumQuantity,boughtQuantity,roadFloorsRequired,weeklyFatalisKills FROM normal_shop_items WHERE shoptype=$1 AND shopid=$2", pkt.ShopType, pkt.ShopID)
 		if err != nil {
 			panic(err)
 		}
 		var ItemHash, entryCount int
 		var itemID, Points, TradeQuantity, rankReqLow, rankReqHigh, rankReqG, storeLevelReq, maximumQuantity, boughtQuantity, roadFloorsRequired, weeklyFatalisKills, charQuantity uint16
-		var itemWeeks string
 		resp := byteframe.NewByteFrame()
 		resp.WriteUint32(0) // total defs
 		for shopEntries.Next() {
-			err = shopEntries.Scan(&ItemHash, &itemID, &Points, &TradeQuantity, &rankReqLow, &rankReqHigh, &rankReqG, &storeLevelReq, &maximumQuantity, &boughtQuantity, &roadFloorsRequired, &weeklyFatalisKills, &itemWeeks)
+			err = shopEntries.Scan(&ItemHash, &itemID, &Points, &TradeQuantity, &rankReqLow, &rankReqHigh, &rankReqG, &storeLevelReq, &maximumQuantity, &boughtQuantity, &roadFloorsRequired, &weeklyFatalisKills)
 			if err != nil {
 				panic(err)
 			}
-
-			if len(itemWeeks) > 0 && !contains(strings.Split(itemWeeks, ","), season) {
-				continue
-			}
-
 			resp.WriteUint32(uint32(ItemHash))
 			resp.WriteUint16(0) // unk, always 0 in existing packets
 			resp.WriteUint16(itemID)
@@ -195,12 +174,8 @@ func handleMsgMhfEnumerateShop(s *Session, p mhfpacket.MHFPacket) {
 			resp.WriteUint16(storeLevelReq)
 			resp.WriteUint16(maximumQuantity)
 			if maximumQuantity > 0 {
-				var itemWeek int
-				err = s.server.db.QueryRow("SELECT COALESCE(usedquantity,0), COALESCE(week,-1) FROM shop_item_state WHERE itemhash=$1 AND char_id=$2", ItemHash, s.charID).Scan(&charQuantity, &itemWeek)
+				err = s.server.db.QueryRow("SELECT COALESCE(usedquantity,0) FROM shop_item_state WHERE itemhash=$1 AND char_id=$2", ItemHash, s.charID).Scan(&charQuantity)
 				if err != nil {
-					resp.WriteUint16(0)
-				} else if pkt.ShopID == 7 && itemWeek >= 0 && itemWeek != week {
-					clearShopItemState(s, s.charID, uint32(ItemHash))
 					resp.WriteUint16(0)
 				} else {
 					resp.WriteUint16(charQuantity)
@@ -224,7 +199,6 @@ func handleMsgMhfEnumerateShop(s *Session, p mhfpacket.MHFPacket) {
 }
 
 func handleMsgMhfAcquireExchangeShop(s *Session, p mhfpacket.MHFPacket) {
-	_, week := time.Now().ISOWeek()
 	// writing out to an editable shop enumeration
 	pkt := p.(*mhfpacket.MsgMhfAcquireExchangeShop)
 	if pkt.DataSize == 10 {
@@ -232,22 +206,15 @@ func handleMsgMhfAcquireExchangeShop(s *Session, p mhfpacket.MHFPacket) {
 		_ = bf.ReadUint16() // unk, always 1 in examples
 		itemHash := bf.ReadUint32()
 		buyCount := bf.ReadUint32()
-		_, err := s.server.db.Exec(`INSERT INTO shop_item_state (char_id, itemhash, usedquantity, week)
-  														 VALUES ($1,$2,$3,$4) ON CONFLICT (char_id, itemhash)
+		_, err := s.server.db.Exec(`INSERT INTO shop_item_state (char_id, itemhash, usedquantity)
+  														 VALUES ($1,$2,$3) ON CONFLICT (char_id, itemhash)
   														 DO UPDATE SET usedquantity = shop_item_state.usedquantity + $3
-  														 WHERE EXCLUDED.char_id=$1 AND EXCLUDED.itemhash=$2`, s.charID, itemHash, buyCount, week)
+  														 WHERE EXCLUDED.char_id=$1 AND EXCLUDED.itemhash=$2`, s.charID, itemHash, buyCount)
 		if err != nil {
 			s.logger.Fatal("Failed to update shop_item_state in db", zap.Error(err))
 		}
 	}
 	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
-}
-
-func clearShopItemState(s *Session, charId uint32, itemHash uint32) {
-	_, err := s.server.db.Exec(`DELETE FROM shop_item_state WHERE char_id=$1 AND itemhash=$2`, charId, itemHash)
-	if err != nil {
-		s.logger.Fatal("Failed to delete shop_item_state in db", zap.Error(err))
-	}
 }
 
 func handleMsgMhfGetGachaPlayHistory(s *Session, p mhfpacket.MHFPacket) {

@@ -11,7 +11,7 @@ import (
 type Config struct {
 	HostIP           string `mapstructure:"host_ip"`
 	BinPath          string `mapstructure:"bin_path"`
-	DisableSoftCrash bool
+	DisableSoftCrash bool   // Disables the 'Press Return to exit' dialog allowing scripts to reboot the server automatically
 	DevMode          bool
 
 	DevModeOptions DevModeOptions

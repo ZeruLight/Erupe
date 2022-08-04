@@ -36,6 +36,7 @@ type DevModeOptions struct {
 	FestaEvent          int    // Hunter's Festa event status
 	TournamentEvent     int    // VS Tournament event status
 	MezFesEvent         bool   // MezFes status
+	DisableTokenCheck   bool   // Disables checking login token exists in the DB (security risk!)
 	DisableMailItems    bool   // Hack to prevent english versions of MHF from crashing
 	SaveDumps           SaveDumpOptions
 }

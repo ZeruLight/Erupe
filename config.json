@@ -17,6 +17,7 @@
     "TournamentEvent": 0,
     "MezFesEvent": true,
     "DisableMailItems": true,
+    "DisableTokenCheck": false,
     "SaveDumps": {
       "Enabled": true,
       "OutputDir": "savedata"

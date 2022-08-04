@@ -19,6 +19,8 @@ import (
 	"go.uber.org/zap"
 )
 
+var erupeConfig *config.Config
+
 // Temporary DB auto clean on startup for quick development & testing.
 func cleanDB(db *sqlx.DB) {
 	_ = db.MustExec("DELETE FROM guild_characters")
@@ -29,6 +31,7 @@ func cleanDB(db *sqlx.DB) {
 }
 
 func main() {
+	var err error
 	zapLogger, _ := zap.NewDevelopment()
 	defer zapLogger.Sync()
 	logger := zapLogger.Named("main")
@@ -36,7 +39,7 @@ func main() {
 	logger.Info("Starting Erupe")
 
 	// Load the configuration.
-	erupeConfig, err := config.LoadConfig()
+	erupeConfig, err = config.LoadConfig()
 	if err != nil {
 		preventClose(fmt.Sprintf("Failed to load config: %s", err.Error()))
 	}
@@ -209,6 +212,9 @@ func wait() {
 }
 
 func preventClose(text string) {
+	if erupeConfig.DisableSoftCrash {
+		os.Exit(0)
+	}
 	fmt.Println("\nFailed to start Erupe:\n" + text)
 	go wait()
 	fmt.Println("\nPress Enter/Return to exit...")

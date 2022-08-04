@@ -1,6 +1,7 @@
 {
   "host_ip": "127.0.0.1",
   "bin_path": "bin",
+  "DisableSoftCrash": false,
   "devmode": true,
   "devmodeoptions": {
     "serverName" : "",

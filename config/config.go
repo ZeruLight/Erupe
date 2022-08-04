@@ -9,9 +9,10 @@ import (
 
 // Config holds the global server-wide config.
 type Config struct {
-	HostIP  string `mapstructure:"host_ip"`
-	BinPath string `mapstructure:"bin_path"`
-	DevMode bool
+	HostIP           string `mapstructure:"host_ip"`
+	BinPath          string `mapstructure:"bin_path"`
+	DisableSoftCrash bool
+	DevMode          bool
 
 	DevModeOptions DevModeOptions
 	Discord        Discord

@@ -106,7 +106,7 @@ func PaddedString(x string, size uint, t bool) []byte {
 		e := japanese.ShiftJIS.NewEncoder()
 		xt, _, err := transform.String(e, x)
 		if err != nil {
-			panic(err)
+			return make([]byte, 0)
 		}
 		x = xt
 	}

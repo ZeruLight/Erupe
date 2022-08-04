@@ -135,7 +135,7 @@ func handleMsgSysTerminalLog(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgSysLogin(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysLogin)
 
-	if s.server.erupeConfig.DevMode && !s.server.erupeConfig.DevModeOptions.DisableTokenCheck {
+	if !s.server.erupeConfig.DevModeOptions.DisableTokenCheck {
 		var token string
 		err := s.server.db.QueryRow("SELECT token FROM sign_sessions WHERE token=$1", pkt.LoginTokenString).Scan(&token)
 		if err != nil {

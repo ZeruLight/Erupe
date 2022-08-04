@@ -4,7 +4,11 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
+	"erupe-ce/common/stringsupport"
 	"fmt"
+	"io"
+	"net"
+	"strings"
 
 	"io/ioutil"
 	"math/bits"
@@ -341,10 +345,71 @@ func handleMsgSysRightsReload(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfTransitMessage(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfTransitMessage)
-	// TODO: figure out what this is supposed to return
-	// probably what world+land the targeted character is on?
-	// stubbed response will just say user not found
-	doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
+	// 1 -> CID
+	// 2 -> Name
+	// 4 -> Group
+	resp := byteframe.NewByteFrame()
+	resp.WriteUint16(0)
+	var count uint16
+	switch pkt.SearchType {
+	case 1:
+		bf := byteframe.NewByteFrameFromBytes(pkt.MessageData)
+		CharID := bf.ReadUint32()
+		for _, c := range s.server.Channels {
+			for _, session := range c.sessions {
+				if session.charID == CharID {
+					count++
+					sessionName := stringsupport.UTF8ToSJIS(session.Name)
+					sessionStage := stringsupport.UTF8ToSJIS(session.stageID)
+					resp.WriteUint32(binary.LittleEndian.Uint32(net.ParseIP(c.IP).To4()))
+					resp.WriteUint16(c.Port)
+					resp.WriteUint32(session.charID)
+					resp.WriteBool(true)
+					resp.WriteUint8(uint8(len(sessionName) + 1))
+					resp.WriteUint16(0x180) // lenUserBinary
+					resp.WriteBytes(make([]byte, 40))
+					resp.WriteUint8(uint8(len(sessionStage) + 1))
+					resp.WriteBytes(make([]byte, 8))
+					resp.WriteNullTerminatedBytes(sessionName)
+					resp.WriteBytes(c.userBinaryParts[userBinaryPartID{charID: session.charID, index: 3}])
+					resp.WriteNullTerminatedBytes(sessionStage)
+				}
+			}
+		}
+	case 2:
+		bf := byteframe.NewByteFrameFromBytes(pkt.MessageData)
+		bf.ReadUint16() // lenSearchTerm
+		bf.ReadUint16() // maxResults
+		bf.ReadUint8()  // Unk
+		searchTerm := stringsupport.SJISToUTF8(bf.ReadNullTerminatedBytes())
+		for _, c := range s.server.Channels {
+			for _, session := range c.sessions {
+				if count == 100 {
+					break
+				}
+				if strings.Contains(session.Name, searchTerm) {
+					count++
+					sessionName := stringsupport.UTF8ToSJIS(session.Name)
+					sessionStage := stringsupport.UTF8ToSJIS(session.stageID)
+					resp.WriteUint32(binary.LittleEndian.Uint32(net.ParseIP(c.IP).To4()))
+					resp.WriteUint16(c.Port)
+					resp.WriteUint32(session.charID)
+					resp.WriteBool(true)
+					resp.WriteUint8(uint8(len(sessionName) + 1))
+					resp.WriteUint16(0x180) // lenUserBinary
+					resp.WriteBytes(make([]byte, 40))
+					resp.WriteUint8(uint8(len(sessionStage) + 1))
+					resp.WriteBytes(make([]byte, 8))
+					resp.WriteNullTerminatedBytes(sessionName)
+					resp.WriteBytes(c.userBinaryParts[userBinaryPartID{charID: session.charID, index: 3}])
+					resp.WriteNullTerminatedBytes(sessionStage)
+				}
+			}
+		}
+	}
+	resp.Seek(0, io.SeekStart)
+	resp.WriteUint16(count)
+	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
 }
 
 func handleMsgCaExchangeItem(s *Session, p mhfpacket.MHFPacket) {}

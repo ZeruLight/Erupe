@@ -128,7 +128,7 @@ func (s *Session) makeSignInResp(uid int) []byte {
 	bf.WriteUint32(0x0A5197DF)
 
 	mezfes := s.server.erupeConfig.DevModeOptions.MezFesEvent
-	alt := false
+	alt := s.server.erupeConfig.DevModeOptions.MezFesAlt
 	if mezfes {
 		// Start time
 		bf.WriteUint32(uint32(channelserver.Time_Current_Adjusted().Add(-5 * time.Minute).Unix()))

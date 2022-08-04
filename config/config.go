@@ -9,8 +9,8 @@ import (
 
 // Config holds the global server-wide config.
 type Config struct {
-	HostIP           string `mapstructure:"host_ip"`
-	BinPath          string `mapstructure:"bin_path"`
+	Host             string `mapstructure:"Host"`
+	BinPath          string `mapstructure:"BinPath"`
 	DisableSoftCrash bool   // Disables the 'Press Return to exit' dialog allowing scripts to reboot the server automatically
 	DevMode          bool
 
@@ -140,8 +140,8 @@ func LoadConfig() (*Config, error) {
 		return nil, err
 	}
 
-	if c.HostIP == "" {
-		c.HostIP = getOutboundIP4().To4().String()
+	if c.Host == "" {
+		c.Host = getOutboundIP4().To4().String()
 	}
 
 	return c, nil

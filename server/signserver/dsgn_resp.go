@@ -47,7 +47,7 @@ func (s *Session) makeSignInResp(uid int) []byte {
 	bf.WriteUint32(0xFFFFFFFF)                // login_token_number
 	bf.WriteBytes([]byte(token))              // login_token
 	bf.WriteUint32(uint32(time.Now().Unix())) // current time
-	ps.Uint8(bf, fmt.Sprintf("%s:%d", s.server.erupeConfig.HostIP, s.server.erupeConfig.Entrance.Port), false)
+	ps.Uint8(bf, fmt.Sprintf("%s:%d", s.server.erupeConfig.Host, s.server.erupeConfig.Entrance.Port), false)
 
 	lastPlayed := uint32(0)
 	for _, char := range chars {

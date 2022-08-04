@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"math/rand"
+	"net"
 	"os"
 	"os/signal"
 	"syscall"
@@ -46,6 +47,19 @@ func main() {
 
 	if erupeConfig.Database.Password == "" {
 		preventClose("Database password is blank")
+	}
+
+	if net.ParseIP(erupeConfig.Host) == nil {
+		ips, _ := net.LookupIP(erupeConfig.Host)
+		for _, ip := range ips {
+			if ip != nil {
+				erupeConfig.Host = ip.String()
+				break
+			}
+		}
+		if net.ParseIP(erupeConfig.Host) == nil {
+			preventClose("Invalid host address")
+		}
 	}
 
 	// Discord bot

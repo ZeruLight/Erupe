@@ -1,6 +1,6 @@
 {
-  "host_ip": "127.0.0.1",
-  "bin_path": "bin",
+  "Host": "127.0.0.1",
+  "BinPath": "bin",
   "DisableSoftCrash": false,
   "devmode": true,
   "devmodeoptions": {

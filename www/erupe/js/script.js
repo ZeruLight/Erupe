@@ -1,5 +1,6 @@
 var __mhf_launcher = {};
 var loginScreen = true;
+var loggingIn = false;
 var doingAuto = false;
 var uids;
 var selectedUid;
@@ -259,6 +260,11 @@ function switchPrompt() {
 }
 
 function doLogin(option) {
+  if (loggingIn) {
+    return;
+  } else {
+    loggingIn = true;
+  }
   let username = document.getElementById('username').value;
   let password = document.getElementById('password').value;
   if (username == '') {
@@ -289,6 +295,7 @@ function checkAuth() {
     setTimeout(checkAuth, 10);
     return;
   } else if (loginResult == 'AUTH_SUCCESS') {
+    loggingIn = false;
     saveAccount();
     addLog('Connected.', 'good');
     if (doingAuto) {
@@ -300,6 +307,7 @@ function checkAuth() {
       switchPrompt();
 		}
   } else {
+    loggingIn = false;
     addLog('Error logging in: '+loginResult+':'+window.external.getSignResult(), 'error');
   }
   document.getElementById('processing').style.display = 'none';
@@ -479,8 +487,26 @@ function doEval() {
 
 function init() {
   document.addEventListener('keypress', function(e) {
-    if (e.key == '~') {
-      document.getElementById('dev').style.display = 'block';
+    switch (e.key) {
+      case '~':
+        document.getElementById('dev').style.display = 'block';
+        break;
+      case 'Enter':
+        if (loginScreen) {
+          doLogin()
+        } else {
+          soundLogin();launch()
+        }
+        break;
+      case ',':
+        if (!loginScreen) {
+          soundOk();charselScrollUp()
+        }
+        break;
+      case '.':
+        if (!loginScreen) {
+          soundOk();charselScrollDown()
+        }
     }
   });
   let unselectable = document.getElementsByClassName('unselectable');

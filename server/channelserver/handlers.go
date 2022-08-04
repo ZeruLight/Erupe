@@ -135,19 +135,18 @@ func handleMsgSysTerminalLog(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgSysLogin(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysLogin)
 
-	rights := uint32(0x0E)
-	// 0e with normal sub 4e when having premium
-	// 01 = Character can take quests at allows
-	// 02 = Hunter Life, normal quests core sub
-	// 03 = Extra Course, extra quests, town boxes, QOL course, core sub
-	// 06 = Premium Course, standard 'premium' which makes ranking etc. faster
-	// 06 0A 0B = Boost Course, just actually 3 subs combined
-	// 08 09 1E = N Course, gives you the benefits of being in a netcafe (extra quests, N Points, daily freebies etc.) minimal and pointless
-	// 0C = N Boost course, ultra luxury course that ruins the game if in use
-	err := s.server.db.QueryRow("SELECT rights FROM users u INNER JOIN characters c ON u.id = c.user_id WHERE c.id = $1", pkt.CharID0).Scan(&rights)
-	if err != nil {
-		panic(err)
+	if !s.server.erupeConfig.DevModeOptions.DisableTokenCheck {
+		var token string
+		err := s.server.db.QueryRow("SELECT token FROM sign_sessions WHERE token=$1", pkt.LoginTokenString).Scan(&token)
+		if err != nil {
+			s.rawConn.Close()
+			s.logger.Warn(fmt.Sprintf("Invalid login token, offending CID: (%d)", pkt.CharID0))
+			return
+		}
 	}
+
+	rights := uint32(0x0E)
+	s.server.db.QueryRow("SELECT rights FROM users u INNER JOIN characters c ON u.id = c.user_id WHERE c.id = $1", pkt.CharID0).Scan(&rights)
 
 	s.Lock()
 	s.charID = pkt.CharID0
@@ -157,7 +156,7 @@ func handleMsgSysLogin(s *Session, p mhfpacket.MHFPacket) {
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint32(uint32(Time_Current_Adjusted().Unix())) // Unix timestamp
 
-	_, err = s.server.db.Exec("UPDATE servers SET current_players=$1 WHERE server_id=$2", len(s.server.sessions), s.server.ID)
+	_, err := s.server.db.Exec("UPDATE servers SET current_players=$1 WHERE server_id=$2", len(s.server.sessions), s.server.ID)
 	if err != nil {
 		panic(err)
 	}

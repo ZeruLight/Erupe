@@ -21,7 +21,7 @@ func handleMsgMhfPostGuildScout(s *Session, p mhfpacket.MHFPacket) {
 		panic(err)
 	}
 
-	if actorCharGuildData == nil || !actorCharGuildData.IsRecruiter() {
+	if actorCharGuildData == nil || !actorCharGuildData.Recruiter {
 		doAckBufFail(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
@@ -104,7 +104,7 @@ func handleMsgMhfCancelGuildScout(s *Session, p mhfpacket.MHFPacket) {
 		panic(err)
 	}
 
-	if guildCharData == nil || !guildCharData.IsRecruiter() {
+	if guildCharData == nil || !guildCharData.Recruiter {
 		doAckBufFail(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
@@ -190,13 +190,15 @@ func handleMsgMhfGetGuildScoutList(s *Session, p mhfpacket.MHFPacket) {
 
 	guildInfo, err := GetGuildInfoByCharacterId(s, s.charID)
 
-	if err != nil {
-		panic(err)
-	}
-
-	if guildInfo == nil {
+	if guildInfo == nil && s.prevGuildID == 0 {
 		doAckSimpleFail(s, pkt.AckHandle, nil)
 		return
+	} else {
+		guildInfo, err = GetGuildInfoByID(s, s.prevGuildID)
+		if guildInfo == nil || err != nil {
+			doAckSimpleFail(s, pkt.AckHandle, nil)
+			return
+		}
 	}
 
 	rows, err := s.server.db.Queryx(`

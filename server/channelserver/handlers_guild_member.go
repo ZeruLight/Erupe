@@ -16,6 +16,7 @@ type GuildMember struct {
 	IsApplicant     bool       `db:"is_applicant"`
 	OrderIndex      uint8      `db:"order_index"`
 	LastLogin       uint32     `db:"last_login"`
+	Recruiter       bool       `db:"recruiter"`
 	AvoidLeadership bool       `db:"avoid_leadership"`
 	IsLeader        bool       `db:"is_leader"`
 	HRP             uint16     `db:"hrp"`
@@ -43,36 +44,33 @@ func (gm *GuildMember) Save(s *Session) error {
 	return nil
 }
 
-//TODO add the recruiter permission to this check when it exists
-func (gm *GuildMember) IsRecruiter() bool {
-	return gm.IsLeader || gm.IsSubLeader()
-}
-
 const guildMembersSelectSQL = `
-SELECT g.id as guild_id,
-       joined_at,
-       c.name,
-       character.character_id,
-       coalesce(gc.order_index, 0) as order_index,
-       c.last_login,
-       coalesce(gc.avoid_leadership, false) as avoid_leadership,
-			 c.hrp,
-			 c.gr,
-			 c.weapon_id,
-			 c.weapon_type,
-       character.is_applicant,
-       CASE WHEN g.leader_id = c.id THEN 1 ELSE 0 END as is_leader
-FROM (
-         SELECT character_id, true as is_applicant, guild_id
-         FROM guild_applications ga
-         WHERE ga.application_type = 'applied'
-         UNION
-         SELECT character_id, false as is_applicant, guild_id
-         FROM guild_characters gc
-     ) character
-         JOIN characters c on character.character_id = c.id
-         LEFT JOIN guild_characters gc ON gc.character_id = character.character_id
-         JOIN guilds g ON g.id = character.guild_id
+SELECT
+	g.id as guild_id,
+	joined_at,
+	c.name,
+	character.character_id,
+	coalesce(gc.order_index, 0) as order_index,
+	c.last_login,
+	coalesce(gc.recruiter, false) as recruiter,
+	coalesce(gc.avoid_leadership, false) as avoid_leadership,
+	c.hrp,
+	c.gr,
+	c.weapon_id,
+	c.weapon_type,
+	character.is_applicant,
+	CASE WHEN g.leader_id = c.id THEN 1 ELSE 0 END as is_leader
+	FROM (
+		SELECT character_id, true as is_applicant, guild_id
+		FROM guild_applications ga
+		WHERE ga.application_type = 'applied'
+		UNION
+		SELECT character_id, false as is_applicant, guild_id
+		FROM guild_characters gc
+	) character
+	JOIN characters c on character.character_id = c.id
+	LEFT JOIN guild_characters gc ON gc.character_id = character.character_id
+	JOIN guilds g ON g.id = character.guild_id
 `
 
 func GetGuildMembers(s *Session, guildID uint32, applicants bool) ([]*GuildMember, error) {

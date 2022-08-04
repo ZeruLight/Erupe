@@ -12,7 +12,7 @@ import (
 func serverList(s *Server, w http.ResponseWriter, r *http.Request) {
 	fmt.Fprintf(w,
 		`<?xml version="1.0"?><server_groups><group idx='0' nam='Erupe' ip='%s' port="%d"/></server_groups>`,
-		s.erupeConfig.HostIP,
+		s.erupeConfig.Host,
 		s.erupeConfig.Sign.Port,
 	)
 }

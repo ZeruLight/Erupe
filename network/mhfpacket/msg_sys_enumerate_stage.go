@@ -11,9 +11,9 @@ import (
 
 // MsgSysEnumerateStage represents the MSG_SYS_ENUMERATE_STAGE
 type MsgSysEnumerateStage struct {
-	AckHandle uint32
-	Unk0      uint8  // Hardcoded 1 in the binary
-	StageID   string // NULL terminated string.
+	AckHandle   uint32
+	Unk0        uint8  // Hardcoded 1 in the binary
+	StagePrefix string // NULL terminated string.
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -26,7 +26,7 @@ func (m *MsgSysEnumerateStage) Parse(bf *byteframe.ByteFrame, ctx *clientctx.Cli
 	m.AckHandle = bf.ReadUint32()
 	m.Unk0 = bf.ReadUint8()
 	bf.ReadUint8()
-	m.StageID = stringsupport.SJISToUTF8(bf.ReadNullTerminatedBytes())
+	m.StagePrefix = stringsupport.SJISToUTF8(bf.ReadNullTerminatedBytes())
 	return nil
 }
 

@@ -369,7 +369,7 @@ func handleMsgSysEnumerateStage(s *Session, p mhfpacket.MHFPacket) {
 			continue
 		}
 
-		if !strings.Contains(stage.id, pkt.StageID) {
+		if !strings.Contains(stage.id, pkt.StagePrefix) {
 			continue
 		}
 

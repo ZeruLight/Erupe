@@ -2,6 +2,7 @@ package channelserver
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"erupe-ce/common/byteframe"
@@ -198,22 +199,24 @@ func handleMsgSysLeaveStage(s *Session, p mhfpacket.MHFPacket) {}
 func handleMsgSysLockStage(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysLockStage)
 	// TODO(Andoryuuta): What does this packet _actually_ do?
+	// I think this is supposed to mark a stage as no longer able to accept client reservations
 	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
 func handleMsgSysUnlockStage(s *Session, p mhfpacket.MHFPacket) {
-	s.reservationStage.RLock()
-	defer s.reservationStage.RUnlock()
+	if s.reservationStage != nil {
+		s.reservationStage.RLock()
+		defer s.reservationStage.RUnlock()
 
-	for charID := range s.reservationStage.reservedClientSlots {
-		session := s.server.FindSessionByCharID(charID)
-		session.QueueSendMHF(&mhfpacket.MsgSysStageDestruct{})
+		for charID := range s.reservationStage.reservedClientSlots {
+			session := s.server.FindSessionByCharID(charID)
+			session.QueueSendMHF(&mhfpacket.MsgSysStageDestruct{})
+		}
+
+		delete(s.server.stages, s.reservationStage.id)
 	}
 
-	s.server.Lock()
-	defer s.server.Unlock()
-
-	delete(s.server.stages, s.reservationStage.id)
+	destructEmptyStages(s)
 }
 
 func handleMsgSysReserveStage(s *Session, p mhfpacket.MHFPacket) {
@@ -366,8 +369,7 @@ func handleMsgSysEnumerateStage(s *Session, p mhfpacket.MHFPacket) {
 			continue
 		}
 
-		// Check for valid stage type
-		if sid[3:5] != "Qs" && sid[3:5] != "Ms" && sid[3:5] != "Ls" {
+		if !strings.Contains(stage.id, pkt.StageID) {
 			continue
 		}
 

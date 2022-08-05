@@ -2,6 +2,7 @@ package channelserver
 
 import (
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -59,15 +60,42 @@ func handleMsgMhfSaveFavoriteQuest(s *Session, p mhfpacket.MHFPacket) {
 }
 
 func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
-	// local files are easier for now, probably best would be to generate dynamically
 	pkt := p.(*mhfpacket.MsgMhfEnumerateQuest)
-	data, err := ioutil.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("questlists/list_%d.bin", pkt.QuestList)))
+	var totalCount, returnedCount uint16
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint16(0)
+	files, err := ioutil.ReadDir(fmt.Sprintf("%s/events/", s.server.erupeConfig.BinPath))
 	if err != nil {
-		fmt.Printf("questlists/list_%d.bin", pkt.QuestList)
 		stubEnumerateNoResults(s, pkt.AckHandle)
+		return
 	} else {
-		doAckBufSucceed(s, pkt.AckHandle, data)
+		for _, file := range files {
+			data, err := ioutil.ReadFile(fmt.Sprintf("%s/events/%s", s.server.erupeConfig.BinPath, file.Name()))
+			if err != nil {
+				continue
+			} else {
+				if len(data) > 850 || len(data) < 400 {
+					continue // Could be more or less strict with size limits
+				} else {
+					totalCount++
+					if totalCount > pkt.Offset && len(bf.Data()) < 64000 {
+						returnedCount++
+						bf.WriteBytes(data)
+					}
+				}
+			}
+		}
 	}
+	bf.WriteUint16(0) // Unk
+	bf.WriteUint16(0) // Unk
+	bf.WriteUint16(0) // Unk
+	bf.WriteUint32(0) // Unk
+	bf.WriteUint16(0) // Unk
+	bf.WriteUint16(totalCount)
+	bf.WriteUint16(pkt.Offset)
+	bf.Seek(0, io.SeekStart)
+	bf.WriteUint16(returnedCount)
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfEnterTournamentQuest(s *Session, p mhfpacket.MHFPacket) {}

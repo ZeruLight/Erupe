@@ -180,7 +180,13 @@ func main() {
 				DB:          db,
 				DiscordBot:  discordBot,
 			})
-			err = c.Start(int(ce.Port))
+			if ee.IP == "" {
+				c.IP = erupeConfig.Host
+			} else {
+				c.IP = ee.IP
+			}
+			c.Port = ce.Port
+			err = c.Start()
 			if err != nil {
 				preventClose(fmt.Sprintf("Failed to start channel server: %s", err.Error()))
 			} else {

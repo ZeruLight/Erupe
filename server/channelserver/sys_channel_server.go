@@ -54,6 +54,8 @@ type Server struct {
 	sync.Mutex
 	Channels       []*Server
 	ID             uint16
+	IP             string
+	Port           uint16
 	logger         *zap.Logger
 	db             *sqlx.DB
 	erupeConfig    *config.Config
@@ -196,8 +198,8 @@ func NewServer(config *Config) *Server {
 }
 
 // Start starts the server in a new goroutine.
-func (s *Server) Start(port int) error {
-	l, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+func (s *Server) Start() error {
+	l, err := net.Listen("tcp", fmt.Sprintf(":%d", s.Port))
 	if err != nil {
 		return err
 	}

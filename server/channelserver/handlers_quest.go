@@ -64,27 +64,32 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 	var totalCount, returnedCount uint16
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint16(0)
-	files, err := ioutil.ReadDir(fmt.Sprintf("%s/events/", s.server.erupeConfig.BinPath))
-	if err != nil {
-		stubEnumerateNoResults(s, pkt.AckHandle)
-		return
-	} else {
-		for _, file := range files {
-			data, err := ioutil.ReadFile(fmt.Sprintf("%s/events/%s", s.server.erupeConfig.BinPath, file.Name()))
-			if err != nil {
-				continue
+	err := filepath.Walk(fmt.Sprintf("%s/events/", s.server.erupeConfig.BinPath), func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		} else if info.IsDir() {
+			return nil
+		}
+		data, err := ioutil.ReadFile(path)
+		if err != nil {
+			return err
+		} else {
+			if len(data) > 850 || len(data) < 400 {
+				return nil // Could be more or less strict with size limits
 			} else {
-				if len(data) > 850 || len(data) < 400 {
-					continue // Could be more or less strict with size limits
-				} else {
-					totalCount++
-					if totalCount > pkt.Offset && len(bf.Data()) < 64000 {
-						returnedCount++
-						bf.WriteBytes(data)
-					}
+				totalCount++
+				if totalCount > pkt.Offset && len(bf.Data()) < 64000 {
+					returnedCount++
+					bf.WriteBytes(data)
+					return nil
 				}
 			}
 		}
+		return nil
+	})
+	if err != nil || totalCount == 0 {
+		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 18))
+		return
 	}
 	bf.WriteUint16(0) // Unk
 	bf.WriteUint16(0) // Unk

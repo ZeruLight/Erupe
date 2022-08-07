@@ -1,0 +1,88 @@
+{
+  "Host": "127.0.0.1",
+  "BinPath": "bin",
+  "DisableSoftCrash": false,
+  "devmode": true,
+  "devmodeoptions": {
+    "serverName" : "",
+    "hideLoginNotice": false,
+    "loginNotice": "<BODY><CENTER><SIZE_3><C_4>Welcome to Erupe SU9 (Patch 1)!<BR><BODY><LEFT><SIZE_2><C_5>Erupe is experimental software<C_7>, we are not liable for any<BR><BODY>issues caused by installing the software!<BR><BODY><BR><BODY><C_4>■Report bugs on Discord!<C_7><BR><BODY><BR><BODY><C_4>■Test everything!<C_7><BR><BODY><BR><BODY><C_4>■Don't talk to softlocking NPCs!<C_7><BR><BODY><BR><BODY><C_4>■Fork the code on GitHub!<C_7><BR><BODY><BR><BODY>Thank you to all of the contributors,<BR><BODY><BR><BODY>this wouldn't exist without you.",
+    "cleandb": false,
+    "maxlauncherhr": false,
+    "LogInboundMessages": false,
+    "LogOutboundMessages": false,
+    "MaxHexdumpLength": 256,
+    "Event": 0,
+    "DivaEvent": 0,
+    "FestaEvent": 0,
+    "TournamentEvent": 0,
+    "MezFesEvent": true,
+    "MezFesAlt": false,
+    "DisableMailItems": true,
+    "DisableTokenCheck": false,
+    "SaveDumps": {
+      "Enabled": true,
+      "OutputDir": "savedata"
+    }
+  },
+  "discord": {
+    "enabled": false,
+    "bottoken": "",
+    "realtimeChannelID": "",
+    "serverId": "",
+    "devRoles": [],
+    "devMode": false
+  },
+  "database": {
+    "host": "localhost",
+    "port": 5432,
+    "user": "postgres",
+    "password": "",
+    "database": "erupe"
+  },
+  "launcher": {
+    "port": 80,
+    "UseOriginalLauncherFiles": false
+  },
+  "sign": {
+    "port": 53312
+  },
+  "entrance": {
+    "port": 53310,
+    "entries": [
+      {
+        "name": "Newbie", "description": "", "ip": "", "type": 3, "recommended": 2, "allowedclientflags": 0,
+        "channels": [
+          { "port": 54001, "MaxPlayers": 100 },
+          { "port": 54002, "MaxPlayers": 100 }
+        ]
+      }, {
+        "name": "Normal", "description": "", "ip": "", "type": 1, "recommended": 0, "allowedclientflags": 0,
+        "channels": [
+          { "port": 54003, "MaxPlayers": 100 },
+          { "port": 54004, "MaxPlayers": 100 }
+        ]
+      }, {
+        "name": "Cities", "description": "", "ip": "", "type": 2, "recommended": 0, "allowedclientflags": 0,
+        "channels": [
+          { "port": 54005, "MaxPlayers": 100 }
+        ]
+      }, {
+        "name": "Tavern", "description": "", "ip": "", "type": 4, "recommended": 0, "allowedclientflags": 0,
+        "channels": [
+          { "port": 54006, "MaxPlayers": 100 }
+        ]
+      }, {
+        "name": "Return", "description": "", "ip": "", "type": 5, "recommended": 0, "allowedclientflags": 0,
+        "channels": [
+          { "port": 54007, "MaxPlayers": 100 }
+        ]
+      }, {
+        "name": "MezFes", "description": "", "ip": "", "type": 6, "recommended": 6, "allowedclientflags": 0,
+        "channels": [
+          { "port": 54008, "MaxPlayers": 100 }
+        ]
+      }
+    ]
+  }
+}

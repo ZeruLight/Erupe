@@ -1,10 +1,10 @@
-name: Erupe
+name: Build
 
 on: [push]
 
 jobs:
   build:
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     
     steps:
     - uses: actions/checkout@v3
@@ -14,14 +14,32 @@ jobs:
       with:
         go-version: 1.18
 
-    - name: Build
-      run: cd Erupe && go build -v
+    - name: Build Linux-amd64
+      run: env GOOS=linux GOARCH=amd64 go build -v
         
-    - name: Upload artifacts
+    - name: Upload Linux-amd64 artifacts
       uses: actions/upload-artifact@v3
       with:
-        name: Erupe
+        name: Linux-amd64
         path: |
-          ./Erupe/erupe-ce.exe
-          ./Erupe/config.json
-          ./Erupe/www/
+          ./erupe-ce
+          ./config.json
+          ./www/
+          ./savedata/
+          ./bin/
+          ./RoadShopItems.csv
+
+    - name: Build Windows-amd64
+      run: env GOOS=windows GOARCH=amd64 go build -v
+      
+    - name: Upload Windows-amd64 artifacts
+      uses: actions/upload-artifact@v3
+      with:
+        name: Windows-amd64
+        path: |
+          ./erupe-ce.exe
+          ./config.json
+          ./www/
+          ./savedata/
+          ./bin/
+          ./RoadShopItems.csv

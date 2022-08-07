@@ -2,7 +2,7 @@ BEGIN;
 
 CREATE TABLE IF NOT EXISTS public.achievements
 (
-    id int NOT NULL,
+    id int NOT NULL PRIMARY KEY ,
     ach0 int DEFAULT 0,
     ach1 int DEFAULT 0,
     ach2 int DEFAULT 0,

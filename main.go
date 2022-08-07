@@ -168,9 +168,6 @@ func main() {
 	ci := 0
 	count := 1
 	for _, ee := range erupeConfig.Entrance.Entries {
-		rand.Seed(time.Now().UnixNano())
-		// Randomly generate a season for the World
-		season := rand.Intn(3) + 1
 		for _, ce := range ee.Channels {
 			sid := (4096 + si*256) + (16 + ci)
 			c := *channelserver.NewServer(&channelserver.Config{
@@ -190,7 +187,7 @@ func main() {
 			if err != nil {
 				preventClose(fmt.Sprintf("Failed to start channel server: %s", err.Error()))
 			} else {
-				channelQuery += fmt.Sprintf("INSERT INTO servers (server_id, season, current_players) VALUES (%d, %d, 0);", sid, season)
+				channelQuery += fmt.Sprintf("INSERT INTO servers (server_id, season, current_players) VALUES (%d, %d, 0);", sid, si%3)
 				channels = append(channels, &c)
 				logger.Info(fmt.Sprintf("Started channel server %d on port %d", count, ce.Port))
 				ci++

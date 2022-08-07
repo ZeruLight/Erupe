@@ -12,7 +12,7 @@ var achievementCurves = [][]int32{
 	// 0: HR weapon use, Class use, Tore dailies
 	{5, 15, 30, 50, 100, 150, 200, 300},
 	// 1: Weapon collector, G wep enhances
-	{1, 3, 5, 15, 30, 50, 75, 100},
+	{1, 5, 10, 15, 30, 50, 75, 100},
 	// 2: Festa wins
 	{1, 2, 3, 4, 5, 6, 7, 8},
 	// 3: GR weapon use, Sigil crafts

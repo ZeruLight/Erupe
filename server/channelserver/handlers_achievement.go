@@ -123,7 +123,7 @@ func handleMsgMhfGetAchievement(s *Session, p mhfpacket.MHFPacket) {
 		resp.WriteUint8(achData.Level)
 		resp.WriteUint16(achData.NextValue)
 		resp.WriteUint32(achData.Required)
-		resp.WriteBool(false) // level increased notification
+		resp.WriteBool(false) // TODO: Notify on rank increase since last checked, see MhfDisplayedAchievement
 		resp.WriteUint8(achData.Trophy)
 		/* Trophy bitfield
 		0000 0000
@@ -157,7 +157,9 @@ func handleMsgMhfAddAchievement(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfPaymentAchievement(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfDisplayedAchievement(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfDisplayedAchievement(s *Session, p mhfpacket.MHFPacket) {
+	// This is how you would figure out if the rank-up notification needs to occur
+}
 
 func handleMsgMhfGetCaAchievementHist(s *Session, p mhfpacket.MHFPacket) {}
 

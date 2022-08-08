@@ -16,6 +16,7 @@ import (
 const (
 	BinaryMessageTypeState      = 0
 	BinaryMessageTypeChat       = 1
+	BinaryMessageTypeData       = 3
 	BinaryMessageTypeMailNotify = 4
 	BinaryMessageTypeEmote      = 6
 )
@@ -163,6 +164,17 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 		chatMessage.Parse(bf)
 
 		fmt.Printf("Got chat message: %+v\n", chatMessage)
+
+		if strings.HasPrefix(chatMessage.Message, "!test ") {
+			var x uint32
+			n, err := fmt.Sscanf(chatMessage.Message, "!test %d", &x)
+			if err != nil || n != 1 {
+				sendServerChatMessage(s, "Invalid command. Usage:\"!test X\"")
+			} else {
+				s.test = x
+				sendServerChatMessage(s, fmt.Sprintf("Set value to %d", x))
+			}
+		}
 
 		// Set account rights
 		if strings.HasPrefix(chatMessage.Message, "!rights") {

@@ -142,34 +142,30 @@ func handleMsgMhfCreateMercenary(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfSaveMercenary(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSaveMercenary)
-	bf := byteframe.NewByteFrameFromBytes(pkt.RawDataPayload)
-	GCP := bf.ReadUint32()
-	_ = bf.ReadUint32() // unk
-	MercDataSize := bf.ReadUint32()
-	MercData := bf.ReadBytes(uint(MercDataSize))
-	_ = bf.ReadUint32() // unk
-
-	if MercDataSize > 0 {
-		s.server.db.Exec("UPDATE characters SET savemercenary=$1 WHERE id=$2", MercData[:MercDataSize], s.charID)
+	if len(pkt.MercData) > 0 {
+		s.server.db.Exec("UPDATE characters SET savemercenary=$1 WHERE id=$2", pkt.MercData, s.charID)
 	}
-	s.server.db.Exec("UPDATE characters SET gcp=$1 WHERE id=$2", GCP, s.charID)
+	s.server.db.Exec("UPDATE characters SET gcp=$1 WHERE id=$2", pkt.GCP, s.charID)
 	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
 func handleMsgMhfReadMercenaryW(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfReadMercenaryW)
+	if pkt.Unk0 {
+		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 2))
+		return
+	}
 	var data []byte
 	var gcp uint32
 	s.server.db.QueryRow("SELECT savemercenary FROM characters WHERE id = $1", s.charID).Scan(&data)
 	s.server.db.QueryRow("SELECT COALESCE(gcp, 0) FROM characters WHERE id = $1", s.charID).Scan(&gcp)
 
 	resp := byteframe.NewByteFrame()
-	resp.WriteUint16(0)
 	if len(data) == 0 {
-		resp.WriteBool(false)
+		resp.WriteBytes(make([]byte, 3))
 	} else {
-		resp.WriteBool(true)
-		resp.WriteBytes(data)
+		resp.WriteBytes(data[1:])
+		resp.WriteUint32(0) // Unk
 	}
 	resp.WriteUint32(gcp)
 	doAckBufSucceed(s, pkt.AckHandle, resp.Data())

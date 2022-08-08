@@ -119,7 +119,7 @@ func handleMsgSysCreateAcquireSemaphore(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint32(newSemaphore.id)
 		doAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
 	} else {
-		doAckSimpleFail(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+		doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 	}
 }
 

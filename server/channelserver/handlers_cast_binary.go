@@ -165,17 +165,6 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 
 		fmt.Printf("Got chat message: %+v\n", chatMessage)
 
-		if strings.HasPrefix(chatMessage.Message, "!test ") {
-			var x uint32
-			n, err := fmt.Sscanf(chatMessage.Message, "!test %d", &x)
-			if err != nil || n != 1 {
-				sendServerChatMessage(s, "Invalid command. Usage:\"!test X\"")
-			} else {
-				s.test = x
-				sendServerChatMessage(s, fmt.Sprintf("Set value to %d", x))
-			}
-		}
-
 		// Set account rights
 		if strings.HasPrefix(chatMessage.Message, "!rights") {
 			var v uint32

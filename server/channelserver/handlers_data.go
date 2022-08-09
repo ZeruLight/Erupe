@@ -71,8 +71,8 @@ func handleMsgMhfSavedata(s *Session, p mhfpacket.MHFPacket) {
 	s.myseries.toreData = decompressedData[130228:130468]    // 0x1FCB4 + 240
 	s.myseries.gardenData = decompressedData[142424:142492]  // 0x22C58 + 68
 
-	isMale := uint8(decompressedData[80]) // 0x50
-	if isMale == 1 {
+	isFemale := decompressedData[81] // 0x51
+	if isFemale == 1 {
 		_, err = s.server.db.Exec("UPDATE characters SET is_female=true WHERE id=$1", s.charID)
 	} else {
 		_, err = s.server.db.Exec("UPDATE characters SET is_female=false WHERE id=$1", s.charID)

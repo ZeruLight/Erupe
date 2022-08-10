@@ -6,6 +6,8 @@ import (
 	"erupe-ce/common/stringsupport"
 	"erupe-ce/network/mhfpacket"
 	"go.uber.org/zap"
+	"io"
+	"time"
 )
 
 func handleMsgMhfUpdateInterior(s *Session, p mhfpacket.MHFPacket) {
@@ -291,24 +293,52 @@ func handleMsgMhfSaveDecoMyset(s *Session, p mhfpacket.MHFPacket) {
 	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
+type Title struct {
+	ID       uint16    `db:"id"`
+	Acquired time.Time `db:"unlocked_at"`
+	Updated  time.Time `db:"updated_at"`
+}
+
 func handleMsgMhfEnumerateTitle(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateTitle)
+	var count uint16
 	bf := byteframe.NewByteFrame()
-	if pkt.CharID == 0 {
-		titleCount := 114                  // all titles unlocked
-		bf.WriteUint16(uint16(titleCount)) // title count
-		bf.WriteUint16(0)                  // unk
-		for i := 0; i < titleCount; i++ {
-			bf.WriteUint16(uint16(i))
-			bf.WriteUint16(0) // unk
-			bf.WriteUint32(0) // timestamp acquired
-			bf.WriteUint32(0) // timestamp updated
-		}
-	} else {
-		bf.WriteUint16(0)
+	bf.WriteUint16(0)
+	bf.WriteUint16(0) // Unk
+	rows, err := s.server.db.Queryx("SELECT id, unlocked_at, updated_at FROM titles WHERE char_id=$1", s.charID)
+	if err != nil {
+		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+		return
 	}
+	for rows.Next() {
+		title := &Title{}
+		err = rows.StructScan(&title)
+		if err != nil {
+			continue
+		}
+		count++
+		bf.WriteUint16(title.ID)
+		bf.WriteUint16(0) // Unk
+		bf.WriteUint32(uint32(title.Acquired.Unix()))
+		bf.WriteUint32(uint32(title.Updated.Unix()))
+	}
+	bf.Seek(0, io.SeekStart)
+	bf.WriteUint16(count)
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
+
+func handleMsgMhfAcquireTitle(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfAcquireTitle)
+	err := s.server.db.QueryRow("SELECT count(*) FROM titles WHERE id=$1 AND char_id=$2", pkt.TitleID, s.charID)
+	if err != nil {
+		s.server.db.Exec("INSERT INTO titles VALUES ($1, $2, now(), now())", pkt.TitleID, s.charID)
+	} else {
+		s.server.db.Exec("UPDATE titles SET updated_at=now()")
+	}
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+}
+
+func handleMsgMhfResetTitle(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfOperateWarehouse(s *Session, p mhfpacket.MHFPacket) {}
 

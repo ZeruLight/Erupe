@@ -12,6 +12,7 @@ type GuildMember struct {
 	GuildID         uint32     `db:"guild_id"`
 	CharID          uint32     `db:"character_id"`
 	JoinedAt        *time.Time `db:"joined_at"`
+	Souls           uint32     `db:"souls"`
 	Name            string     `db:"name"`
 	IsApplicant     bool       `db:"is_applicant"`
 	OrderIndex      uint8      `db:"order_index"`
@@ -48,6 +49,7 @@ const guildMembersSelectSQL = `
 SELECT
 	g.id as guild_id,
 	joined_at,
+	souls,
 	c.name,
 	character.character_id,
 	coalesce(gc.order_index, 0) as order_index,

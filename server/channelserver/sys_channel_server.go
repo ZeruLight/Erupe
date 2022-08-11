@@ -54,6 +54,8 @@ type Server struct {
 	sync.Mutex
 	Channels       []*Server
 	ID             uint16
+	IP             string
+	Port           uint16
 	logger         *zap.Logger
 	db             *sqlx.DB
 	erupeConfig    *config.Config
@@ -196,8 +198,8 @@ func NewServer(config *Config) *Server {
 }
 
 // Start starts the server in a new goroutine.
-func (s *Server) Start(port int) error {
-	l, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+func (s *Server) Start() error {
+	l, err := net.Listen("tcp", fmt.Sprintf(":%d", s.Port))
 	if err != nil {
 		return err
 	}
@@ -295,8 +297,11 @@ func (s *Server) BroadcastMHF(pkt mhfpacket.MHFPacket, ignoredSession *Session) 
 	}
 }
 
-func (s *Server) WorldcastMHF(pkt mhfpacket.MHFPacket, ignoredSession *Session) {
+func (s *Server) WorldcastMHF(pkt mhfpacket.MHFPacket, ignoredSession *Session, ignoredChannel *Server) {
 	for _, c := range s.Channels {
+		if c == ignoredChannel {
+			continue
+		}
 		for _, session := range c.sessions {
 			if session == ignoredSession {
 				continue
@@ -357,7 +362,7 @@ func (s *Server) BroadcastRaviente(ip uint32, port uint16, stage []byte, _type u
 		BroadcastType:  BroadcastTypeServer,
 		MessageType:    BinaryMessageTypeChat,
 		RawDataPayload: bf.Data(),
-	}, nil)
+	}, nil, s)
 }
 
 func (s *Server) DiscordChannelSend(charName string, content string) {

@@ -4,7 +4,11 @@ import (
 	"bytes"
 	"encoding/binary"
 	"encoding/hex"
+	"erupe-ce/common/stringsupport"
 	"fmt"
+	"io"
+	"net"
+	"strings"
 
 	"io/ioutil"
 	"math/bits"
@@ -135,19 +139,18 @@ func handleMsgSysTerminalLog(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgSysLogin(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysLogin)
 
-	rights := uint32(0x0E)
-	// 0e with normal sub 4e when having premium
-	// 01 = Character can take quests at allows
-	// 02 = Hunter Life, normal quests core sub
-	// 03 = Extra Course, extra quests, town boxes, QOL course, core sub
-	// 06 = Premium Course, standard 'premium' which makes ranking etc. faster
-	// 06 0A 0B = Boost Course, just actually 3 subs combined
-	// 08 09 1E = N Course, gives you the benefits of being in a netcafe (extra quests, N Points, daily freebies etc.) minimal and pointless
-	// 0C = N Boost course, ultra luxury course that ruins the game if in use
-	err := s.server.db.QueryRow("SELECT rights FROM users u INNER JOIN characters c ON u.id = c.user_id WHERE c.id = $1", pkt.CharID0).Scan(&rights)
-	if err != nil {
-		panic(err)
+	if !s.server.erupeConfig.DevModeOptions.DisableTokenCheck {
+		var token string
+		err := s.server.db.QueryRow("SELECT token FROM sign_sessions WHERE token=$1", pkt.LoginTokenString).Scan(&token)
+		if err != nil {
+			s.rawConn.Close()
+			s.logger.Warn(fmt.Sprintf("Invalid login token, offending CID: (%d)", pkt.CharID0))
+			return
+		}
 	}
+
+	rights := uint32(0x0E)
+	s.server.db.QueryRow("SELECT rights FROM users u INNER JOIN characters c ON u.id = c.user_id WHERE c.id = $1", pkt.CharID0).Scan(&rights)
 
 	s.Lock()
 	s.charID = pkt.CharID0
@@ -157,7 +160,7 @@ func handleMsgSysLogin(s *Session, p mhfpacket.MHFPacket) {
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint32(uint32(Time_Current_Adjusted().Unix())) // Unix timestamp
 
-	_, err = s.server.db.Exec("UPDATE servers SET current_players=$1 WHERE server_id=$2", len(s.server.sessions), s.server.ID)
+	_, err := s.server.db.Exec("UPDATE servers SET current_players=$1 WHERE server_id=$2", len(s.server.sessions), s.server.ID)
 	if err != nil {
 		panic(err)
 	}
@@ -342,15 +345,160 @@ func handleMsgSysRightsReload(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfTransitMessage(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfTransitMessage)
-	// TODO: figure out what this is supposed to return
-	// probably what world+land the targeted character is on?
-	// stubbed response will just say user not found
-	doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
+	resp := byteframe.NewByteFrame()
+	resp.WriteUint16(0)
+	var count uint16
+	switch pkt.SearchType {
+	case 1: // CID
+		bf := byteframe.NewByteFrameFromBytes(pkt.MessageData)
+		CharID := bf.ReadUint32()
+		for _, c := range s.server.Channels {
+			for _, session := range c.sessions {
+				if session.charID == CharID {
+					count++
+					sessionName := stringsupport.UTF8ToSJIS(session.Name)
+					sessionStage := stringsupport.UTF8ToSJIS(session.stageID)
+					resp.WriteUint32(binary.LittleEndian.Uint32(net.ParseIP(c.IP).To4()))
+					resp.WriteUint16(c.Port)
+					resp.WriteUint32(session.charID)
+					resp.WriteBool(true)
+					resp.WriteUint8(uint8(len(sessionName) + 1))
+					resp.WriteUint16(uint16(len(c.userBinaryParts[userBinaryPartID{charID: session.charID, index: 3}])))
+					resp.WriteBytes(make([]byte, 40))
+					resp.WriteUint8(uint8(len(sessionStage) + 1))
+					resp.WriteBytes(make([]byte, 8))
+					resp.WriteNullTerminatedBytes(sessionName)
+					resp.WriteBytes(c.userBinaryParts[userBinaryPartID{session.charID, 3}])
+					resp.WriteNullTerminatedBytes(sessionStage)
+				}
+			}
+		}
+	case 2: // Name
+		bf := byteframe.NewByteFrameFromBytes(pkt.MessageData)
+		bf.ReadUint16() // lenSearchTerm
+		bf.ReadUint16() // maxResults
+		bf.ReadUint8()  // Unk
+		searchTerm := stringsupport.SJISToUTF8(bf.ReadNullTerminatedBytes())
+		for _, c := range s.server.Channels {
+			for _, session := range c.sessions {
+				if count == 100 {
+					break
+				}
+				if strings.Contains(session.Name, searchTerm) {
+					count++
+					sessionName := stringsupport.UTF8ToSJIS(session.Name)
+					sessionStage := stringsupport.UTF8ToSJIS(session.stageID)
+					resp.WriteUint32(binary.LittleEndian.Uint32(net.ParseIP(c.IP).To4()))
+					resp.WriteUint16(c.Port)
+					resp.WriteUint32(session.charID)
+					resp.WriteBool(true)
+					resp.WriteUint8(uint8(len(sessionName) + 1))
+					resp.WriteUint16(uint16(len(c.userBinaryParts[userBinaryPartID{session.charID, 3}])))
+					resp.WriteBytes(make([]byte, 40))
+					resp.WriteUint8(uint8(len(sessionStage) + 1))
+					resp.WriteBytes(make([]byte, 8))
+					resp.WriteNullTerminatedBytes(sessionName)
+					resp.WriteBytes(c.userBinaryParts[userBinaryPartID{charID: session.charID, index: 3}])
+					resp.WriteNullTerminatedBytes(sessionStage)
+				}
+			}
+		}
+	case 3: // Enumerate Party
+		bf := byteframe.NewByteFrameFromBytes(pkt.MessageData)
+		ip := bf.ReadBytes(4)
+		ipString := fmt.Sprintf("%d.%d.%d.%d", ip[3], ip[2], ip[1], ip[0])
+		port := bf.ReadUint16()
+		bf.ReadUint16() // lenStage
+		maxResults := bf.ReadUint16()
+		bf.ReadBytes(1)
+		stageID := stringsupport.SJISToUTF8(bf.ReadNullTerminatedBytes())
+		for _, c := range s.server.Channels {
+			if c.IP == ipString && c.Port == port {
+				for _, stage := range c.stages {
+					if stage.id == stageID {
+						if count == maxResults {
+							break
+						}
+						for session := range stage.clients {
+							count++
+							sessionStage := stringsupport.UTF8ToSJIS(session.stageID)
+							sessionName := stringsupport.UTF8ToSJIS(session.Name)
+							resp.WriteUint32(binary.LittleEndian.Uint32(net.ParseIP(c.IP).To4()))
+							resp.WriteUint16(c.Port)
+							resp.WriteUint32(session.charID)
+							resp.WriteUint8(uint8(len(sessionStage) + 1))
+							resp.WriteUint8(uint8(len(sessionName) + 1))
+							resp.WriteUint8(0)
+							resp.WriteUint8(7) // lenBinary
+							resp.WriteBytes(make([]byte, 48))
+							resp.WriteNullTerminatedBytes(sessionStage)
+							resp.WriteNullTerminatedBytes(sessionName)
+							resp.WriteUint16(999)                     // HR
+							resp.WriteUint16(999)                     // GR
+							resp.WriteBytes([]byte{0x06, 0x10, 0x00}) // Unk
+						}
+					}
+				}
+			}
+		}
+	case 4: // Find Party
+		bf := byteframe.NewByteFrameFromBytes(pkt.MessageData)
+		bf.ReadUint8()
+		maxResults := bf.ReadUint16()
+		bf.ReadUint8()
+		bf.ReadUint8()
+		partyType := bf.ReadUint16()
+		_ = bf.DataFromCurrent() // Restrictions
+		var stagePrefix string
+		switch partyType {
+		case 0: // Public Bar
+			stagePrefix = "sl2Ls210"
+		case 1: // Tokotoko Partnya
+			stagePrefix = "sl2Ls463"
+		case 2: // Hunting Prowess Match
+			stagePrefix = "sl2Ls286"
+		case 3: // Volpakkun Together
+			stagePrefix = "sl2Ls465"
+		case 5: // Quick Party
+			// Unk
+		}
+		for _, c := range s.server.Channels {
+			for _, stage := range c.stages {
+				if count == maxResults {
+					break
+				}
+				if strings.HasPrefix(stage.id, stagePrefix) {
+					count++
+					sessionStage := stringsupport.UTF8ToSJIS(stage.id)
+					resp.WriteUint32(binary.LittleEndian.Uint32(net.ParseIP(c.IP).To4()))
+					resp.WriteUint16(c.Port)
+
+					// TODO: This is half right, could be trimmed
+					resp.WriteUint16(0)
+					resp.WriteUint16(uint16(len(stage.clients)))
+					resp.WriteUint16(uint16(len(stage.clients)))
+					resp.WriteUint16(stage.maxPlayers)
+					resp.WriteUint16(0)
+					resp.WriteUint16(uint16(len(stage.clients)))
+					//
+
+					resp.WriteUint16(uint16(len(sessionStage) + 1))
+					resp.WriteUint8(1)
+					resp.WriteUint8(uint8(len(stage.rawBinaryData[stageBinaryKey{1, 1}])))
+					resp.WriteBytes(make([]byte, 16))
+					resp.WriteNullTerminatedBytes(sessionStage)
+					resp.WriteBytes([]byte{0x00})
+					resp.WriteBytes(stage.rawBinaryData[stageBinaryKey{1, 1}])
+				}
+			}
+		}
+	}
+	resp.Seek(0, io.SeekStart)
+	resp.WriteUint16(count)
+	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
 }
 
 func handleMsgCaExchangeItem(s *Session, p mhfpacket.MHFPacket) {}
-
-func handleMsgMhfResetTitle(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfPresentBox(s *Session, p mhfpacket.MHFPacket) {}
 
@@ -405,8 +553,6 @@ func handleMsgMhfEnumerateOrder(s *Session, p mhfpacket.MHFPacket) {
 }
 
 func handleMsgMhfGetExtraInfo(s *Session, p mhfpacket.MHFPacket) {}
-
-func handleMsgMhfAcquireTitle(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfEnumerateUnionItem(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateUnionItem)

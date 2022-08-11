@@ -87,7 +87,7 @@ type character struct {
 }
 
 func (s *Server) getCharactersForUser(uid int) ([]character, error) {
-	characters := []character{}
+	characters := make([]character, 0)
 	err := s.db.Select(&characters, "SELECT id, is_female, is_new_character, name, unk_desc_string, hrp, gr, weapon_type, last_login FROM characters WHERE user_id = $1 AND deleted = false", uid)
 	if err != nil {
 		return nil, err
@@ -126,7 +126,7 @@ func (s *Server) getFriendsForCharacters(chars []character) []members {
 				friendQuery += " OR id="
 			}
 		}
-		charFriends := []members{}
+		charFriends := make([]members, 0)
 		err = s.db.Select(&charFriends, friendQuery)
 		if err != nil {
 			continue
@@ -153,7 +153,7 @@ func (s *Server) getGuildmatesForCharacters(chars []character) []members {
 			if err != nil {
 				continue
 			}
-			charGuildmates := []members{}
+			charGuildmates := make([]members, 0)
 			err = s.db.Select(&charGuildmates, "SELECT character_id AS id, c.name FROM guild_characters gc JOIN characters c ON c.id = gc.character_id WHERE guild_id=$1 AND character_id!=$2", guildID, char.ID)
 			if err != nil {
 				continue

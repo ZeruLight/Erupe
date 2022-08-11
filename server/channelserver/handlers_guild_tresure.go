@@ -27,7 +27,7 @@ func handleMsgMhfEnumerateGuildTresure(s *Session, p mhfpacket.MHFPacket) {
 	}
 	bf := byteframe.NewByteFrame()
 	hunts := 0
-	rows, _ := s.server.db.Queryx("SELECT id, host_id, destination, level, return, acquired, claimed, hunters, treasure, hunt_data FROM guild_hunts WHERE guild_id=$1", guild.ID)
+	rows, _ := s.server.db.Queryx("SELECT id, host_id, destination, level, return, acquired, claimed, hunters, treasure, hunt_data FROM guild_hunts WHERE guild_id=$1 AND $2 < return+604800", guild.ID, Time_Current_Adjusted().Unix())
 	for rows.Next() {
 		hunt := &TreasureHunt{}
 		err = rows.StructScan(&hunt)
@@ -51,6 +51,9 @@ func handleMsgMhfEnumerateGuildTresure(s *Session, p mhfpacket.MHFPacket) {
 			bf.WriteBytes(hunt.HuntData)
 			break
 		} else if pkt.MaxHunts == 30 && hunt.Acquired && hunt.Level == 2 {
+			if hunts == 30 {
+				break
+			}
 			hunts++
 			bf.WriteUint32(hunt.HuntID)
 			bf.WriteUint32(hunt.Destination)

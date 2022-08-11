@@ -9,9 +9,10 @@ import (
 
 // Config holds the global server-wide config.
 type Config struct {
-	HostIP  string `mapstructure:"host_ip"`
-	BinPath string `mapstructure:"bin_path"`
-	DevMode bool
+	Host             string `mapstructure:"Host"`
+	BinPath          string `mapstructure:"BinPath"`
+	DisableSoftCrash bool   // Disables the 'Press Return to exit' dialog allowing scripts to reboot the server automatically
+	DevMode          bool
 
 	DevModeOptions DevModeOptions
 	Discord        Discord
@@ -36,6 +37,9 @@ type DevModeOptions struct {
 	FestaEvent          int    // Hunter's Festa event status
 	TournamentEvent     int    // VS Tournament event status
 	MezFesEvent         bool   // MezFes status
+	MezFesAlt           bool   // Swaps out Volpakkun for Tokotoko
+	DisableTokenCheck   bool   // Disables checking login token exists in the DB (security risk!)
+	DisableMailItems    bool   // Hack to prevent english versions of MHF from crashing
 	SaveDumps           SaveDumpOptions
 }
 
@@ -137,8 +141,8 @@ func LoadConfig() (*Config, error) {
 		return nil, err
 	}
 
-	if c.HostIP == "" {
-		c.HostIP = getOutboundIP4().To4().String()
+	if c.Host == "" {
+		c.Host = getOutboundIP4().To4().String()
 	}
 
 	return c, nil

@@ -1,17 +1,17 @@
 package mhfpacket
 
-import ( 
- "errors" 
+import (
+	"errors"
 
- 	"erupe-ce/network/clientctx"
-	"erupe-ce/network"
 	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgMhfReadMercenaryW represents the MSG_MHF_READ_MERCENARY_W
 type MsgMhfReadMercenaryW struct {
 	AckHandle uint32
-	Unk0      uint8
+	Unk0      bool
 	Unk1      uint8
 	Unk2      uint16 // Hardcoded 0 in the binary
 }
@@ -24,7 +24,7 @@ func (m *MsgMhfReadMercenaryW) Opcode() network.PacketID {
 // Parse parses the packet from binary
 func (m *MsgMhfReadMercenaryW) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
-	m.Unk0 = bf.ReadUint8()
+	m.Unk0 = bf.ReadBool()
 	m.Unk1 = bf.ReadUint8()
 	m.Unk2 = bf.ReadUint16()
 	return nil

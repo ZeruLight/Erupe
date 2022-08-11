@@ -2,6 +2,7 @@ package channelserver
 
 import (
 	"fmt"
+	"strings"
 	"time"
 
 	"erupe-ce/common/byteframe"
@@ -121,7 +122,7 @@ func destructEmptyStages(s *Session) {
 	defer s.server.Unlock()
 	for _, stage := range s.server.stages {
 		// Destroy empty Quest/My series/Guild stages.
-		if stage.id[3:5] == "Qs" || stage.id[3:5] == "Ms" || stage.id[3:5] == "Gs" {
+		if stage.id[3:5] == "Qs" || stage.id[3:5] == "Ms" || stage.id[3:5] == "Gs" || stage.id[3:5] == "Ls" {
 			if len(stage.reservedClientSlots) == 0 && len(stage.clients) == 0 {
 				delete(s.server.stages, stage.id)
 				s.logger.Debug("Destructed stage", zap.String("stage.id", stage.id))
@@ -198,22 +199,24 @@ func handleMsgSysLeaveStage(s *Session, p mhfpacket.MHFPacket) {}
 func handleMsgSysLockStage(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysLockStage)
 	// TODO(Andoryuuta): What does this packet _actually_ do?
+	// I think this is supposed to mark a stage as no longer able to accept client reservations
 	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
 func handleMsgSysUnlockStage(s *Session, p mhfpacket.MHFPacket) {
-	s.reservationStage.RLock()
-	defer s.reservationStage.RUnlock()
+	if s.reservationStage != nil {
+		s.reservationStage.RLock()
+		defer s.reservationStage.RUnlock()
 
-	for charID := range s.reservationStage.reservedClientSlots {
-		session := s.server.FindSessionByCharID(charID)
-		session.QueueSendMHF(&mhfpacket.MsgSysStageDestruct{})
+		for charID := range s.reservationStage.reservedClientSlots {
+			session := s.server.FindSessionByCharID(charID)
+			session.QueueSendMHF(&mhfpacket.MsgSysStageDestruct{})
+		}
+
+		delete(s.server.stages, s.reservationStage.id)
 	}
 
-	s.server.Lock()
-	defer s.server.Unlock()
-
-	delete(s.server.stages, s.reservationStage.id)
+	destructEmptyStages(s)
 }
 
 func handleMsgSysReserveStage(s *Session, p mhfpacket.MHFPacket) {
@@ -366,8 +369,7 @@ func handleMsgSysEnumerateStage(s *Session, p mhfpacket.MHFPacket) {
 			continue
 		}
 
-		// Check for valid stage type
-		if sid[3:5] != "Qs" && sid[3:5] != "Ms" {
+		if !strings.Contains(stage.id, pkt.StagePrefix) {
 			continue
 		}
 

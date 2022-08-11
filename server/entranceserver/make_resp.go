@@ -28,7 +28,7 @@ func encodeServerInfo(config *config.Config, s *Server) []byte {
 			panic(err)
 		}
 		if si.IP == "" {
-			si.IP = config.HostIP
+			si.IP = config.Host
 		}
 		bf.WriteUint32(binary.LittleEndian.Uint32(net.ParseIP(si.IP).To4()))
 		bf.WriteUint16(16 + uint16(serverIdx))

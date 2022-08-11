@@ -17,6 +17,7 @@ type GuildMember struct {
 	IsApplicant     bool       `db:"is_applicant"`
 	OrderIndex      uint8      `db:"order_index"`
 	LastLogin       uint32     `db:"last_login"`
+	Recruiter       bool       `db:"recruiter"`
 	AvoidLeadership bool       `db:"avoid_leadership"`
 	IsLeader        bool       `db:"is_leader"`
 	HRP             uint16     `db:"hrp"`
@@ -44,11 +45,6 @@ func (gm *GuildMember) Save(s *Session) error {
 	return nil
 }
 
-//TODO add the recruiter permission to this check when it exists
-func (gm *GuildMember) IsRecruiter() bool {
-	return gm.IsLeader || gm.IsSubLeader()
-}
-
 const guildMembersSelectSQL = `
 SELECT
 	g.id as guild_id,
@@ -58,6 +54,7 @@ SELECT
 	character.character_id,
 	coalesce(gc.order_index, 0) as order_index,
 	c.last_login,
+	coalesce(gc.recruiter, false) as recruiter,
 	coalesce(gc.avoid_leadership, false) as avoid_leadership,
 	c.hrp,
 	c.gr,

@@ -119,12 +119,21 @@ func handleMsgSysCreateAcquireSemaphore(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint32(newSemaphore.id)
 		doAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
 	} else {
-		doAckSimpleFail(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+		doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 	}
 }
 
 func handleMsgSysAcquireSemaphore(s *Session, p mhfpacket.MHFPacket) {
-	//pkt := p.(*mhfpacket.MsgSysAcquireSemaphore)
+	pkt := p.(*mhfpacket.MsgSysAcquireSemaphore)
+	if sema, exists := s.server.semaphore[pkt.SemaphoreID]; exists {
+		sema.clients[s] = s.charID
+		bf := byteframe.NewByteFrame()
+		bf.WriteUint32(sema.id)
+		doAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
+	} else {
+		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+	}
+
 }
 
 func handleMsgSysReleaseSemaphore(s *Session, p mhfpacket.MHFPacket) {

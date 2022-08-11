@@ -33,6 +33,7 @@ type Session struct {
 	stage            *Stage
 	reservationStage *Stage // Required for the stateful MsgSysUnreserveStage packet.
 	stagePass        string // Temporary storage
+	prevGuildID      uint32 // Stores the last GuildID used in InfoGuild
 	charID           uint32
 	logKey           []byte
 	sessionStart     int64

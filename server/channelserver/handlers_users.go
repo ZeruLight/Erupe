@@ -39,25 +39,18 @@ func handleMsgSysGetUserBinary(s *Session, p mhfpacket.MHFPacket) {
 	s.server.userBinaryPartsLock.RLock()
 	defer s.server.userBinaryPartsLock.RUnlock()
 	data, ok := s.server.userBinaryParts[userBinaryPartID{charID: pkt.CharID, index: pkt.BinaryType}]
-	resp := byteframe.NewByteFrame()
 
 	// If we can't get the real data, try to get it from the database.
 	if !ok {
-		var data []byte
-		rows, _ := s.server.db.Queryx(fmt.Sprintf("SELECT type%d FROM user_binaries WHERE id=$1", pkt.BinaryType), pkt.CharID)
-		for rows.Next() {
-			rows.Scan(&data)
-			resp.WriteBytes(data)
-			doAckBufSucceed(s, pkt.AckHandle, resp.Data())
-			return
+		err := s.server.db.QueryRow(fmt.Sprintf("SELECT type%d FROM user_binaries WHERE id=$1", pkt.BinaryType), pkt.CharID).Scan(&data)
+		if err != nil {
+			doAckBufFail(s, pkt.AckHandle, make([]byte, 4))
+		} else {
+			doAckBufSucceed(s, pkt.AckHandle, data)
 		}
-		doAckBufFail(s, pkt.AckHandle, make([]byte, 4))
-		return
 	} else {
-		resp.WriteBytes(data)
+		doAckBufSucceed(s, pkt.AckHandle, data)
 	}
-
-	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
 }
 
 func handleMsgSysNotifyUserBinary(s *Session, p mhfpacket.MHFPacket) {}

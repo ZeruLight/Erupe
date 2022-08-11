@@ -16,7 +16,8 @@ func handleMsgSysSetUserBinary(s *Session, p mhfpacket.MHFPacket) {
 	s.server.userBinaryParts[userBinaryPartID{charID: s.charID, index: pkt.BinaryType}] = pkt.RawDataPayload
 	s.server.userBinaryPartsLock.Unlock()
 
-	err := s.server.db.QueryRow("SELECT type2 FROM user_binaries WHERE id=$1", s.charID)
+	var exists []byte
+	err := s.server.db.QueryRow("SELECT type2 FROM user_binaries WHERE id=$1", s.charID).Scan(&exists)
 	if err != nil {
 		s.server.db.Exec("INSERT INTO user_binaries (id) VALUES ($1)", s.charID)
 	}

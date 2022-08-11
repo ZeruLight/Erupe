@@ -3,7 +3,6 @@ package channelserver
 import (
 	"fmt"
 
-	"erupe-ce/common/byteframe"
 	"erupe-ce/network/mhfpacket"
 )
 

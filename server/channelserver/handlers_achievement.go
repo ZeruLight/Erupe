@@ -4,7 +4,6 @@ import (
 	"erupe-ce/common/byteframe"
 	"erupe-ce/network/mhfpacket"
 	"fmt"
-	"go.uber.org/zap"
 	"io"
 )
 
@@ -88,24 +87,21 @@ func GetAchData(id uint8, score int32) Achievement {
 func handleMsgMhfGetAchievement(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetAchievement)
 
-	row := s.server.db.QueryRow("SELECT id FROM achievements WHERE id=$1", pkt.CharID)
-	if row != nil {
+	var exists int
+	err := s.server.db.QueryRow("SELECT id FROM achievements WHERE id=$1", pkt.CharID).Scan(&exists)
+	if err != nil {
 		s.server.db.Exec("INSERT INTO achievements (id) VALUES ($1)", pkt.CharID)
 	}
 
 	var scores [33]int32
-	row = s.server.db.QueryRow("SELECT * FROM achievements WHERE id=$1", pkt.CharID)
-	if row != nil {
-		err := row.Scan(&scores[0], &scores[0],
-			&scores[1], &scores[2], &scores[3], &scores[4], &scores[5], &scores[6], &scores[7], &scores[8], &scores[9],
-			&scores[10], &scores[11], &scores[12], &scores[13], &scores[14], &scores[15], &scores[16], &scores[17],
-			&scores[18], &scores[19], &scores[20], &scores[21], &scores[22], &scores[23], &scores[24], &scores[25],
-			&scores[26], &scores[27], &scores[28], &scores[29], &scores[30], &scores[31], &scores[32])
-		if err != nil {
-			doAckBufSucceed(s, pkt.AckHandle, make([]byte, 20))
-			s.logger.Error("ERR@", zap.Error(err))
-			return
-		}
+	err = s.server.db.QueryRow("SELECT * FROM achievements WHERE id=$1", pkt.CharID).Scan(&scores[0],
+		&scores[0], &scores[1], &scores[2], &scores[3], &scores[4], &scores[5], &scores[6], &scores[7], &scores[8],
+		&scores[9], &scores[10], &scores[11], &scores[12], &scores[13], &scores[14], &scores[15], &scores[16],
+		&scores[17], &scores[18], &scores[19], &scores[20], &scores[21], &scores[22], &scores[23], &scores[24],
+		&scores[25], &scores[26], &scores[27], &scores[28], &scores[29], &scores[30], &scores[31], &scores[32])
+	if err != nil {
+		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 20))
+		return
 	}
 
 	resp := byteframe.NewByteFrame()
@@ -152,6 +148,13 @@ func handleMsgMhfResetAchievement(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfAddAchievement(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfAddAchievement)
+
+	var exists int
+	err := s.server.db.QueryRow("SELECT id FROM achievements WHERE id=$1", s.charID).Scan(&exists)
+	if err != nil {
+		s.server.db.Exec("INSERT INTO achievements (id) VALUES ($1)", s.charID)
+	}
+
 	s.server.db.Exec(fmt.Sprintf("UPDATE achievements SET ach%d=ach%d+1 WHERE id=$1", pkt.AchievementID, pkt.AchievementID), s.charID)
 }
 

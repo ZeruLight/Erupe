@@ -500,8 +500,6 @@ func handleMsgMhfTransitMessage(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgCaExchangeItem(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfResetTitle(s *Session, p mhfpacket.MHFPacket) {}
-
 func handleMsgMhfPresentBox(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfServerCommand(s *Session, p mhfpacket.MHFPacket) {}
@@ -555,8 +553,6 @@ func handleMsgMhfEnumerateOrder(s *Session, p mhfpacket.MHFPacket) {
 }
 
 func handleMsgMhfGetExtraInfo(s *Session, p mhfpacket.MHFPacket) {}
-
-func handleMsgMhfAcquireTitle(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfEnumerateUnionItem(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateUnionItem)

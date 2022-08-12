@@ -297,10 +297,11 @@ func handleMsgMhfLoaddata(s *Session, p mhfpacket.MHFPacket) {
 	}
 
 	var data []byte
-
 	err := s.server.db.QueryRow("SELECT savedata FROM characters WHERE id = $1", s.charID).Scan(&data)
-	if err != nil {
-		s.logger.Fatal("Failed to get savedata from db", zap.Error(err))
+	if err != nil || len(data) == 0 {
+		s.logger.Warn(fmt.Sprintf("Failed to load savedata (CID: %d)", s.charID), zap.Error(err))
+		s.rawConn.Close() // Terminate the connection
+		return
 	}
 	doAckBufSucceed(s, pkt.AckHandle, data)
 
@@ -310,11 +311,11 @@ func handleMsgMhfLoaddata(s *Session, p mhfpacket.MHFPacket) {
 	}
 	bf := byteframe.NewByteFrameFromBytes(decompSaveData)
 	bf.Seek(88, io.SeekStart)
-	binary1 := bf.ReadNullTerminatedBytes()
+	name := bf.ReadNullTerminatedBytes()
 	s.server.userBinaryPartsLock.Lock()
-	s.server.userBinaryParts[userBinaryPartID{charID: s.charID, index: 1}] = append(binary1, []byte{0x00}...)
+	s.server.userBinaryParts[userBinaryPartID{charID: s.charID, index: 1}] = append(name, []byte{0x00}...)
 	s.server.userBinaryPartsLock.Unlock()
-	s.Name = stringsupport.SJISToUTF8(binary1)
+	s.Name = stringsupport.SJISToUTF8(name)
 }
 
 func handleMsgMhfSaveScenarioData(s *Session, p mhfpacket.MHFPacket) {

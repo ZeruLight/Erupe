@@ -17,6 +17,7 @@
     "FestaEvent": 0,
     "TournamentEvent": 0,
     "MezFesEvent": true,
+    "MezFesAlt": false,
     "DisableMailItems": true,
     "DisableTokenCheck": false,
     "SaveDumps": {

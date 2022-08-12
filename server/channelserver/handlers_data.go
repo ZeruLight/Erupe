@@ -71,8 +71,8 @@ func handleMsgMhfSavedata(s *Session, p mhfpacket.MHFPacket) {
 	s.myseries.toreData = decompressedData[130228:130468]    // 0x1FCB4 + 240
 	s.myseries.gardenData = decompressedData[142424:142492]  // 0x22C58 + 68
 
-	isMale := uint8(decompressedData[80]) // 0x50
-	if isMale == 1 {
+	isFemale := decompressedData[81] // 0x51
+	if isFemale == 1 {
 		_, err = s.server.db.Exec("UPDATE characters SET is_female=true WHERE id=$1", s.charID)
 	} else {
 		_, err = s.server.db.Exec("UPDATE characters SET is_female=false WHERE id=$1", s.charID)
@@ -290,24 +290,18 @@ func dumpSaveData(s *Session, data []byte, suffix string) {
 
 func handleMsgMhfLoaddata(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfLoaddata)
-	overrideFile := filepath.Join(".", "bin", "save_override.bin")
-	var data []byte
-
-	if _, err := os.Stat(overrideFile); err == nil {
-		file, err := os.Open(overrideFile)
-		if err != nil {
-			panic(err)
-		}
-		data, err := ioutil.ReadAll(file)
-		if err != nil {
-			panic(err)
-		}
+	if _, err := os.Stat(filepath.Join(s.server.erupeConfig.BinPath, "save_override.bin")); err == nil {
+		data, _ := ioutil.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, "save_override.bin"))
 		doAckBufSucceed(s, pkt.AckHandle, data)
+		return
 	}
 
+	var data []byte
 	err := s.server.db.QueryRow("SELECT savedata FROM characters WHERE id = $1", s.charID).Scan(&data)
-	if err != nil {
-		s.logger.Fatal("Failed to get savedata from db", zap.Error(err))
+	if err != nil || len(data) == 0 {
+		s.logger.Warn(fmt.Sprintf("Failed to load savedata (CID: %d)", s.charID), zap.Error(err))
+		s.rawConn.Close() // Terminate the connection
+		return
 	}
 	doAckBufSucceed(s, pkt.AckHandle, data)
 
@@ -317,11 +311,11 @@ func handleMsgMhfLoaddata(s *Session, p mhfpacket.MHFPacket) {
 	}
 	bf := byteframe.NewByteFrameFromBytes(decompSaveData)
 	bf.Seek(88, io.SeekStart)
-	binary1 := bf.ReadNullTerminatedBytes()
+	name := bf.ReadNullTerminatedBytes()
 	s.server.userBinaryPartsLock.Lock()
-	s.server.userBinaryParts[userBinaryPartID{charID: s.charID, index: 1}] = append(binary1, []byte{0x00}...)
+	s.server.userBinaryParts[userBinaryPartID{charID: s.charID, index: 1}] = append(name, []byte{0x00}...)
 	s.server.userBinaryPartsLock.Unlock()
-	s.Name = stringsupport.SJISToUTF8(binary1)
+	s.Name = stringsupport.SJISToUTF8(name)
 }
 
 func handleMsgMhfSaveScenarioData(s *Session, p mhfpacket.MHFPacket) {

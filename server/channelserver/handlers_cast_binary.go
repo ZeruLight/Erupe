@@ -16,6 +16,7 @@ import (
 const (
 	BinaryMessageTypeState      = 0
 	BinaryMessageTypeChat       = 1
+	BinaryMessageTypeData       = 3
 	BinaryMessageTypeMailNotify = 4
 	BinaryMessageTypeEmote      = 6
 )

@@ -1883,8 +1883,18 @@ func handleMsgMhfUpdateGuild(s *Session, p mhfpacket.MHFPacket) {}
 func handleMsgMhfSetGuildManageRight(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSetGuildManageRight)
 	s.server.db.Exec("UPDATE guild_characters SET recruiter=$1 WHERE character_id=$2", pkt.Allowed, pkt.CharID)
-	// TODO: What is this supposed to return? This works for now
-	doAckBufSucceed(s, pkt.AckHandle, []byte{0x01})
+	doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
+}
+
+func handleMsgMhfCheckMonthlyItem(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfCheckMonthlyItem)
+	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x01})
+	// TODO: Implement month-by-month tracker, 0 = Not claimed, 1 = Claimed
+}
+
+func handleMsgMhfAcquireMonthlyItem(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfAcquireMonthlyItem)
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfEnumerateInvGuild(s *Session, p mhfpacket.MHFPacket) {

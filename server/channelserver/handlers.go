@@ -702,10 +702,6 @@ func handleMsgMhfCheckDailyCafepoint(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfGetCogInfo(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfCheckMonthlyItem(s *Session, p mhfpacket.MHFPacket) {}
-
-func handleMsgMhfAcquireMonthlyItem(s *Session, p mhfpacket.MHFPacket) {}
-
 func handleMsgMhfCheckWeeklyStamp(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfCheckWeeklyStamp)
 

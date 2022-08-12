@@ -49,7 +49,7 @@ const guildMembersSelectSQL = `
 SELECT
 	g.id as guild_id,
 	joined_at,
-	souls,
+	coalesce(souls, 0) as souls,
 	c.name,
 	character.character_id,
 	coalesce(gc.order_index, 0) as order_index,

@@ -2,7 +2,6 @@ package channelserver
 
 import (
 	"encoding/hex"
-
 	"erupe-ce/network/mhfpacket"
 )
 
@@ -58,11 +57,3 @@ func handleMsgMhfGetUdTacticsRanking(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfSetUdTacticsFollower(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfGetUdTacticsLog(s *Session, p mhfpacket.MHFPacket) {}
-
-func handleMsgMhfGetCafeDuration(s *Session, p mhfpacket.MHFPacket) {}
-
-func handleMsgMhfGetCafeDurationBonusInfo(s *Session, p mhfpacket.MHFPacket) {}
-
-func handleMsgMhfReceiveCafeDurationBonus(s *Session, p mhfpacket.MHFPacket) {}
-
-func handleMsgMhfPostCafeDurationBonusReceived(s *Session, p mhfpacket.MHFPacket) {}

@@ -10,16 +10,14 @@ import (
 	"net"
 	"strings"
 
-	"io/ioutil"
-	"math/bits"
-	"math/rand"
-	"time"
-
 	"erupe-ce/common/byteframe"
 	"erupe-ce/network/mhfpacket"
 	"go.uber.org/zap"
 	"golang.org/x/text/encoding/japanese"
 	"golang.org/x/text/transform"
+	"io/ioutil"
+	"math/bits"
+	"math/rand"
 )
 
 // Temporary function to just return no results for a MSG_MHF_ENUMERATE* packet
@@ -639,65 +637,6 @@ func handleMsgMhfUpdateUnionItem(s *Session, p mhfpacket.MHFPacket) {
 		s.logger.Fatal("Failed to update shared item box contents in db", zap.Error(err))
 	}
 	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
-}
-
-func handleMsgMhfAcquireCafeItem(s *Session, p mhfpacket.MHFPacket) {
-	pkt := p.(*mhfpacket.MsgMhfAcquireCafeItem)
-	var netcafe_points int
-	err := s.server.db.QueryRow("UPDATE characters SET netcafe_points = netcafe_points - $1 WHERE id = $2 RETURNING netcafe_points", pkt.PointCost, s.charID).Scan(&netcafe_points)
-	if err != nil {
-		s.logger.Fatal("Failed to get plate data savedata from db", zap.Error(err))
-	}
-	resp := byteframe.NewByteFrame()
-	resp.WriteUint32(uint32(netcafe_points))
-	doAckSimpleSucceed(s, pkt.AckHandle, resp.Data())
-}
-
-func handleMsgMhfUpdateCafepoint(s *Session, p mhfpacket.MHFPacket) {
-	pkt := p.(*mhfpacket.MsgMhfUpdateCafepoint)
-	var netcafe_points int
-	err := s.server.db.QueryRow("SELECT COALESCE(netcafe_points, 0) FROM characters WHERE id = $1", s.charID).Scan(&netcafe_points)
-	if err != nil {
-		s.logger.Fatal("Failed to get plate data savedata from db", zap.Error(err))
-	}
-	resp := byteframe.NewByteFrame()
-	resp.WriteUint32(0)
-	resp.WriteUint32(uint32(netcafe_points))
-	doAckSimpleSucceed(s, pkt.AckHandle, resp.Data())
-}
-
-func handleMsgMhfCheckDailyCafepoint(s *Session, p mhfpacket.MHFPacket) {
-	pkt := p.(*mhfpacket.MsgMhfCheckDailyCafepoint)
-
-	// I am not sure exactly what this does, but all responses I have seen include this exact sequence of bytes
-	// 1 daily, 5 daily halk pots, 3 point boosted quests, also adds 5 netcafe points but not sent to client
-	// available once after midday every day
-
-	// get next midday
-	var t = Time_static()
-	year, month, day := t.Date()
-	midday := time.Date(year, month, day, 12, 0, 0, 0, t.Location())
-	if t.After(midday) {
-		midday = midday.Add(24 * time.Hour)
-	}
-
-	// get time after which daily claiming would be valid from db
-	var dailyTime time.Time
-	err := s.server.db.QueryRow("SELECT COALESCE(daily_time, $2) FROM characters WHERE id = $1", s.charID, time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)).Scan(&dailyTime)
-	if err != nil {
-		s.logger.Fatal("Failed to get daily_time savedata from db", zap.Error(err))
-	}
-
-	if t.After(dailyTime) {
-		// +5 netcafe points and setting next valid window
-		_, err := s.server.db.Exec("UPDATE characters SET daily_time=$1, netcafe_points=netcafe_points::int + 5 WHERE id=$2", midday, s.charID)
-		if err != nil {
-			s.logger.Fatal("Failed to update daily_time and netcafe_points savedata in db", zap.Error(err))
-		}
-		doAckBufSucceed(s, pkt.AckHandle, []byte{0x01, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x01})
-	} else {
-		doAckBufSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
-	}
 }
 
 func handleMsgMhfGetCogInfo(s *Session, p mhfpacket.MHFPacket) {}

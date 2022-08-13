@@ -190,8 +190,12 @@ func handleMsgSysLogout(s *Session, p mhfpacket.MHFPacket) {
 }
 
 func logoutPlayer(s *Session) {
-	delete(s.server.sessions, s.rawConn)
-	s.rawConn.Close()
+	if _, exists := s.server.sessions[s.rawConn]; exists {
+		delete(s.server.sessions, s.rawConn)
+		s.rawConn.Close()
+	} else {
+		return // Prevent re-running logout logic on real logouts
+	}
 
 	_, err := s.server.db.Exec("UPDATE sign_sessions SET server_id=NULL, char_id=NULL WHERE token=$1", s.token)
 	if err != nil {
@@ -204,13 +208,13 @@ func logoutPlayer(s *Session) {
 	}
 
 	var timePlayed int
+	var sessionTime int
 	_ = s.server.db.QueryRow("SELECT time_played FROM characters WHERE id = $1", s.charID).Scan(&timePlayed)
-
-	timePlayed = (int(Time_Current_Adjusted().Unix()) - int(s.sessionStart)) + timePlayed
+	sessionTime = int(Time_Current_Adjusted().Unix()) - int(s.sessionStart)
+	timePlayed += sessionTime
 
 	var rpGained int
-
-	if s.rights > 0x40000000 { // N Course
+	if s.rights >= 0x40000000 { // N Course
 		rpGained = timePlayed / 900
 		timePlayed = timePlayed % 900
 	} else {
@@ -218,10 +222,10 @@ func logoutPlayer(s *Session) {
 		timePlayed = timePlayed % 1800
 	}
 
-	_, err = s.server.db.Exec("UPDATE characters SET time_played = $1 WHERE id = $2", timePlayed, s.charID)
-	if err != nil {
-		panic(err)
-	}
+	s.server.db.Exec("UPDATE characters SET time_played = $1 WHERE id = $2", timePlayed, s.charID)
+	s.server.db.Exec("UPDATE characters SET cafe_time=cafe_time+$1 WHERE id=$2", sessionTime, s.charID)
+
+	treasureHuntUnregister(s)
 
 	if s.stage == nil {
 		return
@@ -241,7 +245,6 @@ func logoutPlayer(s *Session) {
 
 	removeSessionFromSemaphore(s)
 	removeSessionFromStage(s)
-	treasureHuntUnregister(s)
 
 	saveData, err := GetCharacterSaveData(s, s.charID)
 	if err != nil {

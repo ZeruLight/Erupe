@@ -10,26 +10,26 @@ import (
 
 func handleMsgMhfAcquireCafeItem(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfAcquireCafeItem)
-	var netcafe_points int
-	err := s.server.db.QueryRow("UPDATE characters SET netcafe_points = netcafe_points - $1 WHERE id = $2 RETURNING netcafe_points", pkt.PointCost, s.charID).Scan(&netcafe_points)
+	var netcafePoints uint32
+	err := s.server.db.QueryRow("UPDATE characters SET netcafe_points = netcafe_points - $1 WHERE id = $2 RETURNING netcafe_points", pkt.PointCost, s.charID).Scan(&netcafePoints)
 	if err != nil {
-		s.logger.Fatal("Failed to get plate data savedata from db", zap.Error(err))
+		s.logger.Fatal("Failed to get netcafe points from db", zap.Error(err))
 	}
 	resp := byteframe.NewByteFrame()
-	resp.WriteUint32(uint32(netcafe_points))
+	resp.WriteUint32(netcafePoints)
 	doAckSimpleSucceed(s, pkt.AckHandle, resp.Data())
 }
 
 func handleMsgMhfUpdateCafepoint(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfUpdateCafepoint)
-	var netcafe_points int
-	err := s.server.db.QueryRow("SELECT COALESCE(netcafe_points, 0) FROM characters WHERE id = $1", s.charID).Scan(&netcafe_points)
+	var netcafePoints uint32
+	err := s.server.db.QueryRow("SELECT COALESCE(netcafe_points, 0) FROM characters WHERE id = $1", s.charID).Scan(&netcafePoints)
 	if err != nil {
-		s.logger.Fatal("Failed to get plate data savedata from db", zap.Error(err))
+		s.logger.Fatal("Failed to get netcate points from db", zap.Error(err))
 	}
 	resp := byteframe.NewByteFrame()
 	resp.WriteUint32(0)
-	resp.WriteUint32(uint32(netcafe_points))
+	resp.WriteUint32(netcafePoints)
 	doAckSimpleSucceed(s, pkt.AckHandle, resp.Data())
 }
 
@@ -77,19 +77,19 @@ func handleMsgMhfGetCafeDuration(s *Session, p mhfpacket.MHFPacket) {
 		panic(err)
 	}
 	cafeTime = uint32(Time_Current_Adjusted().Unix()) - uint32(s.sessionStart) + cafeTime
-	bf.WriteUint32(cafeTime) // Total hours
+	bf.WriteUint32(cafeTime) // Total cafe time
 	bf.WriteUint16(0)
 	ps.Uint16(bf, "Resets at next maintenance", true)
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 type CafeBonus struct {
-	ID            uint32 `db:"id"`
-	Line          uint32 `db:"line"`
-	ItemClass     uint32 `db:"itemclass"`
-	ItemID        uint32 `db:"itemid"`
-	TradeQuantity uint32 `db:"tradequantity"`
-	FlagCount     uint8  `db:"flagcount"`
+	ID       uint32 `db:"id"`
+	Minutes  uint32 `db:"minutes_req"`
+	ItemType uint32 `db:"item_type"`
+	ItemID   uint32 `db:"item_id"`
+	Quantity uint32 `db:"quantity"`
+	Claimed  bool   `db:"claimed"`
 }
 
 func handleMsgMhfGetCafeDurationBonusInfo(s *Session, p mhfpacket.MHFPacket) {
@@ -98,12 +98,12 @@ func handleMsgMhfGetCafeDurationBonusInfo(s *Session, p mhfpacket.MHFPacket) {
 
 	var count uint32
 	rows, err := s.server.db.Queryx(`
-	SELECT cb.id, line, itemclass, itemid, tradequantity,
+	SELECT cb.id, minutes_req, item_type, item_id, quantity,
 	(
 		SELECT count(*)
 		FROM cafe_accepted ca
 		WHERE cb.id = ca.cafe_id AND ca.character_id = $1
-	) AS flagcount
+	)::int::bool AS claimed
 	FROM cafebonus cb ORDER BY id ASC;`, s.charID)
 	if err != nil {
 		s.logger.Error("Error getting cafebonus", zap.Error(err))
@@ -111,20 +111,20 @@ func handleMsgMhfGetCafeDurationBonusInfo(s *Session, p mhfpacket.MHFPacket) {
 	} else {
 		for rows.Next() {
 			count++
-			Cafes := &CafeBonus{}
-			err = rows.StructScan(&Cafes)
+			cafeBonus := &CafeBonus{}
+			err = rows.StructScan(&cafeBonus)
 			if err != nil {
 				s.logger.Error("Error scanning cafebonus", zap.Error(err))
 			}
-			bf.WriteUint32(Cafes.Line) // Time
-			bf.WriteUint32(0)          // Unk
-			bf.WriteUint32(Cafes.ItemID)
-			bf.WriteUint32(Cafes.TradeQuantity)
-			bf.WriteUint8(Cafes.FlagCount)
+			bf.WriteUint32(cafeBonus.Minutes)
+			bf.WriteUint32(0) // Unk
+			bf.WriteUint32(cafeBonus.ItemID)
+			bf.WriteUint32(cafeBonus.Quantity)
+			bf.WriteBool(cafeBonus.Claimed)
 		}
 		resp := byteframe.NewByteFrame()
 		resp.WriteUint32(0)
-		resp.WriteUint32(uint32(time.Now().Unix())) //timestamp
+		resp.WriteUint32(uint32(time.Now().Unix()))
 		resp.WriteUint32(count)
 		resp.WriteBytes(bf.Data())
 		doAckBufSucceed(s, pkt.AckHandle, resp.Data())
@@ -136,7 +136,7 @@ func handleMsgMhfReceiveCafeDurationBonus(s *Session, p mhfpacket.MHFPacket) {
 	bf := byteframe.NewByteFrame()
 
 	row := s.server.db.QueryRowx(`
-	SELECT c.id, c.line, itemclass, itemid, tradequantity
+	SELECT c.id, minutes_req, item_type, item_id, quantity
 	FROM cafebonus c
 	WHERE (
 		SELECT count(*)
@@ -146,18 +146,18 @@ func handleMsgMhfReceiveCafeDurationBonus(s *Session, p mhfpacket.MHFPacket) {
 		SELECT ch.cafe_time + $2
 		FROM characters ch
 		WHERE ch.id = $1 
-	) >= c.line LIMIT 1;`, s.charID, Time_Current_Adjusted().Unix()-s.sessionStart)
-	Cafe := &CafeBonus{}
-	err := row.StructScan(Cafe)
+	) >= minutes_req LIMIT 1;`, s.charID, Time_Current_Adjusted().Unix()-s.sessionStart)
+	cafeBonus := &CafeBonus{}
+	err := row.StructScan(cafeBonus)
 	if err != nil {
 		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 8))
 		return
 	}
 	bf.WriteUint32(1)
-	bf.WriteUint32(Cafe.ID)
-	bf.WriteUint32(Cafe.ItemClass)
-	bf.WriteUint32(Cafe.ItemID)
-	bf.WriteUint32(Cafe.TradeQuantity)
+	bf.WriteUint32(cafeBonus.ID)
+	bf.WriteUint32(cafeBonus.ItemType)
+	bf.WriteUint32(cafeBonus.ItemID)
+	bf.WriteUint32(cafeBonus.Quantity)
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 

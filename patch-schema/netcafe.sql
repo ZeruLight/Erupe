@@ -6,10 +6,10 @@ ALTER TABLE IF EXISTS public.characters
 CREATE TABLE IF NOT EXISTS public.cafebonus
 (
     id integer NOT NULL PRIMARY KEY,
-    line integer NOT NULL,
-    itemclass integer NOT NULL,
-    itemid integer NOT NULL,
-    tradequantity integer NOT NULL
+    minutes_req integer NOT NULL,
+    item_type integer NOT NULL,
+    item_id integer NOT NULL,
+    quantity integer NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS public.cafe_accepted

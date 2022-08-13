@@ -108,9 +108,11 @@ func main() {
 	}
 	logger.Info("Connected to database")
 
-	// Clear existing tokens
+	// Clear stale data
 	_ = db.MustExec("DELETE FROM sign_sessions")
 	_ = db.MustExec("DELETE FROM servers")
+	_ = db.MustExec("DELETE FROM cafe_accepted")
+	_ = db.MustExec("UPDATE characters SET cafe_time=0")
 
 	// Clean the DB if the option is on.
 	if erupeConfig.DevMode && erupeConfig.DevModeOptions.CleanDB {

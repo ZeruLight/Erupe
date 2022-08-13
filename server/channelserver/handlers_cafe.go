@@ -118,7 +118,7 @@ func handleMsgMhfGetCafeDurationBonusInfo(s *Session, p mhfpacket.MHFPacket) {
 				s.logger.Error("Error scanning cafebonus", zap.Error(err))
 			}
 			bf.WriteUint32(cafeBonus.TimeReq)
-			bf.WriteUint32(0) // Unk
+			bf.WriteUint32(cafeBonus.ItemType)
 			bf.WriteUint32(cafeBonus.ItemID)
 			bf.WriteUint32(cafeBonus.Quantity)
 			bf.WriteBool(cafeBonus.Claimed)

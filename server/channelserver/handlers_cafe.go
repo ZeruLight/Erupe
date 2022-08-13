@@ -85,7 +85,7 @@ func handleMsgMhfGetCafeDuration(s *Session, p mhfpacket.MHFPacket) {
 
 type CafeBonus struct {
 	ID       uint32 `db:"id"`
-	Minutes  uint32 `db:"minutes_req"`
+	Seconds  uint32 `db:"time_req"`
 	ItemType uint32 `db:"item_type"`
 	ItemID   uint32 `db:"item_id"`
 	Quantity uint32 `db:"quantity"`
@@ -98,7 +98,7 @@ func handleMsgMhfGetCafeDurationBonusInfo(s *Session, p mhfpacket.MHFPacket) {
 
 	var count uint32
 	rows, err := s.server.db.Queryx(`
-	SELECT cb.id, minutes_req, item_type, item_id, quantity,
+	SELECT cb.id, seconds_req, item_type, item_id, quantity,
 	(
 		SELECT count(*)
 		FROM cafe_accepted ca
@@ -116,7 +116,7 @@ func handleMsgMhfGetCafeDurationBonusInfo(s *Session, p mhfpacket.MHFPacket) {
 			if err != nil {
 				s.logger.Error("Error scanning cafebonus", zap.Error(err))
 			}
-			bf.WriteUint32(cafeBonus.Minutes)
+			bf.WriteUint32(cafeBonus.Seconds)
 			bf.WriteUint32(0) // Unk
 			bf.WriteUint32(cafeBonus.ItemID)
 			bf.WriteUint32(cafeBonus.Quantity)
@@ -136,7 +136,7 @@ func handleMsgMhfReceiveCafeDurationBonus(s *Session, p mhfpacket.MHFPacket) {
 	bf := byteframe.NewByteFrame()
 
 	row := s.server.db.QueryRowx(`
-	SELECT c.id, minutes_req, item_type, item_id, quantity
+	SELECT c.id, seconds_req, item_type, item_id, quantity
 	FROM cafebonus c
 	WHERE (
 		SELECT count(*)
@@ -146,7 +146,7 @@ func handleMsgMhfReceiveCafeDurationBonus(s *Session, p mhfpacket.MHFPacket) {
 		SELECT ch.cafe_time + $2
 		FROM characters ch
 		WHERE ch.id = $1 
-	) >= minutes_req LIMIT 1;`, s.charID, Time_Current_Adjusted().Unix()-s.sessionStart)
+	) >= seconds_req LIMIT 1;`, s.charID, Time_Current_Adjusted().Unix()-s.sessionStart)
 	cafeBonus := &CafeBonus{}
 	err := row.StructScan(cafeBonus)
 	if err != nil {

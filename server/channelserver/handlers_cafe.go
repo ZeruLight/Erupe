@@ -29,7 +29,6 @@ func handleMsgMhfUpdateCafepoint(s *Session, p mhfpacket.MHFPacket) {
 		s.logger.Fatal("Failed to get netcate points from db", zap.Error(err))
 	}
 	resp := byteframe.NewByteFrame()
-	resp.WriteUint32(0)
 	resp.WriteUint32(netcafePoints)
 	doAckSimpleSucceed(s, pkt.AckHandle, resp.Data())
 }
@@ -58,7 +57,7 @@ func handleMsgMhfCheckDailyCafepoint(s *Session, p mhfpacket.MHFPacket) {
 
 	if t.After(dailyTime) {
 		// +5 netcafe points and setting next valid window
-		_, err := s.server.db.Exec("UPDATE characters SET daily_time=$1, netcafe_points=netcafe_points::int + 5 WHERE id=$2", midday, s.charID)
+		_, err := s.server.db.Exec("UPDATE characters SET daily_time=$1, netcafe_points=netcafe_points+5 WHERE id=$2", midday, s.charID)
 		if err != nil {
 			s.logger.Fatal("Failed to update daily_time and netcafe_points savedata in db", zap.Error(err))
 		}
@@ -172,16 +171,69 @@ func handleMsgMhfReceiveCafeDurationBonus(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfPostCafeDurationBonusReceived(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfPostCafeDurationBonusReceived)
-
-	_, err := s.server.db.Exec("INSERT INTO public.cafe_accepted VALUES ($1, $2)", pkt.CafeBonusID, s.charID)
-	if err != nil {
-		s.logger.Error("Error updating accepted CafeBonus count", zap.Error(err))
+	var cafeBonus CafeBonus
+	for _, cbID := range pkt.CafeBonusID {
+		err := s.server.db.QueryRow(`
+		SELECT cb.id, item_type, quantity FROM cafebonus cb WHERE cb.id=$1
+		`, cbID).Scan(&cafeBonus.ID, &cafeBonus.ItemType, &cafeBonus.Quantity)
+		if err == nil {
+			if cafeBonus.ItemType == 17 {
+				s.server.db.Exec("UPDATE characters SET netcafe_points=netcafe_points+$1 WHERE id=$2", cafeBonus.Quantity, s.charID)
+			}
+		}
+		s.server.db.Exec("INSERT INTO public.cafe_accepted VALUES ($1, $2)", cbID, s.charID)
 	}
-
 	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfStartBoostTime(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfStartBoostTime)
+	bf := byteframe.NewByteFrame()
+	boostLimit := Time_Current_Adjusted().Add(100 * time.Minute)
+	s.server.db.Exec("UPDATE characters SET boost_time=$1 WHERE id=$2", boostLimit, s.charID)
+	bf.WriteUint32(uint32(boostLimit.Unix()))
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+}
+
+func handleMsgMhfGetBoostTime(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfGetBoostTime)
+	doAckBufSucceed(s, pkt.AckHandle, []byte{})
+}
+
+func handleMsgMhfGetBoostTimeLimit(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfGetBoostTimeLimit)
+	bf := byteframe.NewByteFrame()
+	var boostLimit time.Time
+	err := s.server.db.QueryRow("SELECT boost_time FROM characters WHERE id=$1", s.charID).Scan(&boostLimit)
+	if err != nil {
+		bf.WriteUint32(0)
+	} else {
+		bf.WriteUint32(uint32(boostLimit.Unix()))
+	}
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
+
+func handleMsgMhfGetBoostRight(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfGetBoostRight)
+	var boostLimit time.Time
+	err := s.server.db.QueryRow("SELECT boost_time FROM characters WHERE id=$1", s.charID).Scan(&boostLimit)
+	if err != nil {
+		doAckBufSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+		return
+	}
+	if boostLimit.Unix() < Time_Current_Adjusted().Unix() {
+		doAckBufSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x02})
+	} else {
+		doAckBufSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x01})
+	}
+}
+
+func handleMsgMhfPostBoostTimeQuestReturn(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfPostBoostTimeQuestReturn)
+	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+}
+
+func handleMsgMhfPostBoostTime(s *Session, p mhfpacket.MHFPacket) {}
+
+func handleMsgMhfPostBoostTimeLimit(s *Session, p mhfpacket.MHFPacket) {}

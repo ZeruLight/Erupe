@@ -1,7 +1,16 @@
 BEGIN;
 
 ALTER TABLE IF EXISTS public.characters
-    ADD COLUMN cafe_time integer DEFAULT 0;
+    ADD COLUMN IF NOT EXISTS cafe_time integer DEFAULT 0;
+
+ALTER TABLE IF EXISTS public.characters
+    DROP COLUMN IF EXISTS netcafe_points;
+
+ALTER TABLE IF EXISTS public.characters
+    ADD COLUMN IF NOT EXISTS netcafe_points int DEFAULT 0;
+
+ALTER TABLE IF EXISTS public.characters
+    ADD COLUMN IF NOT EXISTS boost_time timestamp without time zone;
 
 CREATE TABLE IF NOT EXISTS public.cafebonus
 (

@@ -303,32 +303,6 @@ func handleMsgMhfGetUdInfo(s *Session, p mhfpacket.MHFPacket) {
 	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
 }
 
-func handleMsgMhfGetBoostTime(s *Session, p mhfpacket.MHFPacket) {
-	pkt := p.(*mhfpacket.MsgMhfGetBoostTime)
-
-	doAckBufSucceed(s, pkt.AckHandle, []byte{})
-	updateRights(s)
-}
-
-func handleMsgMhfGetBoostTimeLimit(s *Session, p mhfpacket.MHFPacket) {
-	pkt := p.(*mhfpacket.MsgMhfGetBoostTimeLimit)
-	doAckBufSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
-}
-
-func handleMsgMhfGetBoostRight(s *Session, p mhfpacket.MHFPacket) {
-	pkt := p.(*mhfpacket.MsgMhfGetBoostRight)
-	doAckBufSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
-}
-
-func handleMsgMhfPostBoostTimeQuestReturn(s *Session, p mhfpacket.MHFPacket) {
-	pkt := p.(*mhfpacket.MsgMhfPostBoostTimeQuestReturn)
-	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
-}
-
-func handleMsgMhfPostBoostTime(s *Session, p mhfpacket.MHFPacket) {}
-
-func handleMsgMhfPostBoostTimeLimit(s *Session, p mhfpacket.MHFPacket) {}
-
 func handleMsgMhfGetRestrictionEvent(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfSetRestrictionEvent(s *Session, p mhfpacket.MHFPacket) {

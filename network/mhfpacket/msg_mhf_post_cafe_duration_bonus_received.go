@@ -11,8 +11,7 @@ import (
 // MsgMhfPostCafeDurationBonusReceived represents the MSG_MHF_POST_CAFE_DURATION_BONUS_RECEIVED
 type MsgMhfPostCafeDurationBonusReceived struct {
 	AckHandle   uint32
-	Unk0        uint32
-	CafeBonusID uint32
+	CafeBonusID []uint32
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -23,8 +22,10 @@ func (m *MsgMhfPostCafeDurationBonusReceived) Opcode() network.PacketID {
 // Parse parses the packet from binary
 func (m *MsgMhfPostCafeDurationBonusReceived) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
-	m.Unk0 = bf.ReadUint32()
-	m.CafeBonusID = bf.ReadUint32()
+	ids := int(bf.ReadUint32())
+	for i := 0; i < ids; i++ {
+		m.CafeBonusID = append(m.CafeBonusID, bf.ReadUint32())
+	}
 	return nil
 }
 

@@ -222,10 +222,10 @@ func handleMsgMhfGetBoostRight(s *Session, p mhfpacket.MHFPacket) {
 		doAckBufSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 		return
 	}
-	if boostLimit.Unix() < Time_Current_Adjusted().Unix() {
-		doAckBufSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x02})
-	} else {
+	if boostLimit.Unix() > Time_Current_Adjusted().Unix() {
 		doAckBufSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x01})
+	} else {
+		doAckBufSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x02})
 	}
 }
 

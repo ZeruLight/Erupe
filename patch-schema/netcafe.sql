@@ -6,7 +6,7 @@ ALTER TABLE IF EXISTS public.characters
 CREATE TABLE IF NOT EXISTS public.cafebonus
 (
     id integer NOT NULL PRIMARY KEY,
-    seconds_req integer NOT NULL,
+    time_req integer NOT NULL,
     item_type integer NOT NULL,
     item_id integer NOT NULL,
     quantity integer NOT NULL

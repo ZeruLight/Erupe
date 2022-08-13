@@ -5,6 +5,7 @@ import (
 	ps "erupe-ce/common/pascalstring"
 	"erupe-ce/network/mhfpacket"
 	"go.uber.org/zap"
+	"io"
 	"time"
 )
 
@@ -85,7 +86,7 @@ func handleMsgMhfGetCafeDuration(s *Session, p mhfpacket.MHFPacket) {
 
 type CafeBonus struct {
 	ID       uint32 `db:"id"`
-	Seconds  uint32 `db:"time_req"`
+	TimeReq  uint32 `db:"time_req"`
 	ItemType uint32 `db:"item_type"`
 	ItemID   uint32 `db:"item_id"`
 	Quantity uint32 `db:"quantity"`
@@ -98,7 +99,7 @@ func handleMsgMhfGetCafeDurationBonusInfo(s *Session, p mhfpacket.MHFPacket) {
 
 	var count uint32
 	rows, err := s.server.db.Queryx(`
-	SELECT cb.id, seconds_req, item_type, item_id, quantity,
+	SELECT cb.id, time_req, item_type, item_id, quantity,
 	(
 		SELECT count(*)
 		FROM cafe_accepted ca
@@ -116,7 +117,7 @@ func handleMsgMhfGetCafeDurationBonusInfo(s *Session, p mhfpacket.MHFPacket) {
 			if err != nil {
 				s.logger.Error("Error scanning cafebonus", zap.Error(err))
 			}
-			bf.WriteUint32(cafeBonus.Seconds)
+			bf.WriteUint32(cafeBonus.TimeReq)
 			bf.WriteUint32(0) // Unk
 			bf.WriteUint32(cafeBonus.ItemID)
 			bf.WriteUint32(cafeBonus.Quantity)
@@ -134,9 +135,10 @@ func handleMsgMhfGetCafeDurationBonusInfo(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfReceiveCafeDurationBonus(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfReceiveCafeDurationBonus)
 	bf := byteframe.NewByteFrame()
-
-	row := s.server.db.QueryRowx(`
-	SELECT c.id, seconds_req, item_type, item_id, quantity
+	var count uint32
+	bf.WriteUint32(0)
+	rows, err := s.server.db.Queryx(`
+	SELECT c.id, time_req, item_type, item_id, quantity
 	FROM cafebonus c
 	WHERE (
 		SELECT count(*)
@@ -146,19 +148,26 @@ func handleMsgMhfReceiveCafeDurationBonus(s *Session, p mhfpacket.MHFPacket) {
 		SELECT ch.cafe_time + $2
 		FROM characters ch
 		WHERE ch.id = $1 
-	) >= seconds_req LIMIT 1;`, s.charID, Time_Current_Adjusted().Unix()-s.sessionStart)
-	cafeBonus := &CafeBonus{}
-	err := row.StructScan(cafeBonus)
+	) >= time_req`, s.charID, Time_Current_Adjusted().Unix()-s.sessionStart)
 	if err != nil {
-		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 8))
-		return
+		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	} else {
+		for rows.Next() {
+			cafeBonus := &CafeBonus{}
+			err = rows.StructScan(cafeBonus)
+			if err != nil {
+				continue
+			}
+			count++
+			bf.WriteUint32(cafeBonus.ID)
+			bf.WriteUint32(cafeBonus.ItemType)
+			bf.WriteUint32(cafeBonus.ItemID)
+			bf.WriteUint32(cafeBonus.Quantity)
+		}
+		bf.Seek(0, io.SeekStart)
+		bf.WriteUint32(count)
+		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 	}
-	bf.WriteUint32(1)
-	bf.WriteUint32(cafeBonus.ID)
-	bf.WriteUint32(cafeBonus.ItemType)
-	bf.WriteUint32(cafeBonus.ItemID)
-	bf.WriteUint32(cafeBonus.Quantity)
-	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfPostCafeDurationBonusReceived(s *Session, p mhfpacket.MHFPacket) {

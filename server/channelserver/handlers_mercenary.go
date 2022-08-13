@@ -121,10 +121,30 @@ func handleMsgMhfSaveHunterNavi(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfMercenaryHuntdata(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfMercenaryHuntdata)
-	doAckBufSucceed(s, pkt.AckHandle, make([]byte, 0x0A))
+	if pkt.Unk0 == 1 {
+		// Format:
+		// uint8 Hunts
+		// struct Hunt
+		//   uint32 HuntID
+		//   uint32 MonID
+		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 1))
+	} else {
+		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 0))
+	}
 }
 
-func handleMsgMhfEnumerateMercenaryLog(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfEnumerateMercenaryLog(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfEnumerateMercenaryLog)
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint32(0)
+	// Format:
+	// struct Log
+	//   uint32 Timestamp
+	//   []byte Name (len 18)
+	//   uint8 Unk
+	//   uint8 Unk
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+}
 
 func handleMsgMhfCreateMercenary(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfCreateMercenary)

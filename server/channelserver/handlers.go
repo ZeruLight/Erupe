@@ -9,6 +9,7 @@ import (
 	"io"
 	"net"
 	"strings"
+	"time"
 
 	"erupe-ce/common/byteframe"
 	"erupe-ce/network/mhfpacket"
@@ -646,19 +647,41 @@ func handleMsgMhfGetCogInfo(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfCheckWeeklyStamp(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfCheckWeeklyStamp)
-
-	resp := byteframe.NewByteFrame()
-	resp.WriteUint16(0x000E)
-	resp.WriteUint16(0x0001)
-	resp.WriteUint16(0x0000)
-	resp.WriteUint16(0x0000) // 0x0000 stops the vaguely annoying log in pop up
-	resp.WriteUint32(0)
-	resp.WriteUint32(0x5dddcbb3) // Timestamp
-
-	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
+	weekCurrentStart := TimeWeekStart()
+	weekNextStart := TimeWeekNext()
+	var total, redeemed, updated uint16
+	var nextClaim time.Time
+	err := s.server.db.QueryRow(fmt.Sprintf("SELECT %s_next FROM stamps WHERE character_id=$1", pkt.StampType), s.charID).Scan(&nextClaim)
+	if err != nil {
+		s.server.db.Exec("INSERT INTO stamps (character_id, hl_next, ex_next) VALUES ($1, $2, $2)", s.charID, weekNextStart)
+		nextClaim = weekNextStart
+	}
+	if nextClaim.Before(weekCurrentStart) {
+		s.server.db.Exec(fmt.Sprintf("UPDATE stamps SET %s_total=%s_total+1, %s_next=$1 WHERE character_id=$2", pkt.StampType, pkt.StampType, pkt.StampType), weekNextStart, s.charID)
+		updated = 1
+	}
+	s.server.db.QueryRow(fmt.Sprintf("SELECT %s_total, %s_redeemed FROM stamps WHERE character_id=$1", pkt.StampType, pkt.StampType), s.charID).Scan(&total, &redeemed)
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint16(total)
+	bf.WriteUint16(redeemed)
+	bf.WriteUint16(updated)
+	bf.WriteUint32(0) // Unk
+	bf.WriteUint32(uint32(weekCurrentStart.Unix()))
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
-func handleMsgMhfExchangeWeeklyStamp(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfExchangeWeeklyStamp(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfExchangeWeeklyStamp)
+	var total, redeemed uint16
+	s.server.db.QueryRow(fmt.Sprintf("UPDATE stamps SET %s_redeemed=%s_redeemed+8 WHERE character_id=$1 RETURNING %s_total, %s_redeemed", pkt.StampType, pkt.StampType, pkt.StampType, pkt.StampType), s.charID).Scan(&total, &redeemed)
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint16(total)
+	bf.WriteUint16(redeemed)
+	bf.WriteUint16(0)
+	bf.WriteUint32(0) // Unk, but has possible values
+	bf.WriteUint32(uint32(TimeWeekStart().Unix()))
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+}
 
 func getGookData(s *Session, cid uint32) (uint16, []byte) {
 	var data []byte

@@ -79,7 +79,7 @@ func doAckSimpleFail(s *Session, ackHandle uint32, data []byte) {
 func updateRights(s *Session) {
 	update := &mhfpacket.MsgSysUpdateRight{
 		ClientRespAckHandle: 0,
-		Unk1:                s.rights,
+		Bitfield:            s.rights,
 		Rights: []mhfpacket.ClientRight{
 			{
 				ID:        1,

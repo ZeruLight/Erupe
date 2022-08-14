@@ -154,7 +154,7 @@ func NewServer(config *Config) *Server {
 		stages:          make(map[string]*Stage),
 		userBinaryParts: make(map[userBinaryPartID][]byte),
 		semaphore:       make(map[string]*Semaphore),
-		semaphoreIndex:  5,
+		semaphoreIndex:  7,
 		discordBot:      config.DiscordBot,
 		name:            config.Name,
 		enable:          config.Enable,
@@ -413,6 +413,9 @@ func (s *Server) NextSemaphoreID() uint32 {
 	for {
 		exists := false
 		s.semaphoreIndex = s.semaphoreIndex + 1
+		if s.semaphoreIndex == 0 {
+			s.semaphoreIndex = 7 // Skip reserved indexes
+		}
 		for _, semaphore := range s.semaphore {
 			if semaphore.id == s.semaphoreIndex {
 				exists = true

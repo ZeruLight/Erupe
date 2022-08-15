@@ -369,6 +369,11 @@ func handleMsgMhfResetTitle(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfOperateWarehouse(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfOperateWarehouse)
+	var t int
+	err := s.server.db.QueryRow("SELECT character_id FROM warehouse WHERE character_id=$1", s.charID).Scan(&t)
+	if err != nil {
+		s.server.db.Exec("INSERT INTO warehouse (character_id) VALUES ($1)", s.charID)
+	}
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint8(pkt.Operation)
 	switch pkt.Operation {
@@ -380,7 +385,7 @@ func handleMsgMhfOperateWarehouse(s *Session, p mhfpacket.MHFPacket) {
 			&itemNames[1], &itemNames[2], &itemNames[3], &itemNames[4], &itemNames[5], &itemNames[6], &itemNames[7], &itemNames[8], &itemNames[9], &equipNames[0],
 			&equipNames[1], &equipNames[2], &equipNames[3], &equipNames[4], &equipNames[5], &equipNames[6], &equipNames[7], &equipNames[8], &equipNames[9])
 		bf.WriteUint32(0)
-		bf.WriteUint16(1000) // Usages
+		bf.WriteUint16(10000) // Usages
 		temp := byteframe.NewByteFrame()
 		for i, name := range itemNames {
 			if len(name) > 0 {
@@ -405,16 +410,11 @@ func handleMsgMhfOperateWarehouse(s *Session, p mhfpacket.MHFPacket) {
 	case 2:
 		s.server.db.Exec(fmt.Sprintf("UPDATE warehouse SET %s%dname=$1 WHERE character_id=$2", pkt.BoxType, pkt.BoxIndex), pkt.Name, s.charID)
 	case 3:
-		var t int
-		err := s.server.db.QueryRow("SELECT character_id FROM warehouse WHERE character_id=$1", s.charID).Scan(&t)
-		if err != nil {
-			s.server.db.Exec("INSERT INTO warehouse (character_id) VALUES ($1)", s.charID)
-		}
-		bf.WriteUint32(0)
-		bf.WriteUint16(1000) // Usages
+		bf.WriteUint32(0)     // Usage renewal time, >1 = disabled
+		bf.WriteUint16(10000) // Usages
 	case 4:
 		bf.WriteUint32(0)
-		bf.WriteUint16(1000) // Usages
+		bf.WriteUint16(10000) // Usages
 		bf.WriteUint8(0)
 	}
 	// Opcodes

@@ -434,11 +434,19 @@ func getWarehouseBox(s *Session, boxType string, boxIndex uint8) []mhfpacket.War
 		numStacks := box.ReadUint16()
 		stacks := make([]mhfpacket.WarehouseStack, numStacks)
 		for i := 0; i < int(numStacks); i++ {
-			stacks[i].ID = box.ReadUint32()
-			stacks[i].Index = box.ReadUint16()
-			stacks[i].ItemID = box.ReadUint16()
-			stacks[i].Quantity = box.ReadUint16()
-			box.ReadUint16()
+			if boxType == "item" {
+				stacks[i].ID = box.ReadUint32()
+				stacks[i].Index = box.ReadUint16()
+				stacks[i].ItemID = box.ReadUint16()
+				stacks[i].Quantity = box.ReadUint16()
+				box.ReadUint16()
+			} else {
+				stacks[i].ID = box.ReadUint32()
+				stacks[i].Index = box.ReadUint16()
+				stacks[i].EquipType = box.ReadUint16()
+				stacks[i].ItemID = box.ReadUint16()
+				stacks[i].Data = box.ReadBytes(56)
+			}
 		}
 		return stacks
 	} else {
@@ -446,15 +454,23 @@ func getWarehouseBox(s *Session, boxType string, boxIndex uint8) []mhfpacket.War
 	}
 }
 
-func boxToBytes(stacks []mhfpacket.WarehouseStack) []byte {
+func boxToBytes(stacks []mhfpacket.WarehouseStack, boxType string) []byte {
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint16(uint16(len(stacks)))
-	for _, stack := range stacks {
-		bf.WriteUint32(stack.ID)
-		bf.WriteUint16(stack.Index)
-		bf.WriteUint16(stack.ItemID)
-		bf.WriteUint16(stack.Quantity)
-		bf.WriteUint16(0)
+	for i, stack := range stacks {
+		if boxType == "item" {
+			bf.WriteUint32(stack.ID)
+			bf.WriteUint16(uint16(i + 1))
+			bf.WriteUint16(stack.ItemID)
+			bf.WriteUint16(stack.Quantity)
+			bf.WriteUint16(0)
+		} else {
+			bf.WriteUint32(stack.ID)
+			bf.WriteUint16(uint16(i + 1))
+			bf.WriteUint16(stack.EquipType)
+			bf.WriteUint16(stack.ItemID)
+			bf.WriteBytes(stack.Data)
+		}
 	}
 	bf.WriteUint16(0)
 	return bf.Data()
@@ -464,7 +480,7 @@ func handleMsgMhfEnumerateWarehouse(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateWarehouse)
 	box := getWarehouseBox(s, pkt.BoxType, pkt.BoxIndex)
 	if len(box) > 0 {
-		doAckBufSucceed(s, pkt.AckHandle, boxToBytes(box))
+		doAckBufSucceed(s, pkt.AckHandle, boxToBytes(box, pkt.BoxType))
 	} else {
 		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
 	}
@@ -477,11 +493,21 @@ func handleMsgMhfUpdateWarehouse(s *Session, p mhfpacket.MHFPacket) {
 	var newStacks []mhfpacket.WarehouseStack
 	for _, update := range pkt.Updates {
 		exists := false
-		for i, stack := range box {
-			if stack.ItemID == update.ItemID {
-				box[i].Quantity = update.Quantity
-				exists = true
-				break
+		if pkt.BoxType == "item" {
+			for i, stack := range box {
+				if stack.Index == update.Index {
+					exists = true
+					box[i].Quantity = update.Quantity
+					break
+				}
+			}
+		} else {
+			for i, stack := range box {
+				if stack.Index == update.Index {
+					exists = true
+					box[i].ItemID = update.ItemID
+					break
+				}
 			}
 		}
 		if exists == false {
@@ -495,10 +521,16 @@ func handleMsgMhfUpdateWarehouse(s *Session, p mhfpacket.MHFPacket) {
 	// Slice empty stacks
 	var cleanedBox []mhfpacket.WarehouseStack
 	for _, stack := range box {
-		if stack.Quantity > 0 {
-			cleanedBox = append(cleanedBox, stack)
+		if pkt.BoxType == "item" {
+			if stack.Quantity > 0 {
+				cleanedBox = append(cleanedBox, stack)
+			}
+		} else {
+			if stack.ItemID != 0 {
+				cleanedBox = append(cleanedBox, stack)
+			}
 		}
 	}
-	s.server.db.Exec(fmt.Sprintf("UPDATE warehouse SET %s%d=$1 WHERE character_id=$2", pkt.BoxType, pkt.BoxIndex), boxToBytes(cleanedBox), s.charID)
+	s.server.db.Exec(fmt.Sprintf("UPDATE warehouse SET %s%d=$1 WHERE character_id=$2", pkt.BoxType, pkt.BoxIndex), boxToBytes(cleanedBox, pkt.BoxType), s.charID)
 	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }

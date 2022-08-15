@@ -2,25 +2,24 @@ package mhfpacket
 
 import (
 	"errors"
-
 	"erupe-ce/common/byteframe"
 	"erupe-ce/network"
 	"erupe-ce/network/clientctx"
 )
 
-type UpdatedStack struct {
+type WarehouseStack struct {
 	ID       uint32
 	Index    uint16
 	ItemID   uint16
 	Quantity uint16
-	Unk      uint16
 }
 
 // MsgMhfUpdateWarehouse represents the MSG_MHF_UPDATE_WAREHOUSE
 type MsgMhfUpdateWarehouse struct {
 	AckHandle uint32
-	BoxID     uint16
-	Items     []UpdatedStack
+	BoxType   string
+	BoxIndex  uint8
+	Updates   []WarehouseStack
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -31,16 +30,23 @@ func (m *MsgMhfUpdateWarehouse) Opcode() network.PacketID {
 // Parse parses the packet from binary
 func (m *MsgMhfUpdateWarehouse) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
-	m.BoxID = bf.ReadUint16()
+	boxType := bf.ReadUint8()
+	switch boxType {
+	case 0:
+		m.BoxType = "item"
+	case 1:
+		m.BoxType = "equip"
+	}
+	m.BoxIndex = bf.ReadUint8()
 	changes := int(bf.ReadUint16())
-	var stackUpdate UpdatedStack
+	var stackUpdate WarehouseStack
 	for i := 0; i < changes; i++ {
 		stackUpdate.ID = bf.ReadUint32()
 		stackUpdate.Index = bf.ReadUint16()
 		stackUpdate.ItemID = bf.ReadUint16()
 		stackUpdate.Quantity = bf.ReadUint16()
-		stackUpdate.Unk = bf.ReadUint16()
-		m.Items = append(m.Items, stackUpdate)
+		_ = bf.ReadUint16() // Unk
+		m.Updates = append(m.Updates, stackUpdate)
 	}
 	_ = bf.ReadUint16()
 	return nil

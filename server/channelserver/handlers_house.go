@@ -5,10 +5,36 @@ import (
 	ps "erupe-ce/common/pascalstring"
 	"erupe-ce/common/stringsupport"
 	"erupe-ce/network/mhfpacket"
+	"fmt"
 	"go.uber.org/zap"
 	"io"
 	"time"
 )
+
+const warehouseNamesQuery = `
+SELECT
+COALESCE(item0name, ''),
+COALESCE(item1name, ''),
+COALESCE(item2name, ''),
+COALESCE(item3name, ''),
+COALESCE(item4name, ''),
+COALESCE(item5name, ''),
+COALESCE(item6name, ''),
+COALESCE(item7name, ''),
+COALESCE(item8name, ''),
+COALESCE(item9name, ''),
+COALESCE(equip0name, ''),
+COALESCE(equip1name, ''),
+COALESCE(equip2name, ''),
+COALESCE(equip3name, ''),
+COALESCE(equip4name, ''),
+COALESCE(equip5name, ''),
+COALESCE(equip6name, ''),
+COALESCE(equip7name, ''),
+COALESCE(equip8name, ''),
+COALESCE(equip9name, '')
+FROM warehouse
+`
 
 func handleMsgMhfUpdateInterior(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfUpdateInterior)
@@ -341,8 +367,74 @@ func handleMsgMhfAcquireTitle(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfResetTitle(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfOperateWarehouse(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfOperateWarehouse(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfOperateWarehouse)
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint8(pkt.Operation)
+	switch pkt.Operation {
+	case 0:
+		var count uint8
+		itemNames := make([]string, 10)
+		equipNames := make([]string, 10)
+		s.server.db.QueryRow(fmt.Sprintf("%s WHERE character_id=$1", warehouseNamesQuery), s.charID).Scan(&itemNames[0],
+			&itemNames[1], &itemNames[2], &itemNames[3], &itemNames[4], &itemNames[5], &itemNames[6], &itemNames[7], &itemNames[8], &itemNames[9], &equipNames[0],
+			&equipNames[1], &equipNames[2], &equipNames[3], &equipNames[4], &equipNames[5], &equipNames[6], &equipNames[7], &equipNames[8], &equipNames[9])
+		bf.WriteUint32(0)
+		bf.WriteUint16(1000) // Usages
+		temp := byteframe.NewByteFrame()
+		for i, name := range itemNames {
+			if len(name) > 0 {
+				count++
+				temp.WriteUint8(0)
+				temp.WriteUint8(uint8(i))
+				ps.Uint8(temp, name, true)
+			}
+		}
+		for i, name := range equipNames {
+			if len(name) > 0 {
+				count++
+				temp.WriteUint8(1)
+				temp.WriteUint8(uint8(i))
+				ps.Uint8(temp, name, true)
+			}
+		}
+		bf.WriteUint8(count)
+		bf.WriteBytes(temp.Data())
+	case 1:
+		bf.WriteUint8(0)
+	case 2:
+		s.server.db.Exec(fmt.Sprintf("UPDATE warehouse SET %s%dname=$1 WHERE character_id=$2", pkt.BoxType, pkt.BoxIndex), pkt.Name, s.charID)
+	case 3:
+		var t int
+		err := s.server.db.QueryRow("SELECT character_id FROM warehouse WHERE character_id=$1", s.charID).Scan(&t)
+		if err != nil {
+			s.server.db.Exec("INSERT INTO warehouse (character_id) VALUES ($1)", s.charID)
+		}
+		bf.WriteUint32(0)
+		bf.WriteUint16(1000) // Usages
+	case 4:
+		bf.WriteUint32(0)
+		bf.WriteUint16(1000) // Usages
+		bf.WriteUint8(0)
+	}
+	// Opcodes
+	// 0 = Get box names
+	// 1 = Commit usage
+	// 2 = Rename
+	// 3 = Get usage limit
+	// 4 = Get gift box names (doesn't do anything?)
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+}
 
-func handleMsgMhfEnumerateWarehouse(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfEnumerateWarehouse(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfEnumerateWarehouse)
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint16(0) // numStacks
+	bf.WriteUint16(0) // Unk
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+}
 
-func handleMsgMhfUpdateWarehouse(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfUpdateWarehouse(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfUpdateWarehouse)
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+}

@@ -1902,6 +1902,9 @@ func handleMsgMhfEnumerateInvGuild(s *Session, p mhfpacket.MHFPacket) {
 	stubEnumerateNoResults(s, pkt.AckHandle)
 }
 
-func handleMsgMhfOperationInvGuild(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfOperationInvGuild(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfOperationInvGuild)
+	doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+}
 
 func handleMsgMhfUpdateGuildcard(s *Session, p mhfpacket.MHFPacket) {}

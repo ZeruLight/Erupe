@@ -423,6 +423,9 @@ func handleMsgMhfTransitMessage(s *Session, p mhfpacket.MHFPacket) {
 						}
 						for session := range stage.clients {
 							count++
+							hrp := uint16(1)
+							gr := uint16(0)
+							s.server.db.QueryRow("SELECT hrp, gr FROM characters WHERE id=$1", session.charID).Scan(&hrp, &gr)
 							sessionStage := stringsupport.UTF8ToSJIS(session.stageID)
 							sessionName := stringsupport.UTF8ToSJIS(session.Name)
 							resp.WriteUint32(binary.LittleEndian.Uint32(net.ParseIP(c.IP).To4()))
@@ -435,8 +438,8 @@ func handleMsgMhfTransitMessage(s *Session, p mhfpacket.MHFPacket) {
 							resp.WriteBytes(make([]byte, 48))
 							resp.WriteNullTerminatedBytes(sessionStage)
 							resp.WriteNullTerminatedBytes(sessionName)
-							resp.WriteUint16(999)                     // HR
-							resp.WriteUint16(999)                     // GR
+							resp.WriteUint16(hrp)
+							resp.WriteUint16(gr)
 							resp.WriteBytes([]byte{0x06, 0x10, 0x00}) // Unk
 						}
 					}
@@ -445,12 +448,23 @@ func handleMsgMhfTransitMessage(s *Session, p mhfpacket.MHFPacket) {
 		}
 	case 4: // Find Party
 		bf := byteframe.NewByteFrameFromBytes(pkt.MessageData)
-		bf.ReadUint8()
+		setting := bf.ReadUint8()
 		maxResults := bf.ReadUint16()
-		bf.ReadUint8()
-		bf.ReadUint8()
+		bf.Seek(2, 1)
 		partyType := bf.ReadUint16()
-		_ = bf.DataFromCurrent() // Restrictions
+		rankRestriction := uint16(0)
+		if setting >= 2 {
+			bf.Seek(2, 1)
+			rankRestriction = bf.ReadUint16()
+		}
+		targets := make([]uint16, 4)
+		if setting >= 3 {
+			bf.Seek(1, 1)
+			lenTargets := int(bf.ReadUint8())
+			for i := 0; i < lenTargets; i++ {
+				targets[i] = bf.ReadUint16()
+			}
+		}
 		var stagePrefix string
 		switch partyType {
 		case 0: // Public Bar
@@ -470,30 +484,40 @@ func handleMsgMhfTransitMessage(s *Session, p mhfpacket.MHFPacket) {
 					break
 				}
 				if strings.HasPrefix(stage.id, stagePrefix) {
+					sb3 := byteframe.NewByteFrameFromBytes(stage.rawBinaryData[stageBinaryKey{1, 3}])
+					sb3.Seek(4, 0)
+					stageRankRestriction := sb3.ReadUint16()
+					stageTarget := sb3.ReadUint16()
+					if rankRestriction != 0xFFFF && stageRankRestriction < rankRestriction {
+						continue
+					}
 					count++
 					sessionStage := stringsupport.UTF8ToSJIS(stage.id)
 					resp.WriteUint32(binary.LittleEndian.Uint32(net.ParseIP(c.IP).To4()))
 					resp.WriteUint16(c.Port)
-
-					// TODO: This is half right, could be trimmed
-					resp.WriteUint16(0)
-					resp.WriteUint16(uint16(len(stage.clients)))
+					resp.WriteUint16(0) // Static?
+					resp.WriteUint16(0) // Unk
 					resp.WriteUint16(uint16(len(stage.clients)))
 					resp.WriteUint16(stage.maxPlayers)
-					resp.WriteUint16(0)
-					resp.WriteUint16(uint16(len(stage.clients)))
-					//
-
-					resp.WriteUint16(uint16(len(sessionStage) + 1))
-					resp.WriteUint8(1)
+					resp.WriteUint16(0) // Num clients entered from stage
+					resp.WriteUint16(stage.maxPlayers)
+					resp.WriteUint8(1) // Static?
+					resp.WriteUint8(uint8(len(sessionStage) + 1))
+					resp.WriteUint8(uint8(len(stage.rawBinaryData[stageBinaryKey{1, 0}])))
 					resp.WriteUint8(uint8(len(stage.rawBinaryData[stageBinaryKey{1, 1}])))
-					resp.WriteBytes(make([]byte, 16))
+					resp.WriteUint16(stageRankRestriction)
+					resp.WriteUint16(stageTarget)
+					resp.WriteBytes(make([]byte, 12))
 					resp.WriteNullTerminatedBytes(sessionStage)
-					resp.WriteBytes([]byte{0x00})
+					resp.WriteBytes(stage.rawBinaryData[stageBinaryKey{1, 0}])
 					resp.WriteBytes(stage.rawBinaryData[stageBinaryKey{1, 1}])
 				}
 			}
 		}
+	}
+	if (pkt.SearchType == 1 || pkt.SearchType == 3) && count == 0 {
+		doAckBufFail(s, pkt.AckHandle, make([]byte, 4))
+		return
 	}
 	resp.Seek(0, io.SeekStart)
 	resp.WriteUint16(count)

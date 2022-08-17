@@ -98,35 +98,6 @@ func (s *Stage) isQuest() bool {
 	return len(s.reservedClientSlots) > 0
 }
 
-func (s *Stage) GetName() string {
-	switch s.id {
-	case MezeportaStageId:
-		return "Mezeporta"
-	case GuildHallLv1StageId:
-		return "Guild Hall Lv1"
-	case GuildHallLv2StageId:
-		return "Guild Hall Lv2"
-	case GuildHallLv3StageId:
-		return "Guild Hall Lv3"
-	case PugiFarmStageId:
-		return "Pugi Farm"
-	case RastaBarStageId:
-		return "Rasta Bar"
-	case PalloneCaravanStageId:
-		return "Pallone Caravan"
-	case GookFarmStageId:
-		return "Gook Farm"
-	case DivaFountainStageId:
-		return "Diva Fountain"
-	case DivaHallStageId:
-		return "Diva Hall"
-	case MezFesStageId:
-		return "Mez Fes"
-	default:
-		return ""
-	}
-}
-
 func (s *Stage) NextObjectID() uint32 {
 	s.objectIndex = s.objectIndex + 1
 	// Objects beyond 127 do not duplicate correctly

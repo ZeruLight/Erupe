@@ -15,8 +15,6 @@ import (
 	"go.uber.org/zap"
 )
 
-type StageIdType = string
-
 // Config struct allows configuring the server.
 type Config struct {
 	ID          uint16
@@ -147,32 +145,14 @@ func NewServer(config *Config) *Server {
 	// Mezeporta
 	s.stages["sl1Ns200p0a0u0"] = NewStage("sl1Ns200p0a0u0")
 
-	// Guild Hall LV1
-	s.stages["sl1Ns202p0a0u0"] = NewStage("sl1Ns202p0a0u0")
-
-	// Guild Hall LV2
-	s.stages["sl1Ns203p0a0u0"] = NewStage("sl1Ns203p0a0u0")
-
-	// Guild Hall LV3
-	s.stages["sl1Ns204p0a0u0"] = NewStage("sl1Ns204p0a0u0")
-
-	// Pugi Farm
-	s.stages["sl1Ns205p0a0u0"] = NewStage("sl1Ns205p0a0u0")
-
 	// Rasta bar stage
 	s.stages["sl1Ns211p0a0u0"] = NewStage("sl1Ns211p0a0u0")
 
 	// Pallone Carvan
 	s.stages["sl1Ns260p0a0u0"] = NewStage("sl1Ns260p0a0u0")
 
-	// Gook Farm
-	s.stages["sl1Ns265p0a0u0"] = NewStage("sl1Ns265p0a0u0")
-
 	// Diva fountain / prayer fountain.
 	s.stages["sl2Ns379p0a0u0"] = NewStage("sl2Ns379p0a0u0")
-
-	// Diva Hall
-	s.stages["sl1Ns445p0a0u0"] = NewStage("sl1Ns445p0a0u0")
 
 	// MezFes
 	s.stages["sl1Ns462p0a0u0"] = NewStage("sl1Ns462p0a0u0")

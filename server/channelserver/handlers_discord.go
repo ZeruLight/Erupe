@@ -80,7 +80,7 @@ func (s *Server) onDiscordMessage(ds *discordgo.Session, m *discordgo.MessageCre
 		return r
 	}, m.Author.Username))
 
-	for i := 0; i < 10-len(m.Author.Username); i++ {
+	for i := 0; i < 8-len(m.Author.Username); i++ {
 		paddedName += " "
 	}
 

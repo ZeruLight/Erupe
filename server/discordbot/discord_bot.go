@@ -1,11 +1,10 @@
 package discordbot
 
 import (
-	"regexp"
-
 	"erupe-ce/config"
 	"github.com/bwmarrin/discordgo"
 	"go.uber.org/zap"
+	"regexp"
 )
 
 type DiscordBot struct {
@@ -16,23 +15,16 @@ type DiscordBot struct {
 	RealtimeChannel *discordgo.Channel
 }
 
-type DiscordBotOptions struct {
+type Options struct {
 	Config *config.Config
 	Logger *zap.Logger
 }
 
-func NewDiscordBot(options DiscordBotOptions) (discordBot *DiscordBot, err error) {
+func NewDiscordBot(options Options) (discordBot *DiscordBot, err error) {
 	session, err := discordgo.New("Bot " + options.Config.Discord.BotToken)
 
 	if err != nil {
 		options.Logger.Fatal("Discord failed", zap.Error(err))
-		return nil, err
-	}
-
-	mainGuild, err := session.Guild(options.Config.Discord.ServerID)
-
-	if err != nil {
-		options.Logger.Fatal("Discord failed to get main guild", zap.Error(err))
 		return nil, err
 	}
 
@@ -47,7 +39,6 @@ func NewDiscordBot(options DiscordBotOptions) (discordBot *DiscordBot, err error
 		config:          options.Config,
 		logger:          options.Logger,
 		Session:         session,
-		MainGuild:       mainGuild,
 		RealtimeChannel: realtimeChannel,
 	}
 
@@ -60,21 +51,10 @@ func (bot *DiscordBot) Start() (err error) {
 	return
 }
 
-func (bot *DiscordBot) FindRoleByID(id string) *discordgo.Role {
-	for _, role := range bot.MainGuild.Roles {
-		if role.ID == id {
-			return role
-		}
-	}
-
-	return nil
-}
-
 // Replace all mentions to real name from the message.
 func (bot *DiscordBot) NormalizeDiscordMessage(message string) string {
 	userRegex := regexp.MustCompile(`<@!?(\d{17,19})>`)
 	emojiRegex := regexp.MustCompile(`(?:<a?)?:(\w+):(?:\d{18}>)?`)
-	roleRegex := regexp.MustCompile(`<@&(\d{17,19})>`)
 
 	result := ReplaceTextAll(message, userRegex, func(userId string) string {
 		user, err := bot.Session.User(userId)
@@ -90,17 +70,7 @@ func (bot *DiscordBot) NormalizeDiscordMessage(message string) string {
 		return ":" + emojiName + ":"
 	})
 
-	result = ReplaceTextAll(result, roleRegex, func(roleId string) string {
-		role := bot.FindRoleByID(roleId)
-
-		if role != nil {
-			return "@!" + role.Name
-		}
-
-		return "@!unknown"
-	})
-
-	return string(result)
+	return result
 }
 
 func (bot *DiscordBot) RealtimeChannelSend(message string) (err error) {

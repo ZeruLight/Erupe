@@ -17,21 +17,6 @@ import (
 
 type StageIdType = string
 
-const (
-	// GlobalStage is the stage that is used for all users.
-	MezeportaStageId      StageIdType = "sl1Ns200p0a0u0"
-	GuildHallLv1StageId   StageIdType = "sl1Ns202p0a0u0"
-	GuildHallLv2StageId   StageIdType = "sl1Ns203p0a0u0"
-	GuildHallLv3StageId   StageIdType = "sl1Ns204p0a0u0"
-	PugiFarmStageId       StageIdType = "sl1Ns205p0a0u0"
-	RastaBarStageId       StageIdType = "sl1Ns211p0a0u0"
-	PalloneCaravanStageId StageIdType = "sl1Ns260p0a0u0"
-	GookFarmStageId       StageIdType = "sl1Ns265p0a0u0"
-	DivaFountainStageId   StageIdType = "sl2Ns379p0a0u0"
-	DivaHallStageId       StageIdType = "sl1Ns445p0a0u0"
-	MezFesStageId         StageIdType = "sl1Ns462p0a0u0"
-)
-
 // Config struct allows configuring the server.
 type Config struct {
 	ID          uint16
@@ -80,8 +65,7 @@ type Server struct {
 	// Discord chat integration
 	discordBot *discordbot.DiscordBot
 
-	name   string
-	enable bool
+	name string
 
 	raviente *Raviente
 }
@@ -157,7 +141,6 @@ func NewServer(config *Config) *Server {
 		semaphoreIndex:  7,
 		discordBot:      config.DiscordBot,
 		name:            config.Name,
-		enable:          config.Enable,
 		raviente:        NewRaviente(),
 	}
 
@@ -367,7 +350,7 @@ func (s *Server) BroadcastRaviente(ip uint32, port uint16, stage []byte, _type u
 
 func (s *Server) DiscordChannelSend(charName string, content string) {
 	if s.erupeConfig.Discord.Enabled && s.discordBot != nil {
-		message := fmt.Sprintf("**%s** : %s", charName, content)
+		message := fmt.Sprintf("**%s**: %s", charName, content)
 		s.discordBot.RealtimeChannelSend(message)
 	}
 }

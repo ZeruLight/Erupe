@@ -65,7 +65,7 @@ func main() {
 	var discordBot *discordbot.DiscordBot = nil
 
 	if erupeConfig.Discord.Enabled {
-		bot, err := discordbot.NewDiscordBot(discordbot.DiscordBotOptions{
+		bot, err := discordbot.NewDiscordBot(discordbot.Options{
 			Logger: logger,
 			Config: erupeConfig,
 		})
@@ -82,6 +82,7 @@ func main() {
 		}
 
 		discordBot = bot
+		logger.Info("Discord bot is enabled")
 	} else {
 		logger.Info("Discord bot is disabled")
 	}

@@ -39,7 +39,7 @@ func handleMsgMhfLoadPartner(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfSavePartner(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSavePartner)
 
-	dumpSaveData(s, pkt.RawDataPayload, "_partner")
+	dumpSaveData(s, pkt.RawDataPayload, "partner")
 
 	_, err := s.server.db.Exec("UPDATE characters SET partner=$1 WHERE id=$2", pkt.RawDataPayload, s.charID)
 	if err != nil {
@@ -75,7 +75,7 @@ func handleMsgMhfLoadHunterNavi(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfSaveHunterNavi(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSaveHunterNavi)
 
-	dumpSaveData(s, pkt.RawDataPayload, "_hunternavi")
+	dumpSaveData(s, pkt.RawDataPayload, "hunternavi")
 
 	if pkt.IsDataDiff {
 		var data []byte
@@ -121,10 +121,30 @@ func handleMsgMhfSaveHunterNavi(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfMercenaryHuntdata(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfMercenaryHuntdata)
-	doAckBufSucceed(s, pkt.AckHandle, make([]byte, 0x0A))
+	if pkt.Unk0 == 1 {
+		// Format:
+		// uint8 Hunts
+		// struct Hunt
+		//   uint32 HuntID
+		//   uint32 MonID
+		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 1))
+	} else {
+		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 0))
+	}
 }
 
-func handleMsgMhfEnumerateMercenaryLog(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfEnumerateMercenaryLog(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfEnumerateMercenaryLog)
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint32(0)
+	// Format:
+	// struct Log
+	//   uint32 Timestamp
+	//   []byte Name (len 18)
+	//   uint8 Unk
+	//   uint8 Unk
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+}
 
 func handleMsgMhfCreateMercenary(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfCreateMercenary)
@@ -208,6 +228,7 @@ func handleMsgMhfLoadOtomoAirou(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfSaveOtomoAirou(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSaveOtomoAirou)
+	dumpSaveData(s, pkt.RawDataPayload, "otomoairou")
 	decomp, err := nullcomp.Decompress(pkt.RawDataPayload[1:])
 	if err != nil {
 		s.logger.Error("Failed to decompress airou", zap.Error(err))

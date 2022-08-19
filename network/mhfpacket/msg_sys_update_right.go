@@ -37,7 +37,7 @@ type ClientRight struct {
 // MsgSysUpdateRight represents the MSG_SYS_UPDATE_RIGHT
 type MsgSysUpdateRight struct {
 	ClientRespAckHandle uint32 // If non-0, requests the client to send back a MSG_SYS_ACK packet with this value.
-	Unk1                uint32
+	Bitfield            uint32
 	Rights              []ClientRight
 	UnkSize             uint16 // Count of some buf up to 0x800 bytes following it.
 }
@@ -55,7 +55,7 @@ func (m *MsgSysUpdateRight) Parse(bf *byteframe.ByteFrame, ctx *clientctx.Client
 // Build builds a binary packet from the current data.
 func (m *MsgSysUpdateRight) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	bf.WriteUint32(m.ClientRespAckHandle)
-	bf.WriteUint32(m.Unk1)
+	bf.WriteUint32(m.Bitfield)
 	bf.WriteUint16(uint16(len(m.Rights)))
 	bf.WriteUint16(0)
 	for _, v := range m.Rights {

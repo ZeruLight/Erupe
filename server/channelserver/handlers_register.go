@@ -11,7 +11,7 @@ func handleMsgSysOperateRegister(s *Session, p mhfpacket.MHFPacket) {
 	bf := byteframe.NewByteFrameFromBytes(pkt.RawDataPayload)
 	s.server.raviente.Lock()
 	switch pkt.SemaphoreID {
-	case 3:
+	case 4:
 		resp := byteframe.NewByteFrame()
 		size := 6
 		for i := 0; i < len(bf.Data())-1; i += size {
@@ -49,7 +49,7 @@ func handleMsgSysOperateRegister(s *Session, p mhfpacket.MHFPacket) {
 		}
 		resp.WriteUint8(0)
 		doAckBufSucceed(s, pkt.AckHandle, resp.Data())
-	case 4:
+	case 5:
 		resp := byteframe.NewByteFrame()
 		size := 6
 		for i := 0; i < len(bf.Data())-1; i += size {
@@ -74,7 +74,7 @@ func handleMsgSysOperateRegister(s *Session, p mhfpacket.MHFPacket) {
 		}
 		resp.WriteUint8(0)
 		doAckBufSucceed(s, pkt.AckHandle, resp.Data())
-	case 5:
+	case 6:
 		resp := byteframe.NewByteFrame()
 		size := 6
 		for i := 0; i < len(bf.Data())-1; i += size {
@@ -242,13 +242,13 @@ func handleMsgSysLoadRegister(s *Session, p mhfpacket.MHFPacket) {
 func (s *Session) notifyRavi() {
 	var temp mhfpacket.MHFPacket
 	raviNotif := byteframe.NewByteFrame()
-	temp = &mhfpacket.MsgSysNotifyRegister{RegisterID: 3}
-	raviNotif.WriteUint16(uint16(temp.Opcode()))
-	temp.Build(raviNotif, s.clientContext)
 	temp = &mhfpacket.MsgSysNotifyRegister{RegisterID: 4}
 	raviNotif.WriteUint16(uint16(temp.Opcode()))
 	temp.Build(raviNotif, s.clientContext)
 	temp = &mhfpacket.MsgSysNotifyRegister{RegisterID: 5}
+	raviNotif.WriteUint16(uint16(temp.Opcode()))
+	temp.Build(raviNotif, s.clientContext)
+	temp = &mhfpacket.MsgSysNotifyRegister{RegisterID: 6}
 	raviNotif.WriteUint16(uint16(temp.Opcode()))
 	temp.Build(raviNotif, s.clientContext)
 	raviNotif.WriteUint16(0x0010) // End it.
@@ -262,7 +262,7 @@ func (s *Session) notifyRavi() {
 
 func getRaviSemaphore(s *Session) string {
 	for _, semaphore := range s.server.semaphore {
-		if strings.HasPrefix(semaphore.id_semaphore, "hs_l0u3B5") && strings.HasSuffix(semaphore.id_semaphore, "3") {
+		if strings.HasPrefix(semaphore.id_semaphore, "hs_l0u3B5") && strings.HasSuffix(semaphore.id_semaphore, "4") {
 			return semaphore.id_semaphore
 		}
 	}

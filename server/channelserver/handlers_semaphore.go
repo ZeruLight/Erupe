@@ -45,12 +45,10 @@ func destructEmptySemaphores(s *Session) {
 }
 
 func releaseRaviSemaphore(s *Session, sema *Semaphore) {
-	if !strings.HasSuffix(sema.id_semaphore, "5") {
-		delete(sema.reservedClientSlots, s.charID)
-		delete(sema.clients, s)
-	}
-	if len(sema.reservedClientSlots) == 0 && len(sema.clients) == 0 {
-		s.logger.Debug("Raviente semaphore is empty, resetting")
+	delete(sema.reservedClientSlots, s.charID)
+	delete(sema.clients, s)
+	if strings.HasSuffix(sema.id_semaphore, "2") && len(sema.clients) == 0 {
+		s.logger.Debug("Main raviente semaphore is empty, resetting")
 		resetRavi(s)
 	}
 }
@@ -91,7 +89,7 @@ func handleMsgSysCreateAcquireSemaphore(s *Session, p mhfpacket.MHFPacket) {
 			suffix, _ := strconv.ParseUint(pkt.SemaphoreID[len(pkt.SemaphoreID)-1:], 10, 32)
 			s.server.semaphore[SemaphoreID] = &Semaphore{
 				id_semaphore:        pkt.SemaphoreID,
-				id:                  uint32(suffix),
+				id:                  uint32(suffix + 1),
 				clients:             make(map[*Session]uint32),
 				reservedClientSlots: make(map[uint32]interface{}),
 				maxPlayers:          32,

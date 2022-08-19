@@ -12,7 +12,7 @@ import (
 type MsgMhfExchangeWeeklyStamp struct {
 	AckHandle uint32
 	StampType string
-	Unk1      bool
+	Unk1      uint8
 	Unk2      uint16
 }
 
@@ -31,7 +31,7 @@ func (m *MsgMhfExchangeWeeklyStamp) Parse(bf *byteframe.ByteFrame, ctx *clientct
 	case 2:
 		m.StampType = "ex"
 	}
-	m.Unk1 = bf.ReadBool()
+	m.Unk1 = bf.ReadUint8()
 	m.Unk2 = bf.ReadUint16()
 	return nil
 }

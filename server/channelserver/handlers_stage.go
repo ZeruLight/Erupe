@@ -135,7 +135,6 @@ func removeSessionFromStage(s *Session) {
 	// Remove client from old stage.
 	s.stage.Lock()
 	delete(s.stage.clients, s)
-	delete(s.stage.reservedClientSlots, s.charID)
 
 	// Delete old stage objects owned by the client.
 	s.logger.Info("Sending notification to old stage clients")
@@ -157,6 +156,7 @@ func handleMsgSysEnterStage(s *Session, p mhfpacket.MHFPacket) {
 	if s.stageID == "" {
 		s.stageMoveStack.Set(pkt.StageID)
 	} else {
+		s.stage.reservedClientSlots[s.charID] = false
 		s.stageMoveStack.Push(s.stageID)
 		s.stageMoveStack.Lock()
 	}
@@ -175,9 +175,16 @@ func handleMsgSysBackStage(s *Session, p mhfpacket.MHFPacket) {
 	// Transfer back to the saved stage ID before the previous move or enter.
 	s.stageMoveStack.Unlock()
 	backStage, err := s.stageMoveStack.Pop()
-
 	if err != nil {
 		panic(err)
+	}
+
+	if _, exists := s.stage.reservedClientSlots[s.charID]; exists {
+		delete(s.stage.reservedClientSlots, s.charID)
+	}
+
+	if _, exists := s.server.stages[backStage].reservedClientSlots[s.charID]; exists {
+		delete(s.server.stages[backStage].reservedClientSlots, s.charID)
 	}
 
 	doStageTransfer(s, pkt.AckHandle, backStage)

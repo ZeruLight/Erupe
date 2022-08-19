@@ -12,3 +12,6 @@ savedata/*/
 *.exe
 *.lnk
 *.bat
+
+# remove when making changes to its actual structure
+config.json

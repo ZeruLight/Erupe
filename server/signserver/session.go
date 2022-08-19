@@ -8,6 +8,7 @@ import (
 
 	"erupe-ce/common/byteframe"
 	"erupe-ce/network"
+
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -111,7 +112,7 @@ func (s *Session) handleDSGNRequest(bf *byteframe.ByteFrame) error {
 		if err != nil {
 			s.logger.Info("Error on creating new account", zap.Error(err))
 			serverRespBytes = makeSignInFailureResp(SIGN_EABORT)
-			break
+
 		}
 
 		var id int
@@ -119,15 +120,15 @@ func (s *Session) handleDSGNRequest(bf *byteframe.ByteFrame) error {
 		if err != nil {
 			s.logger.Info("Error on querying account id", zap.Error(err))
 			serverRespBytes = makeSignInFailureResp(SIGN_EABORT)
-			break
+
 		}
 
 		serverRespBytes = s.makeSignInResp(id)
-		break
+
 	case err != nil:
 		serverRespBytes = makeSignInFailureResp(SIGN_EABORT)
 		s.logger.Warn("Got error on SQL query", zap.Error(err))
-		break
+
 	default:
 		if bcrypt.CompareHashAndPassword([]byte(password), []byte(reqPassword)) == nil {
 			s.logger.Info("Passwords match!")
@@ -136,7 +137,7 @@ func (s *Session) handleDSGNRequest(bf *byteframe.ByteFrame) error {
 				if err != nil {
 					s.logger.Info("Error on adding new character to account", zap.Error(err))
 					serverRespBytes = makeSignInFailureResp(SIGN_EABORT)
-					break
+
 				}
 			}
 			// TODO: Need to auto delete user tokens after inactivity

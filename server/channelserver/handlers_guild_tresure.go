@@ -49,7 +49,7 @@ func handleMsgMhfEnumerateGuildTresure(s *Session, p mhfpacket.MHFPacket) {
 			bf.WriteBool(false)
 			bf.WriteBool(false)
 			bf.WriteBytes(hunt.HuntData)
-			break
+
 		} else if pkt.MaxHunts == 30 && hunt.Acquired && hunt.Level == 2 {
 			if hunts == 30 {
 				break
@@ -94,7 +94,7 @@ func handleMsgMhfRegistGuildTresure(s *Session, p mhfpacket.MHFPacket) {
 			for _, cat := range guildCats {
 				if cat.CatID == catID {
 					huntData.WriteBytes(cat.CatName)
-					break
+
 				}
 			}
 			huntData.WriteBytes(bf.ReadBytes(9))

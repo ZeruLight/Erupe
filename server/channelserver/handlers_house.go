@@ -6,9 +6,10 @@ import (
 	"erupe-ce/common/stringsupport"
 	"erupe-ce/network/mhfpacket"
 	"fmt"
-	"go.uber.org/zap"
 	"io"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 const warehouseNamesQuery = `
@@ -126,7 +127,7 @@ func handleMsgMhfEnumerateHouse(s *Session, p mhfpacket.MHFPacket) {
 				bf.WriteUint16(house.HRP)
 				bf.WriteUint16(house.GR)
 				ps.Uint8(bf, house.Name, true)
-				break
+
 			}
 		}
 	}
@@ -295,18 +296,18 @@ func handleMsgMhfSaveDecoMyset(s *Session, p mhfpacket.MHFPacket) {
 						loadData = append(loadData, setBytes...)
 					}
 					savedSets++
-					break
+
 				}
 				currentSet := loadData[3+(x*78)]
 				if int(currentSet) == int(writeSet) {
 					// replacing a set
 					loadData = append(loadData[:2+(x*78)], append(setBytes, loadData[2+((x+1)*78):]...)...)
-					break
+
 				} else if int(currentSet) > int(writeSet) {
 					// inserting before current set
 					loadData = append(loadData[:2+((x)*78)], append(setBytes, loadData[2+((x)*78):]...)...)
 					savedSets++
-					break
+
 				}
 			}
 			loadData[1] = savedSets // update set count
@@ -434,7 +435,7 @@ func addWarehouseGift(s *Session, boxType string, giftStack mhfpacket.WarehouseS
 			if stack.ItemID == giftStack.ItemID {
 				exists = true
 				giftBox[i].Quantity += giftStack.Quantity
-				break
+
 			}
 		}
 		if exists == false {
@@ -518,7 +519,7 @@ func handleMsgMhfUpdateWarehouse(s *Session, p mhfpacket.MHFPacket) {
 				if stack.Index == update.Index {
 					exists = true
 					box[i].Quantity = update.Quantity
-					break
+
 				}
 			}
 		} else {
@@ -526,7 +527,7 @@ func handleMsgMhfUpdateWarehouse(s *Session, p mhfpacket.MHFPacket) {
 				if stack.Index == update.Index {
 					exists = true
 					box[i].ItemID = update.ItemID
-					break
+
 				}
 			}
 		}

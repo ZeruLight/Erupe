@@ -15,6 +15,7 @@ import (
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/server/channelserver/compression/deltacomp"
 	"erupe-ce/server/channelserver/compression/nullcomp"
+
 	"go.uber.org/zap"
 )
 
@@ -125,7 +126,7 @@ func grpToGR(n uint32) uint16 {
 				if grp < 0 {
 					i--
 				}
-				break
+
 			} else {
 				i++
 				for j := 0; j < i; j++ {
@@ -134,139 +135,139 @@ func grpToGR(n uint32) uint16 {
 			}
 		}
 		gr = uint16(i + 2)
-		break
+
 	case grp < 593400: // 51-99
 		grp -= 208750
 		i := 51
 		for {
 			if grp < 7850 {
-				break
+
 			}
 			i++
 			grp -= 7850
 		}
 		gr = uint16(i)
-		break
+
 	case grp < 993400: // 100-149
 		grp -= 593400
 		i := 100
 		for {
 			if grp < 8000 {
-				break
+
 			}
 			i++
 			grp -= 8000
 		}
 		gr = uint16(i)
-		break
+
 	case grp < 1400900: // 150-199
 		grp -= 993400
 		i := 150
 		for {
 			if grp < 8150 {
-				break
+
 			}
 			i++
 			grp -= 8150
 		}
 		gr = uint16(i)
-		break
+
 	case grp < 2315900: // 200-299
 		grp -= 1400900
 		i := 200
 		for {
 			if grp < 9150 {
-				break
+
 			}
 			i++
 			grp -= 9150
 		}
 		gr = uint16(i)
-		break
+
 	case grp < 3340900: // 300-399
 		grp -= 2315900
 		i := 300
 		for {
 			if grp < 10250 {
-				break
+
 			}
 			i++
 			grp -= 10250
 		}
 		gr = uint16(i)
-		break
+
 	case grp < 4505900: // 400-499
 		grp -= 3340900
 		i := 400
 		for {
 			if grp < 11650 {
-				break
+
 			}
 			i++
 			grp -= 11650
 		}
 		gr = uint16(i)
-		break
+
 	case grp < 5850900: // 500-599
 		grp -= 4505900
 		i := 500
 		for {
 			if grp < 13450 {
-				break
+
 			}
 			i++
 			grp -= 13450
 		}
 		gr = uint16(i)
-		break
+
 	case grp < 7415900: // 600-699
 		grp -= 5850900
 		i := 600
 		for {
 			if grp < 15650 {
-				break
+
 			}
 			i++
 			grp -= 15650
 		}
 		gr = uint16(i)
-		break
+
 	case grp < 9230900: // 700-799
 		grp -= 7415900
 		i := 700
 		for {
 			if grp < 18150 {
-				break
+
 			}
 			i++
 			grp -= 18150
 		}
 		gr = uint16(i)
-		break
+
 	case grp < 11345900: // 800-899
 		grp -= 9230900
 		i := 800
 		for {
 			if grp < 21150 {
-				break
+
 			}
 			i++
 			grp -= 21150
 		}
 		gr = uint16(i)
-		break
+
 	default: // 900+
 		grp -= 11345900
 		i := 900
 		for {
 			if grp < 23950 {
-				break
+
 			}
 			i++
 			grp -= 23950
 		}
 		gr = uint16(i)
-		break
+
 	}
 	return gr
 }

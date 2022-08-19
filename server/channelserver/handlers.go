@@ -13,12 +13,13 @@ import (
 
 	"erupe-ce/common/byteframe"
 	"erupe-ce/network/mhfpacket"
-	"go.uber.org/zap"
-	"golang.org/x/text/encoding/japanese"
-	"golang.org/x/text/transform"
 	"io/ioutil"
 	"math/bits"
 	"math/rand"
+
+	"go.uber.org/zap"
+	"golang.org/x/text/encoding/japanese"
+	"golang.org/x/text/transform"
 )
 
 // Temporary function to just return no results for a MSG_MHF_ENUMERATE* packet
@@ -634,11 +635,11 @@ func handleMsgMhfUpdateUnionItem(s *Session, p mhfpacket.MHFPacket) {
 				newItem.ItemId = pkt.Items[i].ItemId
 				newItem.Amount = pkt.Items[i].Amount
 				newItems = append(newItems, newItem)
-				break
+
 			}
 			if pkt.Items[i].ItemId == oldItems[j].ItemId {
 				newItems[j].Amount = pkt.Items[i].Amount
-				break
+
 			}
 		}
 	}

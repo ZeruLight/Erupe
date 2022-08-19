@@ -95,7 +95,7 @@ func generateActiveWeapons(count int) int {
 		for _, v := range nums {
 			if v == num {
 				exist = true
-				break
+
 			}
 		}
 		if !exist {

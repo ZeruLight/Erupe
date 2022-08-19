@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"erupe-ce/network/mhfpacket"
+
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )
@@ -151,6 +152,9 @@ func handleMsgMhfOperateJoint(s *Session, p mhfpacket.MHFPacket) {
 	default:
 		panic(fmt.Sprintf("Unhandled operate joint action '%d'", pkt.Action))
 		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+		// the only way to reach this code is by either
+		// having to manually unpanic the handler or panic
+		//  after the doAckSimpleSucceed function
 	}
 }
 

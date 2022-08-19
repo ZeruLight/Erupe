@@ -21,7 +21,7 @@ func handleMsgSysCreateObject(s *Session, p mhfpacket.MHFPacket) {
 				break
 			}
 		}
-		if exists == false {
+		if !exists {
 			break
 		}
 	}

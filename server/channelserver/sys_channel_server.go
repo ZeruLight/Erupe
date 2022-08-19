@@ -11,6 +11,7 @@ import (
 	"erupe-ce/network/binpacket"
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/server/discordbot"
+
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )
@@ -205,7 +206,7 @@ func (s *Server) acceptClients() {
 			s.Unlock()
 
 			if shutdown {
-				break
+
 			} else {
 				s.logger.Warn("Error accepting client", zap.Error(err))
 				continue
@@ -391,7 +392,7 @@ func (s *Server) NextSemaphoreID() uint32 {
 			}
 		}
 		if exists == false {
-			break
+
 		}
 	}
 	return s.semaphoreIndex

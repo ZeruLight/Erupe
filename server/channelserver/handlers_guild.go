@@ -16,6 +16,7 @@ import (
 	ps "erupe-ce/common/pascalstring"
 	"erupe-ce/common/stringsupport"
 	"erupe-ce/network/mhfpacket"
+
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )
@@ -318,7 +319,7 @@ func (guild *Guild) AcceptApplication(s *Session, charID uint32) error {
 }
 
 // This is relying on the fact that invitation ID is also character ID right now
-// if invitation ID changes, this will break.
+// if invitation ID changes, this will .
 func (guild *Guild) CancelInvitation(s *Session, charID uint32) error {
 	_, err := s.server.db.Exec(
 		`DELETE FROM guild_applications WHERE character_id = $1 AND guild_id = $2 AND application_type = 'invited'`,
@@ -1490,11 +1491,11 @@ func handleMsgMhfUpdateGuildItem(s *Session, p mhfpacket.MHFPacket) {
 				newItem.ItemId = pkt.Items[i].ItemId
 				newItem.Amount = pkt.Items[i].Amount
 				newItems = append(newItems, newItem)
-				break
+
 			}
 			if pkt.Items[i].ItemId == oldItems[j].ItemId {
 				newItems[j].Amount = pkt.Items[i].Amount
-				break
+
 			}
 		}
 	}

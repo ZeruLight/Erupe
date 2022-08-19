@@ -14,6 +14,7 @@ import (
 	"erupe-ce/server/entranceserver"
 	"erupe-ce/server/launcherserver"
 	"erupe-ce/server/signserver"
+
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"go.uber.org/zap"
@@ -53,7 +54,7 @@ func main() {
 		for _, ip := range ips {
 			if ip != nil {
 				erupeConfig.Host = ip.String()
-				break
+
 			}
 		}
 		if net.ParseIP(erupeConfig.Host) == nil {

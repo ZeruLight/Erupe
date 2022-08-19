@@ -69,16 +69,16 @@ func Compress(rawData []byte) ([]byte, error) {
 				i, err := r.ReadByte()
 				if err == io.EOF {
 					output = append(output, []byte{byte(nullCount)}...)
-					break
+
 				} else if i != 0 && nullCount != 0 {
 					r.UnreadByte()
 					output = append(output, []byte{byte(nullCount)}...)
-					break
+
 				} else if i != 0 && nullCount == 0 {
 					r.UnreadByte()
 					output = output[:len(output)-2]
 					output = append(output, []byte{byte(0xFF)}...)
-					break
+
 				} else if err != nil {
 					return nil, err
 				}

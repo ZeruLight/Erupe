@@ -426,6 +426,26 @@ func handleMsgMhfOperateWarehouse(s *Session, p mhfpacket.MHFPacket) {
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
+func addWarehouseGift(s *Session, boxType string, giftStack mhfpacket.WarehouseStack) {
+	giftBox := getWarehouseBox(s, boxType, 10)
+	if boxType == "item" {
+		exists := false
+		for i, stack := range giftBox {
+			if stack.ItemID == giftStack.ItemID {
+				exists = true
+				giftBox[i].Quantity += giftStack.Quantity
+				break
+			}
+		}
+		if exists == false {
+			giftBox = append(giftBox, giftStack)
+		}
+	} else {
+		giftBox = append(giftBox, giftStack)
+	}
+	s.server.db.Exec(fmt.Sprintf("UPDATE warehouse SET %s10=$1 WHERE character_id=$2", boxType), boxToBytes(giftBox, boxType), s.charID)
+}
+
 func getWarehouseBox(s *Session, boxType string, boxIndex uint8) []mhfpacket.WarehouseStack {
 	var data []byte
 	s.server.db.QueryRow(fmt.Sprintf("SELECT %s%d FROM warehouse WHERE character_id=$1", boxType, boxIndex), s.charID).Scan(&data)

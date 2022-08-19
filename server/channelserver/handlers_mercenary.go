@@ -39,7 +39,7 @@ func handleMsgMhfLoadPartner(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfSavePartner(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSavePartner)
 
-	dumpSaveData(s, pkt.RawDataPayload, "_partner")
+	dumpSaveData(s, pkt.RawDataPayload, "partner")
 
 	_, err := s.server.db.Exec("UPDATE characters SET partner=$1 WHERE id=$2", pkt.RawDataPayload, s.charID)
 	if err != nil {
@@ -75,7 +75,7 @@ func handleMsgMhfLoadHunterNavi(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfSaveHunterNavi(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSaveHunterNavi)
 
-	dumpSaveData(s, pkt.RawDataPayload, "_hunternavi")
+	dumpSaveData(s, pkt.RawDataPayload, "hunternavi")
 
 	if pkt.IsDataDiff {
 		var data []byte
@@ -228,6 +228,7 @@ func handleMsgMhfLoadOtomoAirou(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfSaveOtomoAirou(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSaveOtomoAirou)
+	dumpSaveData(s, pkt.RawDataPayload, "otomoairou")
 	decomp, err := nullcomp.Decompress(pkt.RawDataPayload[1:])
 	if err != nil {
 		s.logger.Error("Failed to decompress airou", zap.Error(err))

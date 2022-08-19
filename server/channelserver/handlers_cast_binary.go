@@ -165,6 +165,66 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 
 		fmt.Printf("Got chat message: %+v\n", chatMessage)
 
+		// Flush all objects and users and reload
+		if strings.HasPrefix(chatMessage.Message, "!reload") {
+			sendServerChatMessage(s, "Reloading players...")
+			var temp mhfpacket.MHFPacket
+			deleteNotif := byteframe.NewByteFrame()
+			for _, object := range s.stage.objects {
+				if object.ownerCharID == s.charID {
+					continue
+				}
+				temp = &mhfpacket.MsgSysDeleteObject{ObjID: object.id}
+				deleteNotif.WriteUint16(uint16(temp.Opcode()))
+				temp.Build(deleteNotif, s.clientContext)
+			}
+			for _, session := range s.server.sessions {
+				if s == session {
+					continue
+				}
+				temp = &mhfpacket.MsgSysDeleteUser{CharID: session.charID}
+				deleteNotif.WriteUint16(uint16(temp.Opcode()))
+				temp.Build(deleteNotif, s.clientContext)
+			}
+			deleteNotif.WriteUint16(0x0010)
+			s.QueueSend(deleteNotif.Data())
+			time.Sleep(500 * time.Millisecond)
+			reloadNotif := byteframe.NewByteFrame()
+			for _, session := range s.server.sessions {
+				if s == session {
+					continue
+				}
+				temp = &mhfpacket.MsgSysInsertUser{CharID: session.charID}
+				reloadNotif.WriteUint16(uint16(temp.Opcode()))
+				temp.Build(reloadNotif, s.clientContext)
+				for i := 0; i < 3; i++ {
+					temp = &mhfpacket.MsgSysNotifyUserBinary{
+						CharID:     session.charID,
+						BinaryType: uint8(i + 1),
+					}
+					reloadNotif.WriteUint16(uint16(temp.Opcode()))
+					temp.Build(reloadNotif, s.clientContext)
+				}
+			}
+			for _, obj := range s.stage.objects {
+				if obj.ownerCharID == s.charID {
+					continue
+				}
+				temp = &mhfpacket.MsgSysDuplicateObject{
+					ObjID:       obj.id,
+					X:           obj.x,
+					Y:           obj.y,
+					Z:           obj.z,
+					Unk0:        0,
+					OwnerCharID: obj.ownerCharID,
+				}
+				reloadNotif.WriteUint16(uint16(temp.Opcode()))
+				temp.Build(reloadNotif, s.clientContext)
+			}
+			reloadNotif.WriteUint16(0x0010)
+			s.QueueSend(reloadNotif.Data())
+		}
+
 		// Set account rights
 		if strings.HasPrefix(chatMessage.Message, "!rights") {
 			var v uint32
@@ -180,7 +240,7 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 		}
 
 		// Discord integration
-		if chatMessage.Type == binpacket.ChatTypeLocal || chatMessage.Type == binpacket.ChatTypeParty {
+		if (pkt.BroadcastType == BroadcastTypeStage && s.stage.id == "sl1Ns200p0a0u0") || pkt.BroadcastType == BroadcastTypeWorld {
 			s.server.DiscordChannelSend(chatMessage.SenderName, chatMessage.Message)
 		}
 

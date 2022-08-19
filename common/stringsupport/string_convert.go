@@ -120,7 +120,11 @@ func CSVAdd(csv string, v int) string {
 	if len(csv) == 0 {
 		return strconv.Itoa(v)
 	}
-	return csv + "," + strconv.Itoa(v)
+	if CSVContains(csv, v) {
+		return csv
+	} else {
+		return csv + "," + strconv.Itoa(v)
+	}
 }
 
 func CSVRemove(csv string, v int) string {

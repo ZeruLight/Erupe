@@ -65,7 +65,7 @@ func main() {
 	var discordBot *discordbot.DiscordBot = nil
 
 	if erupeConfig.Discord.Enabled {
-		bot, err := discordbot.NewDiscordBot(discordbot.DiscordBotOptions{
+		bot, err := discordbot.NewDiscordBot(discordbot.Options{
 			Logger: logger,
 			Config: erupeConfig,
 		})
@@ -82,6 +82,7 @@ func main() {
 		}
 
 		discordBot = bot
+		logger.Info("Discord bot is enabled")
 	} else {
 		logger.Info("Discord bot is disabled")
 	}
@@ -108,9 +109,11 @@ func main() {
 	}
 	logger.Info("Connected to database")
 
-	// Clear existing tokens
+	// Clear stale data
 	_ = db.MustExec("DELETE FROM sign_sessions")
 	_ = db.MustExec("DELETE FROM servers")
+	_ = db.MustExec("DELETE FROM cafe_accepted")
+	_ = db.MustExec("UPDATE characters SET cafe_time=0")
 
 	// Clean the DB if the option is on.
 	if erupeConfig.DevMode && erupeConfig.DevModeOptions.CleanDB {

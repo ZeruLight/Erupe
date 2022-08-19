@@ -28,10 +28,7 @@
   "discord": {
     "enabled": false,
     "bottoken": "",
-    "realtimeChannelID": "",
-    "serverId": "",
-    "devRoles": [],
-    "devMode": false
+    "realtimeChannelID": ""
   },
   "database": {
     "host": "localhost",

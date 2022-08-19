@@ -1892,11 +1892,25 @@ func handleMsgMhfSetGuildManageRight(s *Session, p mhfpacket.MHFPacket) {
 	doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
+func handleMsgMhfCheckMonthlyItem(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfCheckMonthlyItem)
+	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x01})
+	// TODO: Implement month-by-month tracker, 0 = Not claimed, 1 = Claimed
+}
+
+func handleMsgMhfAcquireMonthlyItem(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfAcquireMonthlyItem)
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+}
+
 func handleMsgMhfEnumerateInvGuild(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateInvGuild)
 	stubEnumerateNoResults(s, pkt.AckHandle)
 }
 
-func handleMsgMhfOperationInvGuild(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfOperationInvGuild(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfOperationInvGuild)
+	doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+}
 
 func handleMsgMhfUpdateGuildcard(s *Session, p mhfpacket.MHFPacket) {}

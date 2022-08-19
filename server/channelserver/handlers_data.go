@@ -56,7 +56,7 @@ func handleMsgMhfSavedata(s *Session, p mhfpacket.MHFPacket) {
 		s.logger.Fatal("Failed to update savedata in db", zap.Error(err))
 	}
 	s.logger.Info("Wrote recompressed savedata back to DB.")
-	dumpSaveData(s, pkt.RawDataPayload, "")
+	dumpSaveData(s, pkt.RawDataPayload, "savedata")
 
 	_, err = s.server.db.Exec("UPDATE characters SET weapon_type=$1 WHERE id=$2", uint16(decompressedData[128789]), s.charID)
 	if err != nil {
@@ -275,8 +275,8 @@ func dumpSaveData(s *Session, data []byte, suffix string) {
 	if !s.server.erupeConfig.DevModeOptions.SaveDumps.Enabled {
 		return
 	} else {
-		dir := filepath.Join(s.server.erupeConfig.DevModeOptions.SaveDumps.OutputDir, fmt.Sprintf("%s_", s.Name))
-		path := filepath.Join(s.server.erupeConfig.DevModeOptions.SaveDumps.OutputDir, fmt.Sprintf("%s_", s.Name), fmt.Sprintf("%d_%s_%s%s.bin", s.charID, s.Name, Time_Current().Format("2006-01-02_15.04.05"), suffix))
+		dir := filepath.Join(s.server.erupeConfig.DevModeOptions.SaveDumps.OutputDir, fmt.Sprintf("%d_%s", s.charID, s.Name))
+		path := filepath.Join(s.server.erupeConfig.DevModeOptions.SaveDumps.OutputDir, fmt.Sprintf("%d_%s", s.charID, s.Name), fmt.Sprintf("%d_%s_%s.bin", s.charID, s.Name, suffix))
 
 		if _, err := os.Stat(dir); os.IsNotExist(err) {
 			os.Mkdir(dir, os.ModeDir)
@@ -297,10 +297,11 @@ func handleMsgMhfLoaddata(s *Session, p mhfpacket.MHFPacket) {
 	}
 
 	var data []byte
-
 	err := s.server.db.QueryRow("SELECT savedata FROM characters WHERE id = $1", s.charID).Scan(&data)
-	if err != nil {
-		s.logger.Fatal("Failed to get savedata from db", zap.Error(err))
+	if err != nil || len(data) == 0 {
+		s.logger.Warn(fmt.Sprintf("Failed to load savedata (CID: %d)", s.charID), zap.Error(err))
+		s.rawConn.Close() // Terminate the connection
+		return
 	}
 	doAckBufSucceed(s, pkt.AckHandle, data)
 
@@ -310,11 +311,11 @@ func handleMsgMhfLoaddata(s *Session, p mhfpacket.MHFPacket) {
 	}
 	bf := byteframe.NewByteFrameFromBytes(decompSaveData)
 	bf.Seek(88, io.SeekStart)
-	binary1 := bf.ReadNullTerminatedBytes()
+	name := bf.ReadNullTerminatedBytes()
 	s.server.userBinaryPartsLock.Lock()
-	s.server.userBinaryParts[userBinaryPartID{charID: s.charID, index: 1}] = append(binary1, []byte{0x00}...)
+	s.server.userBinaryParts[userBinaryPartID{charID: s.charID, index: 1}] = append(name, []byte{0x00}...)
 	s.server.userBinaryPartsLock.Unlock()
-	s.Name = stringsupport.SJISToUTF8(binary1)
+	s.Name = stringsupport.SJISToUTF8(name)
 }
 
 func handleMsgMhfSaveScenarioData(s *Session, p mhfpacket.MHFPacket) {

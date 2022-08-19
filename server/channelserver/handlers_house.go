@@ -92,7 +92,7 @@ func handleMsgMhfEnumerateHouse(s *Session, p mhfpacket.MHFPacket) {
 		}
 	case 3:
 		house := HouseData{}
-		row := s.server.db.QueryRowx("SELECT id, hrp, gr, name FROM characters WHERE name=$1", pkt.Name)
+		row := s.server.db.QueryRowx("SELECT id, hrp, gr, name FROM characters WHERE name ILIKE $1", fmt.Sprintf(`%%%s%%`, pkt.Name))
 		err := row.StructScan(&house)
 		if err != nil {
 			panic(err)

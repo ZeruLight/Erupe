@@ -151,6 +151,12 @@ func NewServer(config *Config) *Server {
 	// Pallone Carvan
 	s.stages["sl1Ns260p0a0u0"] = NewStage("sl1Ns260p0a0u0")
 
+	// Pallone Guest House 1st Floor
+	s.stages["sl1Ns262p0a0u0"] = NewStage("sl1Ns262p0a0u0")
+
+	// Pallone Guest House 2nd Floor
+	s.stages["sl1Ns263p0a0u0"] = NewStage("sl1Ns263p0a0u0")
+
 	// Diva fountain / prayer fountain.
 	s.stages["sl2Ns379p0a0u0"] = NewStage("sl2Ns379p0a0u0")
 

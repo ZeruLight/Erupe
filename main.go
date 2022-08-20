@@ -231,6 +231,8 @@ func wait() {
 	}
 }
 
+// If DisableSoftCrash is disabled, this function prevents the Erupe window from closing,
+// letting you see the error that caused the crash before closing the server.
 func preventClose(text string) {
 	if erupeConfig.DisableSoftCrash {
 		os.Exit(0)

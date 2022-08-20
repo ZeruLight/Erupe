@@ -15,12 +15,12 @@ import (
 
 // Session holds state for the sign server connection.
 type Session struct {
-	sync.Mutex
-	logger    *zap.Logger
-	sid       int
-	server    *Server
-	rawConn   *net.Conn
-	cryptConn *network.CryptConn
+	sync.Mutex // for locking the Session to only one goroutine at a time
+	logger     *zap.Logger
+	sid        int
+	server     *Server
+	rawConn    *net.Conn
+	cryptConn  *network.CryptConn
 }
 
 func (s *Session) fail() {

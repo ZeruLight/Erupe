@@ -14,4 +14,4 @@ savedata/*/
 *.bat
 
 # remove when making changes to its actual structure
-config.json
+*config.json

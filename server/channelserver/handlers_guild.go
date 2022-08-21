@@ -164,8 +164,8 @@ SELECT
 
 func (guild *Guild) Save(s *Session) error {
 	_, err := s.server.db.Exec(`
-		UPDATE guilds SET main_motto=$2, sub_motto=$3, comment=$4, pugi_name_1=$5, pugi_name_2=$6, pugi_name_3=$7, icon=$8 WHERE id=$1
-	`, guild.ID, guild.MainMotto, guild.SubMotto, guild.Comment, guild.PugiName1, guild.PugiName2, guild.PugiName3, guild.Icon)
+		UPDATE guilds SET main_motto=$2, sub_motto=$3, comment=$4, pugi_name_1=$5, pugi_name_2=$6, pugi_name_3=$7, icon=$8, leader_id=$9 WHERE id=$1
+	`, guild.ID, guild.MainMotto, guild.SubMotto, guild.Comment, guild.PugiName1, guild.PugiName2, guild.PugiName3, guild.Icon, guild.GuildLeader.LeaderCharID)
 
 	if err != nil {
 		s.logger.Error("failed to update guild data", zap.Error(err), zap.Uint32("guildID", guild.ID))
@@ -649,6 +649,33 @@ func handleMsgMhfOperateGuild(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint32(uint32(response))
 		doAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
 		return
+	case mhfpacket.OPERATE_GUILD_RESIGN:
+		guildMembers, err := GetGuildMembers(s, guild.ID, false)
+		success := false
+		if err == nil {
+			sort.Slice(guildMembers[:], func(i, j int) bool {
+				return guildMembers[i].OrderIndex < guildMembers[j].OrderIndex
+			})
+			for i := 1; i < len(guildMembers); i++ {
+				if !guildMembers[i].AvoidLeadership {
+					guild.LeaderCharID = guildMembers[i].CharID
+					guildMembers[0].OrderIndex = guildMembers[i].OrderIndex
+					guildMembers[i].OrderIndex = 1
+					guildMembers[0].Save(s)
+					guildMembers[i].Save(s)
+					bf.WriteUint32(guildMembers[i].CharID)
+					success = true
+					break
+				}
+			}
+			guild.Save(s)
+			doAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
+		}
+		if !success {
+			bf.WriteUint32(0)
+			doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+		}
+		return
 	case mhfpacket.OPERATE_GUILD_APPLY:
 		err = guild.CreateApplication(s, s.charID, GuildApplicationTypeApplied, nil)
 
@@ -802,7 +829,7 @@ func handleMsgMhfOperateGuildMember(s *Session, p mhfpacket.MHFPacket) {
 
 	actorCharacter, err := GetCharacterGuildData(s, s.charID)
 
-	if err != nil || (!actorCharacter.IsSubLeader() && guild.LeaderCharID != s.charID) {
+	if err != nil || (!actorCharacter.IsSubLeader() && guild.LeaderCharID != s.charID) || (!actorCharacter.Recruiter && guild.LeaderCharID != s.charID) {
 		doAckSimpleFail(s, pkt.AckHandle, nil)
 		return
 	}
@@ -1311,7 +1338,8 @@ func handleMsgMhfEnumerateGuildMember(s *Session, p mhfpacket.MHFPacket) {
 			bf.WriteUint16(0x0600)
 		}
 		bf.WriteUint8(member.OrderIndex)
-		ps.Uint16(bf, member.Name, true)
+		bf.WriteBool(member.AvoidLeadership)
+		ps.Uint8(bf, member.Name, true)
 	}
 
 	for _, member := range guildMembers {

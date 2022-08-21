@@ -31,7 +31,7 @@ func (gm *GuildMember) IsSubLeader() bool {
 }
 
 func (gm *GuildMember) Save(s *Session) error {
-	_, err := s.server.db.Exec("UPDATE guild_characters SET avoid_leadership=$1 WHERE character_id=$2", gm.AvoidLeadership, gm.CharID)
+	_, err := s.server.db.Exec("UPDATE guild_characters SET avoid_leadership=$1, order_index=$2 WHERE character_id=$3", gm.AvoidLeadership, gm.OrderIndex, gm.CharID)
 
 	if err != nil {
 		s.logger.Error(

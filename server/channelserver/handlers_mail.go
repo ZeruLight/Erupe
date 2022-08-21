@@ -25,21 +25,22 @@ type Mail struct {
 	AttachedItemAmount   uint16    `db:"attached_item_amount"`
 	CreatedAt            time.Time `db:"created_at"`
 	IsGuildInvite        bool      `db:"is_guild_invite"`
+	IsSystemMessage      bool      `db:"is_sys_message"`
 	SenderName           string    `db:"sender_name"`
 }
 
 func (m *Mail) Send(s *Session, transaction *sql.Tx) error {
 	query := `
-		INSERT INTO mail (sender_id, recipient_id, subject, body, attached_item, attached_item_amount, is_guild_invite)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		INSERT INTO mail (sender_id, recipient_id, subject, body, attached_item, attached_item_amount, is_guild_invite, is_sys_message)
+		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 	`
 
 	var err error
 
 	if transaction == nil {
-		_, err = s.server.db.Exec(query, m.SenderID, m.RecipientID, m.Subject, m.Body, m.AttachedItemID, m.AttachedItemAmount, m.IsGuildInvite)
+		_, err = s.server.db.Exec(query, m.SenderID, m.RecipientID, m.Subject, m.Body, m.AttachedItemID, m.AttachedItemAmount, m.IsGuildInvite, m.IsSystemMessage)
 	} else {
-		_, err = transaction.Exec(query, m.SenderID, m.RecipientID, m.Subject, m.Body, m.AttachedItemID, m.AttachedItemAmount, m.IsGuildInvite)
+		_, err = transaction.Exec(query, m.SenderID, m.RecipientID, m.Subject, m.Body, m.AttachedItemID, m.AttachedItemAmount, m.IsGuildInvite, m.IsSystemMessage)
 	}
 
 	if err != nil {
@@ -53,6 +54,7 @@ func (m *Mail) Send(s *Session, transaction *sql.Tx) error {
 			zap.Uint16("itemID", m.AttachedItemID),
 			zap.Uint16("itemAmount", m.AttachedItemAmount),
 			zap.Bool("isGuildInvite", m.IsGuildInvite),
+			zap.Bool("isSystemMessage", m.IsSystemMessage),
 		)
 		return err
 	}
@@ -141,6 +143,7 @@ func GetMailListForCharacter(s *Session, charID uint32) ([]Mail, error) {
 			m.attached_item_amount,
 			m.created_at,
 			m.is_guild_invite,
+			m.is_sys_message,
 			m.deleted,
 			m.locked,
 			c.name as sender_name
@@ -189,6 +192,7 @@ func GetMailByID(s *Session, ID int) (*Mail, error) {
 			m.attached_item_amount,
 			m.created_at,
 			m.is_guild_invite,
+			m.is_sys_message,
 			m.deleted,
 			m.locked,
 			c.name as sender_name
@@ -215,16 +219,10 @@ func GetMailByID(s *Session, ID int) (*Mail, error) {
 }
 
 func SendMailNotification(s *Session, m *Mail, recipient *Session) {
-	senderName, err := getCharacterName(s, m.SenderID)
-
-	if err != nil {
-		panic(err)
-	}
-
 	bf := byteframe.NewByteFrame()
 
 	notification := &binpacket.MsgBinMailNotify{
-		SenderName: senderName,
+		SenderName: getCharacterName(s, m.SenderID),
 	}
 
 	notification.Build(bf)
@@ -241,7 +239,7 @@ func SendMailNotification(s *Session, m *Mail, recipient *Session) {
 	recipient.QueueSendMHF(castedBinary)
 }
 
-func getCharacterName(s *Session, charID uint32) (string, error) {
+func getCharacterName(s *Session, charID uint32) string {
 	row := s.server.db.QueryRow("SELECT name FROM characters WHERE id = $1", charID)
 
 	charName := ""
@@ -249,10 +247,9 @@ func getCharacterName(s *Session, charID uint32) (string, error) {
 	err := row.Scan(&charName)
 
 	if err != nil {
-		return "", err
+		return ""
 	}
-
-	return charName, nil
+	return charName
 }
 
 func handleMsgMhfReadMail(s *Session, p mhfpacket.MHFPacket) {
@@ -325,8 +322,9 @@ func handleMsgMhfListMail(s *Session, p mhfpacket.MHFPacket) {
 			flags |= 0x02
 		}
 
-		// System message, hides ID
-		// flags |= 0x04
+		if m.IsSystemMessage {
+			flags |= 0x04
+		}
 
 		// Workaround until EN mail items are patched
 		if s.server.erupeConfig.DevMode && s.server.erupeConfig.DevModeOptions.DisableMailItems {

@@ -700,6 +700,14 @@ func handleMsgMhfOperateGuild(s *Session, p mhfpacket.MHFPacket) {
 		if err != nil {
 			// All successful acks return 0x01, assuming 0x00 is failure
 			response = 0x00
+		} else {
+			mail := Mail{
+				RecipientID:     s.charID,
+				Subject:         "Withdrawal",
+				Body:            fmt.Sprintf("You have withdrawn from 「%s」.", guild.Name),
+				IsSystemMessage: true,
+			}
+			mail.Send(s, nil)
 		}
 
 		bf.WriteUint32(uint32(response))
@@ -823,14 +831,14 @@ func handleMsgMhfOperateGuildMember(s *Session, p mhfpacket.MHFPacket) {
 	guild, err := GetGuildInfoByCharacterId(s, pkt.CharID)
 
 	if err != nil || guild == nil {
-		doAckSimpleFail(s, pkt.AckHandle, nil)
+		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
 
 	actorCharacter, err := GetCharacterGuildData(s, s.charID)
 
 	if err != nil || (!actorCharacter.IsSubLeader() && guild.LeaderCharID != s.charID) || (!actorCharacter.Recruiter && guild.LeaderCharID != s.charID) {
-		doAckSimpleFail(s, pkt.AckHandle, nil)
+		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
 
@@ -839,41 +847,45 @@ func handleMsgMhfOperateGuildMember(s *Session, p mhfpacket.MHFPacket) {
 	case mhfpacket.OPERATE_GUILD_MEMBER_ACTION_ACCEPT:
 		err = guild.AcceptApplication(s, pkt.CharID)
 		mail = Mail{
-			SenderID:      s.charID,
-			RecipientID:   pkt.CharID,
-			Subject:       "Accepted!",
-			Body:          fmt.Sprintf("Your application to join 「%s」 was accepted.", guild.Name),
-			IsGuildInvite: false,
+			RecipientID:     pkt.CharID,
+			Subject:         "Accepted!",
+			Body:            fmt.Sprintf("Your application to join 「%s」 was accepted.", guild.Name),
+			IsSystemMessage: true,
 		}
 	case mhfpacket.OPERATE_GUILD_MEMBER_ACTION_REJECT:
 		err = guild.RejectApplication(s, pkt.CharID)
 		mail = Mail{
-			SenderID:      s.charID,
-			RecipientID:   pkt.CharID,
-			Subject:       "Rejected",
-			Body:          fmt.Sprintf("Your application to join 「%s」 was rejected.", guild.Name),
-			IsGuildInvite: false,
+			RecipientID:     pkt.CharID,
+			Subject:         "Rejected",
+			Body:            fmt.Sprintf("Your application to join 「%s」 was rejected.", guild.Name),
+			IsSystemMessage: true,
 		}
 	case mhfpacket.OPERATE_GUILD_MEMBER_ACTION_KICK:
 		err = guild.RemoveCharacter(s, pkt.CharID)
 		mail = Mail{
-			SenderID:      s.charID,
-			RecipientID:   pkt.CharID,
-			Subject:       "Kicked",
-			Body:          fmt.Sprintf("You were kicked from 「%s」.", guild.Name),
-			IsGuildInvite: false,
+			RecipientID:     pkt.CharID,
+			Subject:         "Kicked",
+			Body:            fmt.Sprintf("You were kicked from 「%s」.", guild.Name),
+			IsSystemMessage: true,
 		}
 	default:
-		doAckSimpleFail(s, pkt.AckHandle, nil)
+		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 		s.logger.Warn(fmt.Sprintf("unhandled operateGuildMember action '%d'", pkt.Action))
 	}
 
 	if err != nil {
-		doAckSimpleFail(s, pkt.AckHandle, nil)
+		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 	} else {
 		mail.Send(s, nil)
+		for _, channel := range s.server.Channels {
+			for _, session := range channel.sessions {
+				if session.charID == pkt.CharID {
+					SendMailNotification(s, &mail, session)
+				}
+			}
+		}
+		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 	}
-	doAckSimpleSucceed(s, pkt.AckHandle, nil)
 }
 
 func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
@@ -947,7 +959,8 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteBytes(guildLeaderName)
 		bf.WriteBytes([]byte{0x00, 0x00, 0x00, 0x00}) // Unk
 		bf.WriteBool(false)                           // isReturnGuild
-		bf.WriteBytes([]byte{0x01, 0x02, 0x02})       // Unk
+		bf.WriteBool(false)                           // Unk
+		bf.WriteBytes([]byte{0x02, 0x02})             // Unk
 		bf.WriteUint32(guild.EventRP)
 
 		if guild.PugiName1 == "" {
@@ -1099,12 +1112,7 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 
 		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 	} else {
-		//// REALLY large/complex format... stubbing it out here for simplicity.
-		//resp := byteframe.NewByteFrame()
-		//resp.WriteUint32(0) // Count
-		//resp.WriteUint8(0)  // Unk, read if count == 0.
-
-		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 8))
+		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 5))
 	}
 }
 
@@ -1448,12 +1456,8 @@ func handleMsgMhfGetGuildTargetMemberNum(s *Session, p mhfpacket.MHFPacket) {
 		guild, err = GetGuildInfoByID(s, pkt.GuildID)
 	}
 
-	if err != nil {
-		s.logger.Warn("failed to find guild", zap.Error(err), zap.Uint32("guildID", pkt.GuildID))
-		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
-		return
-	} else if guild == nil {
-		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
+	if err != nil || guild == nil {
+		doAckBufSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x02})
 		return
 	}
 

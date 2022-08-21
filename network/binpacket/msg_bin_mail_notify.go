@@ -16,11 +16,7 @@ func (m MsgBinMailNotify) Parse(bf *byteframe.ByteFrame) error {
 
 func (m MsgBinMailNotify) Build(bf *byteframe.ByteFrame) error {
 	bf.WriteUint8(0x01) // Unk
-	byteName, _ := stringsupport.ConvertUTF8ToShiftJIS(m.SenderName)
-
-	bf.WriteBytes(byteName)
-	bf.WriteBytes(make([]byte, 21-len(byteName)))
-
+	bf.WriteBytes(stringsupport.PaddedString(m.SenderName, 21, true))
 	return nil
 }
 

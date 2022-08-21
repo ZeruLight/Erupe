@@ -1,11 +1,9 @@
 package mhfpacket
 
 import (
-	"errors"
-
+	"erupe-ce/common/byteframe"
 	"erupe-ce/network"
 	"erupe-ce/network/clientctx"
-	"erupe-ce/common/byteframe"
 )
 
 // MsgMhfAcquireCafeItem represents the MSG_MHF_ACQUIRE_CAFE_ITEM
@@ -37,5 +35,11 @@ func (m *MsgMhfAcquireCafeItem) Parse(bf *byteframe.ByteFrame, ctx *clientctx.Cl
 
 // Build builds a binary packet from the current data.
 func (m *MsgMhfAcquireCafeItem) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
-	return errors.New("NOT IMPLEMENTED")
+	bf.WriteUint32(m.AckHandle)
+	bf.WriteUint16(m.ItemType)
+	bf.WriteUint16(m.ItemID)
+	bf.WriteUint16(m.Quant)
+	bf.WriteUint32(m.PointCost)
+	bf.WriteUint16(m.Unk0)
+	return nil
 }

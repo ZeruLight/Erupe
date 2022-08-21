@@ -1,6 +1,8 @@
 package binpacket
 
 import (
+	"errors"
+
 	"erupe-ce/common/byteframe"
 	"erupe-ce/common/stringsupport"
 	"erupe-ce/network"
@@ -11,7 +13,7 @@ type MsgBinMailNotify struct {
 }
 
 func (m MsgBinMailNotify) Parse(bf *byteframe.ByteFrame) error {
-	panic("implement me")
+	return errors.New("NOT IMPLEMENTED")
 }
 
 func (m MsgBinMailNotify) Build(bf *byteframe.ByteFrame) error {

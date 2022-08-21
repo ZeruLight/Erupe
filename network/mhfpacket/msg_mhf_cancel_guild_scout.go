@@ -1,11 +1,9 @@
 package mhfpacket
 
-import ( 
- "errors" 
-
- 	"erupe-ce/network/clientctx"
-	"erupe-ce/network"
+import (
 	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgMhfCancelGuildScout represents the MSG_MHF_CANCEL_GUILD_SCOUT
@@ -28,5 +26,7 @@ func (m *MsgMhfCancelGuildScout) Parse(bf *byteframe.ByteFrame, ctx *clientctx.C
 
 // Build builds a binary packet from the current data.
 func (m *MsgMhfCancelGuildScout) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
-	return errors.New("NOT IMPLEMENTED")
+	bf.WriteUint32(m.AckHandle)
+	bf.WriteUint32(m.InvitationID)
+	return nil
 }

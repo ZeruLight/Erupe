@@ -1,18 +1,16 @@
 package mhfpacket
 
 import (
-	"errors"
-
+	"erupe-ce/common/byteframe"
 	"erupe-ce/network"
 	"erupe-ce/network/clientctx"
-	"erupe-ce/common/byteframe"
 )
 
 // MsgMhfAcquireDistItem represents the MSG_MHF_ACQUIRE_DIST_ITEM
 type MsgMhfAcquireDistItem struct {
-	AckHandle uint32
+	AckHandle        uint32
 	DistributionType uint8
-	DistributionID uint32
+	DistributionID   uint32
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -30,5 +28,8 @@ func (m *MsgMhfAcquireDistItem) Parse(bf *byteframe.ByteFrame, ctx *clientctx.Cl
 
 // Build builds a binary packet from the current data.
 func (m *MsgMhfAcquireDistItem) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
-	return errors.New("NOT IMPLEMENTED")
+	bf.WriteUint32(m.AckHandle)
+	bf.WriteUint8(m.DistributionType)
+	bf.WriteUint32(m.DistributionID)
+	return nil
 }

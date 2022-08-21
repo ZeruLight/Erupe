@@ -15,3 +15,4 @@ savedata/*/
 
 # remove when making changes to config.json actual structure
 *.json
+config.json

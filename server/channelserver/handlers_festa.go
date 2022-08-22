@@ -270,16 +270,22 @@ func handleMsgMhfStateFestaU(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfStateFestaG(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfStateFestaG)
 	guild, err := GetGuildInfoByCharacterId(s, s.charID)
-	if err != nil || guild == nil {
-		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+	applicant, _ := guild.HasApplicationForCharID(s, s.charID)
+	resp := byteframe.NewByteFrame()
+	if err != nil || guild == nil || applicant {
+		resp.WriteUint32(0)
+		resp.WriteUint32(0)
+		resp.WriteUint32(0xFFFFFFFF)
+		resp.WriteUint32(0)
+		resp.WriteUint32(0)
+		doAckBufSucceed(s, pkt.AckHandle, resp.Data())
 		return
 	}
-	resp := byteframe.NewByteFrame()
 	resp.WriteUint32(guild.Souls)
-	resp.WriteUint32(1) // unk
-	resp.WriteUint32(1) // unk
+	resp.WriteUint32(0) // unk
 	resp.WriteUint32(1) // unk, rank?
-	resp.WriteUint32(1) // unk
+	resp.WriteUint32(0) // unk
+	resp.WriteUint32(0) // unk
 	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
 }
 

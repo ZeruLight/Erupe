@@ -122,18 +122,12 @@ SELECT
 	leader_id,
 	lc.name as leader_name,
 	comment,
-	pugi_name_1,
-	pugi_name_2,
-	pugi_name_3,
+	COALESCE(pugi_name_1, '') AS pugi_name_1,
+	COALESCE(pugi_name_2, '') AS pugi_name_2,
+	COALESCE(pugi_name_3, '') AS pugi_name_3,
 	recruiting,
-	CASE WHEN (
-		SELECT team FROM festa_registrations fr WHERE fr.guild_id = g.id
-	) IS NULL THEN 'none' ELSE (
-		SELECT team FROM festa_registrations fr WHERE fr.guild_id = g.id
-	) END festival_colour,
-	(
-		SELECT SUM(souls) FROM guild_characters gc WHERE gc.guild_id = g.id
-	) AS souls,
+	COALESCE((SELECT team FROM festa_registrations fr WHERE fr.guild_id = g.id), 'none') AS festival_colour,
+	(SELECT SUM(souls) FROM guild_characters gc WHERE gc.guild_id = g.id) AS souls,
 	CASE
 		WHEN rank_rp <= 48 THEN rank_rp/24
 		WHEN rank_rp <= 288 THEN rank_rp/48+1
@@ -142,21 +136,14 @@ SELECT
 		WHEN rank_rp < 1200 THEN 16
 		ELSE 17
 	END rank,
-	CASE WHEN (
+	COALESCE((
 		SELECT id FROM guild_alliances ga WHERE
 	 	ga.parent_id = g.id OR
 	 	ga.sub1_id = g.id OR
 	 	ga.sub2_id = g.id
-	) IS NULL THEN 0 ELSE (
-		SELECT id FROM guild_alliances ga WHERE
-	 	ga.parent_id = g.id OR
-	 	ga.sub1_id = g.id OR
-	 	ga.sub2_id = g.id
-	) END alliance_id,
+	), 0) AS alliance_id,
 	icon,
-	(
-		SELECT count(1) FROM guild_characters gc WHERE gc.guild_id = g.id
-	) AS member_count
+	(SELECT count(1) FROM guild_characters gc WHERE gc.guild_id = g.id) AS member_count
 	FROM guilds g
 	JOIN guild_characters lgc ON lgc.character_id = leader_id
 	JOIN characters lc on leader_id = lc.id
@@ -962,22 +949,9 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteBool(false)                           // Unk
 		bf.WriteBytes([]byte{0x02, 0x02})             // Unk
 		bf.WriteUint32(guild.EventRP)
-
-		if guild.PugiName1 == "" {
-			bf.WriteUint16(0x0100)
-		} else {
-			ps.Uint8(bf, guild.PugiName1, true)
-		}
-		if guild.PugiName2 == "" {
-			bf.WriteUint16(0x0100)
-		} else {
-			ps.Uint8(bf, guild.PugiName2, true)
-		}
-		if guild.PugiName3 == "" {
-			bf.WriteUint16(0x0100)
-		} else {
-			ps.Uint8(bf, guild.PugiName3, true)
-		}
+		ps.Uint8(bf, guild.PugiName1, true)
+		ps.Uint8(bf, guild.PugiName2, true)
+		ps.Uint8(bf, guild.PugiName3, true)
 
 		// probably guild pugi properties, should be status, stamina and luck outfits
 		bf.WriteBytes([]byte{
@@ -998,7 +972,7 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 			} else {
 				bf.WriteUint32(alliance.ID)
 				bf.WriteUint32(uint32(alliance.CreatedAt.Unix()))
-				bf.WriteUint16(uint16(alliance.TotalMembers))
+				bf.WriteUint16(alliance.TotalMembers)
 				bf.WriteUint16(0) // Unk0
 				ps.Uint16(bf, alliance.Name, true)
 				if alliance.SubGuild1ID > 0 {
@@ -1061,7 +1035,7 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 
 			doAckBufSucceed(s, pkt.AckHandle, resp.Data())
 		}
-		if err != nil {
+		if err != nil || characterGuildData.IsApplicant {
 			bf.WriteUint16(0)
 		} else {
 			bf.WriteUint16(uint16(len(applicants)))
@@ -1109,6 +1083,7 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 		} else {
 			bf.WriteUint8(0x00)
 		}
+		bf.WriteUint8(0) // Unk
 
 		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 	} else {

@@ -125,18 +125,21 @@ func main() {
 	// Now start our server(s).
 
 	// Launcher HTTP server.
-	launcherServer := launcherserver.NewServer(
-		&launcherserver.Config{
-			Logger:                   logger.Named("launcher"),
-			ErupeConfig:              erupeConfig,
-			DB:                       db,
-			UseOriginalLauncherFiles: erupeConfig.Launcher.UseOriginalLauncherFiles,
-		})
-	err = launcherServer.Start()
-	if err != nil {
-		preventClose(fmt.Sprintf("Failed to start launcher server: %s", err.Error()))
+	var launcherServer *launcherserver.Server
+	if erupeConfig.DevMode && erupeConfig.DevModeOptions.EnableLauncherServer {
+		launcherServer = launcherserver.NewServer(
+			&launcherserver.Config{
+				Logger:                   logger.Named("launcher"),
+				ErupeConfig:              erupeConfig,
+				DB:                       db,
+				UseOriginalLauncherFiles: erupeConfig.Launcher.UseOriginalLauncherFiles,
+			})
+		err = launcherServer.Start()
+		if err != nil {
+			preventClose(fmt.Sprintf("Failed to start launcher server: %s", err.Error()))
+		}
+		logger.Info("Started launcher server")
 	}
-	logger.Info("Started launcher server")
 
 	// Entrance server.
 	entranceServer := entranceserver.NewServer(
@@ -219,7 +222,9 @@ func main() {
 	}
 	signServer.Shutdown()
 	entranceServer.Shutdown()
-	launcherServer.Shutdown()
+	if erupeConfig.DevModeOptions.EnableLauncherServer {
+		launcherServer.Shutdown()
+	}
 
 	time.Sleep(1 * time.Second)
 }

@@ -29,7 +29,7 @@ func (s *Server) newUserChara(username string) error {
 		INSERT INTO characters (
 			user_id, is_female, is_new_character, name, unk_desc_string,
 			hrp, gr, weapon_type, last_login)
-		VALUES($1, False, True, '', '', 1, 0, 0, $2)`,
+		VALUES($1, False, True, '', '', 0, 0, 0, $2)`,
 		id,
 		uint32(time.Now().Unix()),
 	)
@@ -88,7 +88,7 @@ type character struct {
 
 func (s *Server) getCharactersForUser(uid int) ([]character, error) {
 	characters := make([]character, 0)
-	err := s.db.Select(&characters, "SELECT id, is_female, is_new_character, name, unk_desc_string, hrp, gr, weapon_type, last_login FROM characters WHERE user_id = $1 AND deleted = false", uid)
+	err := s.db.Select(&characters, "SELECT id, is_female, is_new_character, name, unk_desc_string, hrp, gr, weapon_type, last_login FROM characters WHERE user_id = $1 AND deleted = false ORDER BY id ASC", uid)
 	if err != nil {
 		return nil, err
 	}

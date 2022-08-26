@@ -245,7 +245,11 @@ func handleMsgMhfInfoFesta(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfStateFestaU(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfStateFestaU)
 	guild, err := GetGuildInfoByCharacterId(s, s.charID)
-	if err != nil || guild == nil {
+	applicant := false
+	if guild != nil {
+		applicant, _ = guild.HasApplicationForCharID(s, s.charID)
+	}
+	if err != nil || guild == nil || applicant {
 		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
@@ -261,7 +265,10 @@ func handleMsgMhfStateFestaU(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfStateFestaG(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfStateFestaG)
 	guild, err := GetGuildInfoByCharacterId(s, s.charID)
-	applicant, _ := guild.HasApplicationForCharID(s, s.charID)
+	applicant := false
+	if guild != nil {
+		applicant, _ = guild.HasApplicationForCharID(s, s.charID)
+	}
 	resp := byteframe.NewByteFrame()
 	if err != nil || guild == nil || applicant {
 		resp.WriteUint32(0)
@@ -274,7 +281,7 @@ func handleMsgMhfStateFestaG(s *Session, p mhfpacket.MHFPacket) {
 	}
 	resp.WriteUint32(guild.Souls)
 	resp.WriteUint32(0) // unk
-	resp.WriteUint32(1) // unk, rank?
+	resp.WriteUint32(0) // unk, rank?
 	resp.WriteUint32(0) // unk
 	resp.WriteUint32(0) // unk
 	doAckBufSucceed(s, pkt.AckHandle, resp.Data())

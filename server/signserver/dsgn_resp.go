@@ -28,6 +28,8 @@ func randSeq(n int) string {
 }
 
 func (s *Session) makeSignInResp(uid int) []byte {
+	returnExpiry := s.server.getReturnExpiry(uid)
+
 	// Get the characters from the DB.
 	chars, err := s.server.getCharactersForUser(uid)
 	if err != nil {
@@ -115,15 +117,7 @@ func (s *Session) makeSignInResp(uid int) []byte {
 	bf.WriteUint8(0x00)
 	bf.WriteUint32(0xCA110001)
 	bf.WriteUint32(0x4E200000)
-
-	returning := false
-	// return course end time
-	if returning {
-		bf.WriteUint32(uint32(channelserver.Time_Current_Adjusted().Add(30 * 24 * time.Hour).Unix()))
-	} else {
-		bf.WriteUint32(0)
-	}
-
+	bf.WriteUint32(uint32(returnExpiry.Unix()))
 	bf.WriteUint32(0x00000000)
 	bf.WriteUint32(0x0A5197DF)
 

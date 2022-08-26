@@ -47,7 +47,7 @@ func (s *Server) registerDBAccount(username string, password string) error {
 		return err
 	}
 
-	_, err = s.db.Exec("INSERT INTO users (username, password) VALUES ($1, $2)", username, string(passwordHash))
+	_, err = s.db.Exec("INSERT INTO users (username, password, return_expires) VALUES ($1, $2, $3)", username, string(passwordHash), time.Now().Add(time.Hour*24*30))
 	if err != nil {
 		return err
 	}
@@ -93,6 +93,23 @@ func (s *Server) getCharactersForUser(uid int) ([]character, error) {
 		return nil, err
 	}
 	return characters, nil
+}
+
+func (s *Server) getReturnExpiry(uid int) time.Time {
+	var returnExpiry, lastLogin time.Time
+	s.db.Get(&lastLogin, "SELECT COALESCE(last_login, now()) FROM users WHERE id=$1", uid)
+	if time.Now().Add((time.Hour * 24) * -90).After(lastLogin) {
+		returnExpiry = time.Now().Add(time.Hour * 24 * 30)
+		s.db.Exec("UPDATE users SET return_expires=$1 WHERE id=$2", returnExpiry, uid)
+	} else {
+		err := s.db.Get(&returnExpiry, "SELECT return_expires FROM users WHERE id=$1", uid)
+		if err != nil {
+			returnExpiry = time.Now()
+			s.db.Exec("UPDATE users SET return_expires=$1 WHERE id=$2", returnExpiry, uid)
+		}
+	}
+	s.db.Exec("UPDATE users SET last_login=$1 WHERE id=$2", time.Now(), uid)
+	return returnExpiry
 }
 
 func (s *Server) getLastCID(uid int) uint32 {

@@ -12,7 +12,7 @@
     "LogInboundMessages": false,
     "LogOutboundMessages": false,
     "MaxHexdumpLength": 256,
-    "DivaEvent": -1,
+    "DivaEvent": 0,
     "FestaEvent": -1,
     "TournamentEvent": 0,
     "MezFesEvent": true,

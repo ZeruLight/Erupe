@@ -2,10 +2,99 @@ package channelserver
 
 import (
 	"encoding/hex"
+	"time"
 
 	"erupe-ce/common/byteframe"
 	"erupe-ce/network/mhfpacket"
 )
+
+func cleanupDiva(s *Session) {
+	s.server.db.Exec("DELETE FROM events WHERE event_type='diva'")
+}
+
+func generateDivaTimestamps(s *Session, start uint32, debug bool) []uint32 {
+	timestamps := make([]uint32, 6)
+	midnight := Time_Current_Midnight()
+	if debug && start <= 3 {
+		midnight := uint32(midnight.Unix())
+		switch start {
+		case 1:
+			timestamps[0] = midnight
+			timestamps[1] = timestamps[0] + 601200
+			timestamps[2] = timestamps[1] + 3900
+			timestamps[3] = timestamps[1] + 604800
+			timestamps[4] = timestamps[3] + 3900
+			timestamps[5] = timestamps[3] + 604800
+		case 2:
+			timestamps[0] = midnight - 605100
+			timestamps[1] = midnight - 3900
+			timestamps[2] = midnight
+			timestamps[3] = timestamps[1] + 604800
+			timestamps[4] = timestamps[3] + 3900
+			timestamps[5] = timestamps[3] + 604800
+		case 3:
+			timestamps[0] = midnight - 1213800
+			timestamps[1] = midnight - 608700
+			timestamps[2] = midnight - 604800
+			timestamps[3] = midnight - 3900
+			timestamps[4] = midnight
+			timestamps[5] = timestamps[3] + 604800
+		}
+		return timestamps
+	}
+	if start == 0 || Time_Current_Adjusted().Unix() > int64(start)+2977200 {
+		cleanupDiva(s)
+		// Generate a new diva defense, starting midnight tomorrow
+		start = uint32(midnight.Add(24 * time.Hour).Unix())
+		s.server.db.Exec("INSERT INTO events (event_type, start_time) VALUES ('diva', to_timestamp($1)::timestamp without time zone)", start)
+	}
+	timestamps[0] = start
+	timestamps[1] = timestamps[0] + 601200
+	timestamps[2] = timestamps[1] + 3900
+	timestamps[3] = timestamps[1] + 604800
+	timestamps[4] = timestamps[3] + 3900
+	timestamps[5] = timestamps[3] + 604800
+	return timestamps
+}
+
+func handleMsgMhfGetUdSchedule(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfGetUdSchedule)
+	bf := byteframe.NewByteFrame()
+
+	id, start := uint32(0xCAFEBEEF), uint32(0)
+	rows, _ := s.server.db.Queryx("SELECT id, (EXTRACT(epoch FROM start_time)::int) as start_time FROM events WHERE event_type='diva'")
+	for rows.Next() {
+		rows.Scan(&id, &start)
+	}
+
+	var timestamps []uint32
+	if s.server.erupeConfig.DevMode && s.server.erupeConfig.DevModeOptions.DivaEvent >= 0 {
+		if s.server.erupeConfig.DevModeOptions.DivaEvent == 0 {
+			doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
+			return
+		}
+		timestamps = generateDivaTimestamps(s, uint32(s.server.erupeConfig.DevModeOptions.DivaEvent), true)
+	} else {
+		timestamps = generateDivaTimestamps(s, start, false)
+	}
+
+	if timestamps[0] > uint32(Time_Current_Adjusted().Unix()) {
+		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
+		return
+	}
+
+	bf.WriteUint32(id)
+	for _, timestamp := range timestamps {
+		bf.WriteUint32(timestamp)
+	}
+
+	bf.WriteUint16(0x19) // Unk 00011001
+	bf.WriteUint16(0x2D) // Unk 00101101
+	bf.WriteUint16(0x02) // Unk 00000010
+	bf.WriteUint16(0x02) // Unk 00000010
+
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+}
 
 func handleMsgMhfGetKijuInfo(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetKijuInfo)

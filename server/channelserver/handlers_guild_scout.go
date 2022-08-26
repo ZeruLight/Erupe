@@ -21,7 +21,7 @@ func handleMsgMhfPostGuildScout(s *Session, p mhfpacket.MHFPacket) {
 		panic(err)
 	}
 
-	if actorCharGuildData == nil || (!actorCharGuildData.Recruiter && !actorCharGuildData.IsLeader && !actorCharGuildData.IsSubLeader()) {
+	if actorCharGuildData == nil || !actorCharGuildData.CanRecruit() {
 		doAckBufFail(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
@@ -98,7 +98,7 @@ func handleMsgMhfCancelGuildScout(s *Session, p mhfpacket.MHFPacket) {
 		panic(err)
 	}
 
-	if guildCharData == nil || (!guildCharData.Recruiter && !guildCharData.IsLeader && !guildCharData.IsSubLeader()) {
+	if guildCharData == nil || !guildCharData.CanRecruit() {
 		doAckBufFail(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}

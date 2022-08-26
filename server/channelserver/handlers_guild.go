@@ -824,7 +824,7 @@ func handleMsgMhfOperateGuildMember(s *Session, p mhfpacket.MHFPacket) {
 
 	actorCharacter, err := GetCharacterGuildData(s, s.charID)
 
-	if err != nil || (!actorCharacter.IsSubLeader() && guild.LeaderCharID != s.charID) || (!actorCharacter.Recruiter && guild.LeaderCharID != s.charID) {
+	if err != nil || (!actorCharacter.IsSubLeader() && guild.LeaderCharID != s.charID) {
 		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}

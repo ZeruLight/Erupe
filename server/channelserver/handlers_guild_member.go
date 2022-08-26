@@ -26,8 +26,21 @@ type GuildMember struct {
 	WeaponType      uint16     `db:"weapon_type"`
 }
 
+func (gm *GuildMember) CanRecruit() bool {
+	if gm.Recruiter {
+		return true
+	}
+	if gm.OrderIndex <= 3 {
+		return true
+	}
+	if gm.IsLeader {
+		return true
+	}
+	return false
+}
+
 func (gm *GuildMember) IsSubLeader() bool {
-	return gm.OrderIndex <= 3 && !gm.AvoidLeadership
+	return gm.OrderIndex <= 3
 }
 
 func (gm *GuildMember) Save(s *Session) error {

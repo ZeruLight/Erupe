@@ -2,6 +2,7 @@ package channelserver
 
 import (
 	"encoding/hex"
+	"erupe-ce/common/stringsupport"
 	"time"
 
 	"erupe-ce/common/byteframe"
@@ -70,17 +71,12 @@ func handleMsgMhfGetUdSchedule(s *Session, p mhfpacket.MHFPacket) {
 	var timestamps []uint32
 	if s.server.erupeConfig.DevMode && s.server.erupeConfig.DevModeOptions.DivaEvent >= 0 {
 		if s.server.erupeConfig.DevModeOptions.DivaEvent == 0 {
-			doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
+			doAckBufSucceed(s, pkt.AckHandle, make([]byte, 36))
 			return
 		}
 		timestamps = generateDivaTimestamps(s, uint32(s.server.erupeConfig.DevModeOptions.DivaEvent), true)
 	} else {
 		timestamps = generateDivaTimestamps(s, start, false)
-	}
-
-	if timestamps[0] > uint32(Time_Current_Adjusted().Unix()) {
-		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
-		return
 	}
 
 	bf.WriteUint32(id)
@@ -94,6 +90,26 @@ func handleMsgMhfGetUdSchedule(s *Session, p mhfpacket.MHFPacket) {
 	bf.WriteUint16(0x02) // Unk 00000010
 
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+}
+
+func handleMsgMhfGetUdInfo(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfGetUdInfo)
+	// Message that appears on the Diva Defense NPC and triggers the green exclamation mark
+	udInfos := []struct {
+		Text      string
+		StartTime time.Time
+		EndTime   time.Time
+	}{}
+
+	resp := byteframe.NewByteFrame()
+	resp.WriteUint8(uint8(len(udInfos)))
+	for _, udInfo := range udInfos {
+		resp.WriteBytes(stringsupport.PaddedString(udInfo.Text, 1024, true))
+		resp.WriteUint32(uint32(udInfo.StartTime.Unix()))
+		resp.WriteUint32(uint32(udInfo.EndTime.Unix()))
+	}
+
+	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
 }
 
 func handleMsgMhfGetKijuInfo(s *Session, p mhfpacket.MHFPacket) {

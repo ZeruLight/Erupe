@@ -233,32 +233,6 @@ func handleMsgMhfUseKeepLoginBoost(s *Session, p mhfpacket.MHFPacket) {
 	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
 }
 
-func handleMsgMhfGetUdInfo(s *Session, p mhfpacket.MHFPacket) {
-	pkt := p.(*mhfpacket.MsgMhfGetUdInfo)
-	// Message that appears on the Diva Defense NPC and triggers the green exclamation mark
-	udInfos := []struct {
-		Text      string
-		StartTime time.Time
-		EndTime   time.Time
-	}{
-		/*{
-			Text:      " ~C17【Erupe】 is dead event!\n\n■Features\n~C18 Dont bother walking around!\n~C17 Take down your DB by doing \n~C17 nearly anything!",
-			StartTime: Time_static().Add(time.Duration(-5) * time.Minute), // Event started 5 minutes ago,
-			EndTime:   Time_static().Add(time.Duration(24) * time.Hour),   // Event ends in 5 minutes,
-		}, */
-	}
-
-	resp := byteframe.NewByteFrame()
-	resp.WriteUint8(uint8(len(udInfos)))
-	for _, udInfo := range udInfos {
-		resp.WriteBytes(fixedSizeShiftJIS(udInfo.Text, 1024))
-		resp.WriteUint32(uint32(udInfo.StartTime.Unix()))
-		resp.WriteUint32(uint32(udInfo.EndTime.Unix()))
-	}
-
-	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
-}
-
 func handleMsgMhfGetRestrictionEvent(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfSetRestrictionEvent(s *Session, p mhfpacket.MHFPacket) {

@@ -253,16 +253,7 @@ func handleMsgMhfStateFestaU(s *Session, p mhfpacket.MHFPacket) {
 	s.server.db.QueryRow("SELECT souls FROM guild_characters WHERE character_id=$1", s.charID).Scan(&souls)
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint32(souls)
-
-	// This definitely isn't right, but it does stop you from claiming the festa infinitely.
-	var claimed uint32
-	s.server.db.QueryRow("SELECT count(*) FROM festa_prizes_accepted fpa WHERE fpa.prize_id=0 AND fpa.character_id=$1", s.charID).Scan(&claimed)
-	if claimed > 0 {
-		bf.WriteUint32(0) // unk
-	} else {
-		bf.WriteUint32(0x01000000) // unk
-	}
-
+	bf.WriteUint32(0) // unk
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
@@ -303,8 +294,8 @@ func handleMsgMhfEnumerateFestaMember(s *Session, p mhfpacket.MHFPacket) {
 	}
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint16(uint16(len(members)))
+	bf.WriteUint16(0) // Unk
 	for _, member := range members {
-		bf.WriteUint16(0)
 		bf.WriteUint32(member.CharID)
 		bf.WriteUint32(member.Souls)
 	}
@@ -344,7 +335,6 @@ func handleMsgMhfChargeFesta(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfAcquireFesta(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfAcquireFesta)
-	s.server.db.Exec("INSERT INTO public.festa_prizes_accepted VALUES (0, $1)", s.charID)
 	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 

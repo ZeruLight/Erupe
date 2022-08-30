@@ -1886,7 +1886,10 @@ func handleMsgMhfUpdateGuildMessageBoard(s *Session, p mhfpacket.MHFPacket) {
 	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
-func handleMsgMhfEntryRookieGuild(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfEntryRookieGuild(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfEntryRookieGuild)
+	doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+}
 
 func handleMsgMhfUpdateForceGuildRank(s *Session, p mhfpacket.MHFPacket) {}
 

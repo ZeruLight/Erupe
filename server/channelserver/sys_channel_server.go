@@ -11,6 +11,7 @@ import (
 	"erupe-ce/network/binpacket"
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/server/discordbot"
+
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )
@@ -343,19 +344,11 @@ func (s *Server) DiscordChannelSend(charName string, content string) {
 
 func (s *Server) FindSessionByCharID(charID uint32) *Session {
 	for _, c := range s.Channels {
-		c.stagesLock.RLock()
-		for _, stage := range c.stages {
-			stage.RLock()
-			for client := range stage.clients {
-				if client.charID == charID {
-					stage.RUnlock()
-					c.stagesLock.RUnlock()
-					return client
-				}
+		for _, session := range c.sessions {
+			if session.charID == charID {
+				return session
 			}
-			stage.RUnlock()
 		}
-		c.stagesLock.RUnlock()
 	}
 	return nil
 }

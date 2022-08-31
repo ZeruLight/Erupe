@@ -21,7 +21,7 @@ func handleMsgMhfPostGuildScout(s *Session, p mhfpacket.MHFPacket) {
 		panic(err)
 	}
 
-	if actorCharGuildData == nil || !actorCharGuildData.Recruiter {
+	if actorCharGuildData == nil || !actorCharGuildData.CanRecruit() {
 		doAckBufFail(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
@@ -59,19 +59,13 @@ func handleMsgMhfPostGuildScout(s *Session, p mhfpacket.MHFPacket) {
 		panic(err)
 	}
 
-	senderName, err := getCharacterName(s, s.charID)
-
-	if err != nil {
-		panic(err)
-	}
-
 	mail := &Mail{
 		SenderID:    s.charID,
 		RecipientID: pkt.CharID,
-		Subject:     "Guild! ヽ(・∀・)ﾉ",
+		Subject:     "Invitation!",
 		Body: fmt.Sprintf(
-			"%s has invited you to join the wonderful guild %s, do you accept this challenge?",
-			senderName,
+			"%s has invited you to join 「%s」\nDo you want to accept?",
+			getCharacterName(s, s.charID),
 			guildInfo.Name,
 		),
 		IsGuildInvite: true,
@@ -104,7 +98,7 @@ func handleMsgMhfCancelGuildScout(s *Session, p mhfpacket.MHFPacket) {
 		panic(err)
 	}
 
-	if guildCharData == nil || !guildCharData.Recruiter {
+	if guildCharData == nil || !guildCharData.CanRecruit() {
 		doAckBufFail(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
@@ -128,61 +122,72 @@ func handleMsgMhfCancelGuildScout(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfAnswerGuildScout(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfAnswerGuildScout)
-
+	bf := byteframe.NewByteFrame()
 	guild, err := GetGuildInfoByCharacterId(s, pkt.LeaderID)
 
 	if err != nil {
 		panic(err)
 	}
 
-	_, err = guild.GetApplicationForCharID(s, s.charID, GuildApplicationTypeInvited)
+	app, err := guild.GetApplicationForCharID(s, s.charID, GuildApplicationTypeInvited)
 
-	if err != nil {
+	if app == nil || err != nil {
 		s.logger.Warn(
-			"could not retrieve guild invitation",
+			"Guild invite missing, deleted?",
 			zap.Error(err),
 			zap.Uint32("guildID", guild.ID),
 			zap.Uint32("charID", s.charID),
 		)
-		doAckBufFail(s, pkt.AckHandle, make([]byte, 4))
+		bf.WriteUint32(7)
+		bf.WriteUint32(guild.ID)
+		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 		return
 	}
 
+	var mail []Mail
 	if pkt.Answer {
 		err = guild.AcceptApplication(s, s.charID)
+		mail = append(mail, Mail{
+			RecipientID:     s.charID,
+			Subject:         "Success!",
+			Body:            fmt.Sprintf("You successfully joined 「%s」.", guild.Name),
+			IsSystemMessage: true,
+		})
+		mail = append(mail, Mail{
+			SenderID:        s.charID,
+			RecipientID:     pkt.LeaderID,
+			Subject:         "Accepted",
+			Body:            fmt.Sprintf("%s accepted your invitation to join 「%s」.", s.Name, guild.Name),
+			IsSystemMessage: true,
+		})
 	} else {
 		err = guild.RejectApplication(s, s.charID)
+		mail = append(mail, Mail{
+			RecipientID:     s.charID,
+			Subject:         "Declined",
+			Body:            fmt.Sprintf("You declined the invitation to join 「%s」.", guild.Name),
+			IsSystemMessage: true,
+		})
+		mail = append(mail, Mail{
+			SenderID:        s.charID,
+			RecipientID:     pkt.LeaderID,
+			Subject:         "Declined",
+			Body:            fmt.Sprintf("%s declined your invitation to join 「%s」.", s.Name, guild.Name),
+			IsSystemMessage: true,
+		})
 	}
-
 	if err != nil {
-		doAckBufFail(s, pkt.AckHandle, make([]byte, 4))
-		return
+		bf.WriteUint32(7)
+		bf.WriteUint32(guild.ID)
+		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	} else {
+		bf.WriteUint32(0)
+		bf.WriteUint32(guild.ID)
+		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+		for _, m := range mail {
+			m.Send(s, nil)
+		}
 	}
-
-	senderName, err := getCharacterName(s, pkt.LeaderID)
-
-	if err != nil {
-		doAckSimpleFail(s, pkt.AckHandle, nil)
-		panic(err)
-	}
-
-	successMail := Mail{
-		SenderID:      pkt.LeaderID,
-		RecipientID:   s.charID,
-		Subject:       "Happy days!",
-		Body:          fmt.Sprintf("You successfully joined %s and should be proud of all you have accomplished.", guild.Name),
-		IsGuildInvite: false,
-		SenderName:    senderName,
-	}
-
-	err = successMail.Send(s, nil)
-
-	if err != nil {
-		doAckSimpleFail(s, pkt.AckHandle, nil)
-		panic(err)
-	}
-
-	doAckBufSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x0f, 0x42, 0x81, 0x7e})
 }
 
 func handleMsgMhfGetGuildScoutList(s *Session, p mhfpacket.MHFPacket) {
@@ -191,12 +196,12 @@ func handleMsgMhfGetGuildScoutList(s *Session, p mhfpacket.MHFPacket) {
 	guildInfo, err := GetGuildInfoByCharacterId(s, s.charID)
 
 	if guildInfo == nil && s.prevGuildID == 0 {
-		doAckSimpleFail(s, pkt.AckHandle, nil)
+		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 		return
 	} else {
 		guildInfo, err = GetGuildInfoByID(s, s.prevGuildID)
 		if guildInfo == nil || err != nil {
-			doAckSimpleFail(s, pkt.AckHandle, nil)
+			doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 			return
 		}
 	}
@@ -210,7 +215,7 @@ func handleMsgMhfGetGuildScoutList(s *Session, p mhfpacket.MHFPacket) {
 
 	if err != nil {
 		s.logger.Error("failed to retrieve scouted characters", zap.Error(err))
-		doAckSimpleFail(s, pkt.AckHandle, nil)
+		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
 

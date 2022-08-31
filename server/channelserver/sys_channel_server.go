@@ -11,25 +11,9 @@ import (
 	"erupe-ce/network/binpacket"
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/server/discordbot"
+
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
-)
-
-type StageIdType = string
-
-const (
-	// GlobalStage is the stage that is used for all users.
-	MezeportaStageId      StageIdType = "sl1Ns200p0a0u0"
-	GuildHallLv1StageId   StageIdType = "sl1Ns202p0a0u0"
-	GuildHallLv2StageId   StageIdType = "sl1Ns203p0a0u0"
-	GuildHallLv3StageId   StageIdType = "sl1Ns204p0a0u0"
-	PugiFarmStageId       StageIdType = "sl1Ns205p0a0u0"
-	RastaBarStageId       StageIdType = "sl1Ns211p0a0u0"
-	PalloneCaravanStageId StageIdType = "sl1Ns260p0a0u0"
-	GookFarmStageId       StageIdType = "sl1Ns265p0a0u0"
-	DivaFountainStageId   StageIdType = "sl2Ns379p0a0u0"
-	DivaHallStageId       StageIdType = "sl1Ns445p0a0u0"
-	MezFesStageId         StageIdType = "sl1Ns462p0a0u0"
 )
 
 // Config struct allows configuring the server.
@@ -80,8 +64,7 @@ type Server struct {
 	// Discord chat integration
 	discordBot *discordbot.DiscordBot
 
-	name   string
-	enable bool
+	name string
 
 	raviente *Raviente
 }
@@ -154,27 +137,14 @@ func NewServer(config *Config) *Server {
 		stages:          make(map[string]*Stage),
 		userBinaryParts: make(map[userBinaryPartID][]byte),
 		semaphore:       make(map[string]*Semaphore),
-		semaphoreIndex:  5,
+		semaphoreIndex:  7,
 		discordBot:      config.DiscordBot,
 		name:            config.Name,
-		enable:          config.Enable,
 		raviente:        NewRaviente(),
 	}
 
 	// Mezeporta
 	s.stages["sl1Ns200p0a0u0"] = NewStage("sl1Ns200p0a0u0")
-
-	// Guild Hall LV1
-	s.stages["sl1Ns202p0a0u0"] = NewStage("sl1Ns202p0a0u0")
-
-	// Guild Hall LV2
-	s.stages["sl1Ns203p0a0u0"] = NewStage("sl1Ns203p0a0u0")
-
-	// Guild Hall LV3
-	s.stages["sl1Ns204p0a0u0"] = NewStage("sl1Ns204p0a0u0")
-
-	// Pugi Farm
-	s.stages["sl1Ns205p0a0u0"] = NewStage("sl1Ns205p0a0u0")
 
 	// Rasta bar stage
 	s.stages["sl1Ns211p0a0u0"] = NewStage("sl1Ns211p0a0u0")
@@ -182,14 +152,14 @@ func NewServer(config *Config) *Server {
 	// Pallone Carvan
 	s.stages["sl1Ns260p0a0u0"] = NewStage("sl1Ns260p0a0u0")
 
-	// Gook Farm
-	s.stages["sl1Ns265p0a0u0"] = NewStage("sl1Ns265p0a0u0")
+	// Pallone Guest House 1st Floor
+	s.stages["sl1Ns262p0a0u0"] = NewStage("sl1Ns262p0a0u0")
+
+	// Pallone Guest House 2nd Floor
+	s.stages["sl1Ns263p0a0u0"] = NewStage("sl1Ns263p0a0u0")
 
 	// Diva fountain / prayer fountain.
 	s.stages["sl2Ns379p0a0u0"] = NewStage("sl2Ns379p0a0u0")
-
-	// Diva Hall
-	s.stages["sl1Ns445p0a0u0"] = NewStage("sl1Ns445p0a0u0")
 
 	// MezFes
 	s.stages["sl1Ns462p0a0u0"] = NewStage("sl1Ns462p0a0u0")
@@ -367,26 +337,18 @@ func (s *Server) BroadcastRaviente(ip uint32, port uint16, stage []byte, _type u
 
 func (s *Server) DiscordChannelSend(charName string, content string) {
 	if s.erupeConfig.Discord.Enabled && s.discordBot != nil {
-		message := fmt.Sprintf("**%s** : %s", charName, content)
+		message := fmt.Sprintf("**%s**: %s", charName, content)
 		s.discordBot.RealtimeChannelSend(message)
 	}
 }
 
 func (s *Server) FindSessionByCharID(charID uint32) *Session {
 	for _, c := range s.Channels {
-		c.stagesLock.RLock()
-		for _, stage := range c.stages {
-			stage.RLock()
-			for client := range stage.clients {
-				if client.charID == charID {
-					stage.RUnlock()
-					c.stagesLock.RUnlock()
-					return client
-				}
+		for _, session := range c.sessions {
+			if session.charID == charID {
+				return session
 			}
-			stage.RUnlock()
 		}
-		c.stagesLock.RUnlock()
 	}
 	return nil
 }
@@ -413,6 +375,9 @@ func (s *Server) NextSemaphoreID() uint32 {
 	for {
 		exists := false
 		s.semaphoreIndex = s.semaphoreIndex + 1
+		if s.semaphoreIndex == 0 {
+			s.semaphoreIndex = 7 // Skip reserved indexes
+		}
 		for _, semaphore := range s.semaphore {
 			if semaphore.id == s.semaphoreIndex {
 				exists = true

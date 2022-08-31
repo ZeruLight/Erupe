@@ -5,16 +5,16 @@
   "devmode": true,
   "devmodeoptions": {
     "serverName" : "",
+    "EnableLauncherServer": false,
     "hideLoginNotice": false,
-    "loginNotice": "<BODY><CENTER><SIZE_3><C_4>Welcome to Erupe SU9 (Patch 1)!<BR><BODY><LEFT><SIZE_2><C_5>Erupe is experimental software<C_7>, we are not liable for any<BR><BODY>issues caused by installing the software!<BR><BODY><BR><BODY><C_4>■Report bugs on Discord!<C_7><BR><BODY><BR><BODY><C_4>■Test everything!<C_7><BR><BODY><BR><BODY><C_4>■Don't talk to softlocking NPCs!<C_7><BR><BODY><BR><BODY><C_4>■Fork the code on GitHub!<C_7><BR><BODY><BR><BODY>Thank you to all of the contributors,<BR><BODY><BR><BODY>this wouldn't exist without you.",
+    "loginNotice": "<BODY><CENTER><SIZE_3><C_4>Welcome to Erupe SU9.1 Beta!<BR><BODY><LEFT><SIZE_2><C_5>Erupe is experimental software<C_7>, we are not liable for any<BR><BODY>issues caused by installing the software!<BR><BODY><BR><BODY><C_4>■Report bugs on Discord!<C_7><BR><BODY><BR><BODY><C_4>■Test everything!<C_7><BR><BODY><BR><BODY><C_4>■Don't talk to softlocking NPCs!<C_7><BR><BODY><BR><BODY><C_4>■Fork the code on GitHub!<C_7><BR><BODY><BR><BODY>Thank you to all of the contributors,<BR><BODY><BR><BODY>this wouldn't exist without you.",
     "cleandb": false,
     "maxlauncherhr": false,
     "LogInboundMessages": false,
     "LogOutboundMessages": false,
     "MaxHexdumpLength": 256,
-    "Event": 0,
     "DivaEvent": 0,
-    "FestaEvent": 0,
+    "FestaEvent": -1,
     "TournamentEvent": 0,
     "MezFesEvent": true,
     "MezFesAlt": false,
@@ -28,10 +28,7 @@
   "discord": {
     "enabled": false,
     "bottoken": "",
-    "realtimeChannelID": "",
-    "serverId": "",
-    "devRoles": [],
-    "devMode": false
+    "realtimeChannelID": ""
   },
   "database": {
     "host": "localhost",

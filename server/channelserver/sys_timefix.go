@@ -31,6 +31,16 @@ func Time_Current_Midnight() time.Time {
 	return time.Date(baseTime.Year(), baseTime.Month(), baseTime.Day(), 0, 0, 0, 0, baseTime.Location())
 }
 
+func TimeWeekStart() time.Time {
+	midnight := Time_Current_Midnight()
+	offset := (int(midnight.Weekday()) - 1) * -24
+	return midnight.Add(time.Hour * time.Duration(offset))
+}
+
+func TimeWeekNext() time.Time {
+	return TimeWeekStart().Add(time.Hour * 24 * 7)
+}
+
 func Time_Current_Week_uint8() uint8 {
 	baseTime := time.Now().In(time.FixedZone(fmt.Sprintf("UTC+%d", Offset), Offset*60*60)).AddDate(YearAdjust, MonthAdjust, DayAdjust)
 

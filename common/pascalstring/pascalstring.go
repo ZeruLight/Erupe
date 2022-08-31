@@ -11,7 +11,8 @@ func Uint8(bf *byteframe.ByteFrame, x string, t bool) {
 		e := japanese.ShiftJIS.NewEncoder()
 		xt, _, err := transform.String(e, x)
 		if err != nil {
-			panic(err)
+			bf.WriteUint8(0)
+			return
 		}
 		x = xt
 	}
@@ -24,7 +25,8 @@ func Uint16(bf *byteframe.ByteFrame, x string, t bool) {
 		e := japanese.ShiftJIS.NewEncoder()
 		xt, _, err := transform.String(e, x)
 		if err != nil {
-			panic(err)
+			bf.WriteUint16(0)
+			return
 		}
 		x = xt
 	}
@@ -37,7 +39,8 @@ func Uint32(bf *byteframe.ByteFrame, x string, t bool) {
 		e := japanese.ShiftJIS.NewEncoder()
 		xt, _, err := transform.String(e, x)
 		if err != nil {
-			panic(err)
+			bf.WriteUint32(0)
+			return
 		}
 		x = xt
 	}

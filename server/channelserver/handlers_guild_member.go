@@ -12,6 +12,7 @@ type GuildMember struct {
 	GuildID         uint32     `db:"guild_id"`
 	CharID          uint32     `db:"character_id"`
 	JoinedAt        *time.Time `db:"joined_at"`
+	Souls           uint32     `db:"souls"`
 	Name            string     `db:"name"`
 	IsApplicant     bool       `db:"is_applicant"`
 	OrderIndex      uint8      `db:"order_index"`
@@ -25,12 +26,25 @@ type GuildMember struct {
 	WeaponType      uint16     `db:"weapon_type"`
 }
 
+func (gm *GuildMember) CanRecruit() bool {
+	if gm.Recruiter {
+		return true
+	}
+	if gm.OrderIndex <= 3 {
+		return true
+	}
+	if gm.IsLeader {
+		return true
+	}
+	return false
+}
+
 func (gm *GuildMember) IsSubLeader() bool {
-	return gm.OrderIndex <= 3 && !gm.AvoidLeadership
+	return gm.OrderIndex <= 3
 }
 
 func (gm *GuildMember) Save(s *Session) error {
-	_, err := s.server.db.Exec("UPDATE guild_characters SET avoid_leadership=$1 WHERE character_id=$2", gm.AvoidLeadership, gm.CharID)
+	_, err := s.server.db.Exec("UPDATE guild_characters SET avoid_leadership=$1, order_index=$2 WHERE character_id=$3", gm.AvoidLeadership, gm.OrderIndex, gm.CharID)
 
 	if err != nil {
 		s.logger.Error(
@@ -48,6 +62,7 @@ const guildMembersSelectSQL = `
 SELECT
 	g.id as guild_id,
 	joined_at,
+	coalesce(souls, 0) as souls,
 	c.name,
 	character.character_id,
 	coalesce(gc.order_index, 0) as order_index,

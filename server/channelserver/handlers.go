@@ -1,25 +1,21 @@
 package channelserver
 
 import (
-	"bytes"
 	"encoding/binary"
 	"encoding/hex"
 	"erupe-ce/common/stringsupport"
 	"fmt"
 	"io"
+	"math"
 	"net"
 	"strings"
-
-	"io/ioutil"
-	"math/bits"
-	"math/rand"
 	"time"
 
 	"erupe-ce/common/byteframe"
 	"erupe-ce/network/mhfpacket"
 	"go.uber.org/zap"
-	"golang.org/x/text/encoding/japanese"
-	"golang.org/x/text/transform"
+	"math/bits"
+	"math/rand"
 )
 
 // Temporary function to just return no results for a MSG_MHF_ENUMERATE* packet
@@ -78,40 +74,32 @@ func doAckSimpleFail(s *Session, ackHandle uint32, data []byte) {
 }
 
 func updateRights(s *Session) {
+	s.rights = uint32(0x0E)
+	s.server.db.QueryRow("SELECT rights FROM users u INNER JOIN characters c ON u.id = c.user_id WHERE c.id = $1", s.charID).Scan(&s.rights)
+
+	rights := make([]mhfpacket.ClientRight, 0)
+	tempRights := s.rights
+	for i := 30; i > 0; i-- {
+		right := uint32(math.Pow(2, float64(i)))
+		if tempRights-right < 0x80000000 {
+			if i == 1 {
+				continue
+			}
+			rights = append(rights, mhfpacket.ClientRight{ID: uint16(i), Timestamp: 0x70DB59F0})
+			tempRights -= right
+		}
+	}
+	rights = append(rights, mhfpacket.ClientRight{ID: 1, Timestamp: 0})
+
 	update := &mhfpacket.MsgSysUpdateRight{
 		ClientRespAckHandle: 0,
-		Unk1:                s.rights,
-		Rights: []mhfpacket.ClientRight{
-			{
-				ID:        1,
-				Timestamp: 0,
-			},
-			{
-				ID:        2,
-				Timestamp: 0x5FEA1781,
-			},
-			{
-				ID:        3,
-				Timestamp: 0x5FEA1781,
-			},
-		},
-		UnkSize: 0,
+		Bitfield:            s.rights,
+		Rights:              rights,
+		UnkSize:             0,
 	}
 	s.QueueSendMHF(update)
 }
 
-func fixedSizeShiftJIS(text string, size int) []byte {
-	r := bytes.NewBuffer([]byte(text))
-	encoded, err := ioutil.ReadAll(transform.NewReader(r, japanese.ShiftJIS.NewEncoder()))
-	if err != nil {
-		panic(err)
-	}
-
-	out := make([]byte, size)
-	copy(out, encoded)
-	out[len(out)-1] = 0
-	return out
-}
 func handleMsgHead(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgSysExtendThreshold(s *Session, p mhfpacket.MHFPacket) {
@@ -149,14 +137,11 @@ func handleMsgSysLogin(s *Session, p mhfpacket.MHFPacket) {
 		}
 	}
 
-	rights := uint32(0x0E)
-	s.server.db.QueryRow("SELECT rights FROM users u INNER JOIN characters c ON u.id = c.user_id WHERE c.id = $1", pkt.CharID0).Scan(&rights)
-
 	s.Lock()
 	s.charID = pkt.CharID0
-	s.rights = rights
 	s.token = pkt.LoginTokenString
 	s.Unlock()
+	updateRights(s)
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint32(uint32(Time_Current_Adjusted().Unix())) // Unix timestamp
 
@@ -192,8 +177,12 @@ func handleMsgSysLogout(s *Session, p mhfpacket.MHFPacket) {
 }
 
 func logoutPlayer(s *Session) {
-	delete(s.server.sessions, s.rawConn)
-	s.rawConn.Close()
+	if _, exists := s.server.sessions[s.rawConn]; exists {
+		delete(s.server.sessions, s.rawConn)
+		s.rawConn.Close()
+	} else {
+		return // Prevent re-running logout logic on real logouts
+	}
 
 	_, err := s.server.db.Exec("UPDATE sign_sessions SET server_id=NULL, char_id=NULL WHERE token=$1", s.token)
 	if err != nil {
@@ -206,13 +195,13 @@ func logoutPlayer(s *Session) {
 	}
 
 	var timePlayed int
+	var sessionTime int
 	_ = s.server.db.QueryRow("SELECT time_played FROM characters WHERE id = $1", s.charID).Scan(&timePlayed)
-
-	timePlayed = (int(Time_Current_Adjusted().Unix()) - int(s.sessionStart)) + timePlayed
+	sessionTime = int(Time_Current_Adjusted().Unix()) - int(s.sessionStart)
+	timePlayed += sessionTime
 
 	var rpGained int
-
-	if s.rights > 0x40000000 { // N Course
+	if s.rights >= 0x40000000 { // N Course
 		rpGained = timePlayed / 900
 		timePlayed = timePlayed % 900
 	} else {
@@ -220,10 +209,10 @@ func logoutPlayer(s *Session) {
 		timePlayed = timePlayed % 1800
 	}
 
-	_, err = s.server.db.Exec("UPDATE characters SET time_played = $1 WHERE id = $2", timePlayed, s.charID)
-	if err != nil {
-		panic(err)
-	}
+	s.server.db.Exec("UPDATE characters SET time_played = $1 WHERE id = $2", timePlayed, s.charID)
+	s.server.db.Exec("UPDATE characters SET cafe_time=cafe_time+$1 WHERE id=$2", sessionTime, s.charID)
+
+	treasureHuntUnregister(s)
 
 	if s.stage == nil {
 		return
@@ -243,7 +232,6 @@ func logoutPlayer(s *Session) {
 
 	removeSessionFromSemaphore(s)
 	removeSessionFromStage(s)
-	treasureHuntUnregister(s)
 
 	saveData, err := GetCharacterSaveData(s, s.charID)
 	if err != nil {
@@ -421,6 +409,9 @@ func handleMsgMhfTransitMessage(s *Session, p mhfpacket.MHFPacket) {
 						}
 						for session := range stage.clients {
 							count++
+							hrp := uint16(1)
+							gr := uint16(0)
+							s.server.db.QueryRow("SELECT hrp, gr FROM characters WHERE id=$1", session.charID).Scan(&hrp, &gr)
 							sessionStage := stringsupport.UTF8ToSJIS(session.stageID)
 							sessionName := stringsupport.UTF8ToSJIS(session.Name)
 							resp.WriteUint32(binary.LittleEndian.Uint32(net.ParseIP(c.IP).To4()))
@@ -433,8 +424,8 @@ func handleMsgMhfTransitMessage(s *Session, p mhfpacket.MHFPacket) {
 							resp.WriteBytes(make([]byte, 48))
 							resp.WriteNullTerminatedBytes(sessionStage)
 							resp.WriteNullTerminatedBytes(sessionName)
-							resp.WriteUint16(999)                     // HR
-							resp.WriteUint16(999)                     // GR
+							resp.WriteUint16(hrp)
+							resp.WriteUint16(gr)
 							resp.WriteBytes([]byte{0x06, 0x10, 0x00}) // Unk
 						}
 					}
@@ -443,12 +434,23 @@ func handleMsgMhfTransitMessage(s *Session, p mhfpacket.MHFPacket) {
 		}
 	case 4: // Find Party
 		bf := byteframe.NewByteFrameFromBytes(pkt.MessageData)
-		bf.ReadUint8()
+		setting := bf.ReadUint8()
 		maxResults := bf.ReadUint16()
-		bf.ReadUint8()
-		bf.ReadUint8()
+		bf.Seek(2, 1)
 		partyType := bf.ReadUint16()
-		_ = bf.DataFromCurrent() // Restrictions
+		rankRestriction := uint16(0)
+		if setting >= 2 {
+			bf.Seek(2, 1)
+			rankRestriction = bf.ReadUint16()
+		}
+		targets := make([]uint16, 4)
+		if setting >= 3 {
+			bf.Seek(1, 1)
+			lenTargets := int(bf.ReadUint8())
+			for i := 0; i < lenTargets; i++ {
+				targets[i] = bf.ReadUint16()
+			}
+		}
 		var stagePrefix string
 		switch partyType {
 		case 0: // Public Bar
@@ -468,30 +470,40 @@ func handleMsgMhfTransitMessage(s *Session, p mhfpacket.MHFPacket) {
 					break
 				}
 				if strings.HasPrefix(stage.id, stagePrefix) {
+					sb3 := byteframe.NewByteFrameFromBytes(stage.rawBinaryData[stageBinaryKey{1, 3}])
+					sb3.Seek(4, 0)
+					stageRankRestriction := sb3.ReadUint16()
+					stageTarget := sb3.ReadUint16()
+					if rankRestriction != 0xFFFF && stageRankRestriction < rankRestriction {
+						continue
+					}
 					count++
 					sessionStage := stringsupport.UTF8ToSJIS(stage.id)
 					resp.WriteUint32(binary.LittleEndian.Uint32(net.ParseIP(c.IP).To4()))
 					resp.WriteUint16(c.Port)
-
-					// TODO: This is half right, could be trimmed
-					resp.WriteUint16(0)
-					resp.WriteUint16(uint16(len(stage.clients)))
+					resp.WriteUint16(0) // Static?
+					resp.WriteUint16(0) // Unk
 					resp.WriteUint16(uint16(len(stage.clients)))
 					resp.WriteUint16(stage.maxPlayers)
-					resp.WriteUint16(0)
-					resp.WriteUint16(uint16(len(stage.clients)))
-					//
-
-					resp.WriteUint16(uint16(len(sessionStage) + 1))
-					resp.WriteUint8(1)
+					resp.WriteUint16(0) // Num clients entered from stage
+					resp.WriteUint16(stage.maxPlayers)
+					resp.WriteUint8(1) // Static?
+					resp.WriteUint8(uint8(len(sessionStage) + 1))
+					resp.WriteUint8(uint8(len(stage.rawBinaryData[stageBinaryKey{1, 0}])))
 					resp.WriteUint8(uint8(len(stage.rawBinaryData[stageBinaryKey{1, 1}])))
-					resp.WriteBytes(make([]byte, 16))
+					resp.WriteUint16(stageRankRestriction)
+					resp.WriteUint16(stageTarget)
+					resp.WriteBytes(make([]byte, 12))
 					resp.WriteNullTerminatedBytes(sessionStage)
-					resp.WriteBytes([]byte{0x00})
+					resp.WriteBytes(stage.rawBinaryData[stageBinaryKey{1, 0}])
 					resp.WriteBytes(stage.rawBinaryData[stageBinaryKey{1, 1}])
 				}
 			}
 		}
+	}
+	if (pkt.SearchType == 1 || pkt.SearchType == 3) && count == 0 {
+		doAckBufFail(s, pkt.AckHandle, make([]byte, 4))
+		return
 	}
 	resp.Seek(0, io.SeekStart)
 	resp.WriteUint16(count)
@@ -499,8 +511,6 @@ func handleMsgMhfTransitMessage(s *Session, p mhfpacket.MHFPacket) {
 }
 
 func handleMsgCaExchangeItem(s *Session, p mhfpacket.MHFPacket) {}
-
-func handleMsgMhfResetTitle(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfPresentBox(s *Session, p mhfpacket.MHFPacket) {}
 
@@ -555,8 +565,6 @@ func handleMsgMhfEnumerateOrder(s *Session, p mhfpacket.MHFPacket) {
 }
 
 func handleMsgMhfGetExtraInfo(s *Session, p mhfpacket.MHFPacket) {}
-
-func handleMsgMhfAcquireTitle(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfEnumerateUnionItem(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateUnionItem)
@@ -645,86 +653,57 @@ func handleMsgMhfUpdateUnionItem(s *Session, p mhfpacket.MHFPacket) {
 	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
-func handleMsgMhfAcquireCafeItem(s *Session, p mhfpacket.MHFPacket) {
-	pkt := p.(*mhfpacket.MsgMhfAcquireCafeItem)
-	var netcafe_points int
-	err := s.server.db.QueryRow("UPDATE characters SET netcafe_points = netcafe_points - $1 WHERE id = $2 RETURNING netcafe_points", pkt.PointCost, s.charID).Scan(&netcafe_points)
-	if err != nil {
-		s.logger.Fatal("Failed to get plate data savedata from db", zap.Error(err))
-	}
-	resp := byteframe.NewByteFrame()
-	resp.WriteUint32(uint32(netcafe_points))
-	doAckSimpleSucceed(s, pkt.AckHandle, resp.Data())
-}
-
-func handleMsgMhfUpdateCafepoint(s *Session, p mhfpacket.MHFPacket) {
-	pkt := p.(*mhfpacket.MsgMhfUpdateCafepoint)
-	var netcafe_points int
-	err := s.server.db.QueryRow("SELECT COALESCE(netcafe_points, 0) FROM characters WHERE id = $1", s.charID).Scan(&netcafe_points)
-	if err != nil {
-		s.logger.Fatal("Failed to get plate data savedata from db", zap.Error(err))
-	}
-	resp := byteframe.NewByteFrame()
-	resp.WriteUint32(0)
-	resp.WriteUint32(uint32(netcafe_points))
-	doAckSimpleSucceed(s, pkt.AckHandle, resp.Data())
-}
-
-func handleMsgMhfCheckDailyCafepoint(s *Session, p mhfpacket.MHFPacket) {
-	pkt := p.(*mhfpacket.MsgMhfCheckDailyCafepoint)
-
-	// I am not sure exactly what this does, but all responses I have seen include this exact sequence of bytes
-	// 1 daily, 5 daily halk pots, 3 point boosted quests, also adds 5 netcafe points but not sent to client
-	// available once after midday every day
-
-	// get next midday
-	var t = Time_static()
-	year, month, day := t.Date()
-	midday := time.Date(year, month, day, 12, 0, 0, 0, t.Location())
-	if t.After(midday) {
-		midday = midday.Add(24 * time.Hour)
-	}
-
-	// get time after which daily claiming would be valid from db
-	var dailyTime time.Time
-	err := s.server.db.QueryRow("SELECT COALESCE(daily_time, $2) FROM characters WHERE id = $1", s.charID, time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)).Scan(&dailyTime)
-	if err != nil {
-		s.logger.Fatal("Failed to get daily_time savedata from db", zap.Error(err))
-	}
-
-	if t.After(dailyTime) {
-		// +5 netcafe points and setting next valid window
-		_, err := s.server.db.Exec("UPDATE characters SET daily_time=$1, netcafe_points=netcafe_points::int + 5 WHERE id=$2", midday, s.charID)
-		if err != nil {
-			s.logger.Fatal("Failed to update daily_time and netcafe_points savedata in db", zap.Error(err))
-		}
-		doAckBufSucceed(s, pkt.AckHandle, []byte{0x01, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x01})
-	} else {
-		doAckBufSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
-	}
-}
-
 func handleMsgMhfGetCogInfo(s *Session, p mhfpacket.MHFPacket) {}
-
-func handleMsgMhfCheckMonthlyItem(s *Session, p mhfpacket.MHFPacket) {}
-
-func handleMsgMhfAcquireMonthlyItem(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfCheckWeeklyStamp(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfCheckWeeklyStamp)
-
-	resp := byteframe.NewByteFrame()
-	resp.WriteUint16(0x000E)
-	resp.WriteUint16(0x0001)
-	resp.WriteUint16(0x0000)
-	resp.WriteUint16(0x0000) // 0x0000 stops the vaguely annoying log in pop up
-	resp.WriteUint32(0)
-	resp.WriteUint32(0x5dddcbb3) // Timestamp
-
-	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
+	weekCurrentStart := TimeWeekStart()
+	weekNextStart := TimeWeekNext()
+	var total, redeemed, updated uint16
+	var nextClaim time.Time
+	err := s.server.db.QueryRow(fmt.Sprintf("SELECT %s_next FROM stamps WHERE character_id=$1", pkt.StampType), s.charID).Scan(&nextClaim)
+	if err != nil {
+		s.server.db.Exec("INSERT INTO stamps (character_id, hl_next, ex_next) VALUES ($1, $2, $2)", s.charID, weekNextStart)
+		nextClaim = weekNextStart
+	}
+	if nextClaim.Before(weekCurrentStart) {
+		s.server.db.Exec(fmt.Sprintf("UPDATE stamps SET %s_total=%s_total+1, %s_next=$1 WHERE character_id=$2", pkt.StampType, pkt.StampType, pkt.StampType), weekNextStart, s.charID)
+		updated = 1
+	}
+	s.server.db.QueryRow(fmt.Sprintf("SELECT %s_total, %s_redeemed FROM stamps WHERE character_id=$1", pkt.StampType, pkt.StampType), s.charID).Scan(&total, &redeemed)
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint16(total)
+	bf.WriteUint16(redeemed)
+	bf.WriteUint16(updated)
+	bf.WriteUint32(0) // Unk
+	bf.WriteUint32(uint32(weekCurrentStart.Unix()))
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
-func handleMsgMhfExchangeWeeklyStamp(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfExchangeWeeklyStamp(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfExchangeWeeklyStamp)
+	var total, redeemed uint16
+	var tktStack mhfpacket.WarehouseStack
+	if pkt.Unk1 == 0xA { // Yearly Sub Ex
+		s.server.db.QueryRow("UPDATE stamps SET hl_total=hl_total-48, hl_redeemed=hl_redeemed-48 WHERE character_id=$1 RETURNING hl_total, hl_redeemed", s.charID).Scan(&total, &redeemed)
+		tktStack = mhfpacket.WarehouseStack{ItemID: 0x08A2, Quantity: 1}
+	} else {
+		s.server.db.QueryRow(fmt.Sprintf("UPDATE stamps SET %s_redeemed=%s_redeemed+8 WHERE character_id=$1 RETURNING %s_total, %s_redeemed", pkt.StampType, pkt.StampType, pkt.StampType, pkt.StampType), s.charID).Scan(&total, &redeemed)
+		if pkt.StampType == "hl" {
+			tktStack = mhfpacket.WarehouseStack{ItemID: 0x065E, Quantity: 5}
+		} else {
+			tktStack = mhfpacket.WarehouseStack{ItemID: 0x065F, Quantity: 5}
+		}
+	}
+	addWarehouseGift(s, "item", tktStack)
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint16(total)
+	bf.WriteUint16(redeemed)
+	bf.WriteUint16(0)
+	bf.WriteUint32(0) // Unk, but has possible values
+	bf.WriteUint32(uint32(TimeWeekStart().Unix()))
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+}
 
 func getGookData(s *Session, cid uint32) (uint16, []byte) {
 	var data []byte

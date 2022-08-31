@@ -24,23 +24,24 @@ type Config struct {
 
 // DevModeOptions holds various debug/temporary options for use while developing Erupe.
 type DevModeOptions struct {
-	ServerName          string // To get specific instance server about (Current Players/Event Week)
-	HideLoginNotice     bool   // Hide the Erupe notice on login
-	LoginNotice         string // MHFML string of the login notice displayed
-	CleanDB             bool   // Automatically wipes the DB on server reset.
-	MaxLauncherHR       bool   // Sets the HR returned in the launcher to HR9 so that you can join non-beginner worlds.
-	FixedStageID        bool   // Causes all move_stage to use the ID sl1Ns200p0a0u0 to get you into all stages
-	LogInboundMessages  bool   // Log all messages sent to the server
-	LogOutboundMessages bool   // Log all messages sent to the clients
-	MaxHexdumpLength    int    // Maximum number of bytes printed when logs are enabled
-	DivaEvent           int    // Diva Defense event status
-	FestaEvent          int    // Hunter's Festa event status
-	TournamentEvent     int    // VS Tournament event status
-	MezFesEvent         bool   // MezFes status
-	MezFesAlt           bool   // Swaps out Volpakkun for Tokotoko
-	DisableTokenCheck   bool   // Disables checking login token exists in the DB (security risk!)
-	DisableMailItems    bool   // Hack to prevent english versions of MHF from crashing
-	SaveDumps           SaveDumpOptions
+	ServerName           string // To get specific instance server about (Current Players/Event Week)
+	EnableLauncherServer bool   // Enables the launcher server to be served on port 80
+	HideLoginNotice      bool   // Hide the Erupe notice on login
+	LoginNotice          string // MHFML string of the login notice displayed
+	CleanDB              bool   // Automatically wipes the DB on server reset.
+	MaxLauncherHR        bool   // Sets the HR returned in the launcher to HR9 so that you can join non-beginner worlds.
+	FixedStageID         bool   // Causes all move_stage to use the ID sl1Ns200p0a0u0 to get you into all stages
+	LogInboundMessages   bool   // Log all messages sent to the server
+	LogOutboundMessages  bool   // Log all messages sent to the clients
+	MaxHexdumpLength     int    // Maximum number of bytes printed when logs are enabled
+	DivaEvent            int    // Diva Defense event status
+	FestaEvent           int    // Hunter's Festa event status
+	TournamentEvent      int    // VS Tournament event status
+	MezFesEvent          bool   // MezFes status
+	MezFesAlt            bool   // Swaps out Volpakkun for Tokotoko
+	DisableTokenCheck    bool   // Disables checking login token exists in the DB (security risk!)
+	DisableMailItems     bool   // Hack to prevent english versions of MHF from crashing
+	SaveDumps            SaveDumpOptions
 }
 
 type SaveDumpOptions struct {

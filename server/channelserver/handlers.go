@@ -1,12 +1,12 @@
 package channelserver
 
 import (
-	"bytes"
 	"encoding/binary"
 	"encoding/hex"
 	"erupe-ce/common/stringsupport"
 	"fmt"
 	"io"
+	"math"
 	"net"
 	"strings"
 	"time"
@@ -14,9 +14,6 @@ import (
 	"erupe-ce/common/byteframe"
 	"erupe-ce/network/mhfpacket"
 	"go.uber.org/zap"
-	"golang.org/x/text/encoding/japanese"
-	"golang.org/x/text/transform"
-	"io/ioutil"
 	"math/bits"
 	"math/rand"
 )
@@ -77,40 +74,32 @@ func doAckSimpleFail(s *Session, ackHandle uint32, data []byte) {
 }
 
 func updateRights(s *Session) {
+	s.rights = uint32(0x0E)
+	s.server.db.QueryRow("SELECT rights FROM users u INNER JOIN characters c ON u.id = c.user_id WHERE c.id = $1", s.charID).Scan(&s.rights)
+
+	rights := make([]mhfpacket.ClientRight, 0)
+	tempRights := s.rights
+	for i := 30; i > 0; i-- {
+		right := uint32(math.Pow(2, float64(i)))
+		if tempRights-right < 0x80000000 {
+			if i == 1 {
+				continue
+			}
+			rights = append(rights, mhfpacket.ClientRight{ID: uint16(i), Timestamp: 0x70DB59F0})
+			tempRights -= right
+		}
+	}
+	rights = append(rights, mhfpacket.ClientRight{ID: 1, Timestamp: 0})
+
 	update := &mhfpacket.MsgSysUpdateRight{
 		ClientRespAckHandle: 0,
 		Bitfield:            s.rights,
-		Rights: []mhfpacket.ClientRight{
-			{
-				ID:        1,
-				Timestamp: 0,
-			},
-			{
-				ID:        2,
-				Timestamp: 0x5FEA1781,
-			},
-			{
-				ID:        3,
-				Timestamp: 0x5FEA1781,
-			},
-		},
-		UnkSize: 0,
+		Rights:              rights,
+		UnkSize:             0,
 	}
 	s.QueueSendMHF(update)
 }
 
-func fixedSizeShiftJIS(text string, size int) []byte {
-	r := bytes.NewBuffer([]byte(text))
-	encoded, err := ioutil.ReadAll(transform.NewReader(r, japanese.ShiftJIS.NewEncoder()))
-	if err != nil {
-		panic(err)
-	}
-
-	out := make([]byte, size)
-	copy(out, encoded)
-	out[len(out)-1] = 0
-	return out
-}
 func handleMsgHead(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgSysExtendThreshold(s *Session, p mhfpacket.MHFPacket) {
@@ -148,14 +137,11 @@ func handleMsgSysLogin(s *Session, p mhfpacket.MHFPacket) {
 		}
 	}
 
-	rights := uint32(0x0E)
-	s.server.db.QueryRow("SELECT rights FROM users u INNER JOIN characters c ON u.id = c.user_id WHERE c.id = $1", pkt.CharID0).Scan(&rights)
-
 	s.Lock()
 	s.charID = pkt.CharID0
-	s.rights = rights
 	s.token = pkt.LoginTokenString
 	s.Unlock()
+	updateRights(s)
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint32(uint32(Time_Current_Adjusted().Unix())) // Unix timestamp
 

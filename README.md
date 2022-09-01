@@ -1,6 +1,4 @@
 # Erupe Community Edition
-
----
 ## Setup
 - If you are only looking to install Erupe, please use [a pre-compiled binary](https://github.com/ZeruLight/Erupe/releases/latest).
 - If you want to modify or compile Erupe yourself please read on.
@@ -14,7 +12,6 @@
 4. Run `go build` or `go run .` to compile Erupe.
 ### Note
 - You will need to acquire and install the client files and quest binaries separately.
----
 # Resources
 [Community FAQ Pastebin](https://pastebin.com/QqAwZSTC)
 

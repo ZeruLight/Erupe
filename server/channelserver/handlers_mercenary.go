@@ -236,19 +236,31 @@ func handleMsgMhfSaveOtomoAirou(s *Session, p mhfpacket.MHFPacket) {
 		return
 	}
 	bf := byteframe.NewByteFrameFromBytes(decomp)
+	save := byteframe.NewByteFrame()
+	var catsExist uint8
+	save.WriteUint8(0)
+
 	cats := bf.ReadUint8()
 	for i := 0; i < int(cats); i++ {
 		dataLen := bf.ReadUint32()
 		catID := bf.ReadUint32()
 		if catID == 0 {
-			var nextID uint32
-			_ = s.server.db.QueryRow("SELECT nextval('airou_id_seq')").Scan(&nextID)
-			bf.Seek(-4, io.SeekCurrent)
-			bf.WriteUint32(nextID)
+			_ = s.server.db.QueryRow("SELECT nextval('airou_id_seq')").Scan(&catID)
 		}
-		_ = bf.ReadBytes(uint(dataLen) - 4)
+		exists := bf.ReadBool()
+		data := bf.ReadBytes(uint(dataLen) - 5)
+		if exists {
+			catsExist++
+			save.WriteUint32(dataLen)
+			save.WriteUint32(catID)
+			save.WriteBool(exists)
+			save.WriteBytes(data)
+		}
 	}
-	comp, err := nullcomp.Compress(bf.Data())
+	save.WriteBytes(bf.DataFromCurrent())
+	save.Seek(0, 0)
+	save.WriteUint8(catsExist)
+	comp, err := nullcomp.Compress(save.Data())
 	if err != nil {
 		s.logger.Error("Failed to compress airou", zap.Error(err))
 	} else {

@@ -1,7 +1,6 @@
 package channelserver
 
 import (
-	"database/sql"
 	"encoding/binary"
 
 	"erupe-ce/network/mhfpacket"
@@ -10,120 +9,134 @@ import (
 )
 
 const (
-	CharacterSaveRPPointer = 0x22D16
+	pointerGender        = 0x81    // +1
+	pointerRP            = 0x22D16 // +2
+	pointerHouseTier     = 0x1FB6C // +5
+	pointerHouseData     = 0x1FE01 // +195
+	pointerBookshelfData = 0x22298 // +5576
+	// Gallery data also exists at 0x21578, is this the contest submission?
+	pointerGalleryData = 0x22320 // +1748
+	pointerToreData    = 0x1FCB4 // +240
+	pointerGardenData  = 0x22C58 // +68
+	pointerWeaponID    = 0x1F60A // +2
+	pointerHRP         = 0x1FDF6 // +2
+	pointerGRP         = 0x1FDFC // +4
 )
 
 type CharacterSaveData struct {
 	CharID         uint32
 	Name           string
-	RP             uint16
 	IsNewCharacter bool
 
-	// Use provided setter/getter
-	baseSaveData []byte
+	Gender        bool
+	RP            uint16
+	HouseTier     []byte
+	HouseData     []byte
+	BookshelfData []byte
+	GalleryData   []byte
+	ToreData      []byte
+	GardenData    []byte
+	WeaponID      uint16
+	HRP           uint16
+	GRP           uint32
+	GR            uint16
+
+	compSave   []byte
+	decompSave []byte
 }
 
 func GetCharacterSaveData(s *Session, charID uint32) (*CharacterSaveData, error) {
 	result, err := s.server.db.Query("SELECT id, savedata, is_new_character, name FROM characters WHERE id = $1", charID)
-
 	if err != nil {
-		s.logger.Error("failed to retrieve save data for character", zap.Error(err), zap.Uint32("charID", charID))
+		s.logger.Error("Failed to get savedata", zap.Error(err), zap.Uint32("charID", charID))
 		return nil, err
 	}
-
 	defer result.Close()
+	if !result.Next() {
+		s.logger.Error("No savedata found", zap.Uint32("charID", charID))
+		return nil, err
+	}
 
 	saveData := &CharacterSaveData{}
-	var compressedBaseSave []byte
-
-	if !result.Next() {
-		s.logger.Error("no results found for character save data", zap.Uint32("charID", charID))
-		return nil, err
-	}
-
-	err = result.Scan(&saveData.CharID, &compressedBaseSave, &saveData.IsNewCharacter, &saveData.Name)
-
+	err = result.Scan(&saveData.CharID, &saveData.compSave, &saveData.IsNewCharacter, &saveData.Name)
 	if err != nil {
-		s.logger.Error(
-			"failed to retrieve save data for character",
-			zap.Error(err),
-			zap.Uint32("charID", charID),
-		)
-
+		s.logger.Error("Failed to scan savedata", zap.Error(err), zap.Uint32("charID", charID))
 		return nil, err
 	}
 
-	if compressedBaseSave == nil {
+	if saveData.compSave == nil {
 		return saveData, nil
 	}
 
-	decompressedBaseSave, err := nullcomp.Decompress(compressedBaseSave)
-
+	err = saveData.Decompress()
 	if err != nil {
-		s.logger.Error("Failed to decompress savedata from db", zap.Error(err))
+		s.logger.Error("Failed to decompress savedata", zap.Error(err))
 		return nil, err
 	}
-
-	saveData.SetBaseSaveData(decompressedBaseSave)
 
 	return saveData, nil
 }
 
-func (save *CharacterSaveData) Save(s *Session, transaction *sql.Tx) error {
+func (save *CharacterSaveData) Save(s *Session) {
 	// We need to update the save data byte array before we save it back to the DB
 	save.updateSaveDataWithStruct()
 
-	compressedData, err := save.CompressedBaseData(s)
-
+	err := save.Compress()
 	if err != nil {
-		return err
+		s.logger.Error("Failed to compress savedata", zap.Error(err))
+		return
 	}
 
-	updateSQL := "UPDATE characters	SET savedata=$1, is_new_character=$3 WHERE id=$2"
+	updateSQL := `UPDATE characters	SET savedata=$1, is_new_character=$3 WHERE id=$2`
 
-	if transaction != nil {
-		_, err = transaction.Exec(updateSQL, compressedData, save.CharID, save.IsNewCharacter)
-	} else {
-		_, err = s.server.db.Exec(updateSQL, compressedData, save.CharID, save.IsNewCharacter)
-	}
+	_, err = s.server.db.Exec(updateSQL, save.compSave, save.CharID, save.IsNewCharacter)
 	if err != nil {
-		s.logger.Error("failed to save character data", zap.Error(err), zap.Uint32("charID", save.CharID))
+		s.logger.Error("Failed to update savedata", zap.Error(err), zap.Uint32("charID", save.CharID))
+	}
+}
+
+func (save *CharacterSaveData) Compress() error {
+	var err error
+	save.compSave, err = nullcomp.Compress(save.decompSave)
+	if err != nil {
 		return err
 	}
 	return nil
 }
 
-func (save *CharacterSaveData) CompressedBaseData(s *Session) ([]byte, error) {
-	compressedData, err := nullcomp.Compress(save.baseSaveData)
-
+func (save *CharacterSaveData) Decompress() error {
+	var err error
+	save.decompSave, err = nullcomp.Decompress(save.compSave)
 	if err != nil {
-		s.logger.Error("failed to compress saveData", zap.Error(err), zap.Uint32("charID", save.CharID))
-		return nil, err
+		return err
 	}
-	return compressedData, nil
+	return nil
 }
 
-func (save *CharacterSaveData) BaseSaveData() []byte {
-	return save.baseSaveData
-}
-
-func (save *CharacterSaveData) SetBaseSaveData(data []byte) {
-	save.baseSaveData = data
-	// After setting the new save byte array, we can extract the values to update our struct
-	// This will be useful when we save it back, we use the struct values to overwrite the saveData
-	save.updateStructWithSaveData()
-}
-
-// This will update the save struct with the values stored in the raw savedata arrays
+// This will update the character save with the values stored in the save struct
 func (save *CharacterSaveData) updateSaveDataWithStruct() {
 	rpBytes := make([]byte, 2)
 	binary.LittleEndian.PutUint16(rpBytes, save.RP)
-	copy(save.baseSaveData[CharacterSaveRPPointer:CharacterSaveRPPointer+2], rpBytes)
+	copy(save.decompSave[pointerRP:pointerRP+2], rpBytes)
 }
 
-// This will update the character save struct with the values stored in the raw savedata arrays
+// This will update the save struct with the values stored in the character save
 func (save *CharacterSaveData) updateStructWithSaveData() {
-	save.RP = binary.LittleEndian.Uint16(save.baseSaveData[CharacterSaveRPPointer : CharacterSaveRPPointer+2])
+	if save.decompSave[pointerGender] == 1 {
+		save.Gender = true
+	} else {
+		save.Gender = false
+	}
+	save.RP = binary.LittleEndian.Uint16(save.decompSave[pointerRP : pointerRP+2])
+	save.HouseTier = save.decompSave[pointerHouseTier : pointerHouseTier+5]
+	save.HouseData = save.decompSave[pointerHouseData : pointerHouseData+195]
+	save.BookshelfData = save.decompSave[pointerBookshelfData : pointerBookshelfData+5576]
+	save.GalleryData = save.decompSave[pointerGalleryData : pointerGalleryData+1748]
+	save.ToreData = save.decompSave[pointerToreData : pointerToreData+240]
+	save.GardenData = save.decompSave[pointerGardenData : pointerGardenData+68]
+	save.WeaponID = binary.LittleEndian.Uint16(save.decompSave[pointerWeaponID : pointerWeaponID+2])
+	save.HRP = binary.LittleEndian.Uint16(save.decompSave[pointerHRP : pointerHRP+2])
+	save.GRP = binary.LittleEndian.Uint32(save.decompSave[pointerGRP : pointerGRP+4])
 }
 
 func handleMsgMhfSexChanger(s *Session, p mhfpacket.MHFPacket) {

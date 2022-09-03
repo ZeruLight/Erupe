@@ -725,11 +725,7 @@ func handleMsgMhfOperateGuild(s *Session, p mhfpacket.MHFPacket) {
 		rp := uint16(pkt.Data1.ReadUint32())
 		saveData, _ := GetCharacterSaveData(s, s.charID)
 		saveData.RP -= rp
-		transaction, err := s.server.db.Begin()
-		err = saveData.Save(s, transaction)
-		if err != nil {
-			transaction.Rollback()
-		}
+		saveData.Save(s)
 		bf.WriteUint32(uint32(saveData.RP))
 	default:
 		panic(fmt.Sprintf("unhandled operate guild action '%d'", pkt.Action))
@@ -763,14 +759,7 @@ func handleDonateRP(s *Session, amount uint16, guild *Guild, isEvent bool) []byt
 		return bf.Data()
 	}
 	saveData.RP -= amount
-	transaction, err := s.server.db.Begin()
-	err = saveData.Save(s, transaction)
-	if err != nil {
-		transaction.Rollback()
-		return bf.Data()
-	} else {
-		transaction.Commit()
-	}
+	saveData.Save(s)
 	updateSQL := "UPDATE guilds SET rank_rp = rank_rp + $1 WHERE id = $2"
 	if isEvent {
 		updateSQL = "UPDATE guilds SET event_rp = event_rp + $1 WHERE id = $2"

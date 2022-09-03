@@ -1,7 +1,6 @@
 package channelserver
 
 import (
-	"encoding/binary"
 	"encoding/hex"
 	"erupe-ce/common/stringsupport"
 	"fmt"
@@ -26,7 +25,6 @@ func handleMsgMhfSavedata(s *Session, p mhfpacket.MHFPacket) {
 		return
 	}
 	// Var to hold the decompressed savedata for updating the launcher response fields.
-	var decompressedData []byte
 	if pkt.SaveType == 1 {
 		// Diff-based update.
 		// diffs themselves are also potentially compressed
@@ -36,43 +34,35 @@ func handleMsgMhfSavedata(s *Session, p mhfpacket.MHFPacket) {
 		}
 		// Perform diff.
 		s.logger.Info("Diffing...")
-		characterSaveData.SetBaseSaveData(deltacomp.ApplyDataDiff(diff, characterSaveData.BaseSaveData()))
+		characterSaveData.decompSave = deltacomp.ApplyDataDiff(diff, characterSaveData.decompSave)
 	} else {
+		dumpSaveData(s, pkt.RawDataPayload, "savedata")
 		// Regular blob update.
 		saveData, err := nullcomp.Decompress(pkt.RawDataPayload)
 		if err != nil {
 			s.logger.Fatal("Failed to decompress savedata from packet", zap.Error(err))
 		}
 		s.logger.Info("Updating save with blob")
-		characterSaveData.SetBaseSaveData(saveData)
+		characterSaveData.decompSave = saveData
 	}
 	characterSaveData.IsNewCharacter = false
-	characterBaseSaveData := characterSaveData.BaseSaveData()
-	// Make a copy for updating the launcher fields.
-	decompressedData = make([]byte, len(characterBaseSaveData))
-	copy(decompressedData, characterBaseSaveData)
-	err = characterSaveData.Save(s, nil)
-	if err != nil {
-		s.logger.Fatal("Failed to update savedata in db", zap.Error(err))
-	}
+	characterSaveData.Save(s)
 	s.logger.Info("Wrote recompressed savedata back to DB.")
-	dumpSaveData(s, pkt.RawDataPayload, "savedata")
 
-	_, err = s.server.db.Exec("UPDATE characters SET weapon_type=$1 WHERE id=$2", uint16(decompressedData[128789]), s.charID)
+	_, err = s.server.db.Exec("UPDATE characters SET weapon_type=$1 WHERE id=$2", uint16(characterSaveData.decompSave[128789]), s.charID)
 	if err != nil {
 		s.logger.Fatal("Failed to character weapon type in db", zap.Error(err))
 	}
 
-	s.myseries.houseTier = decompressedData[129900:129905]     // 0x1FB6C + 5
-	s.myseries.houseData = decompressedData[130561:130756]     // 0x1FE01 + 195
-	s.myseries.bookshelfData = decompressedData[139928:145504] // 0x22298 + 5576
-	// Gallery data also exists at 0x21578, is this the contest submission?
-	s.myseries.galleryData = decompressedData[140064:141812] // 0x22320 + 1748
-	s.myseries.toreData = decompressedData[130228:130468]    // 0x1FCB4 + 240
-	s.myseries.gardenData = decompressedData[142424:142492]  // 0x22C58 + 68
+	s.myseries.houseTier = characterSaveData.HouseTier
+	s.myseries.houseData = characterSaveData.HouseData
+	s.myseries.bookshelfData = characterSaveData.BookshelfData
+	s.myseries.galleryData = characterSaveData.GalleryData
+	s.myseries.toreData = characterSaveData.ToreData
+	s.myseries.gardenData = characterSaveData.GardenData
 
-	isFemale := decompressedData[81] // 0x51
-	if isFemale == 1 {
+	isFemale := characterSaveData.Gender
+	if isFemale {
 		_, err = s.server.db.Exec("UPDATE characters SET is_female=true WHERE id=$1", s.charID)
 	} else {
 		_, err = s.server.db.Exec("UPDATE characters SET is_female=false WHERE id=$1", s.charID)
@@ -81,32 +71,26 @@ func handleMsgMhfSavedata(s *Session, p mhfpacket.MHFPacket) {
 		s.logger.Fatal("Failed to character gender in db", zap.Error(err))
 	}
 
-	weaponId := binary.LittleEndian.Uint16(decompressedData[128522:128524]) // 0x1F60A
-	_, err = s.server.db.Exec("UPDATE characters SET weapon_id=$1 WHERE id=$2", weaponId, s.charID)
+	_, err = s.server.db.Exec("UPDATE characters SET weapon_id=$1 WHERE id=$2", characterSaveData.WeaponID, s.charID)
 	if err != nil {
 		s.logger.Fatal("Failed to update character weapon id in db", zap.Error(err))
 	}
 
-	hrp := binary.LittleEndian.Uint16(decompressedData[130550:130552]) // 0x1FDF6
-	_, err = s.server.db.Exec("UPDATE characters SET hrp=$1 WHERE id=$2", hrp, s.charID)
+	_, err = s.server.db.Exec("UPDATE characters SET hrp=$1 WHERE id=$2", characterSaveData.HRP, s.charID)
 	if err != nil {
 		s.logger.Fatal("Failed to update character hrp in db", zap.Error(err))
 	}
 
-	grp := binary.LittleEndian.Uint32(decompressedData[130556:130560]) // 0x1FDFC
-	var gr uint16
-	if grp > 0 {
-		gr = grpToGR(grp)
-	} else {
-		gr = 0
+	if characterSaveData.GRP > 0 {
+		characterSaveData.GR = grpToGR(characterSaveData.GRP)
 	}
-	_, err = s.server.db.Exec("UPDATE characters SET gr=$1 WHERE id=$2", gr, s.charID)
+	_, err = s.server.db.Exec("UPDATE characters SET gr=$1 WHERE id=$2", characterSaveData.GR, s.charID)
 	if err != nil {
 		s.logger.Fatal("Failed to update character gr in db", zap.Error(err))
 	}
 
-	characterName := s.clientContext.StrConv.MustDecode(bfutil.UpToNull(decompressedData[88:100]))
-	_, err = s.server.db.Exec("UPDATE characters SET name=$1 WHERE id=$2", characterName, s.charID)
+	characterSaveData.Name = s.clientContext.StrConv.MustDecode(bfutil.UpToNull(characterSaveData.decompSave[88:100]))
+	_, err = s.server.db.Exec("UPDATE characters SET name=$1 WHERE id=$2", characterSaveData.Name, s.charID)
 	if err != nil {
 		s.logger.Fatal("Failed to update character name in db", zap.Error(err))
 	}
@@ -320,7 +304,7 @@ func handleMsgMhfLoaddata(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfSaveScenarioData(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSaveScenarioData)
-	_, err := s.server.db.Exec("UPDATE characters SET scenariodata = $1 WHERE characters.id = $2", pkt.RawDataPayload, int(s.charID))
+	_, err := s.server.db.Exec("UPDATE characters SET scenariodata = $1 WHERE id = $2", pkt.RawDataPayload, s.charID)
 	if err != nil {
 		s.logger.Fatal("Failed to update scenario data in db", zap.Error(err))
 	}
@@ -337,7 +321,7 @@ func handleMsgMhfLoadScenarioData(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfLoadScenarioData)
 	var scenarioData []byte
 	bf := byteframe.NewByteFrame()
-	err := s.server.db.QueryRow("SELECT scenariodata FROM characters WHERE characters.id = $1", int(s.charID)).Scan(&scenarioData)
+	err := s.server.db.QueryRow("SELECT scenariodata FROM characters WHERE id = $1", s.charID).Scan(&scenarioData)
 	if err != nil {
 		s.logger.Fatal("Failed to get scenario data contents in db", zap.Error(err))
 	} else {

@@ -235,17 +235,11 @@ func logoutPlayer(s *Session) {
 
 	saveData, err := GetCharacterSaveData(s, s.charID)
 	if err != nil {
-		panic(err)
+		s.logger.Error("Failed to get savedata")
+		return
 	}
 	saveData.RP += uint16(rpGained)
-	transaction, err := s.server.db.Begin()
-	err = saveData.Save(s, transaction)
-	if err != nil {
-		transaction.Rollback()
-		panic(err)
-	} else {
-		transaction.Commit()
-	}
+	saveData.Save(s)
 }
 
 func handleMsgSysSetStatus(s *Session, p mhfpacket.MHFPacket) {}

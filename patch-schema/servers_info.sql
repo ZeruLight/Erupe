@@ -8,3 +8,10 @@ CREATE TABLE IF NOT EXISTS public.servers
     world_name text COLLATE pg_catalog."default",
     land integer
 )
+
+
+ALTER TABLE IF EXISTS public.servers
+    ADD COLUMN land integer;
+
+ALTER TABLE IF EXISTS public.servers
+    ADD COLUMN world_name text COLLATE pg_catalog."default";

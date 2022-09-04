@@ -18,6 +18,7 @@ const (
 	pointerGalleryData = 0x22320 // +1748
 	pointerToreData    = 0x1FCB4 // +240
 	pointerGardenData  = 0x22C58 // +68
+	pointerWeaponType  = 0x1F715 // +1
 	pointerWeaponID    = 0x1F60A // +2
 	pointerHRP         = 0x1FDF6 // +2
 	pointerGRP         = 0x1FDFC // +4
@@ -36,9 +37,9 @@ type CharacterSaveData struct {
 	GalleryData   []byte
 	ToreData      []byte
 	GardenData    []byte
+	WeaponType    uint8
 	WeaponID      uint16
 	HRP           uint16
-	GRP           uint32
 	GR            uint16
 
 	compSave   []byte
@@ -80,6 +81,7 @@ func GetCharacterSaveData(s *Session, charID uint32) (*CharacterSaveData, error)
 func (save *CharacterSaveData) Save(s *Session) {
 	// We need to update the save data byte array before we save it back to the DB
 	save.updateSaveDataWithStruct()
+	save.updateStructWithSaveData()
 
 	err := save.Compress()
 	if err != nil {
@@ -87,9 +89,8 @@ func (save *CharacterSaveData) Save(s *Session) {
 		return
 	}
 
-	updateSQL := `UPDATE characters	SET savedata=$1, is_new_character=$3 WHERE id=$2`
-
-	_, err = s.server.db.Exec(updateSQL, save.compSave, save.CharID, save.IsNewCharacter)
+	_, err = s.server.db.Exec(`UPDATE characters	SET savedata=$1, is_new_character=$2, hrp=$3, gr=$4, is_female=$5, weapon_type=$6, weapon_id=$7 WHERE id=$8
+	`, save.compSave, save.IsNewCharacter, save.HRP, save.GR, save.Gender, save.WeaponType, save.WeaponID, save.CharID)
 	if err != nil {
 		s.logger.Error("Failed to update savedata", zap.Error(err), zap.Uint32("charID", save.CharID))
 	}
@@ -134,9 +135,10 @@ func (save *CharacterSaveData) updateStructWithSaveData() {
 	save.GalleryData = save.decompSave[pointerGalleryData : pointerGalleryData+1748]
 	save.ToreData = save.decompSave[pointerToreData : pointerToreData+240]
 	save.GardenData = save.decompSave[pointerGardenData : pointerGardenData+68]
+	save.WeaponType = save.decompSave[pointerWeaponType]
 	save.WeaponID = binary.LittleEndian.Uint16(save.decompSave[pointerWeaponID : pointerWeaponID+2])
 	save.HRP = binary.LittleEndian.Uint16(save.decompSave[pointerHRP : pointerHRP+2])
-	save.GRP = binary.LittleEndian.Uint32(save.decompSave[pointerGRP : pointerGRP+4])
+	save.GR = grpToGR(binary.LittleEndian.Uint32(save.decompSave[pointerGRP : pointerGRP+4]))
 }
 
 func handleMsgMhfSexChanger(s *Session, p mhfpacket.MHFPacket) {

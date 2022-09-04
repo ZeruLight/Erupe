@@ -49,46 +49,6 @@ func handleMsgMhfSavedata(s *Session, p mhfpacket.MHFPacket) {
 	characterSaveData.Save(s)
 	s.logger.Info("Wrote recompressed savedata back to DB.")
 
-	_, err = s.server.db.Exec("UPDATE characters SET weapon_type=$1 WHERE id=$2", uint16(characterSaveData.decompSave[128789]), s.charID)
-	if err != nil {
-		s.logger.Fatal("Failed to character weapon type in db", zap.Error(err))
-	}
-
-	s.myseries.houseTier = characterSaveData.HouseTier
-	s.myseries.houseData = characterSaveData.HouseData
-	s.myseries.bookshelfData = characterSaveData.BookshelfData
-	s.myseries.galleryData = characterSaveData.GalleryData
-	s.myseries.toreData = characterSaveData.ToreData
-	s.myseries.gardenData = characterSaveData.GardenData
-
-	isFemale := characterSaveData.Gender
-	if isFemale {
-		_, err = s.server.db.Exec("UPDATE characters SET is_female=true WHERE id=$1", s.charID)
-	} else {
-		_, err = s.server.db.Exec("UPDATE characters SET is_female=false WHERE id=$1", s.charID)
-	}
-	if err != nil {
-		s.logger.Fatal("Failed to character gender in db", zap.Error(err))
-	}
-
-	_, err = s.server.db.Exec("UPDATE characters SET weapon_id=$1 WHERE id=$2", characterSaveData.WeaponID, s.charID)
-	if err != nil {
-		s.logger.Fatal("Failed to update character weapon id in db", zap.Error(err))
-	}
-
-	_, err = s.server.db.Exec("UPDATE characters SET hrp=$1 WHERE id=$2", characterSaveData.HRP, s.charID)
-	if err != nil {
-		s.logger.Fatal("Failed to update character hrp in db", zap.Error(err))
-	}
-
-	if characterSaveData.GRP > 0 {
-		characterSaveData.GR = grpToGR(characterSaveData.GRP)
-	}
-	_, err = s.server.db.Exec("UPDATE characters SET gr=$1 WHERE id=$2", characterSaveData.GR, s.charID)
-	if err != nil {
-		s.logger.Fatal("Failed to update character gr in db", zap.Error(err))
-	}
-
 	characterSaveData.Name = s.clientContext.StrConv.MustDecode(bfutil.UpToNull(characterSaveData.decompSave[88:100]))
 	_, err = s.server.db.Exec("UPDATE characters SET name=$1 WHERE id=$2", characterSaveData.Name, s.charID)
 	if err != nil {

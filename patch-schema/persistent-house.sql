@@ -13,7 +13,25 @@ CREATE TABLE IF NOT EXISTS public.user_binary
     bookshelf bytea,
     gallery bytea,
     tore bytea,
-    garden bytea
+    garden bytea,
+    mission bytea
 );
+
+-- Create entries for existing users
+INSERT INTO public.user_binary (id) SELECT c.id FROM characters c;
+
+-- Copy existing data
+UPDATE public.user_binary
+    SET house_furniture = (SELECT house FROM characters WHERE user_binary.id = characters.id);
+
+UPDATE public.user_binary
+    SET mission = (SELECT trophy FROM characters WHERE user_binary.id = characters.id);
+
+-- Drop old data location
+ALTER TABLE public.characters
+    DROP COLUMN house;
+
+ALTER TABLE public.characters
+    DROP COLUMN trophy;
 
 END;

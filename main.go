@@ -14,6 +14,7 @@ import (
 	"erupe-ce/server/entranceserver"
 	"erupe-ce/server/launcherserver"
 	"erupe-ce/server/signserver"
+
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"go.uber.org/zap"
@@ -173,6 +174,8 @@ func main() {
 	ci := 0
 	count := 1
 	for _, ee := range erupeConfig.Entrance.Entries {
+		cn := 1
+
 		for _, ce := range ee.Channels {
 			sid := (4096 + si*256) + (16 + ci)
 			c := *channelserver.NewServer(&channelserver.Config{
@@ -192,12 +195,13 @@ func main() {
 			if err != nil {
 				preventClose(fmt.Sprintf("Failed to start channel server: %s", err.Error()))
 			} else {
-				channelQuery += fmt.Sprintf("INSERT INTO servers (server_id, season, current_players) VALUES (%d, %d, 0);", sid, si%3)
+				channelQuery += fmt.Sprintf("INSERT INTO servers (server_id, season, current_players, world_name, land) VALUES (%d, %d, 0, '%s', %d);", sid, si%3, ee.Name, cn)
 				channels = append(channels, &c)
 				logger.Info(fmt.Sprintf("Started channel server %d on port %d", count, ce.Port))
 				ci++
 				count++
 			}
+			cn++
 		}
 		ci = 0
 		si++

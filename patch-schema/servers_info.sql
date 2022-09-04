@@ -1,4 +1,5 @@
 --adds world_name and land columns
+BEGIN;
 
 CREATE TABLE IF NOT EXISTS public.servers
 (
@@ -15,3 +16,5 @@ ALTER TABLE IF EXISTS public.servers
 
 ALTER TABLE IF EXISTS public.servers
     ADD COLUMN world_name text COLLATE pg_catalog."default";
+
+END;

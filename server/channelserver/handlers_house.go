@@ -142,7 +142,10 @@ func handleMsgMhfLoadHouse(s *Session, p mhfpacket.MHFPacket) {
 	bf := byteframe.NewByteFrame()
 	if pkt.Destination != 9 && len(pkt.Password) > 0 && pkt.CheckPass {
 		var password string
-		s.server.db.Select(&password, `SELECT house_password FROM user_binary WHERE id=$1`, pkt.CharID)
+		err := s.server.db.Get(&password, `SELECT house_password FROM user_binary WHERE id=$1`, pkt.CharID)
+		if err != nil {
+			panic(err)
+		}
 		if pkt.Password != password {
 			doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 			return

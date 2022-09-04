@@ -7,14 +7,17 @@ CREATE TABLE IF NOT EXISTS public.servers
     season integer NOT NULL,
     current_players integer NOT NULL,
     world_name text COLLATE pg_catalog."default",
+    world_description text,
     land integer
-)
+);
 
+ALTER TABLE public.servers
+    ADD COLUMN IF NOT EXISTS land integer;
 
-ALTER TABLE IF EXISTS public.servers
-    ADD COLUMN land integer;
+ALTER TABLE public.servers
+    ADD COLUMN IF NOT EXISTS world_name text COLLATE pg_catalog."default";
 
-ALTER TABLE IF EXISTS public.servers
-    ADD COLUMN world_name text COLLATE pg_catalog."default";
+ALTER TABLE public.servers
+    ADD COLUMN IF NOT EXISTS world_description text;
 
 END;

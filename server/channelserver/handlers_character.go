@@ -94,6 +94,9 @@ func (save *CharacterSaveData) Save(s *Session) {
 	if err != nil {
 		s.logger.Error("Failed to update savedata", zap.Error(err), zap.Uint32("charID", save.CharID))
 	}
+
+	s.server.db.Exec(`UPDATE user_binary SET house_tier=$1, house_data=$2, bookshelf=$3, gallery=$4, tore=$5, garden=$6 WHERE id=$7
+	`, save.HouseTier, save.HouseData, save.BookshelfData, save.GalleryData, save.ToreData, save.GardenData, s.charID)
 }
 
 func (save *CharacterSaveData) Compress() error {

@@ -17,12 +17,12 @@ func handleMsgSysSetUserBinary(s *Session, p mhfpacket.MHFPacket) {
 	s.server.userBinaryPartsLock.Unlock()
 
 	var exists []byte
-	err := s.server.db.QueryRow("SELECT type2 FROM user_binaries WHERE id=$1", s.charID).Scan(&exists)
+	err := s.server.db.QueryRow("SELECT type2 FROM user_binary WHERE id=$1", s.charID).Scan(&exists)
 	if err != nil {
-		s.server.db.Exec("INSERT INTO user_binaries (id) VALUES ($1)", s.charID)
+		s.server.db.Exec("INSERT INTO user_binary (id) VALUES ($1)", s.charID)
 	}
 
-	s.server.db.Exec(fmt.Sprintf("UPDATE user_binaries SET type%d=$1 WHERE id=$2", pkt.BinaryType), pkt.RawDataPayload, s.charID)
+	s.server.db.Exec(fmt.Sprintf("UPDATE user_binary SET type%d=$1 WHERE id=$2", pkt.BinaryType), pkt.RawDataPayload, s.charID)
 
 	msg := &mhfpacket.MsgSysNotifyUserBinary{
 		CharID:     s.charID,
@@ -42,7 +42,7 @@ func handleMsgSysGetUserBinary(s *Session, p mhfpacket.MHFPacket) {
 
 	// If we can't get the real data, try to get it from the database.
 	if !ok {
-		err := s.server.db.QueryRow(fmt.Sprintf("SELECT type%d FROM user_binaries WHERE id=$1", pkt.BinaryType), pkt.CharID).Scan(&data)
+		err := s.server.db.QueryRow(fmt.Sprintf("SELECT type%d FROM user_binary WHERE id=$1", pkt.BinaryType), pkt.CharID).Scan(&data)
 		if err != nil {
 			doAckBufFail(s, pkt.AckHandle, make([]byte, 4))
 		} else {

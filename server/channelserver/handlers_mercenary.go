@@ -163,6 +163,7 @@ func handleMsgMhfCreateMercenary(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfSaveMercenary(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSaveMercenary)
+	dumpSaveData(s, pkt.MercData, "mercenary")
 	if len(pkt.MercData) > 0 {
 		s.server.db.Exec("UPDATE characters SET savemercenary=$1 WHERE id=$2", pkt.MercData, s.charID)
 	}

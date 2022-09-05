@@ -264,6 +264,7 @@ func handleMsgMhfLoaddata(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfSaveScenarioData(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSaveScenarioData)
+	dumpSaveData(s, pkt.RawDataPayload, "scenario")
 	_, err := s.server.db.Exec("UPDATE characters SET scenariodata = $1 WHERE id = $2", pkt.RawDataPayload, s.charID)
 	if err != nil {
 		s.logger.Fatal("Failed to update scenario data in db", zap.Error(err))

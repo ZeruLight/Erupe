@@ -104,6 +104,7 @@ func handleMsgMhfSaveHunterNavi(s *Session, p mhfpacket.MHFPacket) {
 
 		s.logger.Info("Wrote recompressed hunternavi back to DB.")
 	} else {
+		dumpSaveData(s, pkt.RawDataPayload, "hunternavi")
 		// simply update database, no extra processing
 		_, err := s.server.db.Exec("UPDATE characters SET hunternavi=$1 WHERE id=$2", pkt.RawDataPayload, s.charID)
 		if err != nil {

@@ -310,6 +310,7 @@ func handleMsgMhfSaveDecoMyset(s *Session, p mhfpacket.MHFPacket) {
 			}
 			loadData[1] = savedSets // update set count
 		}
+		dumpSaveData(s, loadData, "decomyset")
 		_, err := s.server.db.Exec("UPDATE characters SET decomyset=$1 WHERE id=$2", loadData, s.charID)
 		if err != nil {
 			s.logger.Fatal("Failed to update decomyset savedata in db", zap.Error(err))

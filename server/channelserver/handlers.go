@@ -1743,6 +1743,7 @@ func handleMsgMhfUpdateEquipSkinHist(s *Session, p mhfpacket.MHFPacket) {
 	byteInd := (bit / 8)
 	bitInByte := bit % 8
 	data[startByte+byteInd] |= bits.Reverse8((1 << uint(bitInByte)))
+	dumpSaveData(s, data, "skinhist")
 	_, err = s.server.db.Exec("UPDATE characters SET skin_hist=$1 WHERE id=$2", data, s.charID)
 	if err != nil {
 		panic(err)

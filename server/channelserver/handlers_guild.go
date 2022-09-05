@@ -1006,6 +1006,8 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 
 		applicants, err := GetGuildMembers(s, guild.ID, true)
 		if err != nil {
+			bf.WriteUint16(0)
+		} else {
 			bf.WriteUint16(uint16(len(applicants)))
 			for _, applicant := range applicants {
 				bf.WriteUint32(applicant.CharID)
@@ -1015,8 +1017,6 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 				bf.WriteUint16(applicant.GR)
 				ps.Uint8(bf, applicant.Name, true)
 			}
-		} else {
-			bf.WriteUint16(0)
 		}
 
 		bf.WriteUint16(0x0000) // lenAllianceApplications

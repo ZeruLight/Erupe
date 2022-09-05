@@ -29,8 +29,10 @@ func (m *MsgMhfEnumerateHouse) Parse(bf *byteframe.ByteFrame, ctx *clientctx.Cli
 	m.CharID = bf.ReadUint32()
 	m.Method = bf.ReadUint8()
 	m.Unk = bf.ReadUint16()
-	_ = bf.ReadUint8() // len
-	m.Name = stringsupport.SJISToUTF8(bf.ReadNullTerminatedBytes())
+	lenName := bf.ReadUint8()
+	if lenName > 0 {
+		m.Name = stringsupport.SJISToUTF8(bf.ReadNullTerminatedBytes())
+	}
 	return nil
 }
 

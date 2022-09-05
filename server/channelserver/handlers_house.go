@@ -140,13 +140,50 @@ func handleMsgMhfUpdateHouse(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfLoadHouse(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfLoadHouse)
 	bf := byteframe.NewByteFrame()
+
+	var state uint8
+	var password string
+	s.server.db.QueryRow(`SELECT COALESCE(house_state, 2) as house_state, COALESCE(house_password, '') as house_password FROM user_binary WHERE id=$1
+	`, pkt.CharID).Scan(&state, &password)
+
 	if pkt.Destination != 9 && len(pkt.Password) > 0 && pkt.CheckPass {
-		var password string
-		err := s.server.db.Get(&password, `SELECT house_password FROM user_binary WHERE id=$1`, pkt.CharID)
-		if err != nil {
-			panic(err)
-		}
 		if pkt.Password != password {
+			doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+			return
+		}
+	}
+
+	if pkt.Destination != 9 && state > 2 {
+		allowed := false
+
+		// Friends list verification
+		if state == 3 || state == 5 {
+			var friendsList string
+			s.server.db.QueryRow(`SELECT friends FROM characters WHERE id=$1`, pkt.CharID).Scan(&friendsList)
+			cids := stringsupport.CSVElems(friendsList)
+			for _, cid := range cids {
+				if uint32(cid) == s.charID {
+					allowed = true
+					break
+				}
+			}
+		}
+
+		// Guild verification
+		if state > 3 {
+			ownGuild, err := GetGuildInfoByCharacterId(s, s.charID)
+			isApplicant, _ := ownGuild.HasApplicationForCharID(s, s.charID)
+			if err == nil && ownGuild != nil {
+				othersGuild, err := GetGuildInfoByCharacterId(s, pkt.CharID)
+				if err == nil && othersGuild != nil {
+					if othersGuild.ID == ownGuild.ID && !isApplicant {
+						allowed = true
+					}
+				}
+			}
+		}
+
+		if !allowed {
 			doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 			return
 		}

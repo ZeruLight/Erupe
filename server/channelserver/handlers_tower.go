@@ -58,6 +58,9 @@ func handleMsgMhfPostTowerInfo(s *Session, p mhfpacket.MHFPacket) {
 	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
-func handleMsgMhfGetGemInfo(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfGetGemInfo(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfGetGemInfo)
+	doAckBufSucceed(s, pkt.AckHandle, make([]byte, 8))
+}
 
 func handleMsgMhfPostGemInfo(s *Session, p mhfpacket.MHFPacket) {}

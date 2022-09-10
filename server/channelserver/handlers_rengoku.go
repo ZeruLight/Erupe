@@ -271,8 +271,20 @@ func handleMsgMhfEnumerateRengokuRanking(s *Session, p mhfpacket.MHFPacket) {
 			bf.WriteBytes(make([]byte, 11))
 		}
 	}
-	bf.WriteUint8(uint8(i) - 1)
-	bf.WriteBytes(scoreData.Data())
+	if i == 1 {
+		bf.WriteUint32(1)
+		bf.WriteUint32(0)
+		ps.Uint8(bf, s.Name, true)
+		ps.Uint8(bf, "", false)
+		bf.WriteUint8(1)
+		bf.WriteUint32(1)
+		bf.WriteUint32(0)
+		ps.Uint8(bf, s.Name, true)
+		ps.Uint8(bf, "", false)
+	} else {
+		bf.WriteUint8(uint8(i) - 1)
+		bf.WriteBytes(scoreData.Data())
+	}
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 

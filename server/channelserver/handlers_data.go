@@ -219,8 +219,8 @@ func dumpSaveData(s *Session, data []byte, suffix string) {
 	if !s.server.erupeConfig.DevModeOptions.SaveDumps.Enabled {
 		return
 	} else {
-		dir := filepath.Join(s.server.erupeConfig.DevModeOptions.SaveDumps.OutputDir, fmt.Sprintf("%d_%s", s.charID, s.Name))
-		path := filepath.Join(s.server.erupeConfig.DevModeOptions.SaveDumps.OutputDir, fmt.Sprintf("%d_%s", s.charID, s.Name), fmt.Sprintf("%d_%s_%s.bin", s.charID, s.Name, suffix))
+		dir := filepath.Join(s.server.erupeConfig.DevModeOptions.SaveDumps.OutputDir, fmt.Sprintf("%d", s.charID))
+		path := filepath.Join(s.server.erupeConfig.DevModeOptions.SaveDumps.OutputDir, fmt.Sprintf("%d", s.charID), fmt.Sprintf("%d_%s.bin", s.charID, suffix))
 
 		if _, err := os.Stat(dir); os.IsNotExist(err) {
 			os.Mkdir(dir, os.ModeDir)

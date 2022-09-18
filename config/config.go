@@ -1,8 +1,11 @@
 package config
 
 import (
+	"fmt"
 	"log"
 	"net"
+	"os"
+	"time"
 
 	"github.com/spf13/viper"
 )
@@ -16,6 +19,7 @@ type Config struct {
 
 	DevModeOptions DevModeOptions
 	Discord        Discord
+	ServerCommands ServerCommands
 	Database       Database
 	Launcher       Launcher
 	Sign           Sign
@@ -57,6 +61,18 @@ type Discord struct {
 	RealtimeChannelID string
 	DevRoles          []string
 	DevMode           bool
+}
+
+// Server commands
+type ServerCommands struct {
+	Enabled  bool
+	Commands []ServerCommand
+}
+
+type ServerCommand struct {
+	Name    string
+	Enabled bool
+	Prefix  string
 }
 
 // Database holds the postgres database config.
@@ -107,6 +123,28 @@ type EntranceChannelInfo struct {
 	CurrentPlayers uint16
 }
 
+var ErupeConfig *Config
+
+func init() {
+	var err error
+	ErupeConfig, err = LoadConfig()
+	if err != nil {
+		preventClose(fmt.Sprintf("Failed to load config: %s", err.Error()))
+	}
+
+}
+
+func GetServerCommandByName(cmdName string) ServerCommand {
+	var val ServerCommand
+	for _, c := range ErupeConfig.ServerCommands.Commands {
+		if c.Name == cmdName {
+			return c
+		}
+	}
+
+	return val
+}
+
 // getOutboundIP4 gets the preferred outbound ip4 of this machine
 // From https://stackoverflow.com/a/37382208
 func getOutboundIP4() net.IP {
@@ -147,4 +185,21 @@ func LoadConfig() (*Config, error) {
 	}
 
 	return c, nil
+}
+
+func preventClose(text string) {
+	if ErupeConfig.DisableSoftCrash {
+		os.Exit(0)
+	}
+	fmt.Println("\nFailed to start Erupe:\n" + text)
+	go wait()
+	fmt.Println("\nPress Enter/Return to exit...")
+	fmt.Scanln()
+	os.Exit(0)
+}
+
+func wait() {
+	for {
+		time.Sleep(time.Millisecond * 100)
+	}
 }

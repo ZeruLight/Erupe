@@ -23,6 +23,7 @@ type Config struct {
 	Database       Database
 	Launcher       Launcher
 	Sign           Sign
+	Channel        Channel
 	Entrance       Entrance
 }
 
@@ -86,17 +87,24 @@ type Database struct {
 
 // Launcher holds the launcher server config.
 type Launcher struct {
+	Enabled                  bool
 	Port                     int
 	UseOriginalLauncherFiles bool
 }
 
 // Sign holds the sign server config.
 type Sign struct {
-	Port int
+	Enabled bool
+	Port    int
+}
+
+type Channel struct {
+	Enabled bool
 }
 
 // Entrance holds the entrance server config.
 type Entrance struct {
+	Enabled bool
 	Port    uint16
 	Entries []EntranceServerInfo
 }

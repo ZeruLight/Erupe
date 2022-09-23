@@ -135,72 +135,83 @@ func main() {
 	}
 
 	// Entrance server.
-	entranceServer := entranceserver.NewServer(
-		&entranceserver.Config{
-			Logger:      logger.Named("entrance"),
-			ErupeConfig: config.ErupeConfig,
-			DB:          db,
-		})
-	err = entranceServer.Start()
-	if err != nil {
-		preventClose(fmt.Sprintf("Failed to start entrance server: %s", err.Error()))
-	}
-	logger.Info("Started entrance server")
 
-	// Sign server.
-	signServer := signserver.NewServer(
-		&signserver.Config{
-			Logger:      logger.Named("sign"),
-			ErupeConfig: config.ErupeConfig,
-			DB:          db,
-		})
-	err = signServer.Start()
-	if err != nil {
-		preventClose(fmt.Sprintf("Failed to start sign server: %s", err.Error()))
-	}
-	logger.Info("Started sign server")
-
-	var channels []*channelserver.Server
-	channelQuery := ""
-	si := 0
-	ci := 0
-	count := 1
-	for _, ee := range config.ErupeConfig.Entrance.Entries {
-		for i, ce := range ee.Channels {
-			sid := (4096 + si*256) + (16 + ci)
-			c := *channelserver.NewServer(&channelserver.Config{
-				ID:          uint16(sid),
-				Logger:      logger.Named("channel-" + fmt.Sprint(count)),
+	var entranceServer *entranceserver.Server
+	if config.ErupeConfig.Entrance.Enabled {
+		entranceServer = entranceserver.NewServer(
+			&entranceserver.Config{
+				Logger:      logger.Named("entrance"),
 				ErupeConfig: config.ErupeConfig,
 				DB:          db,
-				DiscordBot:  discordBot,
 			})
-			if ee.IP == "" {
-				c.IP = config.ErupeConfig.Host
-			} else {
-				c.IP = ee.IP
-			}
-			c.Port = ce.Port
-			err = c.Start()
-			if err != nil {
-				preventClose(fmt.Sprintf("Failed to start channel server: %s", err.Error()))
-			} else {
-				channelQuery += fmt.Sprintf(`INSERT INTO servers (server_id, season, current_players, world_name, world_description, land) VALUES (%d, %d, 0, '%s', '%s', %d);`, sid, si%3, ee.Name, ee.Description, i+1)
-				channels = append(channels, &c)
-				logger.Info(fmt.Sprintf("Started channel server %d on port %d", count, ce.Port))
-				ci++
-				count++
-			}
+		err = entranceServer.Start()
+		if err != nil {
+			preventClose(fmt.Sprintf("Failed to start entrance server: %s", err.Error()))
 		}
-		ci = 0
-		si++
+		logger.Info("Started entrance server")
 	}
 
-	// Register all servers in DB
-	_ = db.MustExec(channelQuery)
+	// Sign server.
 
-	for _, c := range channels {
-		c.Channels = channels
+	var signServer *signserver.Server
+	if config.ErupeConfig.Sign.Enabled {
+		signServer = signserver.NewServer(
+			&signserver.Config{
+				Logger:      logger.Named("sign"),
+				ErupeConfig: config.ErupeConfig,
+				DB:          db,
+			})
+		err = signServer.Start()
+		if err != nil {
+			preventClose(fmt.Sprintf("Failed to start sign server: %s", err.Error()))
+		}
+		logger.Info("Started sign server")
+	}
+
+	var channels []*channelserver.Server
+
+	if config.ErupeConfig.Channel.Enabled {
+		channelQuery := ""
+		si := 0
+		ci := 0
+		count := 1
+		for _, ee := range config.ErupeConfig.Entrance.Entries {
+			for i, ce := range ee.Channels {
+				sid := (4096 + si*256) + (16 + ci)
+				c := *channelserver.NewServer(&channelserver.Config{
+					ID:          uint16(sid),
+					Logger:      logger.Named("channel-" + fmt.Sprint(count)),
+					ErupeConfig: config.ErupeConfig,
+					DB:          db,
+					DiscordBot:  discordBot,
+				})
+				if ee.IP == "" {
+					c.IP = config.ErupeConfig.Host
+				} else {
+					c.IP = ee.IP
+				}
+				c.Port = ce.Port
+				err = c.Start()
+				if err != nil {
+					preventClose(fmt.Sprintf("Failed to start channel server: %s", err.Error()))
+				} else {
+					channelQuery += fmt.Sprintf(`INSERT INTO servers (server_id, season, current_players, world_name, world_description, land) VALUES (%d, %d, 0, '%s', '%s', %d);`, sid, si%3, ee.Name, ee.Description, i+1)
+					channels = append(channels, &c)
+					logger.Info(fmt.Sprintf("Started channel server %d on port %d", count, ce.Port))
+					ci++
+					count++
+				}
+			}
+			ci = 0
+			si++
+		}
+
+		// Register all servers in DB
+		_ = db.MustExec(channelQuery)
+
+		for _, c := range channels {
+			c.Channels = channels
+		}
 	}
 
 	// Wait for exit or interrupt with ctrl+C.
@@ -210,11 +221,20 @@ func main() {
 
 	logger.Info("Trying to shutdown gracefully")
 
-	for _, c := range channels {
-		c.Shutdown()
+	if config.ErupeConfig.Channel.Enabled {
+		for _, c := range channels {
+			c.Shutdown()
+		}
 	}
-	signServer.Shutdown()
-	entranceServer.Shutdown()
+
+	if config.ErupeConfig.Sign.Enabled {
+		signServer.Shutdown()
+	}
+
+	if config.ErupeConfig.Entrance.Enabled {
+		entranceServer.Shutdown()
+	}
+
 	if config.ErupeConfig.DevModeOptions.EnableLauncherServer {
 		launcherServer.Shutdown()
 	}

@@ -63,13 +63,19 @@
     "database": "erupe"
   },
   "launcher": {
+    "enabled": true,
     "port": 80,
     "UseOriginalLauncherFiles": false
   },
   "sign": {
+    "enabled": true,
     "port": 53312
   },
+  "channel": {
+    "enabled": true
+  },
   "entrance": {
+    "enabled": true,
     "port": 53310,
     "entries": [
       {

@@ -19,5 +19,5 @@ require (
 	golang.org/x/crypto v0.0.0-20211202192323-5770296d904e
 	golang.org/x/sys v0.0.0-20211205182925-97ca703d548d // indirect
 	golang.org/x/text v0.3.7
-	honnef.co/go/tools v0.3.3
+	golang.org/x/tools v0.1.11-0.20220513221640-090b14e8501f // indirect
 )

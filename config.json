@@ -30,6 +30,25 @@
     "bottoken": "",
     "realtimeChannelID": ""
   },
+  "Commands": [
+    {
+      "name": "Rights",
+      "enabled": true,
+      "prefix": "!rights"
+    }, {
+      "name": "Raviente",
+      "enabled": true,
+      "prefix": "!ravi"
+    }, {
+      "name": "Teleport",
+      "enabled": true,
+      "prefix": "!tele"
+    }, {
+      "name": "Reload",
+      "enabled": true,
+      "prefix": "!reload"
+    }
+  ],
   "database": {
     "host": "localhost",
     "port": 5432,
@@ -38,13 +57,19 @@
     "database": "erupe"
   },
   "launcher": {
+    "enabled": true,
     "port": 80,
     "UseOriginalLauncherFiles": false
   },
   "sign": {
+    "enabled": true,
     "port": 53312
   },
+  "channel": {
+    "enabled": true
+  },
   "entrance": {
+    "enabled": true,
     "port": 53310,
     "entries": [
       {

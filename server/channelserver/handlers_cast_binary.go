@@ -32,45 +32,26 @@ const (
 	BroadcastTypeWorld    = 0x0a
 )
 
-var raviCmd config.ServerCommand
-var rightsCmd config.ServerCommand
-var teleCmd config.ServerCommand
-var reloadCmd config.ServerCommand
-var logger *zap.Logger
+var commands map[string]config.Command
 
 func init() {
+	commands = make(map[string]config.Command)
 	zapLogger, _ := zap.NewDevelopment()
 	defer zapLogger.Sync()
-	logger = zapLogger.Named("channelserver")
-
-	raviCmd = config.GetServerCommandByName("Ravi")
-	if raviCmd.Enabled {
-		logger.Info(raviCmd.Name + " command is enabled")
-	} else {
-		logger.Info(raviCmd.Name + " command is disabled")
+	logger := zapLogger.Named("commands")
+	cmds := config.ErupeConfig.Commands
+	for _, cmd := range cmds {
+		commands[cmd.Name] = cmd
+		if cmd.Enabled {
+			logger.Info(fmt.Sprintf("%s command is enabled, prefix: %s", cmd.Name, cmd.Prefix))
+		} else {
+			logger.Info(fmt.Sprintf("%s command is disabled", cmd.Name))
+		}
 	}
+}
 
-	rightsCmd = config.GetServerCommandByName("Rights")
-	if rightsCmd.Enabled {
-		logger.Info(rightsCmd.Name + " command is enabled")
-	} else {
-		logger.Info(rightsCmd.Name + " command is disabled")
-	}
-
-	teleCmd = config.GetServerCommandByName("Tele")
-	if teleCmd.Enabled {
-		logger.Info(teleCmd.Name + " command is enabled")
-	} else {
-		logger.Info(teleCmd.Name + " command is disabled")
-	}
-
-	reloadCmd = config.GetServerCommandByName("Reload")
-	if reloadCmd.Enabled {
-		logger.Info(reloadCmd.Name + " command is enabled")
-	} else {
-		logger.Info(reloadCmd.Name + " command is disabled")
-	}
-
+func sendDisabledCommandMessage(s *Session, cmd config.Command) {
+	sendServerChatMessage(s, fmt.Sprintf("%s command is disabled", cmd.Name))
 }
 
 func sendServerChatMessage(s *Session, message string) {
@@ -209,9 +190,14 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 
 		fmt.Printf("Got chat message: %+v\n", chatMessage)
 
-		if strings.HasPrefix(chatMessage.Message, reloadCmd.Prefix) {
+		// Discord integration
+		if (pkt.BroadcastType == BroadcastTypeStage && s.stage.id == "sl1Ns200p0a0u0") || pkt.BroadcastType == BroadcastTypeWorld {
+			s.server.DiscordChannelSend(chatMessage.SenderName, chatMessage.Message)
+		}
+
+		if strings.HasPrefix(chatMessage.Message, commands["Reload"].Prefix) {
 			// Flush all objects and users and reload
-			if reloadCmd.Enabled {
+			if commands["Reload"].Enabled {
 				sendServerChatMessage(s, "Reloading players...")
 				var temp mhfpacket.MHFPacket
 				deleteNotif := byteframe.NewByteFrame()
@@ -269,14 +255,13 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 				reloadNotif.WriteUint16(0x0010)
 				s.QueueSend(reloadNotif.Data())
 			} else {
-				sendServerChatMessage(s, reloadCmd.Name+" command is disabled")
+				sendDisabledCommandMessage(s, commands["Reload"])
 			}
-
 		}
 
-		if strings.HasPrefix(chatMessage.Message, rightsCmd.Prefix) {
+		if strings.HasPrefix(chatMessage.Message, commands["Rights"].Prefix) {
 			// Set account rights
-			if rightsCmd.Enabled {
+			if commands["Rights"].Enabled {
 				var v uint32
 				n, err := fmt.Sscanf(chatMessage.Message, "!rights %d", &v)
 				if err != nil || n != 1 {
@@ -288,19 +273,12 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 					}
 				}
 			} else {
-				sendServerChatMessage(s, rightsCmd.Name+" command is disabled")
+				sendDisabledCommandMessage(s, commands["Rights"])
 			}
-
 		}
 
-		// Discord integration
-		if (pkt.BroadcastType == BroadcastTypeStage && s.stage.id == "sl1Ns200p0a0u0") || pkt.BroadcastType == BroadcastTypeWorld {
-			s.server.DiscordChannelSend(chatMessage.SenderName, chatMessage.Message)
-		}
-
-		if strings.HasPrefix(chatMessage.Message, raviCmd.Prefix) {
-			// RAVI COMMANDS V2
-			if raviCmd.Enabled {
+		if strings.HasPrefix(chatMessage.Message, commands["Raviente"].Prefix) {
+			if commands["Raviente"].Enabled {
 				if getRaviSemaphore(s) != "" {
 					s.server.raviente.Lock()
 					if !strings.HasPrefix(chatMessage.Message, "!ravi ") {
@@ -358,14 +336,12 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 					sendServerChatMessage(s, "No one has joined the Great Slaying!")
 				}
 			} else {
-				sendServerChatMessage(s, raviCmd.Name+" command is disabled")
+				sendDisabledCommandMessage(s, commands["Raviente"])
 			}
 		}
 
-		// END RAVI COMMANDS V2
-
-		if strings.HasPrefix(chatMessage.Message, teleCmd.Prefix) {
-			if teleCmd.Enabled {
+		if strings.HasPrefix(chatMessage.Message, commands["Teleport"].Prefix) {
+			if commands["Teleport"].Enabled {
 				var x, y int16
 				n, err := fmt.Sscanf(chatMessage.Message, "!tele %d %d", &x, &y)
 				if err != nil || n != 2 {
@@ -388,7 +364,7 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 					})
 				}
 			} else {
-				sendServerChatMessage(s, teleCmd.Name+" command is disabled")
+				sendDisabledCommandMessage(s, commands["Teleport"])
 			}
 		}
 	}

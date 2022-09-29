@@ -19,7 +19,7 @@ type Config struct {
 
 	DevModeOptions DevModeOptions
 	Discord        Discord
-	ServerCommands ServerCommands
+	Commands       []Command
 	Database       Database
 	Launcher       Launcher
 	Sign           Sign
@@ -64,13 +64,8 @@ type Discord struct {
 	DevMode           bool
 }
 
-// Server commands
-type ServerCommands struct {
-	Enabled  bool
-	Commands []ServerCommand
-}
-
-type ServerCommand struct {
+// Command is a channelserver chat command
+type Command struct {
 	Name    string
 	Enabled bool
 	Prefix  string
@@ -140,17 +135,6 @@ func init() {
 		preventClose(fmt.Sprintf("Failed to load config: %s", err.Error()))
 	}
 
-}
-
-func GetServerCommandByName(cmdName string) ServerCommand {
-	var val ServerCommand
-	for _, c := range ErupeConfig.ServerCommands.Commands {
-		if c.Name == cmdName {
-			return c
-		}
-	}
-
-	return val
 }
 
 // getOutboundIP4 gets the preferred outbound ip4 of this machine

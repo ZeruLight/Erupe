@@ -30,31 +30,25 @@
     "bottoken": "",
     "realtimeChannelID": ""
   },
-  "ServerCommands": {
-    "enabled": true,
-    "Commands": [
-      {
-        "name": "Rights",
-        "enabled": true,
-        "prefix": "!rights"
-      },
-      {
-        "name": "Ravi",
-        "enabled": true,
-        "prefix": "!ravi"
-      },
-      {
-        "name": "Tele",
-        "enabled": true,
-        "prefix": "!tele"
-      },
-      {
-        "name": "Reload",
-        "enabled": true,
-        "prefix": "!reload"
-      }
-    ]
-  },
+  "Commands": [
+    {
+      "name": "Rights",
+      "enabled": true,
+      "prefix": "!rights"
+    }, {
+      "name": "Raviente",
+      "enabled": true,
+      "prefix": "!ravi"
+    }, {
+      "name": "Teleport",
+      "enabled": true,
+      "prefix": "!tele"
+    }, {
+      "name": "Reload",
+      "enabled": true,
+      "prefix": "!reload"
+    }
+  ],
   "database": {
     "host": "localhost",
     "port": 5432,

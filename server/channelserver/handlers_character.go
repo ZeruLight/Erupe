@@ -22,6 +22,7 @@ const (
 	pointerWeaponID    = 0x1F60A // +2
 	pointerHRP         = 0x1FDF6 // +2
 	pointerGRP         = 0x1FDFC // +4
+	pointerKQF         = 0x23D20 // +8
 )
 
 type CharacterSaveData struct {
@@ -41,6 +42,7 @@ type CharacterSaveData struct {
 	WeaponID      uint16
 	HRP           uint16
 	GR            uint16
+	KQF           []byte
 
 	compSave   []byte
 	decompSave []byte
@@ -80,8 +82,15 @@ func GetCharacterSaveData(s *Session, charID uint32) (*CharacterSaveData, error)
 
 func (save *CharacterSaveData) Save(s *Session) {
 	// We need to update the save data byte array before we save it back to the DB
-	save.updateSaveDataWithStruct()
 	save.updateStructWithSaveData()
+
+	if !s.kqfOverride {
+		s.kqf = save.KQF
+	} else {
+		save.KQF = s.kqf
+	}
+
+	save.updateSaveDataWithStruct()
 
 	err := save.Compress()
 	if err != nil {
@@ -122,6 +131,7 @@ func (save *CharacterSaveData) updateSaveDataWithStruct() {
 	rpBytes := make([]byte, 2)
 	binary.LittleEndian.PutUint16(rpBytes, save.RP)
 	copy(save.decompSave[pointerRP:pointerRP+2], rpBytes)
+	copy(save.decompSave[pointerKQF:pointerKQF+8], save.KQF)
 }
 
 // This will update the save struct with the values stored in the character save
@@ -142,6 +152,7 @@ func (save *CharacterSaveData) updateStructWithSaveData() {
 	save.WeaponID = binary.LittleEndian.Uint16(save.decompSave[pointerWeaponID : pointerWeaponID+2])
 	save.HRP = binary.LittleEndian.Uint16(save.decompSave[pointerHRP : pointerHRP+2])
 	save.GR = grpToGR(binary.LittleEndian.Uint32(save.decompSave[pointerGRP : pointerGRP+4]))
+	save.KQF = save.decompSave[pointerKQF : pointerKQF+8]
 }
 
 func handleMsgMhfSexChanger(s *Session, p mhfpacket.MHFPacket) {

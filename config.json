@@ -46,6 +46,10 @@
       "name": "Reload",
       "enabled": true,
       "prefix": "!reload"
+    }, {
+      "name": "KeyQuest",
+      "enabled": false,
+      "prefix": "!kqf"
     }
   ],
   "database": {

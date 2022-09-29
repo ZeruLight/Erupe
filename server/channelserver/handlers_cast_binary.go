@@ -1,16 +1,16 @@
 package channelserver
 
 import (
+	"encoding/hex"
+	"erupe-ce/common/byteframe"
+	"erupe-ce/config"
+	"erupe-ce/network/binpacket"
+	"erupe-ce/network/mhfpacket"
 	"fmt"
 	"math"
 	"math/rand"
 	"strings"
 	"time"
-
-	"erupe-ce/common/byteframe"
-	"erupe-ce/config"
-	"erupe-ce/network/binpacket"
-	"erupe-ce/network/mhfpacket"
 
 	"go.uber.org/zap"
 )
@@ -256,6 +256,27 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 				s.QueueSend(reloadNotif.Data())
 			} else {
 				sendDisabledCommandMessage(s, commands["Reload"])
+			}
+		}
+
+		if strings.HasPrefix(chatMessage.Message, commands["KeyQuest"].Prefix) {
+			if commands["KeyQuest"].Enabled {
+				if strings.HasPrefix(chatMessage.Message, "!kqf get") {
+					sendServerChatMessage(s, fmt.Sprintf("KQF: %x", s.kqf))
+				} else if strings.HasPrefix(chatMessage.Message, "!kqf set") {
+					var hexs string
+					n, numerr := fmt.Sscanf(chatMessage.Message, "!kqf set %s", &hexs)
+					if numerr != nil || n != 1 || len(hexs) != 16 {
+						sendServerChatMessage(s, "Error in command. Format: !kqf set xxxxxxxxxxxxxxxx")
+					} else {
+						hexd, _ := hex.DecodeString(hexs)
+						s.kqf = hexd
+						s.kqfOverride = true
+						sendServerChatMessage(s, "KQF set, please switch Land/World")
+					}
+				}
+			} else {
+				sendDisabledCommandMessage(s, commands["KeyQuest"])
 			}
 		}
 

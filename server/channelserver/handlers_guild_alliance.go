@@ -1,6 +1,8 @@
 package channelserver
 
 import (
+	"erupe-ce/common/byteframe"
+	ps "erupe-ce/common/pascalstring"
 	"fmt"
 	"time"
 
@@ -149,9 +151,54 @@ func handleMsgMhfOperateJoint(s *Session, p mhfpacket.MHFPacket) {
 			doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 		}
 	default:
-		panic(fmt.Sprintf("Unhandled operate joint action '%d'", pkt.Action))
 		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+		panic(fmt.Sprintf("Unhandled operate joint action '%d'", pkt.Action))
 	}
 }
 
-func handleMsgMhfInfoJoint(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfInfoJoint(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfInfoJoint)
+	bf := byteframe.NewByteFrame()
+	alliance, err := GetAllianceData(s, pkt.AllianceID)
+	if err != nil {
+		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+	} else {
+		bf.WriteUint32(alliance.ID)
+		bf.WriteUint32(uint32(alliance.CreatedAt.Unix()))
+		bf.WriteUint16(alliance.TotalMembers)
+		bf.WriteUint16(0x0000) // Unk
+		ps.Uint16(bf, alliance.Name, true)
+		if alliance.SubGuild1ID > 0 {
+			if alliance.SubGuild2ID > 0 {
+				bf.WriteUint8(3)
+			} else {
+				bf.WriteUint8(2)
+			}
+		} else {
+			bf.WriteUint8(1)
+		}
+		bf.WriteUint32(alliance.ParentGuildID)
+		bf.WriteUint32(alliance.ParentGuild.LeaderCharID)
+		bf.WriteUint16(alliance.ParentGuild.Rank)
+		bf.WriteUint16(alliance.ParentGuild.MemberCount)
+		ps.Uint16(bf, alliance.ParentGuild.Name, true)
+		ps.Uint16(bf, alliance.ParentGuild.LeaderName, true)
+		if alliance.SubGuild1ID > 0 {
+			bf.WriteUint32(alliance.SubGuild1ID)
+			bf.WriteUint32(alliance.SubGuild1.LeaderCharID)
+			bf.WriteUint16(alliance.SubGuild1.Rank)
+			bf.WriteUint16(alliance.SubGuild1.MemberCount)
+			ps.Uint16(bf, alliance.SubGuild1.Name, true)
+			ps.Uint16(bf, alliance.SubGuild1.LeaderName, true)
+		}
+		if alliance.SubGuild2ID > 0 {
+			bf.WriteUint32(alliance.SubGuild2ID)
+			bf.WriteUint32(alliance.SubGuild2.LeaderCharID)
+			bf.WriteUint16(alliance.SubGuild2.Rank)
+			bf.WriteUint16(alliance.SubGuild2.MemberCount)
+			ps.Uint16(bf, alliance.SubGuild2.Name, true)
+			ps.Uint16(bf, alliance.SubGuild2.LeaderName, true)
+		}
+		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	}
+}

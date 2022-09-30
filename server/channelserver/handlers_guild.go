@@ -1065,6 +1065,7 @@ func handleMsgMhfEnumerateGuild(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateGuild)
 
 	var guilds []*Guild
+	var alliances []*GuildAlliance
 	var rows *sqlx.Rows
 	var err error
 	bf := byteframe.NewByteFrameFromBytes(pkt.RawDataPayload)
@@ -1159,41 +1160,98 @@ func handleMsgMhfEnumerateGuild(s *Session, p mhfpacket.MHFPacket) {
 				guilds = append(guilds, guild)
 			}
 		}
-	case mhfpacket.ENUMERATE_ALLIANCE_TYPE_ALLIANCE_NAME:
-		//
-	case mhfpacket.ENUMERATE_ALLIANCE_TYPE_LEADER_NAME:
-		//
-	case mhfpacket.ENUMERATE_ALLIANCE_TYPE_LEADER_ID:
-		//
-	case mhfpacket.ENUMERATE_ALLIANCE_TYPE_ORDER_MEMBERS:
-		//
-	case mhfpacket.ENUMERATE_ALLIANCE_TYPE_ORDER_REGISTRATION:
-		//
-	default:
-		panic(fmt.Sprintf("no handler for guild search type '%d'", pkt.Type))
 	}
 
-	if err != nil || guilds == nil {
+	if pkt.Type > 8 {
+		var tempAlliances []*GuildAlliance
+		rows, err = s.server.db.Queryx(allianceInfoSelectQuery)
+		if err == nil {
+			for rows.Next() {
+				alliance, _ := buildAllianceObjectFromDbResult(rows, err, s)
+				tempAlliances = append(tempAlliances, alliance)
+			}
+		}
+		switch pkt.Type {
+		case mhfpacket.ENUMERATE_ALLIANCE_TYPE_ALLIANCE_NAME:
+			bf.ReadBytes(10)
+			searchTerm := stringsupport.SJISToUTF8(bf.ReadNullTerminatedBytes())
+			for _, alliance := range tempAlliances {
+				if strings.Contains(alliance.Name, searchTerm) {
+					alliances = append(alliances, alliance)
+				}
+			}
+		case mhfpacket.ENUMERATE_ALLIANCE_TYPE_LEADER_NAME:
+			bf.ReadBytes(10)
+			searchTerm := stringsupport.SJISToUTF8(bf.ReadNullTerminatedBytes())
+			for _, alliance := range tempAlliances {
+				if strings.Contains(alliance.ParentGuild.LeaderName, searchTerm) {
+					alliances = append(alliances, alliance)
+				}
+			}
+		case mhfpacket.ENUMERATE_ALLIANCE_TYPE_LEADER_ID:
+			bf.ReadBytes(2)
+			ID := bf.ReadUint32()
+			for _, alliance := range tempAlliances {
+				if alliance.ParentGuild.LeaderCharID == ID {
+					alliances = append(alliances, alliance)
+				}
+			}
+		case mhfpacket.ENUMERATE_ALLIANCE_TYPE_ORDER_MEMBERS:
+			sort.Slice(tempAlliances, func(i, j int) bool {
+				return tempAlliances[i].TotalMembers < tempAlliances[j].TotalMembers
+			})
+			alliances = tempAlliances
+		case mhfpacket.ENUMERATE_ALLIANCE_TYPE_ORDER_REGISTRATION:
+			sort.Slice(tempAlliances, func(i, j int) bool {
+				return tempAlliances[i].CreatedAt.Unix() < tempAlliances[j].CreatedAt.Unix()
+			})
+			alliances = tempAlliances
+		}
+	}
+
+	if err != nil || (guilds == nil && alliances == nil) {
 		stubEnumerateNoResults(s, pkt.AckHandle)
 		return
 	}
 
 	bf = byteframe.NewByteFrame()
-	bf.WriteUint16(uint16(len(guilds)))
 
-	bf.WriteUint8(0x01) // Unk
-
-	for _, guild := range guilds {
-		bf.WriteUint32(guild.ID)
-		bf.WriteUint32(guild.LeaderCharID)
-		bf.WriteUint16(guild.MemberCount)
-		bf.WriteUint16(0x0000)     // Unk
-		bf.WriteUint16(guild.Rank) // OR guilds in alliance
-		bf.WriteUint32(uint32(guild.CreatedAt.Unix()))
-		ps.Uint8(bf, guild.Name, true)
-		ps.Uint8(bf, guild.LeaderName, true)
+	if pkt.Type > 8 {
+		bf.WriteUint16(uint16(len(alliances)))
+		for _, alliance := range alliances {
+			bf.WriteUint8(0x00) // Unk
+			bf.WriteUint32(alliance.ID)
+			bf.WriteUint32(alliance.ParentGuild.LeaderCharID)
+			bf.WriteUint16(alliance.TotalMembers)
+			bf.WriteUint16(0x0000)
+			if alliance.SubGuild1ID == 0 && alliance.SubGuild2ID == 0 {
+				bf.WriteUint16(1)
+			} else if alliance.SubGuild1ID > 0 && alliance.SubGuild2ID == 0 || alliance.SubGuild1ID == 0 && alliance.SubGuild2ID > 0 {
+				bf.WriteUint16(2)
+			} else {
+				bf.WriteUint16(3)
+			}
+			bf.WriteUint32(uint32(alliance.CreatedAt.Unix()))
+			ps.Uint8(bf, alliance.Name, true)
+			ps.Uint8(bf, alliance.ParentGuild.LeaderName, true)
+			bf.WriteUint8(0x01) // Unk
+			bf.WriteBool(true)  // TODO: Enable GuildAlliance applications
+		}
+	} else {
 		bf.WriteUint8(0x01) // Unk
-		bf.WriteBool(!guild.Recruiting)
+		bf.WriteUint16(uint16(len(guilds)))
+		for _, guild := range guilds {
+			bf.WriteUint32(guild.ID)
+			bf.WriteUint32(guild.LeaderCharID)
+			bf.WriteUint16(guild.MemberCount)
+			bf.WriteUint16(0x0000)     // Unk
+			bf.WriteUint16(guild.Rank) // OR guilds in alliance
+			bf.WriteUint32(uint32(guild.CreatedAt.Unix()))
+			ps.Uint8(bf, guild.Name, true)
+			ps.Uint8(bf, guild.LeaderName, true)
+			bf.WriteUint8(0x01) // Unk
+			bf.WriteBool(!guild.Recruiting)
+		}
 	}
 
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())

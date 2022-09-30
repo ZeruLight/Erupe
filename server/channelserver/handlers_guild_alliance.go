@@ -157,6 +157,26 @@ func handleMsgMhfOperateJoint(s *Session, p mhfpacket.MHFPacket) {
 			)
 			doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 		}
+	case mhfpacket.OPERATE_JOINT_KICK:
+		if alliance.ParentGuild.LeaderCharID == s.charID {
+			_ = pkt.UnkData.ReadUint8()
+			kickedGuildID := pkt.UnkData.ReadUint32()
+			if kickedGuildID == alliance.SubGuild1ID && alliance.SubGuild2ID > 0 {
+				s.server.db.Exec(`UPDATE guild_alliances SET sub1_id = sub2_id, sub2_id = NULL WHERE id = $1`, alliance.ID)
+			} else if kickedGuildID == alliance.SubGuild1ID && alliance.SubGuild2ID == 0 {
+				s.server.db.Exec(`UPDATE guild_alliances SET sub1_id = NULL WHERE id = $1`, alliance.ID)
+			} else {
+				s.server.db.Exec(`UPDATE guild_alliances SET sub2_id = NULL WHERE id = $1`, alliance.ID)
+			}
+			doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+		} else {
+			s.logger.Warn(
+				"Non-owner of alliance attempted kick",
+				zap.Uint32("CharID", s.charID),
+				zap.Uint32("AllyID", alliance.ID),
+			)
+			doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+		}
 	default:
 		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 		panic(fmt.Sprintf("Unhandled operate joint action '%d'", pkt.Action))

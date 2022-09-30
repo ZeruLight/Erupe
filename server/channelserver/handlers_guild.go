@@ -1197,14 +1197,28 @@ func handleMsgMhfEnumerateGuild(s *Session, p mhfpacket.MHFPacket) {
 				}
 			}
 		case mhfpacket.ENUMERATE_ALLIANCE_TYPE_ORDER_MEMBERS:
-			sort.Slice(tempAlliances, func(i, j int) bool {
-				return tempAlliances[i].TotalMembers < tempAlliances[j].TotalMembers
-			})
+			sorting := bf.ReadBool()
+			if sorting {
+				sort.Slice(tempAlliances, func(i, j int) bool {
+					return tempAlliances[i].TotalMembers > tempAlliances[j].TotalMembers
+				})
+			} else {
+				sort.Slice(tempAlliances, func(i, j int) bool {
+					return tempAlliances[i].TotalMembers < tempAlliances[j].TotalMembers
+				})
+			}
 			alliances = tempAlliances
 		case mhfpacket.ENUMERATE_ALLIANCE_TYPE_ORDER_REGISTRATION:
-			sort.Slice(tempAlliances, func(i, j int) bool {
-				return tempAlliances[i].CreatedAt.Unix() < tempAlliances[j].CreatedAt.Unix()
-			})
+			sorting := bf.ReadBool()
+			if sorting {
+				sort.Slice(tempAlliances, func(i, j int) bool {
+					return tempAlliances[i].CreatedAt.Unix() > tempAlliances[j].CreatedAt.Unix()
+				})
+			} else {
+				sort.Slice(tempAlliances, func(i, j int) bool {
+					return tempAlliances[i].CreatedAt.Unix() < tempAlliances[j].CreatedAt.Unix()
+				})
+			}
 			alliances = tempAlliances
 		}
 	}
@@ -1218,8 +1232,8 @@ func handleMsgMhfEnumerateGuild(s *Session, p mhfpacket.MHFPacket) {
 
 	if pkt.Type > 8 {
 		bf.WriteUint16(uint16(len(alliances)))
+		bf.WriteUint8(0x00) // Unk
 		for _, alliance := range alliances {
-			bf.WriteUint8(0x00) // Unk
 			bf.WriteUint32(alliance.ID)
 			bf.WriteUint32(alliance.ParentGuild.LeaderCharID)
 			bf.WriteUint16(alliance.TotalMembers)

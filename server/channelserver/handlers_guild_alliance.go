@@ -141,8 +141,15 @@ func handleMsgMhfOperateJoint(s *Session, p mhfpacket.MHFPacket) {
 		}
 	case mhfpacket.OPERATE_JOINT_LEAVE:
 		if guild.LeaderCharID == s.charID {
-			// delete alliance application
-			// or leave alliance
+			if guild.ID == alliance.SubGuild1ID && alliance.SubGuild2ID > 0 {
+				s.server.db.Exec(`UPDATE guild_alliances SET sub1_id = sub2_id, sub2_id = NULL WHERE id = $1`, alliance.ID)
+			} else if guild.ID == alliance.SubGuild1ID && alliance.SubGuild2ID == 0 {
+				s.server.db.Exec(`UPDATE guild_alliances SET sub1_id = NULL WHERE id = $1`, alliance.ID)
+			} else {
+				s.server.db.Exec(`UPDATE guild_alliances SET sub2_id = NULL WHERE id = $1`, alliance.ID)
+			}
+			// TODO: Handle deleting Alliance applications
+			doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 		} else {
 			s.logger.Warn(
 				"Non-owner of guild attempted alliance leave",

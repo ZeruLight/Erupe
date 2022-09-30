@@ -77,13 +77,12 @@ func GetCharacterSaveData(s *Session, charID uint32) (*CharacterSaveData, error)
 		return nil, err
 	}
 
+	saveData.updateStructWithSaveData()
+
 	return saveData, nil
 }
 
 func (save *CharacterSaveData) Save(s *Session) {
-	// We need to update the save data byte array before we save it back to the DB
-	save.updateStructWithSaveData()
-
 	if !s.kqfOverride {
 		s.kqf = save.KQF
 	} else {

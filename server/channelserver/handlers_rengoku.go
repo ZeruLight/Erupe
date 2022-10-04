@@ -15,6 +15,7 @@ func handleMsgMhfSaveRengokuData(s *Session, p mhfpacket.MHFPacket) {
 	// saved every floor on road, holds values such as floors progressed, points etc.
 	// can be safely handled by the client
 	pkt := p.(*mhfpacket.MsgMhfSaveRengokuData)
+	dumpSaveData(s, pkt.RawDataPayload, "rengoku")
 	_, err := s.server.db.Exec("UPDATE characters SET rengokudata=$1 WHERE id=$2", pkt.RawDataPayload, s.charID)
 	if err != nil {
 		s.logger.Fatal("Failed to update rengokudata savedata in db", zap.Error(err))
@@ -270,8 +271,20 @@ func handleMsgMhfEnumerateRengokuRanking(s *Session, p mhfpacket.MHFPacket) {
 			bf.WriteBytes(make([]byte, 11))
 		}
 	}
-	bf.WriteUint8(uint8(i) - 1)
-	bf.WriteBytes(scoreData.Data())
+	if i == 1 {
+		bf.WriteUint32(1)
+		bf.WriteUint32(0)
+		ps.Uint8(bf, s.Name, true)
+		ps.Uint8(bf, "", false)
+		bf.WriteUint8(1)
+		bf.WriteUint32(1)
+		bf.WriteUint32(0)
+		ps.Uint8(bf, s.Name, true)
+		ps.Uint8(bf, "", false)
+	} else {
+		bf.WriteUint8(uint8(i) - 1)
+		bf.WriteBytes(scoreData.Data())
+	}
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 

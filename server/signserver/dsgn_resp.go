@@ -112,14 +112,22 @@ func (s *Session) makeSignInResp(uid int) []byte {
 	bf.WriteUint32(s.server.getLastCID(uid))
 	bf.WriteUint32(s.server.getUserRights(uid))
 	ps.Uint16(bf, "", false) // filters
-	bf.WriteUint32(0xCA104E20)
-	ps.Uint16(bf, "", false) // encryption
+	bf.WriteUint16(0xCA10)
+	bf.WriteUint16(0x4E20)
+	ps.Uint16(bf, "", false) // unk key
 	bf.WriteUint8(0x00)
-	bf.WriteUint32(0xCA110001)
-	bf.WriteUint32(0x4E200000)
-	bf.WriteUint32(uint32(returnExpiry.Unix()))
+	bf.WriteUint16(0xCA11)
+	bf.WriteUint16(0x0001)
+	bf.WriteUint16(0x4E20)
+	ps.Uint16(bf, "", false) // unk ipv4
+	if returnExpiry.Before(time.Now()) {
+		// Hack to make Return work while having a non-adjusted expiry
+		bf.WriteUint32(0)
+	} else {
+		bf.WriteUint32(uint32(returnExpiry.Unix()))
+	}
 	bf.WriteUint32(0x00000000)
-	bf.WriteUint32(0x0A5197DF)
+	bf.WriteUint32(0x0A5197DF) // unk id
 
 	mezfes := s.server.erupeConfig.DevModeOptions.MezFesEvent
 	alt := s.server.erupeConfig.DevModeOptions.MezFesAlt

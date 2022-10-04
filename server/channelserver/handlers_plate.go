@@ -25,7 +25,7 @@ func handleMsgMhfLoadPlateData(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfSavePlateData(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSavePlateData)
 
-	dumpSaveData(s, pkt.RawDataPayload, "_platedata")
+	dumpSaveData(s, pkt.RawDataPayload, "platedata")
 
 	if pkt.IsDataDiff {
 		var data []byte
@@ -90,7 +90,7 @@ func handleMsgMhfLoadPlateBox(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfSavePlateBox(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSavePlateBox)
 
-	dumpSaveData(s, pkt.RawDataPayload, "_platebox")
+	dumpSaveData(s, pkt.RawDataPayload, "platebox")
 
 	if pkt.IsDataDiff {
 		var data []byte
@@ -156,7 +156,7 @@ func handleMsgMhfLoadPlateMyset(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfSavePlateMyset(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSavePlateMyset)
 	// looks to always return the full thing, simply update database, no extra processing
-
+	dumpSaveData(s, pkt.RawDataPayload, "platemyset")
 	_, err := s.server.db.Exec("UPDATE characters SET platemyset=$1 WHERE id=$2", pkt.RawDataPayload, s.charID)
 	if err != nil {
 		s.logger.Fatal("Failed to update platemyset savedata in db", zap.Error(err))

@@ -13,7 +13,7 @@ func handleMsgMhfGetTowerInfo(s *Session, p mhfpacket.MHFPacket) {
 		type:
 		1 == TOWER_RANK_POINT,
 		2 == GET_OWN_TOWER_SKILL
-		3 == ?
+		3 == GET_OWN_TOWER_LEVEL_V3
 		4 == TOWER_TOUHA_HISTORY
 		5 = ?
 
@@ -39,8 +39,8 @@ func handleMsgMhfGetTowerInfo(s *Session, p mhfpacket.MHFPacket) {
 	case mhfpacket.TowerInfoTypeGetOwnTowerSkill:
 		//data, err = hex.DecodeString("0A218EAD000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
 		data, err = hex.DecodeString("0A218EAD0000000000000000000000010000001C0000000500050000000000020000000000000000000000000000000000030003000000000003000500050000000300030003000300030003000200030001000300020002000300010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
-	case mhfpacket.TowerInfoTypeUnk3:
-		panic("No known response values for TowerInfoTypeUnk3")
+	case mhfpacket.TowerInfoTypeGetOwnTowerLevelV3:
+		panic("No known response values for GetOwnTowerLevelV3")
 	case mhfpacket.TowerInfoTypeTowerTouhaHistory:
 		data, err = hex.DecodeString("0A218EAD0000000000000000000000010000000000000000000000000000000000000000")
 	case mhfpacket.TowerInfoTypeUnk5:
@@ -58,6 +58,9 @@ func handleMsgMhfPostTowerInfo(s *Session, p mhfpacket.MHFPacket) {
 	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
-func handleMsgMhfGetGemInfo(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfGetGemInfo(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfGetGemInfo)
+	doAckBufSucceed(s, pkt.AckHandle, make([]byte, 8))
+}
 
 func handleMsgMhfPostGemInfo(s *Session, p mhfpacket.MHFPacket) {}

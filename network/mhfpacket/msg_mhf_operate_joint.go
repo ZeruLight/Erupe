@@ -1,28 +1,28 @@
 package mhfpacket
 
 import (
- "errors"
+	"errors"
 
- 	"erupe-ce/network/clientctx"
-	"erupe-ce/network"
 	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 type OperateJointAction uint8
 
 const (
-  OPERATE_JOINT_DISBAND = 0x01
-  OPERATE_JOINT_LEAVE = 0x03
-  OPERATE_JOINT_KICK = 0x09
+	OPERATE_JOINT_DISBAND = 0x01
+	OPERATE_JOINT_LEAVE   = 0x03
+	OPERATE_JOINT_KICK    = 0x09
 )
 
 // MsgMhfOperateJoint represents the MSG_MHF_OPERATE_JOINT
 type MsgMhfOperateJoint struct {
-  AckHandle uint32
-  AllianceID uint32
-  GuildID uint32
-  Action OperateJointAction
-  UnkData []byte
+	AckHandle  uint32
+	AllianceID uint32
+	GuildID    uint32
+	Action     OperateJointAction
+	UnkData    *byteframe.ByteFrame
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -32,13 +32,13 @@ func (m *MsgMhfOperateJoint) Opcode() network.PacketID {
 
 // Parse parses the packet from binary
 func (m *MsgMhfOperateJoint) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
-  m.AckHandle = bf.ReadUint32()
-  m.AllianceID = bf.ReadUint32()
-  m.GuildID = bf.ReadUint32()
-  m.Action = OperateJointAction(bf.ReadUint8())
-  m.UnkData = bf.DataFromCurrent()
-  bf.Seek(int64(len(bf.Data()) - 2), 0)
-  return nil
+	m.AckHandle = bf.ReadUint32()
+	m.AllianceID = bf.ReadUint32()
+	m.GuildID = bf.ReadUint32()
+	m.Action = OperateJointAction(bf.ReadUint8())
+	m.UnkData = byteframe.NewByteFrameFromBytes(bf.DataFromCurrent())
+	bf.Seek(int64(len(bf.Data())-2), 0)
+	return nil
 }
 
 // Build builds a binary packet from the current data.

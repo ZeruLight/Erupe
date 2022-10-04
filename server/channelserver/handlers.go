@@ -235,17 +235,11 @@ func logoutPlayer(s *Session) {
 
 	saveData, err := GetCharacterSaveData(s, s.charID)
 	if err != nil {
-		panic(err)
+		s.logger.Error("Failed to get savedata")
+		return
 	}
 	saveData.RP += uint16(rpGained)
-	transaction, err := s.server.db.Begin()
-	err = saveData.Save(s, transaction)
-	if err != nil {
-		transaction.Rollback()
-		panic(err)
-	} else {
-		transaction.Commit()
-	}
+	saveData.Save(s)
 }
 
 func handleMsgSysSetStatus(s *Session, p mhfpacket.MHFPacket) {}
@@ -1749,6 +1743,7 @@ func handleMsgMhfUpdateEquipSkinHist(s *Session, p mhfpacket.MHFPacket) {
 	byteInd := (bit / 8)
 	bitInByte := bit % 8
 	data[startByte+byteInd] |= bits.Reverse8((1 << uint(bitInByte)))
+	dumpSaveData(s, data, "skinhist")
 	_, err = s.server.db.Exec("UPDATE characters SET skin_hist=$1 WHERE id=$2", data, s.charID)
 	if err != nil {
 		panic(err)
@@ -1778,6 +1773,7 @@ func handleMsgMhfGetEnhancedMinidata(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfSetEnhancedMinidata(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSetEnhancedMinidata)
+	dumpSaveData(s, pkt.RawDataPayload, "minidata")
 	_, err := s.server.db.Exec("UPDATE characters SET minidata=$1 WHERE id=$2", pkt.RawDataPayload, s.charID)
 	if err != nil {
 		s.logger.Fatal("Failed to update minidata in db", zap.Error(err))

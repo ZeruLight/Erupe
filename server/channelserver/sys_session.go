@@ -39,6 +39,8 @@ type Session struct {
 	sessionStart     int64
 	rights           uint32
 	token            string
+	kqf              []byte
+	kqfOverride      bool
 
 	semaphore *Semaphore // Required for the stateful MsgSysUnreserveStage packet.
 

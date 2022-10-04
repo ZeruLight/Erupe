@@ -164,7 +164,7 @@ func (guild *Guild) Save(s *Session) error {
 
 func (guild *Guild) CreateApplication(s *Session, charID uint32, applicationType GuildApplicationType, transaction *sql.Tx) error {
 
-	sql := `
+	query := `
 		INSERT INTO guild_applications (guild_id, character_id, actor_id, application_type)
 		VALUES ($1, $2, $3, $4)
 	`
@@ -172,9 +172,9 @@ func (guild *Guild) CreateApplication(s *Session, charID uint32, applicationType
 	var err error
 
 	if transaction == nil {
-		_, err = s.server.db.Exec(sql, guild.ID, charID, s.charID, applicationType)
+		_, err = s.server.db.Exec(query, guild.ID, charID, s.charID, applicationType)
 	} else {
-		_, err = transaction.Exec(sql, guild.ID, charID, s.charID, applicationType)
+		_, err = transaction.Exec(query, guild.ID, charID, s.charID, applicationType)
 	}
 
 	if err != nil {
@@ -222,7 +222,7 @@ func (guild *Guild) Disband(s *Session) error {
 		return err
 	}
 
-	_, err = transaction.Exec("UPDATE guild_alliances SET sub1_id=NULL WHERE sub1_id=$1", guild.ID)
+	_, err = transaction.Exec("UPDATE guild_alliances SET sub1_id=sub2_id, sub2_id=NULL WHERE sub1_id=$1", guild.ID)
 
 	if err != nil {
 		s.logger.Error("failed to remove guild from alliance", zap.Error(err), zap.Uint32("guildID", guild.ID))

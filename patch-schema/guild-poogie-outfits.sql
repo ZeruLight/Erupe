@@ -1,0 +1,15 @@
+BEGIN;
+
+ALTER TABLE IF EXISTS public.guilds
+    ADD COLUMN IF NOT EXISTS pugi_outfit_1 int NOT NULL DEFAULT 0;
+
+ALTER TABLE IF EXISTS public.guilds
+    ADD COLUMN IF NOT EXISTS pugi_outfit_2 int NOT NULL DEFAULT 0;
+
+ALTER TABLE IF EXISTS public.guilds
+    ADD COLUMN IF NOT EXISTS pugi_outfit_3 int NOT NULL DEFAULT 0;
+
+ALTER TABLE IF EXISTS public.guilds
+    ADD COLUMN IF NOT EXISTS pugi_outfits int NOT NULL DEFAULT 0;
+
+END;

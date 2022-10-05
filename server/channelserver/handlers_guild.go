@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"math"
 	"sort"
 	"strings"
 	"time"
@@ -54,6 +55,10 @@ type Guild struct {
 	PugiName1      string         `db:"pugi_name_1"`
 	PugiName2      string         `db:"pugi_name_2"`
 	PugiName3      string         `db:"pugi_name_3"`
+	PugiOutfit1    uint8          `db:"pugi_outfit_1"`
+	PugiOutfit2    uint8          `db:"pugi_outfit_2"`
+	PugiOutfit3    uint8          `db:"pugi_outfit_3"`
+	PugiOutfits    uint32         `db:"pugi_outfits"`
 	Recruiting     bool           `db:"recruiting"`
 	FestivalColour FestivalColour `db:"festival_colour"`
 	Souls          uint32         `db:"souls"`
@@ -125,6 +130,10 @@ SELECT
 	COALESCE(pugi_name_1, '') AS pugi_name_1,
 	COALESCE(pugi_name_2, '') AS pugi_name_2,
 	COALESCE(pugi_name_3, '') AS pugi_name_3,
+	pugi_outfit_1,
+	pugi_outfit_2,
+	pugi_outfit_3,
+	pugi_outfits,
 	recruiting,
 	COALESCE((SELECT team FROM festa_registrations fr WHERE fr.guild_id = g.id), 'none') AS festival_colour,
 	(SELECT SUM(souls) FROM guild_characters gc WHERE gc.guild_id = g.id) AS souls,
@@ -151,8 +160,10 @@ SELECT
 
 func (guild *Guild) Save(s *Session) error {
 	_, err := s.server.db.Exec(`
-		UPDATE guilds SET main_motto=$2, sub_motto=$3, comment=$4, pugi_name_1=$5, pugi_name_2=$6, pugi_name_3=$7, icon=$8, leader_id=$9 WHERE id=$1
-	`, guild.ID, guild.MainMotto, guild.SubMotto, guild.Comment, guild.PugiName1, guild.PugiName2, guild.PugiName3, guild.Icon, guild.GuildLeader.LeaderCharID)
+		UPDATE guilds SET main_motto=$2, sub_motto=$3, comment=$4, pugi_name_1=$5, pugi_name_2=$6, pugi_name_3=$7,
+		pugi_outfit_1=$8, pugi_outfit_2=$9, pugi_outfit_3=$10, pugi_outfits=$11, icon=$12, leader_id=$13 WHERE id=$1
+	`, guild.ID, guild.MainMotto, guild.SubMotto, guild.Comment, guild.PugiName1, guild.PugiName2, guild.PugiName3,
+		guild.PugiOutfit1, guild.PugiOutfit2, guild.PugiOutfit3, guild.PugiOutfits, guild.Icon, guild.GuildLeader.LeaderCharID)
 
 	if err != nil {
 		s.logger.Error("failed to update guild data", zap.Error(err), zap.Uint32("guildID", guild.ID))
@@ -716,9 +727,14 @@ func handleMsgMhfOperateGuild(s *Session, p mhfpacket.MHFPacket) {
 	case mhfpacket.OPERATE_GUILD_RENAME_PUGI_3:
 		handleRenamePugi(s, pkt.Data2, guild, 3)
 	case mhfpacket.OPERATE_GUILD_CHANGE_PUGI_1:
-		// TODO: decode guild poogie outfits
+		handleChangePugi(s, uint8(pkt.Data1.ReadUint32()), guild, 1)
 	case mhfpacket.OPERATE_GUILD_CHANGE_PUGI_2:
+		handleChangePugi(s, uint8(pkt.Data1.ReadUint32()), guild, 2)
 	case mhfpacket.OPERATE_GUILD_CHANGE_PUGI_3:
+		handleChangePugi(s, uint8(pkt.Data1.ReadUint32()), guild, 3)
+	case mhfpacket.OPERATE_GUILD_UNLOCK_OUTFIT:
+		// TODO: This doesn't implement blocking, if someone unlocked the same outfit at the same time
+		s.server.db.Exec(`UPDATE guilds SET pugi_outfits=pugi_outfits+$1 WHERE id=$2`, int(math.Pow(float64(pkt.Data1.ReadUint32()), 2)), guild.ID)
 	case mhfpacket.OPERATE_GUILD_DONATE_EVENT:
 		bf.WriteBytes(handleDonateRP(s, uint16(pkt.Data1.ReadUint32()), guild, true))
 	case mhfpacket.OPERATE_GUILD_EVENT_EXCHANGE:
@@ -746,6 +762,18 @@ func handleRenamePugi(s *Session, bf *byteframe.ByteFrame, guild *Guild, num int
 		guild.PugiName2 = name
 	default:
 		guild.PugiName3 = name
+	}
+	guild.Save(s)
+}
+
+func handleChangePugi(s *Session, outfit uint8, guild *Guild, num int) {
+	switch num {
+	case 1:
+		guild.PugiOutfit1 = outfit
+	case 2:
+		guild.PugiOutfit2 = outfit
+	case 3:
+		guild.PugiOutfit3 = outfit
 	}
 	guild.Save(s)
 }
@@ -929,11 +957,13 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 		ps.Uint8(bf, guild.PugiName1, true)
 		ps.Uint8(bf, guild.PugiName2, true)
 		ps.Uint8(bf, guild.PugiName3, true)
-
-		// probably guild pugi properties, should be status, stamina and luck outfits
-		bf.WriteBytes([]byte{
-			0x04, 0x02, 0x03, 0x04, 0x02, 0x03, 0x00, 0x00, 0x00, 0x4E,
-		})
+		bf.WriteUint8(guild.PugiOutfit1)
+		bf.WriteUint8(guild.PugiOutfit2)
+		bf.WriteUint8(guild.PugiOutfit3)
+		bf.WriteUint8(guild.PugiOutfit1)
+		bf.WriteUint8(guild.PugiOutfit2)
+		bf.WriteUint8(guild.PugiOutfit3)
+		bf.WriteUint32(guild.PugiOutfits)
 
 		// Unk flags
 		bf.WriteUint8(0x3C) // also seen as 0x32 on JP and 0x64 on TW

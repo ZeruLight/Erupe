@@ -221,13 +221,22 @@ func dumpSaveData(s *Session, data []byte, suffix string) {
 	} else {
 		dir := filepath.Join(s.server.erupeConfig.DevModeOptions.SaveDumps.OutputDir, fmt.Sprintf("%d", s.charID))
 		path := filepath.Join(s.server.erupeConfig.DevModeOptions.SaveDumps.OutputDir, fmt.Sprintf("%d", s.charID), fmt.Sprintf("%d_%s.bin", s.charID, suffix))
-
-		if _, err := os.Stat(dir); os.IsNotExist(err) {
-			os.Mkdir(dir, os.ModeDir)
-		}
-		err := ioutil.WriteFile(path, data, 0644)
+		_, err := os.Stat(dir)
 		if err != nil {
-			s.logger.Fatal("Error dumping savedata", zap.Error(err))
+			if os.IsNotExist(err) {
+				err = os.Mkdir(dir, os.ModeDir)
+				if err != nil {
+					s.logger.Warn("Error dumping savedata, could not create folder")
+					return
+				}
+			} else {
+				s.logger.Warn("Error dumping savedata")
+				return
+			}
+		}
+		err = os.WriteFile(path, data, 0644)
+		if err != nil {
+			s.logger.Warn("Error dumping savedata, could not write file", zap.Error(err))
 		}
 	}
 }

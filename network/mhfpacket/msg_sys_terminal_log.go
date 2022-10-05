@@ -1,17 +1,19 @@
 package mhfpacket
 
-import ( 
- "errors" 
+import (
+	"errors"
 
- 	"erupe-ce/network/clientctx"
-	"erupe-ce/network"
 	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // TerminalLogEntry represents an entry in the MSG_SYS_TERMINAL_LOG packet.
 type TerminalLogEntry struct {
-	// Unknown fields
-	U0, U1, U2, U3, U4, U5, U6, U7, U8 uint32
+	Index uint32
+	Type1 uint8
+	Type2 uint8
+	Data  []int16
 }
 
 // MsgSysTerminalLog represents the MSG_SYS_TERMINAL_LOG
@@ -37,15 +39,12 @@ func (m *MsgSysTerminalLog) Parse(bf *byteframe.ByteFrame, ctx *clientctx.Client
 
 	for i := 0; i < int(m.EntryCount); i++ {
 		e := &TerminalLogEntry{}
-		e.U0 = bf.ReadUint32()
-		e.U1 = bf.ReadUint32()
-		e.U2 = bf.ReadUint32()
-		e.U3 = bf.ReadUint32()
-		e.U4 = bf.ReadUint32()
-		e.U5 = bf.ReadUint32()
-		e.U6 = bf.ReadUint32()
-		e.U7 = bf.ReadUint32()
-		e.U8 = bf.ReadUint32()
+		e.Index = bf.ReadUint32()
+		e.Type1 = bf.ReadUint8()
+		e.Type2 = bf.ReadUint8()
+		for j := 0; j < 15; j++ {
+			e.Data = append(e.Data, bf.ReadInt16())
+		}
 		m.Entries = append(m.Entries, e)
 	}
 

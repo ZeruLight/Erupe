@@ -118,9 +118,14 @@ func handleMsgSysAck(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgSysTerminalLog(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysTerminalLog)
+	for i := range pkt.Entries {
+		s.server.logger.Info("SysTerminalLog",
+			zap.Uint8("Type1", pkt.Entries[i].Type1),
+			zap.Uint8("Type2", pkt.Entries[i].Type2),
+			zap.Int16s("Data", pkt.Entries[i].Data))
+	}
 	resp := byteframe.NewByteFrame()
-
-	resp.WriteUint32(0x98bd51a9) // LogID to use for requests after this.
+	resp.WriteUint32(pkt.LogID + 1) // LogID to use for requests after this.
 	doAckSimpleSucceed(s, pkt.AckHandle, resp.Data())
 }
 

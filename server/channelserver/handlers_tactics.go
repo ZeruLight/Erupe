@@ -3,15 +3,17 @@ package channelserver
 import (
 	"encoding/hex"
 	"erupe-ce/common/byteframe"
+	"erupe-ce/common/stringsupport"
 	"erupe-ce/network/mhfpacket"
 )
 
 func handleMsgMhfGetUdTacticsPoint(s *Session, p mhfpacket.MHFPacket) {
-	// Diva defense interception points
 	pkt := p.(*mhfpacket.MsgMhfGetUdTacticsPoint)
-	// Temporary canned response
-	data, _ := hex.DecodeString("000000A08F0BE2DAE30BE30AE2EAE2E9E2E8E2F5E2F3E2F2E2F1E2BB")
-	doAckBufSucceed(s, pkt.AckHandle, data)
+	bf := byteframe.NewByteFrame()
+	bf.WriteBool(false) // Unk, will not update if true
+	bf.WriteUint32(0)
+	bf.WriteUint8(3) // Unk
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfAddUdTacticsPoint(s *Session, p mhfpacket.MHFPacket) {
@@ -55,9 +57,15 @@ func handleMsgMhfGetUdTacticsRemainingPoint(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfGetUdTacticsRanking(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetUdTacticsRanking)
-	// Temporary canned response
-	data, _ := hex.DecodeString("00000515000005150000CEB4000003CE000003CE0000CEB44D49444E494748542D414E47454C0000000000000000000000")
-	doAckBufSucceed(s, pkt.AckHandle, data)
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint32(0) // ranking
+	bf.WriteUint32(0) // rankingDupe?
+	bf.WriteUint32(0) // guildPoints
+	bf.WriteUint32(0) // unk
+	bf.WriteUint32(0) // unkDupe?
+	bf.WriteUint32(0) // guildPointsDupe?
+	bf.WriteBytes(stringsupport.PaddedString("", 25, true))
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfSetUdTacticsFollower(s *Session, p mhfpacket.MHFPacket) {}

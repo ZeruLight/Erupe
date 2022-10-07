@@ -303,7 +303,14 @@ func handleMsgMhfAcquireUdItem(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfGetUdRanking(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetUdRanking)
-	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+	bf := byteframe.NewByteFrame()
+	// Temporary
+	for i := 0; i < 100; i++ {
+		bf.WriteUint16(uint16(i + 1))
+		stringsupport.PaddedString("", 25, false)
+		bf.WriteUint32(0)
+	}
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfGetUdMyRanking(s *Session, p mhfpacket.MHFPacket) {

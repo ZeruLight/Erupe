@@ -1973,7 +1973,10 @@ func handleMsgMhfAddGuildWeeklyBonusExceptionalUser(s *Session, p mhfpacket.MHFP
 	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
-func handleMsgMhfGenerateUdGuildMap(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfGenerateUdGuildMap(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfGenerateUdGuildMap)
+	doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+}
 
 func handleMsgMhfUpdateGuild(s *Session, p mhfpacket.MHFPacket) {}
 

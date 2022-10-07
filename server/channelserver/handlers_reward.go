@@ -29,7 +29,10 @@ func handleMsgMhfGetRewardSong(s *Session, p mhfpacket.MHFPacket) {
 	doAckBufSucceed(s, pkt.AckHandle, data)
 }
 
-func handleMsgMhfUseRewardSong(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfUseRewardSong(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfUseRewardSong)
+	doAckBufSucceed(s, pkt.AckHandle, make([]byte, 1))
+}
 
 func handleMsgMhfAddRewardSongCount(s *Session, p mhfpacket.MHFPacket) {}
 

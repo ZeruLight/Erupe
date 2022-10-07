@@ -2,6 +2,7 @@ package channelserver
 
 import (
 	"encoding/hex"
+	"erupe-ce/common/byteframe"
 	"erupe-ce/network/mhfpacket"
 )
 
@@ -45,7 +46,12 @@ func handleMsgMhfGetUdTacticsFirstQuestBonus(s *Session, p mhfpacket.MHFPacket) 
 	doAckBufSucceed(s, pkt.AckHandle, data)
 }
 
-func handleMsgMhfGetUdTacticsRemainingPoint(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfGetUdTacticsRemainingPoint(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfGetUdTacticsRemainingPoint)
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint32(0) // Points until Special Guild Hall earned
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+}
 
 func handleMsgMhfGetUdTacticsRanking(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetUdTacticsRanking)
@@ -56,4 +62,16 @@ func handleMsgMhfGetUdTacticsRanking(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfSetUdTacticsFollower(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfGetUdTacticsLog(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfGetUdTacticsLog(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfGetUdTacticsLog)
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint8(0) // Logs
+	// Log format:
+	// uint8 LogType, 0=addPoints, 1=tileClaimed, 5=newDate
+	// uint8 Unk
+	// uint32 CharID
+	// []byte CharName[32]
+	// uint32 Value
+	// uint32 Timestamp
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+}

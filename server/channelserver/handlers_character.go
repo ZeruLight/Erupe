@@ -151,7 +151,9 @@ func (save *CharacterSaveData) updateStructWithSaveData() {
 		save.WeaponType = save.decompSave[pointerWeaponType]
 		save.WeaponID = binary.LittleEndian.Uint16(save.decompSave[pointerWeaponID : pointerWeaponID+2])
 		save.HRP = binary.LittleEndian.Uint16(save.decompSave[pointerHRP : pointerHRP+2])
-		save.GR = grpToGR(binary.LittleEndian.Uint32(save.decompSave[pointerGRP : pointerGRP+4]))
+		if save.HRP == uint16(999) {
+			save.GR = grpToGR(binary.LittleEndian.Uint32(save.decompSave[pointerGRP : pointerGRP+4]))
+		}
 		save.KQF = save.decompSave[pointerKQF : pointerKQF+8]
 	}
 	return

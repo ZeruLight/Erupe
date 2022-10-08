@@ -1281,8 +1281,8 @@ func handleMsgMhfEnumerateGuild(s *Session, p mhfpacket.MHFPacket) {
 			bf.WriteBool(true)  // TODO: Enable GuildAlliance applications
 		}
 	} else {
-		bf.WriteUint8(0x01) // Unk
 		bf.WriteUint16(uint16(len(guilds)))
+		bf.WriteUint8(0x01) // Unk
 		for _, guild := range guilds {
 			bf.WriteUint32(guild.ID)
 			bf.WriteUint32(guild.LeaderCharID)

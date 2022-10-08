@@ -45,7 +45,7 @@ func handleMsgMhfSavedata(s *Session, p mhfpacket.MHFPacket) {
 		s.logger.Info("Updating save with blob")
 		characterSaveData.decompSave = saveData
 	}
-	characterSaveData.IsNewCharacter = false
+	characterSaveData.updateStructWithSaveData()
 	characterSaveData.Save(s)
 	s.logger.Info("Wrote recompressed savedata back to DB.")
 

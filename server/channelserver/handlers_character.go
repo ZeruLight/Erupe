@@ -97,8 +97,8 @@ func (save *CharacterSaveData) Save(s *Session) {
 		return
 	}
 
-	_, err = s.server.db.Exec(`UPDATE characters	SET savedata=$1, is_new_character=$2, hrp=$3, gr=$4, is_female=$5, weapon_type=$6, weapon_id=$7 WHERE id=$8
-	`, save.compSave, save.IsNewCharacter, save.HRP, save.GR, save.Gender, save.WeaponType, save.WeaponID, save.CharID)
+	_, err = s.server.db.Exec(`UPDATE characters	SET savedata=$1, is_new_character=false, hrp=$2, gr=$3, is_female=$4, weapon_type=$5, weapon_id=$6 WHERE id=$7
+	`, save.compSave, save.HRP, save.GR, save.Gender, save.WeaponType, save.WeaponID, save.CharID)
 	if err != nil {
 		s.logger.Error("Failed to update savedata", zap.Error(err), zap.Uint32("charID", save.CharID))
 	}
@@ -140,18 +140,21 @@ func (save *CharacterSaveData) updateStructWithSaveData() {
 	} else {
 		save.Gender = false
 	}
-	save.RP = binary.LittleEndian.Uint16(save.decompSave[pointerRP : pointerRP+2])
-	save.HouseTier = save.decompSave[pointerHouseTier : pointerHouseTier+5]
-	save.HouseData = save.decompSave[pointerHouseData : pointerHouseData+195]
-	save.BookshelfData = save.decompSave[pointerBookshelfData : pointerBookshelfData+5576]
-	save.GalleryData = save.decompSave[pointerGalleryData : pointerGalleryData+1748]
-	save.ToreData = save.decompSave[pointerToreData : pointerToreData+240]
-	save.GardenData = save.decompSave[pointerGardenData : pointerGardenData+68]
-	save.WeaponType = save.decompSave[pointerWeaponType]
-	save.WeaponID = binary.LittleEndian.Uint16(save.decompSave[pointerWeaponID : pointerWeaponID+2])
-	save.HRP = binary.LittleEndian.Uint16(save.decompSave[pointerHRP : pointerHRP+2])
-	save.GR = grpToGR(binary.LittleEndian.Uint32(save.decompSave[pointerGRP : pointerGRP+4]))
-	save.KQF = save.decompSave[pointerKQF : pointerKQF+8]
+	if !save.IsNewCharacter {
+		save.RP = binary.LittleEndian.Uint16(save.decompSave[pointerRP : pointerRP+2])
+		save.HouseTier = save.decompSave[pointerHouseTier : pointerHouseTier+5]
+		save.HouseData = save.decompSave[pointerHouseData : pointerHouseData+195]
+		save.BookshelfData = save.decompSave[pointerBookshelfData : pointerBookshelfData+5576]
+		save.GalleryData = save.decompSave[pointerGalleryData : pointerGalleryData+1748]
+		save.ToreData = save.decompSave[pointerToreData : pointerToreData+240]
+		save.GardenData = save.decompSave[pointerGardenData : pointerGardenData+68]
+		save.WeaponType = save.decompSave[pointerWeaponType]
+		save.WeaponID = binary.LittleEndian.Uint16(save.decompSave[pointerWeaponID : pointerWeaponID+2])
+		save.HRP = binary.LittleEndian.Uint16(save.decompSave[pointerHRP : pointerHRP+2])
+		save.GR = grpToGR(binary.LittleEndian.Uint32(save.decompSave[pointerGRP : pointerGRP+4]))
+		save.KQF = save.decompSave[pointerKQF : pointerKQF+8]
+	}
+	return
 }
 
 func handleMsgMhfSexChanger(s *Session, p mhfpacket.MHFPacket) {

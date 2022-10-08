@@ -753,6 +753,7 @@ func handleMsgMhfUpdateGuacot(s *Session, p mhfpacket.MHFPacket) {
 			bf.WriteUint8(gook.NameLen)
 			bf.WriteBytes(gook.Name)
 			s.server.db.Exec(fmt.Sprintf("UPDATE gook SET gook%d=$1 WHERE id=$2", gook.Index), bf.Data(), s.charID)
+			dumpSaveData(s, bf.Data(), fmt.Sprintf("goocoo-%d", gook.Index))
 		}
 	}
 	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})

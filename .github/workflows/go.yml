@@ -27,7 +27,7 @@ jobs:
           ./www/
           ./savedata/
           ./bin/
-          ./RoadShopItems.csv
+          ./bundled-schema/
 
     - name: Build Windows-amd64
       run: env GOOS=windows GOARCH=amd64 go build -v
@@ -42,4 +42,4 @@ jobs:
           ./www/
           ./savedata/
           ./bin/
-          ./RoadShopItems.csv
+          ./bundled-schema/

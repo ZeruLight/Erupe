@@ -50,7 +50,7 @@ func encodeServerInfo(config *config.Config, s *Server) []byte {
 			bf.WriteUint16(ci.MaxPlayers)
 			err := s.db.QueryRow("SELECT current_players FROM servers WHERE server_id=$1", sid).Scan(&currentplayers)
 			if err != nil {
-				panic(err)
+				currentplayers = 0
 			}
 			bf.WriteUint16(currentplayers)
 			bf.WriteUint32(0)

@@ -12,13 +12,13 @@ func handleMsgMhfLoadPlateData(s *Session, p mhfpacket.MHFPacket) {
 	var data []byte
 	err := s.server.db.QueryRow("SELECT platedata FROM characters WHERE id = $1", s.charID).Scan(&data)
 	if err != nil {
-		s.logger.Fatal("Failed to get plate data savedata from db", zap.Error(err))
+		s.logger.Error("Failed to get plate data savedata from db", zap.Error(err))
 	}
 
 	if len(data) > 0 {
 		doAckBufSucceed(s, pkt.AckHandle, data)
 	} else {
-		doAckBufSucceed(s, pkt.AckHandle, []byte{})
+		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 	}
 }
 
@@ -77,13 +77,13 @@ func handleMsgMhfLoadPlateBox(s *Session, p mhfpacket.MHFPacket) {
 	var data []byte
 	err := s.server.db.QueryRow("SELECT platebox FROM characters WHERE id = $1", s.charID).Scan(&data)
 	if err != nil {
-		s.logger.Fatal("Failed to get sigil box savedata from db", zap.Error(err))
+		s.logger.Error("Failed to get sigil box savedata from db", zap.Error(err))
 	}
 
 	if len(data) > 0 {
 		doAckBufSucceed(s, pkt.AckHandle, data)
 	} else {
-		doAckBufSucceed(s, pkt.AckHandle, []byte{})
+		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 	}
 }
 

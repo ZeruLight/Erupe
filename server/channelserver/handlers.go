@@ -182,11 +182,19 @@ func handleMsgSysLogout(s *Session, p mhfpacket.MHFPacket) {
 }
 
 func logoutPlayer(s *Session) {
+	s.server.Lock()
 	if _, exists := s.server.sessions[s.rawConn]; exists {
 		delete(s.server.sessions, s.rawConn)
-		s.rawConn.Close()
-	} else {
-		return // Prevent re-running logout logic on real logouts
+	}
+	s.rawConn.Close()
+	s.server.Unlock()
+
+	for _, stage := range s.server.stages {
+		for session := range stage.clients {
+			if session.charID == s.charID {
+				delete(stage.clients, session)
+			}
+		}
 	}
 
 	_, err := s.server.db.Exec("UPDATE sign_sessions SET server_id=NULL, char_id=NULL WHERE token=$1", s.token)
@@ -1794,9 +1802,7 @@ func handleMsgMhfGetLobbyCrowd(s *Session, p mhfpacket.MHFPacket) {
 	// It can be worried about later if we ever get to the point where there are
 	// full servers to actually need to migrate people from and empty ones to
 	pkt := p.(*mhfpacket.MsgMhfGetLobbyCrowd)
-	blankData := make([]byte, 0x320)
-	doAckBufSucceed(s, pkt.AckHandle, blankData)
-	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+	doAckBufSucceed(s, pkt.AckHandle, make([]byte, 0x320))
 }
 
 func handleMsgMhfGetTrendWeapon(s *Session, p mhfpacket.MHFPacket) {

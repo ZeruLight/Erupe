@@ -1806,7 +1806,20 @@ func handleMsgMhfGetGuildWeeklyBonusActiveCount(s *Session, p mhfpacket.MHFPacke
 
 func handleMsgMhfGuildHuntdata(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGuildHuntdata)
-	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	bf := byteframe.NewByteFrame()
+	switch pkt.Operation {
+	case 0: // Unk
+		doAckBufSucceed(s, pkt.AckHandle, []byte{})
+	case 1: // Get Huntdata
+		bf.WriteUint8(0) // Entries
+		/* Entry format
+		uint32 UnkID
+		uint32 MonID
+		*/
+		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	case 2: // Unk, controls glow
+		doAckBufSucceed(s, pkt.AckHandle, []byte{0x00, 0x00})
+	}
 }
 
 type MessageBoardPost struct {

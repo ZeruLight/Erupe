@@ -1,17 +1,18 @@
 package mhfpacket
 
-import ( 
- "errors" 
+import (
+	"errors"
 
- 	"erupe-ce/network/clientctx"
-	"erupe-ce/network"
 	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgMhfGuildHuntdata represents the MSG_MHF_GUILD_HUNTDATA
-type MsgMhfGuildHuntdata struct{
-	AckHandle      uint32
-	Unk0           uint8
+type MsgMhfGuildHuntdata struct {
+	AckHandle uint32
+	Operation uint8
+	GuildID   uint32
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -22,7 +23,10 @@ func (m *MsgMhfGuildHuntdata) Opcode() network.PacketID {
 // Parse parses the packet from binary
 func (m *MsgMhfGuildHuntdata) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
-	m.Unk0 = bf.ReadUint8()
+	m.Operation = bf.ReadUint8()
+	if m.Operation == 1 {
+		m.GuildID = bf.ReadUint32()
+	}
 	return nil
 }
 

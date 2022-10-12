@@ -40,7 +40,7 @@
       "prefix": "!ravi"
     }, {
       "name": "Teleport",
-      "enabled": true,
+      "enabled": false,
       "prefix": "!tele"
     }, {
       "name": "Reload",

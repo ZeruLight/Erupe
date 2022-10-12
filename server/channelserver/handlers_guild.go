@@ -1260,9 +1260,16 @@ func handleMsgMhfEnumerateGuild(s *Session, p mhfpacket.MHFPacket) {
 	bf = byteframe.NewByteFrame()
 
 	if pkt.Type > 8 {
-		bf.WriteUint16(uint16(len(alliances)))
+		if len(guilds) > 10 {
+			bf.WriteUint16(10)
+		} else {
+			bf.WriteUint16(uint16(len(alliances)))
+		}
 		bf.WriteUint8(0x00) // Unk
-		for _, alliance := range alliances {
+		for i, alliance := range alliances {
+			if i == 10 {
+				break
+			}
 			bf.WriteUint32(alliance.ID)
 			bf.WriteUint32(alliance.ParentGuild.LeaderCharID)
 			bf.WriteUint16(alliance.TotalMembers)
@@ -1281,9 +1288,16 @@ func handleMsgMhfEnumerateGuild(s *Session, p mhfpacket.MHFPacket) {
 			bf.WriteBool(true)  // TODO: Enable GuildAlliance applications
 		}
 	} else {
-		bf.WriteUint16(uint16(len(guilds)))
+		if len(guilds) > 10 {
+			bf.WriteUint16(10)
+		} else {
+			bf.WriteUint16(uint16(len(guilds)))
+		}
 		bf.WriteUint8(0x01) // Unk
-		for _, guild := range guilds {
+		for i, guild := range guilds {
+			if i == 10 {
+				break
+			}
 			bf.WriteUint32(guild.ID)
 			bf.WriteUint32(guild.LeaderCharID)
 			bf.WriteUint16(guild.MemberCount)
@@ -1792,7 +1806,20 @@ func handleMsgMhfGetGuildWeeklyBonusActiveCount(s *Session, p mhfpacket.MHFPacke
 
 func handleMsgMhfGuildHuntdata(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGuildHuntdata)
-	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	bf := byteframe.NewByteFrame()
+	switch pkt.Operation {
+	case 0: // Unk
+		doAckBufSucceed(s, pkt.AckHandle, []byte{})
+	case 1: // Get Huntdata
+		bf.WriteUint8(0) // Entries
+		/* Entry format
+		uint32 UnkID
+		uint32 MonID
+		*/
+		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	case 2: // Unk, controls glow
+		doAckBufSucceed(s, pkt.AckHandle, []byte{0x00, 0x00})
+	}
 }
 
 type MessageBoardPost struct {

@@ -1772,7 +1772,12 @@ func handleMsgMhfGetUdShopCoin(s *Session, p mhfpacket.MHFPacket) {
 	doAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
 }
 
-func handleMsgMhfUseUdShopCoin(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfUseUdShopCoin(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfUseUdShopCoin)
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint32(0)
+	doAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
+}
 
 func handleMsgMhfGetEnhancedMinidata(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetEnhancedMinidata)

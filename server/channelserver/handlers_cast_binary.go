@@ -19,6 +19,7 @@ import (
 const (
 	BinaryMessageTypeState      = 0
 	BinaryMessageTypeChat       = 1
+	BinaryMessageTypeQuest      = 2
 	BinaryMessageTypeData       = 3
 	BinaryMessageTypeMailNotify = 4
 	BinaryMessageTypeEmote      = 6
@@ -86,6 +87,17 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 			tmp.SetLE()
 			frame := tmp.ReadUint32()
 			sendServerChatMessage(s, fmt.Sprintf("TIME : %d'%d.%03d (%dframe)", frame/30/60, frame/30%60, int(math.Round(float64(frame%30*100)/3)), frame))
+		}
+	}
+
+	if s.server.erupeConfig.DevModeOptions.PrintQuestCoordinates == true && s.server.erupeConfig.DevMode {
+		if pkt.BroadcastType == 0x03 && pkt.MessageType == 0x02 && len(pkt.RawDataPayload) > 32 {
+			tmp.ReadBytes(20)
+			tmp.SetLE()
+			x := tmp.ReadFloat32()
+			y := tmp.ReadFloat32()
+			z := tmp.ReadFloat32()
+			s.logger.Debug("Coord", zap.Float32s("XYZ", []float32{x, y, z}))
 		}
 	}
 

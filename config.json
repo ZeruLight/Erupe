@@ -19,6 +19,7 @@
     "MezFesAlt": false,
     "DisableMailItems": true,
     "DisableTokenCheck": false,
+    "PrintQuestCoordinates": false,
     "SaveDumps": {
       "Enabled": true,
       "OutputDir": "savedata"

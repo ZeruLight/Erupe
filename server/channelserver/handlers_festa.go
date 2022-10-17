@@ -253,11 +253,19 @@ func handleMsgMhfStateFestaU(s *Session, p mhfpacket.MHFPacket) {
 		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
-	var souls uint32
+	var souls, exists uint32
 	s.server.db.QueryRow("SELECT souls FROM guild_characters WHERE character_id=$1", s.charID).Scan(&souls)
+	err = s.server.db.QueryRow("SELECT prize_id FROM festa_prizes_accepted WHERE prize_id=0 AND character_id=$1", s.charID).Scan(&exists)
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint32(souls)
-	bf.WriteUint32(0) // unk
+	if err != nil {
+		bf.WriteBool(true)
+		bf.WriteBool(false)
+	} else {
+		bf.WriteBool(false)
+		bf.WriteBool(true)
+	}
+	bf.WriteUint16(0) // Unk
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
@@ -280,10 +288,10 @@ func handleMsgMhfStateFestaG(s *Session, p mhfpacket.MHFPacket) {
 		return
 	}
 	resp.WriteUint32(guild.Souls)
-	resp.WriteUint32(0) // unk
-	resp.WriteUint32(0) // unk, rank?
-	resp.WriteUint32(0) // unk
-	resp.WriteUint32(0) // unk
+	resp.WriteUint32(1) // unk
+	resp.WriteUint32(1) // unk
+	resp.WriteUint32(1) // unk, rank?
+	resp.WriteUint32(1) // unk
 	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
 }
 
@@ -342,6 +350,7 @@ func handleMsgMhfChargeFesta(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfAcquireFesta(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfAcquireFesta)
+	s.server.db.Exec("INSERT INTO public.festa_prizes_accepted VALUES (0, $1)", s.charID)
 	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 

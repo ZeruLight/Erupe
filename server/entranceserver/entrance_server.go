@@ -90,6 +90,7 @@ func (s *Server) acceptClients() {
 }
 
 func (s *Server) handleEntranceServerConnection(conn net.Conn) {
+	defer conn.Close()
 	// Client initalizes the connection with a one-time buffer of 8 NULL bytes.
 	nullInit := make([]byte, 8)
 	n, err := io.ReadFull(conn, nullInit)
@@ -118,5 +119,4 @@ func (s *Server) handleEntranceServerConnection(conn net.Conn) {
 	cc.SendPacket(data)
 	// Close because we only need to send the response once.
 	// Any further requests from the client will come from a new connection.
-	conn.Close()
 }

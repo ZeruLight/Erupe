@@ -90,8 +90,9 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 		}
 	}
 
-	if s.server.erupeConfig.DevModeOptions.PrintQuestCoordinates == true && s.server.erupeConfig.DevMode {
+	if s.server.erupeConfig.DevModeOptions.QuestDebugTools == true && s.server.erupeConfig.DevMode {
 		if pkt.BroadcastType == 0x03 && pkt.MessageType == 0x02 && len(pkt.RawDataPayload) > 32 {
+			// This is only correct most of the time
 			tmp.ReadBytes(20)
 			tmp.SetLE()
 			x := tmp.ReadFloat32()

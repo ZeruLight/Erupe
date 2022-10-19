@@ -29,23 +29,23 @@ type Config struct {
 
 // DevModeOptions holds various debug/temporary options for use while developing Erupe.
 type DevModeOptions struct {
-	EnableLauncherServer  bool   // Enables the launcher server to be served on port 80
-	HideLoginNotice       bool   // Hide the Erupe notice on login
-	LoginNotice           string // MHFML string of the login notice displayed
-	CleanDB               bool   // Automatically wipes the DB on server reset.
-	MaxLauncherHR         bool   // Sets the HR returned in the launcher to HR7 so that you can join non-beginner worlds.
-	LogInboundMessages    bool   // Log all messages sent to the server
-	LogOutboundMessages   bool   // Log all messages sent to the clients
-	MaxHexdumpLength      int    // Maximum number of bytes printed when logs are enabled
-	DivaEvent             int    // Diva Defense event status
-	FestaEvent            int    // Hunter's Festa event status
-	TournamentEvent       int    // VS Tournament event status
-	MezFesEvent           bool   // MezFes status
-	MezFesAlt             bool   // Swaps out Volpakkun for Tokotoko
-	DisableTokenCheck     bool   // Disables checking login token exists in the DB (security risk!)
-	DisableMailItems      bool   // Hack to prevent english versions of MHF from crashing
-	PrintQuestCoordinates bool   // Prints quest coordinates to console
-	SaveDumps             SaveDumpOptions
+	EnableLauncherServer bool   // Enables the launcher server to be served on port 80
+	HideLoginNotice      bool   // Hide the Erupe notice on login
+	LoginNotice          string // MHFML string of the login notice displayed
+	CleanDB              bool   // Automatically wipes the DB on server reset.
+	MaxLauncherHR        bool   // Sets the HR returned in the launcher to HR7 so that you can join non-beginner worlds.
+	LogInboundMessages   bool   // Log all messages sent to the server
+	LogOutboundMessages  bool   // Log all messages sent to the clients
+	MaxHexdumpLength     int    // Maximum number of bytes printed when logs are enabled
+	DivaEvent            int    // Diva Defense event status
+	FestaEvent           int    // Hunter's Festa event status
+	TournamentEvent      int    // VS Tournament event status
+	MezFesEvent          bool   // MezFes status
+	MezFesAlt            bool   // Swaps out Volpakkun for Tokotoko
+	DisableTokenCheck    bool   // Disables checking login token exists in the DB (security risk!)
+	DisableMailItems     bool   // Hack to prevent english versions of MHF from crashing
+	QuestDebugTools      bool   // Enable various quest debug logs
+	SaveDumps            SaveDumpOptions
 }
 
 type SaveDumpOptions struct {

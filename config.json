@@ -19,7 +19,7 @@
     "MezFesAlt": false,
     "DisableMailItems": true,
     "DisableTokenCheck": false,
-    "PrintQuestCoordinates": false,
+    "QuestDebugTools": false,
     "SaveDumps": {
       "Enabled": true,
       "OutputDir": "savedata"

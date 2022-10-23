@@ -191,7 +191,7 @@ func logoutPlayer(s *Session) {
 
 	for _, stage := range s.server.stages {
 		// Tell sessions registered to disconnecting players quest to unregister
-		if stage.host.charID == s.charID {
+		if stage.host != nil && stage.host.charID == s.charID {
 			for _, sess := range s.server.sessions {
 				for rSlot := range stage.reservedClientSlots {
 					if sess.charID == rSlot && sess.stage != nil && sess.stage.id[3:5] != "Qs" {

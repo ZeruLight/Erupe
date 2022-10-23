@@ -1101,7 +1101,7 @@ func handleMsgMhfEnumerateGuild(s *Session, p mhfpacket.MHFPacket) {
 
 	switch pkt.Type {
 	case mhfpacket.ENUMERATE_GUILD_TYPE_GUILD_NAME:
-		bf.ReadBytes(10)
+		bf.ReadBytes(8)
 		searchTerm := fmt.Sprintf(`%%%s%%`, stringsupport.SJISToUTF8(bf.ReadNullTerminatedBytes()))
 		rows, err = s.server.db.Queryx(fmt.Sprintf(`%s WHERE g.name ILIKE $1 OFFSET $2`, guildInfoSelectQuery), searchTerm, pkt.Page*10)
 		if err == nil {
@@ -1111,7 +1111,7 @@ func handleMsgMhfEnumerateGuild(s *Session, p mhfpacket.MHFPacket) {
 			}
 		}
 	case mhfpacket.ENUMERATE_GUILD_TYPE_LEADER_NAME:
-		bf.ReadBytes(10)
+		bf.ReadBytes(8)
 		searchTerm := fmt.Sprintf(`%%%s%%`, stringsupport.SJISToUTF8(bf.ReadNullTerminatedBytes()))
 		rows, err = s.server.db.Queryx(fmt.Sprintf(`%s WHERE lc.name ILIKE $1 OFFSET $2`, guildInfoSelectQuery), searchTerm, pkt.Page*10)
 		if err == nil {
@@ -1121,7 +1121,6 @@ func handleMsgMhfEnumerateGuild(s *Session, p mhfpacket.MHFPacket) {
 			}
 		}
 	case mhfpacket.ENUMERATE_GUILD_TYPE_LEADER_ID:
-		bf.ReadBytes(2)
 		ID := bf.ReadUint32()
 		rows, err = s.server.db.Queryx(fmt.Sprintf(`%s WHERE leader_id = $1`, guildInfoSelectQuery), ID)
 		if err == nil {
@@ -1131,8 +1130,7 @@ func handleMsgMhfEnumerateGuild(s *Session, p mhfpacket.MHFPacket) {
 			}
 		}
 	case mhfpacket.ENUMERATE_GUILD_TYPE_ORDER_MEMBERS:
-		sorting := bf.ReadUint8()
-		if sorting == 1 {
+		if pkt.Sorting {
 			rows, err = s.server.db.Queryx(fmt.Sprintf(`%s ORDER BY member_count DESC OFFSET $1`, guildInfoSelectQuery), pkt.Page*10)
 		} else {
 			rows, err = s.server.db.Queryx(fmt.Sprintf(`%s ORDER BY member_count ASC OFFSET $1`, guildInfoSelectQuery), pkt.Page*10)
@@ -1144,8 +1142,7 @@ func handleMsgMhfEnumerateGuild(s *Session, p mhfpacket.MHFPacket) {
 			}
 		}
 	case mhfpacket.ENUMERATE_GUILD_TYPE_ORDER_REGISTRATION:
-		sorting := bf.ReadUint8()
-		if sorting == 1 {
+		if pkt.Sorting {
 			rows, err = s.server.db.Queryx(fmt.Sprintf(`%s ORDER BY id ASC OFFSET $1`, guildInfoSelectQuery), pkt.Page*10)
 		} else {
 			rows, err = s.server.db.Queryx(fmt.Sprintf(`%s ORDER BY id DESC OFFSET $1`, guildInfoSelectQuery), pkt.Page*10)
@@ -1157,8 +1154,7 @@ func handleMsgMhfEnumerateGuild(s *Session, p mhfpacket.MHFPacket) {
 			}
 		}
 	case mhfpacket.ENUMERATE_GUILD_TYPE_ORDER_RANK:
-		sorting := bf.ReadUint8()
-		if sorting == 1 {
+		if pkt.Sorting {
 			rows, err = s.server.db.Queryx(fmt.Sprintf(`%s ORDER BY rank_rp DESC OFFSET $1`, guildInfoSelectQuery), pkt.Page*10)
 		} else {
 			rows, err = s.server.db.Queryx(fmt.Sprintf(`%s ORDER BY rank_rp ASC OFFSET $1`, guildInfoSelectQuery), pkt.Page*10)
@@ -1170,7 +1166,6 @@ func handleMsgMhfEnumerateGuild(s *Session, p mhfpacket.MHFPacket) {
 			}
 		}
 	case mhfpacket.ENUMERATE_GUILD_TYPE_MOTTO:
-		bf.ReadBytes(2)
 		mainMotto := bf.ReadUint16()
 		subMotto := bf.ReadUint16()
 		rows, err = s.server.db.Queryx(fmt.Sprintf(`%s WHERE main_motto = $1 AND sub_motto = $2 OFFSET $3`, guildInfoSelectQuery), mainMotto, subMotto, pkt.Page*10)
@@ -1202,7 +1197,7 @@ func handleMsgMhfEnumerateGuild(s *Session, p mhfpacket.MHFPacket) {
 		}
 		switch pkt.Type {
 		case mhfpacket.ENUMERATE_ALLIANCE_TYPE_ALLIANCE_NAME:
-			bf.ReadBytes(10)
+			bf.ReadBytes(8)
 			searchTerm := stringsupport.SJISToUTF8(bf.ReadNullTerminatedBytes())
 			for _, alliance := range tempAlliances {
 				if strings.Contains(alliance.Name, searchTerm) {
@@ -1210,7 +1205,7 @@ func handleMsgMhfEnumerateGuild(s *Session, p mhfpacket.MHFPacket) {
 				}
 			}
 		case mhfpacket.ENUMERATE_ALLIANCE_TYPE_LEADER_NAME:
-			bf.ReadBytes(10)
+			bf.ReadBytes(8)
 			searchTerm := stringsupport.SJISToUTF8(bf.ReadNullTerminatedBytes())
 			for _, alliance := range tempAlliances {
 				if strings.Contains(alliance.ParentGuild.LeaderName, searchTerm) {
@@ -1218,7 +1213,6 @@ func handleMsgMhfEnumerateGuild(s *Session, p mhfpacket.MHFPacket) {
 				}
 			}
 		case mhfpacket.ENUMERATE_ALLIANCE_TYPE_LEADER_ID:
-			bf.ReadBytes(2)
 			ID := bf.ReadUint32()
 			for _, alliance := range tempAlliances {
 				if alliance.ParentGuild.LeaderCharID == ID {
@@ -1226,8 +1220,7 @@ func handleMsgMhfEnumerateGuild(s *Session, p mhfpacket.MHFPacket) {
 				}
 			}
 		case mhfpacket.ENUMERATE_ALLIANCE_TYPE_ORDER_MEMBERS:
-			sorting := bf.ReadBool()
-			if sorting {
+			if pkt.Sorting {
 				sort.Slice(tempAlliances, func(i, j int) bool {
 					return tempAlliances[i].TotalMembers > tempAlliances[j].TotalMembers
 				})
@@ -1238,8 +1231,7 @@ func handleMsgMhfEnumerateGuild(s *Session, p mhfpacket.MHFPacket) {
 			}
 			alliances = tempAlliances
 		case mhfpacket.ENUMERATE_ALLIANCE_TYPE_ORDER_REGISTRATION:
-			sorting := bf.ReadBool()
-			if sorting {
+			if pkt.Sorting {
 				sort.Slice(tempAlliances, func(i, j int) bool {
 					return tempAlliances[i].CreatedAt.Unix() > tempAlliances[j].CreatedAt.Unix()
 				})

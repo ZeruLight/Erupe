@@ -194,7 +194,7 @@ func logoutPlayer(s *Session) {
 		if stage.host.charID == s.charID {
 			for _, sess := range s.server.sessions {
 				for rSlot := range stage.reservedClientSlots {
-					if sess.charID == rSlot && sess.stage != nil && sess.stage.id == "sl1Ns200p0a0u0" {
+					if sess.charID == rSlot && sess.stage != nil && sess.stage.id[3:5] != "Qs" {
 						sess.QueueSendMHF(&mhfpacket.MsgSysStageDestruct{})
 					}
 				}

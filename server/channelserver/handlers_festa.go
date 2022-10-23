@@ -6,6 +6,7 @@ import (
 	ps "erupe-ce/common/pascalstring"
 	"erupe-ce/network/mhfpacket"
 	"math/rand"
+	"sort"
 	"time"
 )
 
@@ -310,6 +311,9 @@ func handleMsgMhfEnumerateFestaMember(s *Session, p mhfpacket.MHFPacket) {
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint16(uint16(len(members)))
 	bf.WriteUint16(0) // Unk
+	sort.Slice(members, func(i, j int) bool {
+		return members[i].Souls > members[j].Souls
+	})
 	for _, member := range members {
 		bf.WriteUint32(member.CharID)
 		bf.WriteUint32(member.Souls)

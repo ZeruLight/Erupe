@@ -87,7 +87,7 @@ func handleMsgMhfGetCafeDuration(s *Session, p mhfpacket.MHFPacket) {
 	cafeTime = uint32(Time_Current_Adjusted().Unix()) - uint32(s.sessionStart) + cafeTime
 	bf.WriteUint32(cafeTime) // Total cafe time
 	bf.WriteUint16(0)
-	ps.Uint16(bf, fmt.Sprintf("Resets after %s %d", cafeReset.Month().String(), cafeReset.Day()), true)
+	ps.Uint16(bf, fmt.Sprintf("Resets on %s %d", cafeReset.Month().String(), cafeReset.Day()), true)
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 

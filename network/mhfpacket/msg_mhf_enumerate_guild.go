@@ -47,7 +47,7 @@ func (m *MsgMhfEnumerateGuild) Parse(bf *byteframe.ByteFrame, ctx *clientctx.Cli
 	m.Type = EnumerateGuildType(bf.ReadUint8())
 	m.Page = bf.ReadUint8()
 	m.Sorting = bf.ReadBool()
-	bf.ReadUint8()
+	_ = bf.ReadUint8()
 	m.RawDataPayload = bf.DataFromCurrent()
 	bf.Seek(-2, io.SeekEnd)
 	return nil

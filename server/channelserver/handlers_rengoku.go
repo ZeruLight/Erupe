@@ -136,6 +136,10 @@ func handleMsgMhfEnumerateRengokuRanking(s *Session, p mhfpacket.MHFPacket) {
 				ps.Uint8(bf, s.Name, true)
 				ps.Uint8(bf, "", false)
 			}
+			if i > 100 {
+				i++
+				continue
+			}
 			scoreData.WriteUint32(i)
 			scoreData.WriteUint32(score.MaxStagesMP)
 			ps.Uint8(scoreData, score.Name, true)
@@ -151,6 +155,10 @@ func handleMsgMhfEnumerateRengokuRanking(s *Session, p mhfpacket.MHFPacket) {
 				bf.WriteUint32(score.MaxPointsMP)
 				ps.Uint8(bf, s.Name, true)
 				ps.Uint8(bf, "", false)
+			}
+			if i > 100 {
+				i++
+				continue
 			}
 			scoreData.WriteUint32(i)
 			scoreData.WriteUint32(score.MaxPointsMP)
@@ -168,6 +176,10 @@ func handleMsgMhfEnumerateRengokuRanking(s *Session, p mhfpacket.MHFPacket) {
 					bf.WriteUint32(score.MaxStagesMP)
 					ps.Uint8(bf, s.Name, true)
 					ps.Uint8(bf, "", false)
+				}
+				if i > 100 {
+					i++
+					continue
 				}
 				scoreData.WriteUint32(i)
 				scoreData.WriteUint32(score.MaxStagesMP)
@@ -189,6 +201,10 @@ func handleMsgMhfEnumerateRengokuRanking(s *Session, p mhfpacket.MHFPacket) {
 					ps.Uint8(bf, s.Name, true)
 					ps.Uint8(bf, "", false)
 				}
+				if i > 100 {
+					i++
+					continue
+				}
 				scoreData.WriteUint32(i)
 				scoreData.WriteUint32(score.MaxPointsMP)
 				ps.Uint8(scoreData, score.Name, true)
@@ -208,6 +224,10 @@ func handleMsgMhfEnumerateRengokuRanking(s *Session, p mhfpacket.MHFPacket) {
 				ps.Uint8(bf, s.Name, true)
 				ps.Uint8(bf, "", false)
 			}
+			if i > 100 {
+				i++
+				continue
+			}
 			scoreData.WriteUint32(i)
 			scoreData.WriteUint32(score.MaxStagesSP)
 			ps.Uint8(scoreData, score.Name, true)
@@ -223,6 +243,10 @@ func handleMsgMhfEnumerateRengokuRanking(s *Session, p mhfpacket.MHFPacket) {
 				bf.WriteUint32(score.MaxPointsSP)
 				ps.Uint8(bf, s.Name, true)
 				ps.Uint8(bf, "", false)
+			}
+			if i > 100 {
+				i++
+				continue
 			}
 			scoreData.WriteUint32(i)
 			scoreData.WriteUint32(score.MaxPointsSP)
@@ -240,6 +264,10 @@ func handleMsgMhfEnumerateRengokuRanking(s *Session, p mhfpacket.MHFPacket) {
 					bf.WriteUint32(score.MaxStagesSP)
 					ps.Uint8(bf, s.Name, true)
 					ps.Uint8(bf, "", false)
+				}
+				if i > 100 {
+					i++
+					continue
 				}
 				scoreData.WriteUint32(i)
 				scoreData.WriteUint32(score.MaxStagesSP)
@@ -260,6 +288,10 @@ func handleMsgMhfEnumerateRengokuRanking(s *Session, p mhfpacket.MHFPacket) {
 					bf.WriteUint32(score.MaxPointsSP)
 					ps.Uint8(bf, s.Name, true)
 					ps.Uint8(bf, "", false)
+				}
+				if i > 100 {
+					i++
+					continue
 				}
 				scoreData.WriteUint32(i)
 				scoreData.WriteUint32(score.MaxPointsSP)

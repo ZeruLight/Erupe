@@ -2,6 +2,7 @@
   "Host": "127.0.0.1",
   "BinPath": "bin",
   "DisableSoftCrash": false,
+  "FeaturedWeapons": 2,
   "devmode": true,
   "devmodeoptions": {
     "EnableLauncherServer": false,

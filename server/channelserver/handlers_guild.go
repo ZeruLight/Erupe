@@ -1103,7 +1103,7 @@ func handleMsgMhfEnumerateGuild(s *Session, p mhfpacket.MHFPacket) {
 	case mhfpacket.ENUMERATE_GUILD_TYPE_GUILD_NAME:
 		bf.ReadBytes(8)
 		searchTerm := fmt.Sprintf(`%%%s%%`, stringsupport.SJISToUTF8(bf.ReadNullTerminatedBytes()))
-		rows, err = s.server.db.Queryx(fmt.Sprintf(`%s WHERE g.name ILIKE $1 OFFSET $2`, guildInfoSelectQuery), searchTerm, pkt.Page*10)
+		rows, err = s.server.db.Queryx(fmt.Sprintf(`%s WHERE g.name ILIKE $1 OFFSET $2 LIMIT 11`, guildInfoSelectQuery), searchTerm, pkt.Page*10)
 		if err == nil {
 			for rows.Next() {
 				guild, _ := buildGuildObjectFromDbResult(rows, err, s)
@@ -1113,7 +1113,7 @@ func handleMsgMhfEnumerateGuild(s *Session, p mhfpacket.MHFPacket) {
 	case mhfpacket.ENUMERATE_GUILD_TYPE_LEADER_NAME:
 		bf.ReadBytes(8)
 		searchTerm := fmt.Sprintf(`%%%s%%`, stringsupport.SJISToUTF8(bf.ReadNullTerminatedBytes()))
-		rows, err = s.server.db.Queryx(fmt.Sprintf(`%s WHERE lc.name ILIKE $1 OFFSET $2`, guildInfoSelectQuery), searchTerm, pkt.Page*10)
+		rows, err = s.server.db.Queryx(fmt.Sprintf(`%s WHERE lc.name ILIKE $1 OFFSET $2 LIMIT 11`, guildInfoSelectQuery), searchTerm, pkt.Page*10)
 		if err == nil {
 			for rows.Next() {
 				guild, _ := buildGuildObjectFromDbResult(rows, err, s)
@@ -1131,9 +1131,9 @@ func handleMsgMhfEnumerateGuild(s *Session, p mhfpacket.MHFPacket) {
 		}
 	case mhfpacket.ENUMERATE_GUILD_TYPE_ORDER_MEMBERS:
 		if pkt.Sorting {
-			rows, err = s.server.db.Queryx(fmt.Sprintf(`%s ORDER BY member_count DESC OFFSET $1`, guildInfoSelectQuery), pkt.Page*10)
+			rows, err = s.server.db.Queryx(fmt.Sprintf(`%s ORDER BY member_count DESC OFFSET $1 LIMIT 11`, guildInfoSelectQuery), pkt.Page*10)
 		} else {
-			rows, err = s.server.db.Queryx(fmt.Sprintf(`%s ORDER BY member_count ASC OFFSET $1`, guildInfoSelectQuery), pkt.Page*10)
+			rows, err = s.server.db.Queryx(fmt.Sprintf(`%s ORDER BY member_count ASC OFFSET $1 LIMIT 11`, guildInfoSelectQuery), pkt.Page*10)
 		}
 		if err == nil {
 			for rows.Next() {
@@ -1143,9 +1143,9 @@ func handleMsgMhfEnumerateGuild(s *Session, p mhfpacket.MHFPacket) {
 		}
 	case mhfpacket.ENUMERATE_GUILD_TYPE_ORDER_REGISTRATION:
 		if pkt.Sorting {
-			rows, err = s.server.db.Queryx(fmt.Sprintf(`%s ORDER BY id ASC OFFSET $1`, guildInfoSelectQuery), pkt.Page*10)
+			rows, err = s.server.db.Queryx(fmt.Sprintf(`%s ORDER BY id ASC OFFSET $1 LIMIT 11`, guildInfoSelectQuery), pkt.Page*10)
 		} else {
-			rows, err = s.server.db.Queryx(fmt.Sprintf(`%s ORDER BY id DESC OFFSET $1`, guildInfoSelectQuery), pkt.Page*10)
+			rows, err = s.server.db.Queryx(fmt.Sprintf(`%s ORDER BY id DESC OFFSET $1 LIMIT 11`, guildInfoSelectQuery), pkt.Page*10)
 		}
 		if err == nil {
 			for rows.Next() {
@@ -1155,9 +1155,9 @@ func handleMsgMhfEnumerateGuild(s *Session, p mhfpacket.MHFPacket) {
 		}
 	case mhfpacket.ENUMERATE_GUILD_TYPE_ORDER_RANK:
 		if pkt.Sorting {
-			rows, err = s.server.db.Queryx(fmt.Sprintf(`%s ORDER BY rank_rp DESC OFFSET $1`, guildInfoSelectQuery), pkt.Page*10)
+			rows, err = s.server.db.Queryx(fmt.Sprintf(`%s ORDER BY rank_rp DESC OFFSET $1 LIMIT 11`, guildInfoSelectQuery), pkt.Page*10)
 		} else {
-			rows, err = s.server.db.Queryx(fmt.Sprintf(`%s ORDER BY rank_rp ASC OFFSET $1`, guildInfoSelectQuery), pkt.Page*10)
+			rows, err = s.server.db.Queryx(fmt.Sprintf(`%s ORDER BY rank_rp ASC OFFSET $1 LIMIT 11`, guildInfoSelectQuery), pkt.Page*10)
 		}
 		if err == nil {
 			for rows.Next() {
@@ -1168,7 +1168,7 @@ func handleMsgMhfEnumerateGuild(s *Session, p mhfpacket.MHFPacket) {
 	case mhfpacket.ENUMERATE_GUILD_TYPE_MOTTO:
 		mainMotto := bf.ReadUint16()
 		subMotto := bf.ReadUint16()
-		rows, err = s.server.db.Queryx(fmt.Sprintf(`%s WHERE main_motto = $1 AND sub_motto = $2 OFFSET $3`, guildInfoSelectQuery), mainMotto, subMotto, pkt.Page*10)
+		rows, err = s.server.db.Queryx(fmt.Sprintf(`%s WHERE main_motto = $1 AND sub_motto = $2 OFFSET $3 LIMIT 11`, guildInfoSelectQuery), mainMotto, subMotto, pkt.Page*10)
 		if err == nil {
 			for rows.Next() {
 				guild, _ := buildGuildObjectFromDbResult(rows, err, s)
@@ -1177,7 +1177,7 @@ func handleMsgMhfEnumerateGuild(s *Session, p mhfpacket.MHFPacket) {
 		}
 	case mhfpacket.ENUMERATE_GUILD_TYPE_RECRUITING:
 		// Assume the player wants the newest guilds with open recruitment
-		rows, err = s.server.db.Queryx(fmt.Sprintf(`%s WHERE recruiting=true ORDER BY id DESC OFFSET $1`, guildInfoSelectQuery), pkt.Page*10)
+		rows, err = s.server.db.Queryx(fmt.Sprintf(`%s WHERE recruiting=true ORDER BY id DESC OFFSET $1 LIMIT 11`, guildInfoSelectQuery), pkt.Page*10)
 		if err == nil {
 			for rows.Next() {
 				guild, _ := buildGuildObjectFromDbResult(rows, err, s)
@@ -1252,16 +1252,14 @@ func handleMsgMhfEnumerateGuild(s *Session, p mhfpacket.MHFPacket) {
 	bf = byteframe.NewByteFrame()
 
 	if pkt.Type > 8 {
-		if len(guilds) > 10 {
-			bf.WriteUint16(10)
-		} else {
-			bf.WriteUint16(uint16(len(alliances)))
+		hasNextPage := false
+		if len(alliances) > 10 {
+			hasNextPage = true
+			alliances = alliances[:10]
 		}
-		bf.WriteUint8(0x00) // Unk
-		for i, alliance := range alliances {
-			if i == 10 {
-				break
-			}
+			bf.WriteUint16(uint16(len(alliances)))
+		bf.WriteBool(hasNextPage) // Unk
+		for _, alliance := range alliances {
 			bf.WriteUint32(alliance.ID)
 			bf.WriteUint32(alliance.ParentGuild.LeaderCharID)
 			bf.WriteUint16(alliance.TotalMembers)
@@ -1280,16 +1278,14 @@ func handleMsgMhfEnumerateGuild(s *Session, p mhfpacket.MHFPacket) {
 			bf.WriteBool(true)  // TODO: Enable GuildAlliance applications
 		}
 	} else {
+		hasNextPage := false
 		if len(guilds) > 10 {
-			bf.WriteUint16(10)
-		} else {
-			bf.WriteUint16(uint16(len(guilds)))
+			hasNextPage = true
+			guilds = guilds[:10]
 		}
-		bf.WriteUint8(0x01) // Unk
-		for i, guild := range guilds {
-			if i == 10 {
-				break
-			}
+			bf.WriteUint16(uint16(len(guilds)))
+		bf.WriteBool(hasNextPage)
+		for _, guild := range guilds {
 			bf.WriteUint32(guild.ID)
 			bf.WriteUint32(guild.LeaderCharID)
 			bf.WriteUint16(guild.MemberCount)

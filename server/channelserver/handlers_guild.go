@@ -1257,7 +1257,7 @@ func handleMsgMhfEnumerateGuild(s *Session, p mhfpacket.MHFPacket) {
 			hasNextPage = true
 			alliances = alliances[:10]
 		}
-			bf.WriteUint16(uint16(len(alliances)))
+		bf.WriteUint16(uint16(len(alliances)))
 		bf.WriteBool(hasNextPage) // Unk
 		for _, alliance := range alliances {
 			bf.WriteUint32(alliance.ID)
@@ -1283,7 +1283,7 @@ func handleMsgMhfEnumerateGuild(s *Session, p mhfpacket.MHFPacket) {
 			hasNextPage = true
 			guilds = guilds[:10]
 		}
-			bf.WriteUint16(uint16(len(guilds)))
+		bf.WriteUint16(uint16(len(guilds)))
 		bf.WriteBool(hasNextPage)
 		for _, guild := range guilds {
 			bf.WriteUint32(guild.ID)

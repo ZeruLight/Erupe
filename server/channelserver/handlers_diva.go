@@ -112,24 +112,67 @@ func handleMsgMhfGetUdInfo(s *Session, p mhfpacket.MHFPacket) {
 	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
 }
 
+func getKijuStrings(effectID uint8) (string, string) {
+	switch effectID {
+	case 1:
+		return "暴風の祈珠", "ーあらしまかぜのきじゅー\n暴風とは猛る思い。\n聞く者に勇気を与える。"
+	case 3:
+		return "断力の祈珠", "ーだんりきのきじゅー\n断力とは断ち切る思い。\n聴く者に新たな利からを授ける。"
+	case 4:
+		return "風韻の祈珠", "ーふういんのきじゅー\n風韻とは歌姫の艶。\n時々で異なる趣を醸し出す。"
+	case 8:
+		return "斬刃の祈珠", "ーざんばのきじゅー\n斬刃とはすべてを切り裂く力。\n集めるほどに声の透明感は増す。"
+	case 9:
+		return "打明の祈珠", "ーうちあかりのきじゅー\n打明とは熱い力。\n聴く者に活力を与える。"
+	case 10:
+		return "弾起の祈珠", "ーたまおこしのきじゅー\n弾起とは悠遠の記憶。\n聴く者に更なる力を授ける。"
+	case 11:
+		return "変続の祈珠", "ーへんぞくのきじゅー\n変続とは永久の言葉。\n聴く者に継続力を授ける。"
+	case 14:
+		return "万雷の祈珠", "ーばんらいのきじゅー\n万雷とは歌姫に集う民の意識。\n歌姫の声を伝播させる。"
+	case 15:
+		return "不動の祈珠", "ーうごかずのきじゅー\n不動とは圧力。聞く者に圧倒する力を与える。"
+	case 16:
+		return "鏗鏗の祈珠", "ーこうこうのきじゅー\n鏗鏗とは歌姫の声。\n集めるほどに歌姫の声量は増す。"
+	case 17:
+		return "結集の祈珠", "ーけっしゅうのきじゅー"
+	case 18:
+		return "歌護の祈珠", "ーうたまもりのきじゅー"
+	case 19:
+		return "強撃の祈珠", "ーきょうげきのきじゅー"
+	case 20:
+		return "封火の祈珠", "ーふうかのきじゅー"
+	case 21:
+		return "封水の祈珠", "ーふうすいのきじゅー"
+	case 22:
+		return "封氷の祈珠", "ーふうひょうのきじゅー"
+	case 23:
+		return "封龍の祈珠", "ーふうりゅうのきじゅー"
+	case 24:
+		return "封雷の祈珠", "ーふうらいのきじゅー"
+	case 25:
+		return "封属の祈珠", "ーふうぞくのきじゅー"
+	}
+	return "Unknown", ""
+}
+
 func handleMsgMhfGetKijuInfo(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetKijuInfo)
 	kijuInfo := []struct {
-		Name        string
-		Description string
-		Color       uint8
-		Effect      uint8
+		Color  uint8
+		Effect uint8
 	}{
-		{"bead1", "description1", 1, 1},
-		{"bead2", "description2", 3, 13},
-		{"bead3", "description3", 4, 11},
-		{"bead4", "description4", 2, 12},
+		{1, 1},
+		{2, 3},
+		{3, 4},
+		{4, 8},
 	}
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint8(uint8(len(kijuInfo)))
 	for _, kiju := range kijuInfo {
-		bf.WriteBytes(stringsupport.PaddedString(kiju.Name, 32, true))
-		bf.WriteBytes(stringsupport.PaddedString(kiju.Description, 512, true))
+		name, description := getKijuStrings(kiju.Effect)
+		bf.WriteBytes(stringsupport.PaddedString(name, 32, true))
+		bf.WriteBytes(stringsupport.PaddedString(description, 512, true))
 		bf.WriteUint8(kiju.Color)
 		bf.WriteUint8(kiju.Effect)
 	}

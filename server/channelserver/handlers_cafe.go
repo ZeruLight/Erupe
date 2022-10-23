@@ -4,6 +4,7 @@ import (
 	"erupe-ce/common/byteframe"
 	ps "erupe-ce/common/pascalstring"
 	"erupe-ce/network/mhfpacket"
+	"fmt"
 	"go.uber.org/zap"
 	"io"
 	"time"
@@ -71,15 +72,22 @@ func handleMsgMhfGetCafeDuration(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetCafeDuration)
 	bf := byteframe.NewByteFrame()
 
+	var cafeReset time.Time
+	err := s.server.db.QueryRow(`SELECT cafe_reset FROM characters WHERE id=$1`, s.charID).Scan(&cafeReset)
+	if Time_Current_Adjusted().After(cafeReset) {
+		cafeReset = TimeWeekNext()
+		s.server.db.Exec(`UPDATE characters SET cafe_time=0, cafe_reset=$1 WHERE id=$2`, cafeReset, s.charID)
+	}
+
 	var cafeTime uint32
-	err := s.server.db.QueryRow("SELECT cafe_time FROM characters WHERE id = $1", s.charID).Scan(&cafeTime)
+	err = s.server.db.QueryRow("SELECT cafe_time FROM characters WHERE id = $1", s.charID).Scan(&cafeTime)
 	if err != nil {
 		panic(err)
 	}
 	cafeTime = uint32(Time_Current_Adjusted().Unix()) - uint32(s.sessionStart) + cafeTime
 	bf.WriteUint32(cafeTime) // Total cafe time
 	bf.WriteUint16(0)
-	ps.Uint16(bf, "Resets at next maintenance", true)
+	ps.Uint16(bf, fmt.Sprintf("Resets after %s %d", cafeReset.Month().String(), cafeReset.Day()), true)
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 

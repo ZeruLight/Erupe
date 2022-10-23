@@ -191,13 +191,11 @@ func logoutPlayer(s *Session) {
 
 	for _, stage := range s.server.stages {
 		// Tell sessions registered to disconnecting players quest to unregister
-		if stage.hostCharID == s.charID {
-			if s.stage.id == "sl1Ns200p0a0u0" {
-				for _, sess := range s.server.sessions {
-					for rSlot := range stage.reservedClientSlots {
-						if sess.charID == rSlot {
-							sess.QueueSendMHF(&mhfpacket.MsgSysStageDestruct{})
-						}
+		if stage.host.charID == s.charID {
+			for _, sess := range s.server.sessions {
+				for rSlot := range stage.reservedClientSlots {
+					if sess.charID == rSlot && sess.stage != nil && sess.stage.id == "sl1Ns200p0a0u0" {
+						sess.QueueSendMHF(&mhfpacket.MsgSysStageDestruct{})
 					}
 				}
 			}

@@ -46,7 +46,7 @@ type Stage struct {
 	// other clients expect the server to echo them back in the exact same format.
 	rawBinaryData map[stageBinaryKey][]byte
 
-	hostCharID uint32
+	host       *Session
 	maxPlayers uint16
 	password   string
 	createdAt  string

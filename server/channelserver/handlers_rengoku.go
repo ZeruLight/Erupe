@@ -157,6 +157,10 @@ func handleMsgMhfEnumerateRengokuRanking(s *Session, p mhfpacket.MHFPacket) {
 			ps.Uint8(bf, "", false)
 			selfExist = true
 		}
+		if i > 100 {
+			i++
+			continue
+		}
 		scoreData.WriteUint32(i)
 		scoreData.WriteUint32(score.Score)
 		ps.Uint8(scoreData, score.Name, true)

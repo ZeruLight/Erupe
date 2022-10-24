@@ -1034,7 +1034,7 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 		}
 
 		applicants, err := GetGuildMembers(s, guild.ID, true)
-		if err != nil {
+		if err != nil || (characterGuildData != nil && !characterGuildData.CanRecruit()) {
 			bf.WriteUint16(0)
 		} else {
 			bf.WriteUint16(uint16(len(applicants)))

@@ -119,7 +119,7 @@ func main() {
 
 	// Launcher HTTP server.
 	var launcherServer *launcherserver.Server
-	if config.ErupeConfig.DevMode && config.ErupeConfig.DevModeOptions.EnableLauncherServer {
+	if config.ErupeConfig.Launcher.Enabled {
 		launcherServer = launcherserver.NewServer(
 			&launcherserver.Config{
 				Logger:                   logger.Named("launcher"),
@@ -235,7 +235,7 @@ func main() {
 		entranceServer.Shutdown()
 	}
 
-	if config.ErupeConfig.DevModeOptions.EnableLauncherServer {
+	if config.ErupeConfig.Launcher.Enabled {
 		launcherServer.Shutdown()
 	}
 

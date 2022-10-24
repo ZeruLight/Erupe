@@ -30,6 +30,7 @@ type Config struct {
 
 // DevModeOptions holds various debug/temporary options for use while developing Erupe.
 type DevModeOptions struct {
+	AutoCreateAccount   bool   // Automatically create accounts if they don't exist
 	HideLoginNotice     bool   // Hide the Erupe notice on login
 	LoginNotice         string // MHFML string of the login notice displayed
 	CleanDB             bool   // Automatically wipes the DB on server reset.

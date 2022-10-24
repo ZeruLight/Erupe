@@ -93,12 +93,15 @@ func (s *Session) handleDSGNRequest(bf *byteframe.ByteFrame) error {
 		s.logger.Info("Account not found", zap.String("reqUsername", reqUsername))
 		serverRespBytes = makeSignInFailureResp(SIGN_EAUTH)
 
-		// HACK(Andoryuuta): Create a new account if it doesn't exit.
-		s.logger.Info("Creating account", zap.String("reqUsername", reqUsername), zap.String("reqPassword", reqPassword))
-		err = s.server.registerDBAccount(reqUsername, reqPassword)
-		if err != nil {
-			s.logger.Info("Error on creating new account", zap.Error(err))
-			serverRespBytes = makeSignInFailureResp(SIGN_EABORT)
+		if s.server.erupeConfig.DevMode && s.server.erupeConfig.DevModeOptions.AutoCreateAccount {
+			s.logger.Info("Creating account", zap.String("reqUsername", reqUsername), zap.String("reqPassword", reqPassword))
+			err = s.server.registerDBAccount(reqUsername, reqPassword)
+			if err != nil {
+				s.logger.Info("Error on creating new account", zap.Error(err))
+				serverRespBytes = makeSignInFailureResp(SIGN_EABORT)
+				break
+			}
+		} else {
 			break
 		}
 

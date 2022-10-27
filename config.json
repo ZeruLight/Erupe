@@ -2,7 +2,7 @@
   "Host": "127.0.0.1",
   "BinPath": "bin",
   "DisableSoftCrash": false,
-  "FeaturedWeapons": 2,
+  "FeaturedWeapons": 1,
   "DevMode": true,
   "DevModeOptions": {
     "PatchServerManifest": "",

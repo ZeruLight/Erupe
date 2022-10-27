@@ -28,7 +28,10 @@ func handleMsgSysGetFile(s *Session, p mhfpacket.MHFPacket) {
 		// Read the scenario file.
 		data, err := ioutil.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("scenarios/%s.bin", filename)))
 		if err != nil {
-			panic(err)
+			s.logger.Error(fmt.Sprintf("Failed to open file: %s/scenarios/%s.bin", s.server.erupeConfig.BinPath, pkt.Filename))
+			// This will crash the game.
+			doAckBufSucceed(s, pkt.AckHandle, data)
+			return
 		}
 		doAckBufSucceed(s, pkt.AckHandle, data)
 	} else {
@@ -48,7 +51,10 @@ func handleMsgSysGetFile(s *Session, p mhfpacket.MHFPacket) {
 			// Get quest file.
 			data, err := ioutil.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("quests/%s.bin", pkt.Filename)))
 			if err != nil {
-				s.logger.Fatal(fmt.Sprintf("Failed to open quest file: quests/%s.bin", pkt.Filename))
+				s.logger.Error(fmt.Sprintf("Failed to open file: %s/quests/%s.bin", s.server.erupeConfig.BinPath, pkt.Filename))
+				// This will crash the game.
+				doAckBufSucceed(s, pkt.AckHandle, data)
+				return
 			}
 			doAckBufSucceed(s, pkt.AckHandle, data)
 		}

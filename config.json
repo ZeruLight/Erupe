@@ -5,6 +5,8 @@
   "FeaturedWeapons": 2,
   "DevMode": true,
   "DevModeOptions": {
+    "PatchServerManifest": "",
+    "PatchServerFile": "",
     "AutoCreateAccount": true,
     "EnableLauncherServer": false,
     "HideLoginNotice": false,

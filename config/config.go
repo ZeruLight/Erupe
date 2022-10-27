@@ -30,6 +30,8 @@ type Config struct {
 
 // DevModeOptions holds various debug/temporary options for use while developing Erupe.
 type DevModeOptions struct {
+	PatchServerManifest string // Manifest patch server override
+	PatchServerFile     string // File patch server override
 	AutoCreateAccount   bool   // Automatically create accounts if they don't exist
 	HideLoginNotice     bool   // Hide the Erupe notice on login
 	LoginNotice         string // MHFML string of the login notice displayed

@@ -37,7 +37,7 @@
   "Commands": [
     {
       "Name": "Rights",
-      "Enabled": true,
+      "Enabled": false,
       "Prefix": "!rights"
     }, {
       "Name": "Raviente",
@@ -65,11 +65,11 @@
     {"Name": "HunterLife", "Enabled": true},
     {"Name": "ExtraA", "Enabled": true},
     {"Name": "Premium", "Enabled": true},
-    {"Name": "Assist", "Enabled": true},
-    {"Name": "Netcafe", "Enabled": true},
-    {"Name": "Hiden", "Enabled": true},
-    {"Name": "HunterSupport", "Enabled": true},
-    {"Name": "NetcafeBoost", "Enabled": true}
+    {"Name": "Assist", "Enabled": false},
+    {"Name": "Netcafe", "Enabled": false},
+    {"Name": "Hiden", "Enabled": false},
+    {"Name": "HunterSupport", "Enabled": false},
+    {"Name": "NetcafeBoost", "Enabled": false}
   ],
   "Database": {
     "Host": "localhost",

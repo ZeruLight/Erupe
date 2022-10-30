@@ -21,6 +21,7 @@ type Config struct {
 	DevModeOptions DevModeOptions
 	Discord        Discord
 	Commands       []Command
+	Courses        []Course
 	Database       Database
 	Launcher       Launcher
 	Sign           Sign
@@ -68,6 +69,12 @@ type Command struct {
 	Name    string
 	Enabled bool
 	Prefix  string
+}
+
+// Course represents a course within MHF
+type Course struct {
+	Name    string
+	Enabled bool
 }
 
 // Database holds the postgres database config.

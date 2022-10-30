@@ -6,17 +6,16 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"strings"
 	"sync"
 	"time"
 
 	"erupe-ce/common/byteframe"
 	"erupe-ce/common/stringstack"
-	"erupe-ce/common/stringsupport"
 	"erupe-ce/network"
 	"erupe-ce/network/clientctx"
 	"erupe-ce/network/mhfpacket"
 	"go.uber.org/zap"
-	"golang.org/x/text/encoding/japanese"
 )
 
 type packet struct {
@@ -43,7 +42,7 @@ type Session struct {
 	charID           uint32
 	logKey           []byte
 	sessionStart     int64
-	rights           uint32
+	courses          []mhfpacket.Course
 	token            string
 	kqf              []byte
 	kqfOverride      bool
@@ -68,16 +67,12 @@ type Session struct {
 // NewSession creates a new Session type.
 func NewSession(server *Server, conn net.Conn) *Session {
 	s := &Session{
-		logger:      server.logger.Named(conn.RemoteAddr().String()),
-		server:      server,
-		rawConn:     conn,
-		cryptConn:   network.NewCryptConn(conn),
-		sendPackets: make(chan packet, 20),
-		clientContext: &clientctx.ClientContext{
-			StrConv: &stringsupport.StringConverter{
-				Encoding: japanese.ShiftJIS,
-			},
-		},
+		logger:         server.logger.Named(conn.RemoteAddr().String()),
+		server:         server,
+		rawConn:        conn,
+		cryptConn:      network.NewCryptConn(conn),
+		sendPackets:    make(chan packet, 20),
+		clientContext:  &clientctx.ClientContext{},
 		sessionStart:   Time_Current_Adjusted().Unix(),
 		stageMoveStack: stringstack.New(),
 	}
@@ -267,4 +262,15 @@ func (s *Session) logMessage(opcode uint16, data []byte, sender string, recipien
 	} else {
 		fmt.Printf("Data [%d bytes]:\n(Too long!)\n\n", len(data))
 	}
+}
+
+func (s *Session) FindCourse(name string) mhfpacket.Course {
+	for _, course := range s.courses {
+		for _, alias := range course.Aliases {
+			if strings.ToLower(name) == strings.ToLower(alias) {
+				return course
+			}
+		}
+	}
+	return mhfpacket.Course{}
 }

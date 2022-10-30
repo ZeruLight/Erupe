@@ -37,7 +37,7 @@
   "Commands": [
     {
       "Name": "Rights",
-      "Enabled": true,
+      "Enabled": false,
       "Prefix": "!rights"
     }, {
       "Name": "Raviente",
@@ -55,7 +55,21 @@
       "Name": "KeyQuest",
       "Enabled": false,
       "Prefix": "!kqf"
+    }, {
+      "Name": "Course",
+      "Enabled": true,
+      "Prefix": "!course"
     }
+  ],
+  "Courses": [
+    {"Name": "HunterLife", "Enabled": true},
+    {"Name": "ExtraA", "Enabled": true},
+    {"Name": "Premium", "Enabled": true},
+    {"Name": "Assist", "Enabled": false},
+    {"Name": "Netcafe", "Enabled": false},
+    {"Name": "Hiden", "Enabled": false},
+    {"Name": "HunterSupport", "Enabled": false},
+    {"Name": "NetcafeBoost", "Enabled": false}
   ],
   "Database": {
     "Host": "localhost",

@@ -21,6 +21,7 @@ type Config struct {
 	DevModeOptions DevModeOptions
 	Discord        Discord
 	Commands       []Command
+	Courses        []Course
 	Database       Database
 	Launcher       Launcher
 	Sign           Sign
@@ -70,8 +71,8 @@ type Command struct {
 	Prefix  string
 }
 
-// Courses is an array of enabled courses
-type Courses struct {
+// Course represents a course within MHF
+type Course struct {
 	Name    string
 	Enabled bool
 }

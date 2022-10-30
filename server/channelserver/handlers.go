@@ -213,7 +213,7 @@ func logoutPlayer(s *Session) {
 	timePlayed += sessionTime
 
 	var rpGained int
-	if s.CourseExists("Netcafe") {
+	if s.FindCourse("Netcafe").Value != 0 {
 		rpGained = timePlayed / 900
 		timePlayed = timePlayed % 900
 	} else {

@@ -12,12 +12,10 @@ import (
 
 	"erupe-ce/common/byteframe"
 	"erupe-ce/common/stringstack"
-	"erupe-ce/common/stringsupport"
 	"erupe-ce/network"
 	"erupe-ce/network/clientctx"
 	"erupe-ce/network/mhfpacket"
 	"go.uber.org/zap"
-	"golang.org/x/text/encoding/japanese"
 )
 
 type packet struct {
@@ -69,16 +67,12 @@ type Session struct {
 // NewSession creates a new Session type.
 func NewSession(server *Server, conn net.Conn) *Session {
 	s := &Session{
-		logger:      server.logger.Named(conn.RemoteAddr().String()),
-		server:      server,
-		rawConn:     conn,
-		cryptConn:   network.NewCryptConn(conn),
-		sendPackets: make(chan packet, 20),
-		clientContext: &clientctx.ClientContext{
-			StrConv: &stringsupport.StringConverter{
-				Encoding: japanese.ShiftJIS,
-			},
-		},
+		logger:         server.logger.Named(conn.RemoteAddr().String()),
+		server:         server,
+		rawConn:        conn,
+		cryptConn:      network.NewCryptConn(conn),
+		sendPackets:    make(chan packet, 20),
+		clientContext:  &clientctx.ClientContext{},
 		sessionStart:   Time_Current_Adjusted().Unix(),
 		stageMoveStack: stringstack.New(),
 	}
@@ -270,13 +264,13 @@ func (s *Session) logMessage(opcode uint16, data []byte, sender string, recipien
 	}
 }
 
-func (s *Session) CourseExists(name string) bool {
+func (s *Session) FindCourse(name string) mhfpacket.Course {
 	for _, course := range s.courses {
 		for _, alias := range course.Aliases {
 			if strings.ToLower(name) == strings.ToLower(alias) {
-				return true
+				return course
 			}
 		}
 	}
-	return false
+	return mhfpacket.Course{}
 }

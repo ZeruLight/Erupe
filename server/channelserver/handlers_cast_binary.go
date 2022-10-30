@@ -7,6 +7,7 @@ import (
 	"erupe-ce/network/binpacket"
 	"erupe-ce/network/mhfpacket"
 	"fmt"
+	"golang.org/x/exp/slices"
 	"math"
 	"math/rand"
 	"strings"
@@ -322,22 +323,26 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 					for _, course := range mhfpacket.Courses() {
 						for _, alias := range course.Aliases {
 							if strings.ToLower(name) == strings.ToLower(alias) {
-								if s.CourseExists(name) {
-									existingIndex := -1
-									for i, course := range s.courses {
-										for _, alias := range course.Aliases {
-											if strings.ToLower(name) == strings.ToLower(alias) {
-												existingIndex = i
+								if slices.Contains(s.server.erupeConfig.Courses, config.Course{Name: course.Aliases[0], Enabled: true}) {
+									if s.FindCourse(name).Value != 0 {
+										existingIndex := -1
+										for i, course := range s.courses {
+											for _, alias := range course.Aliases {
+												if strings.ToLower(name) == strings.ToLower(alias) {
+													existingIndex = i
+												}
 											}
 										}
-									}
-									if existingIndex >= 0 {
-										s.courses = append(s.courses[:existingIndex], s.courses[existingIndex+1:]...)
-										sendServerChatMessage(s, fmt.Sprintf(`%s Course disabled.`, course.Aliases[0]))
+										if existingIndex >= 0 {
+											s.courses = append(s.courses[:existingIndex], s.courses[existingIndex+1:]...)
+											sendServerChatMessage(s, fmt.Sprintf(`%s Course disabled.`, course.Aliases[0]))
+										}
+									} else {
+										s.courses = append(s.courses, course)
+										sendServerChatMessage(s, fmt.Sprintf(`%s Course enabled.`, course.Aliases[0]))
 									}
 								} else {
-									s.courses = append(s.courses, course)
-									sendServerChatMessage(s, fmt.Sprintf(`%s Course enabled.`, course.Aliases[0]))
+									sendServerChatMessage(s, fmt.Sprintf(`%s Course is locked.`, course.Aliases[0]))
 								}
 							}
 						}

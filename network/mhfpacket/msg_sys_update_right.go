@@ -3,6 +3,7 @@ package mhfpacket
 import (
 	"errors"
 	ps "erupe-ce/common/pascalstring"
+	"golang.org/x/exp/slices"
 
 	"erupe-ce/common/byteframe"
 	"erupe-ce/network"
@@ -95,7 +96,11 @@ func Courses() []Course {
 // GetCourseStruct returns a slice of Course(s) from a rights integer
 func GetCourseStruct(rights uint32) []Course {
 	var resp []Course
-	for _, course := range Courses() {
+	s := Courses()
+	slices.SortStableFunc(s, func(i, j Course) bool {
+		return i.ID > j.ID
+	})
+	for _, course := range s {
 		if rights-course.Value < 0x80000000 {
 			resp = append(resp, course)
 			rights -= course.Value

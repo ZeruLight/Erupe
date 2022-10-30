@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net"
+	"strings"
 	"sync"
 	"time"
 
@@ -43,7 +44,7 @@ type Session struct {
 	charID           uint32
 	logKey           []byte
 	sessionStart     int64
-	rights           uint32
+	courses          []mhfpacket.Course
 	token            string
 	kqf              []byte
 	kqfOverride      bool
@@ -267,4 +268,13 @@ func (s *Session) logMessage(opcode uint16, data []byte, sender string, recipien
 	} else {
 		fmt.Printf("Data [%d bytes]:\n(Too long!)\n\n", len(data))
 	}
+}
+
+func (s *Session) CourseExists(name string) bool {
+	for _, course := range s.courses {
+		if strings.ToLower(name) == strings.ToLower(course.Name) {
+			return true
+		}
+	}
+	return false
 }

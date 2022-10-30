@@ -70,6 +70,12 @@ type Command struct {
 	Prefix  string
 }
 
+// Courses is an array of enabled courses
+type Courses struct {
+	Name    string
+	Enabled bool
+}
+
 // Database holds the postgres database config.
 type Database struct {
 	Host     string

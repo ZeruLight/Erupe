@@ -272,8 +272,10 @@ func (s *Session) logMessage(opcode uint16, data []byte, sender string, recipien
 
 func (s *Session) CourseExists(name string) bool {
 	for _, course := range s.courses {
-		if strings.ToLower(name) == strings.ToLower(course.Name) {
-			return true
+		for _, alias := range course.Aliases {
+			if strings.ToLower(name) == strings.ToLower(alias) {
+				return true
+			}
 		}
 	}
 	return false

@@ -55,7 +55,21 @@
       "Name": "KeyQuest",
       "Enabled": false,
       "Prefix": "!kqf"
+    }, {
+      "Name": "Course",
+      "Enabled": true,
+      "Prefix": "!course"
     }
+  ],
+  "Courses": [
+    {"Name": "HunterLife", "Enabled": true},
+    {"Name": "ExtraA", "Enabled": true},
+    {"Name": "Premium", "Enabled": true},
+    {"Name": "Assist", "Enabled": true},
+    {"Name": "Netcafe", "Enabled": true},
+    {"Name": "Hiden", "Enabled": true},
+    {"Name": "HunterSupport", "Enabled": true},
+    {"Name": "NetcafeBoost", "Enabled": true}
   ],
   "Database": {
     "Host": "localhost",

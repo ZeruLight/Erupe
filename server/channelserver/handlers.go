@@ -75,13 +75,11 @@ func doAckSimpleFail(s *Session, ackHandle uint32, data []byte) {
 func updateRights(s *Session) {
 	rightsInt := uint32(0x0E)
 	s.server.db.QueryRow("SELECT rights FROM users u INNER JOIN characters c ON u.id = c.user_id WHERE c.id = $1", s.charID).Scan(&rightsInt)
-
-	courses := mhfpacket.GetCourseStruct(rightsInt)
+	s.courses = mhfpacket.GetCourseStruct(rightsInt)
 	rights := []mhfpacket.ClientRight{{1, 0, 0}}
-	for _, course := range courses {
+	for _, course := range s.courses {
 		rights = append(rights, mhfpacket.ClientRight{ID: course.ID, Timestamp: 0x70DB59F0})
 	}
-
 	update := &mhfpacket.MsgSysUpdateRight{
 		ClientRespAckHandle: 0,
 		Bitfield:            rightsInt,

@@ -311,6 +311,43 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 			}
 		}
 
+		if strings.HasPrefix(chatMessage.Message, commands["Course"].Prefix) {
+			if commands["Course"].Enabled {
+				var name string
+				n, err := fmt.Sscanf(chatMessage.Message, "!course %s", &name)
+				if err != nil || n != 1 {
+					sendServerChatMessage(s, "Error in command. Format: !course <name>")
+				} else {
+					name = strings.ToLower(name)
+					for _, course := range mhfpacket.Courses() {
+						for _, alias := range course.Aliases {
+							if strings.ToLower(name) == strings.ToLower(alias) {
+								if s.CourseExists(name) {
+									existingIndex := -1
+									for i, course := range s.courses {
+										for _, alias := range course.Aliases {
+											if strings.ToLower(name) == strings.ToLower(alias) {
+												existingIndex = i
+											}
+										}
+									}
+									if existingIndex >= 0 {
+										s.courses = append(s.courses[:existingIndex], s.courses[existingIndex+1:]...)
+										sendServerChatMessage(s, fmt.Sprintf(`%s Course disabled.`, course.Aliases[0]))
+									}
+								} else {
+									s.courses = append(s.courses, course)
+									sendServerChatMessage(s, fmt.Sprintf(`%s Course enabled.`, course.Aliases[0]))
+								}
+							}
+						}
+					}
+				}
+			} else {
+				sendDisabledCommandMessage(s, commands["Course"])
+			}
+		}
+
 		if strings.HasPrefix(chatMessage.Message, commands["Raviente"].Prefix) {
 			if commands["Raviente"].Enabled {
 				if getRaviSemaphore(s) != "" {

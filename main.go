@@ -105,8 +105,6 @@ func main() {
 	// Clear stale data
 	_ = db.MustExec("DELETE FROM sign_sessions")
 	_ = db.MustExec("DELETE FROM servers")
-	_ = db.MustExec("DELETE FROM cafe_accepted")
-	_ = db.MustExec("UPDATE characters SET cafe_time=0")
 
 	// Clean the DB if the option is on.
 	if config.ErupeConfig.DevMode && config.ErupeConfig.DevModeOptions.CleanDB {
@@ -119,7 +117,7 @@ func main() {
 
 	// Launcher HTTP server.
 	var launcherServer *launcherserver.Server
-	if config.ErupeConfig.DevMode && config.ErupeConfig.DevModeOptions.EnableLauncherServer {
+	if config.ErupeConfig.Launcher.Enabled {
 		launcherServer = launcherserver.NewServer(
 			&launcherserver.Config{
 				Logger:                   logger.Named("launcher"),
@@ -235,7 +233,7 @@ func main() {
 		entranceServer.Shutdown()
 	}
 
-	if config.ErupeConfig.DevModeOptions.EnableLauncherServer {
+	if config.ErupeConfig.Launcher.Enabled {
 		launcherServer.Shutdown()
 	}
 

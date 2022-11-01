@@ -7,6 +7,7 @@ import (
 	"erupe-ce/network/binpacket"
 	"erupe-ce/network/mhfpacket"
 	"fmt"
+	"golang.org/x/exp/slices"
 	"math"
 	"math/rand"
 	"strings"
@@ -19,6 +20,7 @@ import (
 const (
 	BinaryMessageTypeState      = 0
 	BinaryMessageTypeChat       = 1
+	BinaryMessageTypeQuest      = 2
 	BinaryMessageTypeData       = 3
 	BinaryMessageTypeMailNotify = 4
 	BinaryMessageTypeEmote      = 6
@@ -86,6 +88,18 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 			tmp.SetLE()
 			frame := tmp.ReadUint32()
 			sendServerChatMessage(s, fmt.Sprintf("TIME : %d'%d.%03d (%dframe)", frame/30/60, frame/30%60, int(math.Round(float64(frame%30*100)/3)), frame))
+		}
+	}
+
+	if s.server.erupeConfig.DevModeOptions.QuestDebugTools == true && s.server.erupeConfig.DevMode {
+		if pkt.BroadcastType == 0x03 && pkt.MessageType == 0x02 && len(pkt.RawDataPayload) > 32 {
+			// This is only correct most of the time
+			tmp.ReadBytes(20)
+			tmp.SetLE()
+			x := tmp.ReadFloat32()
+			y := tmp.ReadFloat32()
+			z := tmp.ReadFloat32()
+			s.logger.Debug("Coord", zap.Float32s("XYZ", []float32{x, y, z}))
 		}
 	}
 
@@ -295,6 +309,53 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 				}
 			} else {
 				sendDisabledCommandMessage(s, commands["Rights"])
+			}
+		}
+
+		if strings.HasPrefix(chatMessage.Message, commands["Course"].Prefix) {
+			if commands["Course"].Enabled {
+				var name string
+				n, err := fmt.Sscanf(chatMessage.Message, "!course %s", &name)
+				if err != nil || n != 1 {
+					sendServerChatMessage(s, "Error in command. Format: !course <name>")
+				} else {
+					name = strings.ToLower(name)
+					for _, course := range mhfpacket.Courses() {
+						for _, alias := range course.Aliases {
+							if strings.ToLower(name) == strings.ToLower(alias) {
+								if slices.Contains(s.server.erupeConfig.Courses, config.Course{Name: course.Aliases[0], Enabled: true}) {
+									if s.FindCourse(name).Value != 0 {
+										ei := slices.IndexFunc(s.courses, func(c mhfpacket.Course) bool {
+											for _, alias := range c.Aliases {
+												if strings.ToLower(name) == strings.ToLower(alias) {
+													return true
+												}
+											}
+											return false
+										})
+										if ei != -1 {
+											s.courses = append(s.courses[:ei], s.courses[ei+1:]...)
+											sendServerChatMessage(s, fmt.Sprintf(`%s Course disabled.`, course.Aliases[0]))
+										}
+									} else {
+										s.courses = append(s.courses, course)
+										sendServerChatMessage(s, fmt.Sprintf(`%s Course enabled.`, course.Aliases[0]))
+									}
+									var newInt uint32
+									for _, course := range s.courses {
+										newInt += course.Value
+									}
+									s.server.db.Exec("UPDATE users u SET rights=$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)", newInt, s.charID)
+									updateRights(s)
+								} else {
+									sendServerChatMessage(s, fmt.Sprintf(`%s Course is locked.`, course.Aliases[0]))
+								}
+							}
+						}
+					}
+				}
+			} else {
+				sendDisabledCommandMessage(s, commands["Course"])
 			}
 		}
 

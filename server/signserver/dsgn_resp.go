@@ -42,13 +42,23 @@ func (s *Session) makeSignInResp(uid int) []byte {
 
 	bf := byteframe.NewByteFrame()
 
-	bf.WriteUint8(1)                          // resp_code
-	bf.WriteUint8(0)                          // file/patch server count
+	bf.WriteUint8(1) // resp_code
+	if s.server.erupeConfig.DevMode && s.server.erupeConfig.DevModeOptions.PatchServerManifest != "" && s.server.erupeConfig.DevModeOptions.PatchServerFile != "" {
+		bf.WriteUint8(2)
+	} else {
+		bf.WriteUint8(0)
+	}
 	bf.WriteUint8(1)                          // entrance server count
 	bf.WriteUint8(uint8(len(chars)))          // character count
 	bf.WriteUint32(0xFFFFFFFF)                // login_token_number
 	bf.WriteBytes([]byte(token))              // login_token
 	bf.WriteUint32(uint32(time.Now().Unix())) // current time
+	if s.server.erupeConfig.DevMode {
+		if s.server.erupeConfig.DevModeOptions.PatchServerManifest != "" && s.server.erupeConfig.DevModeOptions.PatchServerFile != "" {
+			ps.Uint8(bf, s.server.erupeConfig.DevModeOptions.PatchServerManifest, false)
+			ps.Uint8(bf, s.server.erupeConfig.DevModeOptions.PatchServerFile, false)
+		}
+	}
 	ps.Uint8(bf, fmt.Sprintf("%s:%d", s.server.erupeConfig.Host, s.server.erupeConfig.Entrance.Port), false)
 
 	lastPlayed := uint32(0)

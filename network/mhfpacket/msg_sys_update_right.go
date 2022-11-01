@@ -2,6 +2,8 @@ package mhfpacket
 
 import (
 	"errors"
+	ps "erupe-ce/common/pascalstring"
+	"golang.org/x/exp/slices"
 
 	"erupe-ce/common/byteframe"
 	"erupe-ce/network"
@@ -34,6 +36,12 @@ type ClientRight struct {
 	Timestamp uint32
 }
 
+type Course struct {
+	Aliases []string
+	ID      uint16
+	Value   uint32
+}
+
 // MsgSysUpdateRight represents the MSG_SYS_UPDATE_RIGHT
 type MsgSysUpdateRight struct {
 	ClientRespAckHandle uint32 // If non-0, requests the client to send back a MSG_SYS_ACK packet with this value.
@@ -63,9 +71,40 @@ func (m *MsgSysUpdateRight) Build(bf *byteframe.ByteFrame, ctx *clientctx.Client
 		bf.WriteUint16(v.Unk0)
 		bf.WriteUint32(v.Timestamp)
 	}
-
-	bf.WriteUint16(m.UnkSize) // String of upto 0x800 bytes, update client login token / password in the game's launcherstate struct.
-	//bf.WriteBytes(m.UpdatedClientLoginToken)
-
+	ps.Uint16(bf, "", false) // update client login token / password in the game's launcherstate struct
 	return nil
+}
+
+func Courses() []Course {
+	var courses = []Course{
+		{[]string{"Trial", "TL"}, 1, 0x00000002},
+		{[]string{"HunterLife", "HL"}, 2, 0x00000004},
+		{[]string{"ExtraA", "Extra", "EX"}, 3, 0x00000008},
+		{[]string{"ExtraB"}, 4, 0x00000010},
+		{[]string{"Mobile"}, 5, 0x00000020},
+		{[]string{"Premium"}, 6, 0x00000040},
+		{[]string{"Pallone"}, 7, 0x00000080},
+		{[]string{"Assist", "Legend", "Rasta"}, 8, 0x00000100}, // Legend
+		{[]string{"Netcafe", "N", "Cafe"}, 9, 0x00000200},
+		{[]string{"Hiden", "Secret"}, 10, 0x00000400},                                       // Secret
+		{[]string{"HunterSupport", "HunterAid", "Support", "Royal", "Aid"}, 11, 0x00000800}, // Royal
+		{[]string{"NetcafeBoost", "NBoost", "Boost"}, 12, 0x00001000},
+	}
+	return courses
+}
+
+// GetCourseStruct returns a slice of Course(s) from a rights integer
+func GetCourseStruct(rights uint32) []Course {
+	var resp []Course
+	s := Courses()
+	slices.SortStableFunc(s, func(i, j Course) bool {
+		return i.ID > j.ID
+	})
+	for _, course := range s {
+		if rights-course.Value < 0x80000000 {
+			resp = append(resp, course)
+			rights -= course.Value
+		}
+	}
+	return resp
 }

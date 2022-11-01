@@ -148,7 +148,7 @@ func (s *Server) getFriendsForCharacters(chars []character) []members {
 		if err != nil {
 			continue
 		}
-		for i, _ := range charFriends {
+		for i := range charFriends {
 			charFriends[i].CID = char.ID
 		}
 		friends = append(friends, charFriends...)

@@ -2,7 +2,7 @@ package channelserver
 
 import (
 	"fmt"
-	"io"
+	"go.uber.org/zap"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -14,14 +14,24 @@ import (
 func handleMsgSysGetFile(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysGetFile)
 
-	// Debug print the request.
 	if pkt.IsScenario {
-		fmt.Printf("%+v\n", pkt.ScenarioIdentifer)
+		if s.server.erupeConfig.DevModeOptions.QuestDebugTools && s.server.erupeConfig.DevMode {
+			s.logger.Debug(
+				"Scenario",
+				zap.Uint8("CategoryID", pkt.ScenarioIdentifer.CategoryID),
+				zap.Uint32("MainID", pkt.ScenarioIdentifer.MainID),
+				zap.Uint8("ChapterID", pkt.ScenarioIdentifer.ChapterID),
+				zap.Uint8("Flags", pkt.ScenarioIdentifer.Flags),
+			)
+		}
 		filename := fmt.Sprintf("%d_0_0_0_S%d_T%d_C%d", pkt.ScenarioIdentifer.CategoryID, pkt.ScenarioIdentifer.MainID, pkt.ScenarioIdentifer.Flags, pkt.ScenarioIdentifer.ChapterID)
 		// Read the scenario file.
 		data, err := ioutil.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("scenarios/%s.bin", filename)))
 		if err != nil {
-			panic(err)
+			s.logger.Error(fmt.Sprintf("Failed to open file: %s/scenarios/%s.bin", s.server.erupeConfig.BinPath, filename))
+			// This will crash the game.
+			doAckBufSucceed(s, pkt.AckHandle, data)
+			return
 		}
 		doAckBufSucceed(s, pkt.AckHandle, data)
 	} else {
@@ -32,10 +42,19 @@ func handleMsgSysGetFile(s *Session, p mhfpacket.MHFPacket) {
 			}
 			doAckBufSucceed(s, pkt.AckHandle, data)
 		} else {
+			if s.server.erupeConfig.DevModeOptions.QuestDebugTools && s.server.erupeConfig.DevMode {
+				s.logger.Debug(
+					"Quest",
+					zap.String("Filename", pkt.Filename),
+				)
+			}
 			// Get quest file.
 			data, err := ioutil.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("quests/%s.bin", pkt.Filename)))
 			if err != nil {
-				s.logger.Fatal(fmt.Sprintf("Failed to open quest file: quests/%s.bin", pkt.Filename))
+				s.logger.Error(fmt.Sprintf("Failed to open file: %s/quests/%s.bin", s.server.erupeConfig.BinPath, pkt.Filename))
+				// This will crash the game.
+				doAckBufSucceed(s, pkt.AckHandle, data)
+				return
 			}
 			doAckBufSucceed(s, pkt.AckHandle, data)
 		}

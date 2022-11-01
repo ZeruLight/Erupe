@@ -15,11 +15,13 @@ type Config struct {
 	Host             string `mapstructure:"Host"`
 	BinPath          string `mapstructure:"BinPath"`
 	DisableSoftCrash bool   // Disables the 'Press Return to exit' dialog allowing scripts to reboot the server automatically
+	FeaturedWeapons  int    // Number of Active Feature weapons to generate daily
 	DevMode          bool
 
 	DevModeOptions DevModeOptions
 	Discord        Discord
 	Commands       []Command
+	Courses        []Course
 	Database       Database
 	Launcher       Launcher
 	Sign           Sign
@@ -29,22 +31,25 @@ type Config struct {
 
 // DevModeOptions holds various debug/temporary options for use while developing Erupe.
 type DevModeOptions struct {
-	EnableLauncherServer bool   // Enables the launcher server to be served on port 80
-	HideLoginNotice      bool   // Hide the Erupe notice on login
-	LoginNotice          string // MHFML string of the login notice displayed
-	CleanDB              bool   // Automatically wipes the DB on server reset.
-	MaxLauncherHR        bool   // Sets the HR returned in the launcher to HR7 so that you can join non-beginner worlds.
-	LogInboundMessages   bool   // Log all messages sent to the server
-	LogOutboundMessages  bool   // Log all messages sent to the clients
-	MaxHexdumpLength     int    // Maximum number of bytes printed when logs are enabled
-	DivaEvent            int    // Diva Defense event status
-	FestaEvent           int    // Hunter's Festa event status
-	TournamentEvent      int    // VS Tournament event status
-	MezFesEvent          bool   // MezFes status
-	MezFesAlt            bool   // Swaps out Volpakkun for Tokotoko
-	DisableTokenCheck    bool   // Disables checking login token exists in the DB (security risk!)
-	DisableMailItems     bool   // Hack to prevent english versions of MHF from crashing
-	SaveDumps            SaveDumpOptions
+	PatchServerManifest string // Manifest patch server override
+	PatchServerFile     string // File patch server override
+	AutoCreateAccount   bool   // Automatically create accounts if they don't exist
+	HideLoginNotice     bool   // Hide the Erupe notice on login
+	LoginNotice         string // MHFML string of the login notice displayed
+	CleanDB             bool   // Automatically wipes the DB on server reset.
+	MaxLauncherHR       bool   // Sets the HR returned in the launcher to HR7 so that you can join non-beginner worlds.
+	LogInboundMessages  bool   // Log all messages sent to the server
+	LogOutboundMessages bool   // Log all messages sent to the clients
+	MaxHexdumpLength    int    // Maximum number of bytes printed when logs are enabled
+	DivaEvent           int    // Diva Defense event status
+	FestaEvent          int    // Hunter's Festa event status
+	TournamentEvent     int    // VS Tournament event status
+	MezFesEvent         bool   // MezFes status
+	MezFesAlt           bool   // Swaps out Volpakkun for Tokotoko
+	DisableTokenCheck   bool   // Disables checking login token exists in the DB (security risk!)
+	DisableMailItems    bool   // Hack to prevent english versions of MHF from crashing
+	QuestDebugTools     bool   // Enable various quest debug logs
+	SaveDumps           SaveDumpOptions
 }
 
 type SaveDumpOptions struct {
@@ -64,6 +69,12 @@ type Command struct {
 	Name    string
 	Enabled bool
 	Prefix  string
+}
+
+// Course represents a course within MHF
+type Course struct {
+	Name    string
+	Enabled bool
 }
 
 // Database holds the postgres database config.

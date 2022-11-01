@@ -6,7 +6,6 @@ import (
 	"erupe-ce/common/stringsupport"
 	"fmt"
 	"io"
-	"math"
 	"net"
 	"strings"
 	"time"
@@ -74,26 +73,16 @@ func doAckSimpleFail(s *Session, ackHandle uint32, data []byte) {
 }
 
 func updateRights(s *Session) {
-	s.rights = uint32(0x0E)
-	s.server.db.QueryRow("SELECT rights FROM users u INNER JOIN characters c ON u.id = c.user_id WHERE c.id = $1", s.charID).Scan(&s.rights)
-
-	rights := make([]mhfpacket.ClientRight, 0)
-	tempRights := s.rights
-	for i := 30; i > 0; i-- {
-		right := uint32(math.Pow(2, float64(i)))
-		if tempRights-right < 0x80000000 {
-			if i == 1 {
-				continue
-			}
-			rights = append(rights, mhfpacket.ClientRight{ID: uint16(i), Timestamp: 0x70DB59F0})
-			tempRights -= right
-		}
+	rightsInt := uint32(0x0E)
+	s.server.db.QueryRow("SELECT rights FROM users u INNER JOIN characters c ON u.id = c.user_id WHERE c.id = $1", s.charID).Scan(&rightsInt)
+	s.courses = mhfpacket.GetCourseStruct(rightsInt)
+	rights := []mhfpacket.ClientRight{{1, 0, 0}}
+	for _, course := range s.courses {
+		rights = append(rights, mhfpacket.ClientRight{ID: course.ID, Timestamp: 0x70DB59F0})
 	}
-	rights = append(rights, mhfpacket.ClientRight{ID: 1, Timestamp: 0})
-
 	update := &mhfpacket.MsgSysUpdateRight{
 		ClientRespAckHandle: 0,
-		Bitfield:            s.rights,
+		Bitfield:            rightsInt,
 		Rights:              rights,
 		UnkSize:             0,
 	}
@@ -190,6 +179,16 @@ func logoutPlayer(s *Session) {
 	s.server.Unlock()
 
 	for _, stage := range s.server.stages {
+		// Tell sessions registered to disconnecting players quest to unregister
+		if stage.host != nil && stage.host.charID == s.charID {
+			for _, sess := range s.server.sessions {
+				for rSlot := range stage.reservedClientSlots {
+					if sess.charID == rSlot && sess.stage != nil && sess.stage.id[3:5] != "Qs" {
+						sess.QueueSendMHF(&mhfpacket.MsgSysStageDestruct{})
+					}
+				}
+			}
+		}
 		for session := range stage.clients {
 			if session.charID == s.charID {
 				delete(stage.clients, session)
@@ -214,7 +213,7 @@ func logoutPlayer(s *Session) {
 	timePlayed += sessionTime
 
 	var rpGained int
-	if s.rights >= 0x40000000 { // N Course
+	if s.FindCourse("Netcafe").ID != 0 {
 		rpGained = timePlayed / 900
 		timePlayed = timePlayed % 900
 	} else {

@@ -19,6 +19,7 @@ func handleMsgSysCreateStage(s *Session, p mhfpacket.MHFPacket) {
 		doAckSimpleFail(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 	} else {
 		stage := NewStage(pkt.StageID)
+		stage.host = s
 		stage.maxPlayers = uint16(pkt.PlayerCount)
 		s.server.stages[stage.id] = stage
 		doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
@@ -42,6 +43,7 @@ func doStageTransfer(s *Session, ackHandle uint32, stageID string) {
 		stage = s.server.stages[stageID]
 		s.server.Unlock()
 		stage.Lock()
+		stage.host = s
 		stage.clients[s] = s.charID
 		stage.Unlock()
 	}

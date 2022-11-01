@@ -1,6 +1,8 @@
 package channelserver
 
 import (
+	"erupe-ce/common/byteframe"
+	ps "erupe-ce/common/pascalstring"
 	"fmt"
 	"time"
 
@@ -139,8 +141,15 @@ func handleMsgMhfOperateJoint(s *Session, p mhfpacket.MHFPacket) {
 		}
 	case mhfpacket.OPERATE_JOINT_LEAVE:
 		if guild.LeaderCharID == s.charID {
-			// delete alliance application
-			// or leave alliance
+			if guild.ID == alliance.SubGuild1ID && alliance.SubGuild2ID > 0 {
+				s.server.db.Exec(`UPDATE guild_alliances SET sub1_id = sub2_id, sub2_id = NULL WHERE id = $1`, alliance.ID)
+			} else if guild.ID == alliance.SubGuild1ID && alliance.SubGuild2ID == 0 {
+				s.server.db.Exec(`UPDATE guild_alliances SET sub1_id = NULL WHERE id = $1`, alliance.ID)
+			} else {
+				s.server.db.Exec(`UPDATE guild_alliances SET sub2_id = NULL WHERE id = $1`, alliance.ID)
+			}
+			// TODO: Handle deleting Alliance applications
+			doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 		} else {
 			s.logger.Warn(
 				"Non-owner of guild attempted alliance leave",
@@ -148,10 +157,75 @@ func handleMsgMhfOperateJoint(s *Session, p mhfpacket.MHFPacket) {
 			)
 			doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 		}
+	case mhfpacket.OPERATE_JOINT_KICK:
+		if alliance.ParentGuild.LeaderCharID == s.charID {
+			_ = pkt.UnkData.ReadUint8()
+			kickedGuildID := pkt.UnkData.ReadUint32()
+			if kickedGuildID == alliance.SubGuild1ID && alliance.SubGuild2ID > 0 {
+				s.server.db.Exec(`UPDATE guild_alliances SET sub1_id = sub2_id, sub2_id = NULL WHERE id = $1`, alliance.ID)
+			} else if kickedGuildID == alliance.SubGuild1ID && alliance.SubGuild2ID == 0 {
+				s.server.db.Exec(`UPDATE guild_alliances SET sub1_id = NULL WHERE id = $1`, alliance.ID)
+			} else {
+				s.server.db.Exec(`UPDATE guild_alliances SET sub2_id = NULL WHERE id = $1`, alliance.ID)
+			}
+			doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+		} else {
+			s.logger.Warn(
+				"Non-owner of alliance attempted kick",
+				zap.Uint32("CharID", s.charID),
+				zap.Uint32("AllyID", alliance.ID),
+			)
+			doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+		}
 	default:
-		panic(fmt.Sprintf("Unhandled operate joint action '%d'", pkt.Action))
 		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+		panic(fmt.Sprintf("Unhandled operate joint action '%d'", pkt.Action))
 	}
 }
 
-func handleMsgMhfInfoJoint(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfInfoJoint(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfInfoJoint)
+	bf := byteframe.NewByteFrame()
+	alliance, err := GetAllianceData(s, pkt.AllianceID)
+	if err != nil {
+		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+	} else {
+		bf.WriteUint32(alliance.ID)
+		bf.WriteUint32(uint32(alliance.CreatedAt.Unix()))
+		bf.WriteUint16(alliance.TotalMembers)
+		bf.WriteUint16(0x0000) // Unk
+		ps.Uint16(bf, alliance.Name, true)
+		if alliance.SubGuild1ID > 0 {
+			if alliance.SubGuild2ID > 0 {
+				bf.WriteUint8(3)
+			} else {
+				bf.WriteUint8(2)
+			}
+		} else {
+			bf.WriteUint8(1)
+		}
+		bf.WriteUint32(alliance.ParentGuildID)
+		bf.WriteUint32(alliance.ParentGuild.LeaderCharID)
+		bf.WriteUint16(alliance.ParentGuild.Rank)
+		bf.WriteUint16(alliance.ParentGuild.MemberCount)
+		ps.Uint16(bf, alliance.ParentGuild.Name, true)
+		ps.Uint16(bf, alliance.ParentGuild.LeaderName, true)
+		if alliance.SubGuild1ID > 0 {
+			bf.WriteUint32(alliance.SubGuild1ID)
+			bf.WriteUint32(alliance.SubGuild1.LeaderCharID)
+			bf.WriteUint16(alliance.SubGuild1.Rank)
+			bf.WriteUint16(alliance.SubGuild1.MemberCount)
+			ps.Uint16(bf, alliance.SubGuild1.Name, true)
+			ps.Uint16(bf, alliance.SubGuild1.LeaderName, true)
+		}
+		if alliance.SubGuild2ID > 0 {
+			bf.WriteUint32(alliance.SubGuild2ID)
+			bf.WriteUint32(alliance.SubGuild2.LeaderCharID)
+			bf.WriteUint16(alliance.SubGuild2.Rank)
+			bf.WriteUint16(alliance.SubGuild2.MemberCount)
+			ps.Uint16(bf, alliance.SubGuild2.Name, true)
+			ps.Uint16(bf, alliance.SubGuild2.LeaderName, true)
+		}
+		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	}
+}

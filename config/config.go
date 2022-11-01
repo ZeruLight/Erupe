@@ -1,8 +1,11 @@
 package config
 
 import (
+	"fmt"
 	"log"
 	"net"
+	"os"
+	"time"
 
 	"github.com/spf13/viper"
 )
@@ -12,36 +15,41 @@ type Config struct {
 	Host             string `mapstructure:"Host"`
 	BinPath          string `mapstructure:"BinPath"`
 	DisableSoftCrash bool   // Disables the 'Press Return to exit' dialog allowing scripts to reboot the server automatically
+	FeaturedWeapons  int    // Number of Active Feature weapons to generate daily
 	DevMode          bool
 
 	DevModeOptions DevModeOptions
 	Discord        Discord
+	Commands       []Command
+	Courses        []Course
 	Database       Database
 	Launcher       Launcher
 	Sign           Sign
+	Channel        Channel
 	Entrance       Entrance
 }
 
 // DevModeOptions holds various debug/temporary options for use while developing Erupe.
 type DevModeOptions struct {
-	ServerName           string // To get specific instance server about (Current Players/Event Week)
-	EnableLauncherServer bool   // Enables the launcher server to be served on port 80
-	HideLoginNotice      bool   // Hide the Erupe notice on login
-	LoginNotice          string // MHFML string of the login notice displayed
-	CleanDB              bool   // Automatically wipes the DB on server reset.
-	MaxLauncherHR        bool   // Sets the HR returned in the launcher to HR9 so that you can join non-beginner worlds.
-	FixedStageID         bool   // Causes all move_stage to use the ID sl1Ns200p0a0u0 to get you into all stages
-	LogInboundMessages   bool   // Log all messages sent to the server
-	LogOutboundMessages  bool   // Log all messages sent to the clients
-	MaxHexdumpLength     int    // Maximum number of bytes printed when logs are enabled
-	DivaEvent            int    // Diva Defense event status
-	FestaEvent           int    // Hunter's Festa event status
-	TournamentEvent      int    // VS Tournament event status
-	MezFesEvent          bool   // MezFes status
-	MezFesAlt            bool   // Swaps out Volpakkun for Tokotoko
-	DisableTokenCheck    bool   // Disables checking login token exists in the DB (security risk!)
-	DisableMailItems     bool   // Hack to prevent english versions of MHF from crashing
-	SaveDumps            SaveDumpOptions
+	PatchServerManifest string // Manifest patch server override
+	PatchServerFile     string // File patch server override
+	AutoCreateAccount   bool   // Automatically create accounts if they don't exist
+	HideLoginNotice     bool   // Hide the Erupe notice on login
+	LoginNotice         string // MHFML string of the login notice displayed
+	CleanDB             bool   // Automatically wipes the DB on server reset.
+	MaxLauncherHR       bool   // Sets the HR returned in the launcher to HR7 so that you can join non-beginner worlds.
+	LogInboundMessages  bool   // Log all messages sent to the server
+	LogOutboundMessages bool   // Log all messages sent to the clients
+	MaxHexdumpLength    int    // Maximum number of bytes printed when logs are enabled
+	DivaEvent           int    // Diva Defense event status
+	FestaEvent          int    // Hunter's Festa event status
+	TournamentEvent     int    // VS Tournament event status
+	MezFesEvent         bool   // MezFes status
+	MezFesAlt           bool   // Swaps out Volpakkun for Tokotoko
+	DisableTokenCheck   bool   // Disables checking login token exists in the DB (security risk!)
+	DisableMailItems    bool   // Hack to prevent english versions of MHF from crashing
+	QuestDebugTools     bool   // Enable various quest debug logs
+	SaveDumps           SaveDumpOptions
 }
 
 type SaveDumpOptions struct {
@@ -53,10 +61,20 @@ type SaveDumpOptions struct {
 type Discord struct {
 	Enabled           bool
 	BotToken          string
-	ServerID          string
 	RealtimeChannelID string
-	DevRoles          []string
-	DevMode           bool
+}
+
+// Command is a channelserver chat command
+type Command struct {
+	Name    string
+	Enabled bool
+	Prefix  string
+}
+
+// Course represents a course within MHF
+type Course struct {
+	Name    string
+	Enabled bool
 }
 
 // Database holds the postgres database config.
@@ -70,17 +88,24 @@ type Database struct {
 
 // Launcher holds the launcher server config.
 type Launcher struct {
+	Enabled                  bool
 	Port                     int
 	UseOriginalLauncherFiles bool
 }
 
 // Sign holds the sign server config.
 type Sign struct {
-	Port int
+	Enabled bool
+	Port    int
+}
+
+type Channel struct {
+	Enabled bool
 }
 
 // Entrance holds the entrance server config.
 type Entrance struct {
+	Enabled bool
 	Port    uint16
 	Entries []EntranceServerInfo
 }
@@ -105,6 +130,17 @@ type EntranceChannelInfo struct {
 	Port           uint16
 	MaxPlayers     uint16
 	CurrentPlayers uint16
+}
+
+var ErupeConfig *Config
+
+func init() {
+	var err error
+	ErupeConfig, err = LoadConfig()
+	if err != nil {
+		preventClose(fmt.Sprintf("Failed to load config: %s", err.Error()))
+	}
+
 }
 
 // getOutboundIP4 gets the preferred outbound ip4 of this machine
@@ -147,4 +183,21 @@ func LoadConfig() (*Config, error) {
 	}
 
 	return c, nil
+}
+
+func preventClose(text string) {
+	if ErupeConfig.DisableSoftCrash {
+		os.Exit(0)
+	}
+	fmt.Println("\nFailed to start Erupe:\n" + text)
+	go wait()
+	fmt.Println("\nPress Enter/Return to exit...")
+	fmt.Scanln()
+	os.Exit(0)
+}
+
+func wait() {
+	for {
+		time.Sleep(time.Millisecond * 100)
+	}
 }

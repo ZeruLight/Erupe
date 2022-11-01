@@ -6,7 +6,6 @@ import (
 	"erupe-ce/common/stringsupport"
 	"fmt"
 	"io"
-	"math"
 	"net"
 	"strings"
 	"time"
@@ -74,26 +73,16 @@ func doAckSimpleFail(s *Session, ackHandle uint32, data []byte) {
 }
 
 func updateRights(s *Session) {
-	s.rights = uint32(0x0E)
-	s.server.db.QueryRow("SELECT rights FROM users u INNER JOIN characters c ON u.id = c.user_id WHERE c.id = $1", s.charID).Scan(&s.rights)
-
-	rights := make([]mhfpacket.ClientRight, 0)
-	tempRights := s.rights
-	for i := 30; i > 0; i-- {
-		right := uint32(math.Pow(2, float64(i)))
-		if tempRights-right < 0x80000000 {
-			if i == 1 {
-				continue
-			}
-			rights = append(rights, mhfpacket.ClientRight{ID: uint16(i), Timestamp: 0x70DB59F0})
-			tempRights -= right
-		}
+	rightsInt := uint32(0x0E)
+	s.server.db.QueryRow("SELECT rights FROM users u INNER JOIN characters c ON u.id = c.user_id WHERE c.id = $1", s.charID).Scan(&rightsInt)
+	s.courses = mhfpacket.GetCourseStruct(rightsInt)
+	rights := []mhfpacket.ClientRight{{1, 0, 0}}
+	for _, course := range s.courses {
+		rights = append(rights, mhfpacket.ClientRight{ID: course.ID, Timestamp: 0x70DB59F0})
 	}
-	rights = append(rights, mhfpacket.ClientRight{ID: 1, Timestamp: 0})
-
 	update := &mhfpacket.MsgSysUpdateRight{
 		ClientRespAckHandle: 0,
-		Bitfield:            s.rights,
+		Bitfield:            rightsInt,
 		Rights:              rights,
 		UnkSize:             0,
 	}
@@ -118,9 +107,14 @@ func handleMsgSysAck(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgSysTerminalLog(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysTerminalLog)
+	for i := range pkt.Entries {
+		s.server.logger.Info("SysTerminalLog",
+			zap.Uint8("Type1", pkt.Entries[i].Type1),
+			zap.Uint8("Type2", pkt.Entries[i].Type2),
+			zap.Int16s("Data", pkt.Entries[i].Data))
+	}
 	resp := byteframe.NewByteFrame()
-
-	resp.WriteUint32(0x98bd51a9) // LogID to use for requests after this.
+	resp.WriteUint32(pkt.LogID + 1) // LogID to use for requests after this.
 	doAckSimpleSucceed(s, pkt.AckHandle, resp.Data())
 }
 
@@ -177,11 +171,29 @@ func handleMsgSysLogout(s *Session, p mhfpacket.MHFPacket) {
 }
 
 func logoutPlayer(s *Session) {
+	s.server.Lock()
 	if _, exists := s.server.sessions[s.rawConn]; exists {
 		delete(s.server.sessions, s.rawConn)
-		s.rawConn.Close()
-	} else {
-		return // Prevent re-running logout logic on real logouts
+	}
+	s.rawConn.Close()
+	s.server.Unlock()
+
+	for _, stage := range s.server.stages {
+		// Tell sessions registered to disconnecting players quest to unregister
+		if stage.host != nil && stage.host.charID == s.charID {
+			for _, sess := range s.server.sessions {
+				for rSlot := range stage.reservedClientSlots {
+					if sess.charID == rSlot && sess.stage != nil && sess.stage.id[3:5] != "Qs" {
+						sess.QueueSendMHF(&mhfpacket.MsgSysStageDestruct{})
+					}
+				}
+			}
+		}
+		for session := range stage.clients {
+			if session.charID == s.charID {
+				delete(stage.clients, session)
+			}
+		}
 	}
 
 	_, err := s.server.db.Exec("UPDATE sign_sessions SET server_id=NULL, char_id=NULL WHERE token=$1", s.token)
@@ -201,7 +213,7 @@ func logoutPlayer(s *Session) {
 	timePlayed += sessionTime
 
 	var rpGained int
-	if s.rights >= 0x40000000 { // N Course
+	if s.FindCourse("Netcafe").ID != 0 {
 		rpGained = timePlayed / 900
 		timePlayed = timePlayed % 900
 	} else {
@@ -235,17 +247,11 @@ func logoutPlayer(s *Session) {
 
 	saveData, err := GetCharacterSaveData(s, s.charID)
 	if err != nil {
-		panic(err)
+		s.logger.Error("Failed to get savedata")
+		return
 	}
 	saveData.RP += uint16(rpGained)
-	transaction, err := s.server.db.Begin()
-	err = saveData.Save(s, transaction)
-	if err != nil {
-		transaction.Rollback()
-		panic(err)
-	} else {
-		transaction.Commit()
-	}
+	saveData.Save(s)
 }
 
 func handleMsgSysSetStatus(s *Session, p mhfpacket.MHFPacket) {}
@@ -754,6 +760,7 @@ func handleMsgMhfUpdateGuacot(s *Session, p mhfpacket.MHFPacket) {
 			bf.WriteUint8(gook.NameLen)
 			bf.WriteBytes(gook.Name)
 			s.server.db.Exec(fmt.Sprintf("UPDATE gook SET gook%d=$1 WHERE id=$2", gook.Index), bf.Data(), s.charID)
+			dumpSaveData(s, bf.Data(), fmt.Sprintf("goocoo-%d", gook.Index))
 		}
 	}
 	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
@@ -1749,6 +1756,7 @@ func handleMsgMhfUpdateEquipSkinHist(s *Session, p mhfpacket.MHFPacket) {
 	byteInd := (bit / 8)
 	bitInByte := bit % 8
 	data[startByte+byteInd] |= bits.Reverse8((1 << uint(bitInByte)))
+	dumpSaveData(s, data, "skinhist")
 	_, err = s.server.db.Exec("UPDATE characters SET skin_hist=$1 WHERE id=$2", data, s.charID)
 	if err != nil {
 		panic(err)
@@ -1758,8 +1766,9 @@ func handleMsgMhfUpdateEquipSkinHist(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfGetUdShopCoin(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetUdShopCoin)
-	data, _ := hex.DecodeString("0000000000000001")
-	doAckBufSucceed(s, pkt.AckHandle, data)
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint32(0)
+	doAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfUseUdShopCoin(s *Session, p mhfpacket.MHFPacket) {}
@@ -1778,6 +1787,7 @@ func handleMsgMhfGetEnhancedMinidata(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfSetEnhancedMinidata(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSetEnhancedMinidata)
+	dumpSaveData(s, pkt.RawDataPayload, "minidata")
 	_, err := s.server.db.Exec("UPDATE characters SET minidata=$1 WHERE id=$2", pkt.RawDataPayload, s.charID)
 	if err != nil {
 		s.logger.Fatal("Failed to update minidata in db", zap.Error(err))
@@ -1792,9 +1802,7 @@ func handleMsgMhfGetLobbyCrowd(s *Session, p mhfpacket.MHFPacket) {
 	// It can be worried about later if we ever get to the point where there are
 	// full servers to actually need to migrate people from and empty ones to
 	pkt := p.(*mhfpacket.MsgMhfGetLobbyCrowd)
-	blankData := make([]byte, 0x320)
-	doAckBufSucceed(s, pkt.AckHandle, blankData)
-	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+	doAckBufSucceed(s, pkt.AckHandle, make([]byte, 0x320))
 }
 
 func handleMsgMhfGetTrendWeapon(s *Session, p mhfpacket.MHFPacket) {

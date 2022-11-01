@@ -16,32 +16,19 @@ import (
 type Session struct {
 	sync.Mutex
 	logger    *zap.Logger
-	sid       int
 	server    *Server
-	rawConn   *net.Conn
+	rawConn   net.Conn
 	cryptConn *network.CryptConn
 }
 
-func (s *Session) fail() {
-	s.server.Lock()
-	delete(s.server.sessions, s.sid)
-	s.server.Unlock()
-
-}
-
 func (s *Session) work() {
-	for {
-		pkt, err := s.cryptConn.ReadPacket()
-		if err != nil {
-			s.fail()
-			return
-		}
-
-		err = s.handlePacket(pkt)
-		if err != nil {
-			s.fail()
-			return
-		}
+	pkt, err := s.cryptConn.ReadPacket()
+	if err != nil {
+		return
+	}
+	err = s.handlePacket(pkt)
+	if err != nil {
+		return
 	}
 }
 
@@ -61,6 +48,7 @@ func (s *Session) handlePacket(pkt []byte) error {
 	case "DELETE:100":
 		loginTokenString := string(bf.ReadNullTerminatedBytes())
 		characterID := int(bf.ReadUint32())
+		_ = int(bf.ReadUint32()) // login_token_number
 		s.server.deleteCharacter(characterID, loginTokenString)
 		sugar.Infof("Deleted character ID: %v\n", characterID)
 		err := s.cryptConn.SendPacket([]byte{0x01}) // DEL_SUCCESS
@@ -78,13 +66,13 @@ func (s *Session) handleDSGNRequest(bf *byteframe.ByteFrame) error {
 
 	reqUsername := string(bf.ReadNullTerminatedBytes())
 	reqPassword := string(bf.ReadNullTerminatedBytes())
-	reqUnk := string(bf.ReadNullTerminatedBytes())
+	reqSkey := string(bf.ReadNullTerminatedBytes())
 
 	s.server.logger.Info(
 		"Got sign in request",
 		zap.String("reqUsername", reqUsername),
 		zap.String("reqPassword", reqPassword),
-		zap.String("reqUnk", reqUnk),
+		zap.String("reqSkey", reqSkey),
 	)
 
 	newCharaReq := false
@@ -105,12 +93,15 @@ func (s *Session) handleDSGNRequest(bf *byteframe.ByteFrame) error {
 		s.logger.Info("Account not found", zap.String("reqUsername", reqUsername))
 		serverRespBytes = makeSignInFailureResp(SIGN_EAUTH)
 
-		// HACK(Andoryuuta): Create a new account if it doesn't exit.
-		s.logger.Info("Creating account", zap.String("reqUsername", reqUsername), zap.String("reqPassword", reqPassword))
-		err = s.server.registerDBAccount(reqUsername, reqPassword)
-		if err != nil {
-			s.logger.Info("Error on creating new account", zap.Error(err))
-			serverRespBytes = makeSignInFailureResp(SIGN_EABORT)
+		if s.server.erupeConfig.DevMode && s.server.erupeConfig.DevModeOptions.AutoCreateAccount {
+			s.logger.Info("Creating account", zap.String("reqUsername", reqUsername), zap.String("reqPassword", reqPassword))
+			err = s.server.registerDBAccount(reqUsername, reqPassword)
+			if err != nil {
+				s.logger.Info("Error on creating new account", zap.Error(err))
+				serverRespBytes = makeSignInFailureResp(SIGN_EABORT)
+				break
+			}
+		} else {
 			break
 		}
 

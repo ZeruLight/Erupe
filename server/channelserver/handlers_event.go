@@ -53,38 +53,46 @@ func handleMsgMhfEnumerateEvent(s *Session, p mhfpacket.MHFPacket) {
 }
 
 type activeFeature struct {
-	StartTime      time.Time
-	ActiveFeatures uint32
-	Unk1           uint16
+	StartTime      time.Time `db:"start_time"`
+	ActiveFeatures uint32    `db:"featured"`
 }
 
 func handleMsgMhfGetWeeklySchedule(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetWeeklySchedule)
-	persistentEventSchedule := make([]activeFeature, 8) // generate day after weekly restart
-	for x := -1; x < 7; x++ {
-		feat := generateActiveWeapons(14) // number of active weapons
-		// TODO: only generate this once per restart (server should be restarted weekly)
-		// then load data from db instead of regenerating
-		persistentEventSchedule[x+1] = activeFeature{
-			StartTime:      Time_Current_Midnight().Add(time.Duration(24*x) * time.Hour),
-			ActiveFeatures: uint32(feat),
-			Unk1:           0,
+
+	var features []activeFeature
+	rows, _ := s.server.db.Queryx(`SELECT start_time, featured FROM feature_weapon WHERE start_time=$1 OR start_time=$2`, Time_Current_Midnight().Add(-24*time.Hour), Time_Current_Midnight())
+	for rows.Next() {
+		var feature activeFeature
+		rows.StructScan(&feature)
+		features = append(features, feature)
+	}
+
+	if len(features) < 2 {
+		if len(features) == 0 {
+			feature := generateFeatureWeapons(s.server.erupeConfig.FeaturedWeapons)
+			feature.StartTime = Time_Current_Midnight().Add(-24 * time.Hour)
+			features = append(features, feature)
+			s.server.db.Exec(`INSERT INTO feature_weapon VALUES ($1, $2)`, feature.StartTime, feature.ActiveFeatures)
 		}
+		feature := generateFeatureWeapons(s.server.erupeConfig.FeaturedWeapons)
+		feature.StartTime = Time_Current_Midnight()
+		features = append(features, feature)
+		s.server.db.Exec(`INSERT INTO feature_weapon VALUES ($1, $2)`, feature.StartTime, feature.ActiveFeatures)
 	}
 
-	resp := byteframe.NewByteFrame()
-	resp.WriteUint8(uint8(len(persistentEventSchedule)))                           // Entry count, client only parses the first 7 or 8.
-	resp.WriteUint32(uint32(Time_Current_Adjusted().Add(-5 * time.Minute).Unix())) // 5 minutes ago server time
-
-	for _, es := range persistentEventSchedule {
-		resp.WriteUint32(uint32(es.StartTime.Unix()))
-		resp.WriteUint32(es.ActiveFeatures)
-		resp.WriteUint16(es.Unk1)
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint8(2)
+	bf.WriteUint32(uint32(Time_Current_Adjusted().Add(-5 * time.Minute).Unix()))
+	for _, feature := range features {
+		bf.WriteUint32(uint32(feature.StartTime.Unix()))
+		bf.WriteUint32(feature.ActiveFeatures)
+		bf.WriteUint16(0)
 	}
-	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
-func generateActiveWeapons(count int) int {
+func generateFeatureWeapons(count int) activeFeature {
 	nums := make([]int, 0)
 	var result int
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
@@ -104,7 +112,7 @@ func generateActiveWeapons(count int) int {
 	for _, num := range nums {
 		result += int(math.Pow(2, float64(num)))
 	}
-	return result
+	return activeFeature{ActiveFeatures: uint32(result)}
 }
 
 type loginBoost struct {

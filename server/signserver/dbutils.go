@@ -63,7 +63,7 @@ func (s *Server) registerDBAccount(username string, password string) error {
 		INSERT INTO characters (
 			user_id, is_female, is_new_character, name, unk_desc_string,
 			hrp, gr, weapon_type, last_login)
-		VALUES($1, False, True, '', '', 1, 0, 0, $2)`,
+		VALUES($1, False, True, '', '', 0, 0, 0, $2)`,
 		id,
 		uint32(time.Now().Unix()),
 	)
@@ -148,7 +148,7 @@ func (s *Server) getFriendsForCharacters(chars []character) []members {
 		if err != nil {
 			continue
 		}
-		for i, _ := range charFriends {
+		for i := range charFriends {
 			charFriends[i].CID = char.ID
 		}
 		friends = append(friends, charFriends...)

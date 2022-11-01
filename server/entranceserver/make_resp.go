@@ -25,7 +25,7 @@ func encodeServerInfo(config *config.Config, s *Server) []byte {
 		sid := (4096 + serverIdx*256) + 16
 		err := s.db.QueryRow("SELECT season FROM servers WHERE server_id=$1", sid).Scan(&season)
 		if err != nil {
-			panic(err)
+			season = 0
 		}
 		if si.IP == "" {
 			si.IP = config.Host
@@ -50,7 +50,7 @@ func encodeServerInfo(config *config.Config, s *Server) []byte {
 			bf.WriteUint16(ci.MaxPlayers)
 			err := s.db.QueryRow("SELECT current_players FROM servers WHERE server_id=$1", sid).Scan(&currentplayers)
 			if err != nil {
-				panic(err)
+				currentplayers = 0
 			}
 			bf.WriteUint16(currentplayers)
 			bf.WriteUint32(0)

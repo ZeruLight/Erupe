@@ -3,6 +3,7 @@ package channelserver
 import (
 	ps "erupe-ce/common/pascalstring"
 	"fmt"
+	"github.com/jmoiron/sqlx"
 	"io/ioutil"
 	"path/filepath"
 
@@ -15,6 +16,7 @@ func handleMsgMhfSaveRengokuData(s *Session, p mhfpacket.MHFPacket) {
 	// saved every floor on road, holds values such as floors progressed, points etc.
 	// can be safely handled by the client
 	pkt := p.(*mhfpacket.MsgMhfSaveRengokuData)
+	dumpSaveData(s, pkt.RawDataPayload, "rengoku")
 	_, err := s.server.db.Exec("UPDATE characters SET rengokudata=$1 WHERE id=$2", pkt.RawDataPayload, s.charID)
 	if err != nil {
 		s.logger.Fatal("Failed to update rengokudata savedata in db", zap.Error(err))
@@ -95,20 +97,13 @@ func handleMsgMhfGetRengokuBinary(s *Session, p mhfpacket.MHFPacket) {
 	doAckBufSucceed(s, pkt.AckHandle, data)
 }
 
-const rengokuScoreQuery = `
-SELECT max_stages_mp, max_points_mp, max_stages_sp, max_points_sp, c.name, gc.guild_id
-FROM rengoku_score rs
+const rengokuScoreQuery = `, c.name FROM rengoku_score rs
 LEFT JOIN characters c ON c.id = rs.character_id
-LEFT JOIN guild_characters gc ON gc.character_id = rs.character_id
-`
+LEFT JOIN guild_characters gc ON gc.character_id = rs.character_id `
 
 type RengokuScore struct {
-	Name        string `db:"name"`
-	GuildID     int    `db:"guild_id"`
-	MaxStagesMP uint32 `db:"max_stages_mp"`
-	MaxPointsMP uint32 `db:"max_points_mp"`
-	MaxStagesSP uint32 `db:"max_stages_sp"`
-	MaxPointsSP uint32 `db:"max_points_sp"`
+	Name  string `db:"name"`
+	Score uint32 `db:"score"`
 }
 
 func handleMsgMhfEnumerateRengokuRanking(s *Session, p mhfpacket.MHFPacket) {
@@ -120,155 +115,61 @@ func handleMsgMhfEnumerateRengokuRanking(s *Session, p mhfpacket.MHFPacket) {
 		guild = nil
 	}
 
+	if pkt.Leaderboard == 2 || pkt.Leaderboard == 3 || pkt.Leaderboard == 6 || pkt.Leaderboard == 7 {
+		if guild == nil {
+			doAckBufSucceed(s, pkt.AckHandle, make([]byte, 11))
+			return
+		}
+	}
+
 	var score RengokuScore
+	var selfExist bool
 	i := uint32(1)
 	bf := byteframe.NewByteFrame()
 	scoreData := byteframe.NewByteFrame()
+
+	var rows *sqlx.Rows
 	switch pkt.Leaderboard {
-	case 0: // Max stage overall MP
-		rows, _ := s.server.db.Queryx(fmt.Sprintf("%s ORDER BY max_stages_mp DESC", rengokuScoreQuery))
-		for rows.Next() {
-			rows.StructScan(&score)
-			if score.Name == s.Name {
-				bf.WriteUint32(i)
-				bf.WriteUint32(score.MaxStagesMP)
-				ps.Uint8(bf, s.Name, true)
-				ps.Uint8(bf, "", false)
-			}
-			scoreData.WriteUint32(i)
-			scoreData.WriteUint32(score.MaxStagesMP)
-			ps.Uint8(scoreData, score.Name, true)
-			ps.Uint8(scoreData, "", false)
+	case 0:
+		rows, _ = s.server.db.Queryx(fmt.Sprintf("SELECT max_stages_mp AS score %s ORDER BY max_stages_mp DESC", rengokuScoreQuery))
+	case 1:
+		rows, _ = s.server.db.Queryx(fmt.Sprintf("SELECT max_points_mp AS score %s ORDER BY max_points_mp DESC", rengokuScoreQuery))
+	case 2:
+		rows, _ = s.server.db.Queryx(fmt.Sprintf("SELECT max_stages_mp AS score %s WHERE guild_id=$1 ORDER BY max_stages_mp DESC", rengokuScoreQuery), guild.ID)
+	case 3:
+		rows, _ = s.server.db.Queryx(fmt.Sprintf("SELECT max_points_mp AS score %s WHERE guild_id=$1 ORDER BY max_points_mp DESC", rengokuScoreQuery), guild.ID)
+	case 4:
+		rows, _ = s.server.db.Queryx(fmt.Sprintf("SELECT max_stages_sp AS score %s ORDER BY max_stages_sp DESC", rengokuScoreQuery))
+	case 5:
+		rows, _ = s.server.db.Queryx(fmt.Sprintf("SELECT max_points_sp AS score %s ORDER BY max_points_sp DESC", rengokuScoreQuery))
+	case 6:
+		rows, _ = s.server.db.Queryx(fmt.Sprintf("SELECT max_stages_sp AS score %s WHERE guild_id=$1 ORDER BY max_stages_sp DESC", rengokuScoreQuery), guild.ID)
+	case 7:
+		rows, _ = s.server.db.Queryx(fmt.Sprintf("SELECT max_points_sp AS score %s WHERE guild_id=$1 ORDER BY max_points_sp DESC", rengokuScoreQuery), guild.ID)
+	}
+
+	for rows.Next() {
+		rows.StructScan(&score)
+		if score.Name == s.Name {
+			bf.WriteUint32(i)
+			bf.WriteUint32(score.Score)
+			ps.Uint8(bf, s.Name, true)
+			ps.Uint8(bf, "", false)
+			selfExist = true
+		}
+		if i > 100 {
 			i++
+			continue
 		}
-	case 1: // Max RdP overall MP
-		rows, _ := s.server.db.Queryx(fmt.Sprintf("%s ORDER BY max_points_mp DESC", rengokuScoreQuery))
-		for rows.Next() {
-			rows.StructScan(&score)
-			if score.Name == s.Name {
-				bf.WriteUint32(i)
-				bf.WriteUint32(score.MaxPointsMP)
-				ps.Uint8(bf, s.Name, true)
-				ps.Uint8(bf, "", false)
-			}
-			scoreData.WriteUint32(i)
-			scoreData.WriteUint32(score.MaxPointsMP)
-			ps.Uint8(scoreData, score.Name, true)
-			ps.Uint8(scoreData, "", false)
-			i++
-		}
-	case 2: // Max stage guild MP
-		if guild != nil {
-			rows, _ := s.server.db.Queryx(fmt.Sprintf("%s WHERE guild_id=$1 ORDER BY max_stages_mp DESC", rengokuScoreQuery), guild.ID)
-			for rows.Next() {
-				rows.StructScan(&score)
-				if score.Name == s.Name {
-					bf.WriteUint32(i)
-					bf.WriteUint32(score.MaxStagesMP)
-					ps.Uint8(bf, s.Name, true)
-					ps.Uint8(bf, "", false)
-				}
-				scoreData.WriteUint32(i)
-				scoreData.WriteUint32(score.MaxStagesMP)
-				ps.Uint8(scoreData, score.Name, true)
-				ps.Uint8(scoreData, "", false)
-				i++
-			}
-		} else {
-			bf.WriteBytes(make([]byte, 11))
-		}
-	case 3: // Max RdP guild MP
-		if guild != nil {
-			rows, _ := s.server.db.Queryx(fmt.Sprintf("%s WHERE guild_id=$1 ORDER BY max_points_mp DESC", rengokuScoreQuery), guild.ID)
-			for rows.Next() {
-				rows.StructScan(&score)
-				if score.Name == s.Name {
-					bf.WriteUint32(i)
-					bf.WriteUint32(score.MaxPointsMP)
-					ps.Uint8(bf, s.Name, true)
-					ps.Uint8(bf, "", false)
-				}
-				scoreData.WriteUint32(i)
-				scoreData.WriteUint32(score.MaxPointsMP)
-				ps.Uint8(scoreData, score.Name, true)
-				ps.Uint8(scoreData, "", false)
-				i++
-			}
-		} else {
-			bf.WriteBytes(make([]byte, 11))
-		}
-	case 4: // Max stage overall SP
-		rows, _ := s.server.db.Queryx(fmt.Sprintf("%s ORDER BY max_stages_sp DESC", rengokuScoreQuery))
-		for rows.Next() {
-			rows.StructScan(&score)
-			if score.Name == s.Name {
-				bf.WriteUint32(i)
-				bf.WriteUint32(score.MaxStagesSP)
-				ps.Uint8(bf, s.Name, true)
-				ps.Uint8(bf, "", false)
-			}
-			scoreData.WriteUint32(i)
-			scoreData.WriteUint32(score.MaxStagesSP)
-			ps.Uint8(scoreData, score.Name, true)
-			ps.Uint8(scoreData, "", false)
-			i++
-		}
-	case 5: // Max RdP overall SP
-		rows, _ := s.server.db.Queryx(fmt.Sprintf("%s ORDER BY max_points_sp DESC", rengokuScoreQuery))
-		for rows.Next() {
-			rows.StructScan(&score)
-			if score.Name == s.Name {
-				bf.WriteUint32(i)
-				bf.WriteUint32(score.MaxPointsSP)
-				ps.Uint8(bf, s.Name, true)
-				ps.Uint8(bf, "", false)
-			}
-			scoreData.WriteUint32(i)
-			scoreData.WriteUint32(score.MaxPointsSP)
-			ps.Uint8(scoreData, score.Name, true)
-			ps.Uint8(scoreData, "", false)
-			i++
-		}
-	case 6: // Max stage guild SP
-		if guild != nil {
-			rows, _ := s.server.db.Queryx(fmt.Sprintf("%s WHERE guild_id=$1 ORDER BY max_stages_sp DESC", rengokuScoreQuery), guild.ID)
-			for rows.Next() {
-				rows.StructScan(&score)
-				if score.Name == s.Name {
-					bf.WriteUint32(i)
-					bf.WriteUint32(score.MaxStagesSP)
-					ps.Uint8(bf, s.Name, true)
-					ps.Uint8(bf, "", false)
-				}
-				scoreData.WriteUint32(i)
-				scoreData.WriteUint32(score.MaxStagesSP)
-				ps.Uint8(scoreData, score.Name, true)
-				ps.Uint8(scoreData, "", false)
-				i++
-			}
-		} else {
-			bf.WriteBytes(make([]byte, 11))
-		}
-	case 7: // Max RdP guild SP
-		if guild != nil {
-			rows, _ := s.server.db.Queryx(fmt.Sprintf("%s WHERE guild_id=$1 ORDER BY max_points_sp DESC", rengokuScoreQuery), guild.ID)
-			for rows.Next() {
-				rows.StructScan(&score)
-				if score.Name == s.Name {
-					bf.WriteUint32(i)
-					bf.WriteUint32(score.MaxPointsSP)
-					ps.Uint8(bf, s.Name, true)
-					ps.Uint8(bf, "", false)
-				}
-				scoreData.WriteUint32(i)
-				scoreData.WriteUint32(score.MaxPointsSP)
-				ps.Uint8(scoreData, score.Name, true)
-				ps.Uint8(scoreData, "", false)
-				i++
-			}
-		} else {
-			bf.WriteBytes(make([]byte, 11))
-		}
+		scoreData.WriteUint32(i)
+		scoreData.WriteUint32(score.Score)
+		ps.Uint8(scoreData, score.Name, true)
+		ps.Uint8(scoreData, "", false)
+		i++
+	}
+
+	if !selfExist {
+		bf.WriteBytes(make([]byte, 10))
 	}
 	bf.WriteUint8(uint8(i) - 1)
 	bf.WriteBytes(scoreData.Data())

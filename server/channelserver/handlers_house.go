@@ -38,24 +38,26 @@ FROM warehouse
 
 func handleMsgMhfUpdateInterior(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfUpdateInterior)
-	_, err := s.server.db.Exec("UPDATE characters SET house=$1 WHERE id=$2", pkt.InteriorData, s.charID)
-	if err != nil {
-		panic(err)
-	}
+	s.server.db.Exec(`UPDATE user_binary SET house_furniture=$1 WHERE id=$2`, pkt.InteriorData, s.charID)
 	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 type HouseData struct {
-	CharID uint32 `db:"id"`
-	HRP    uint16 `db:"hrp"`
-	GR     uint16 `db:"gr"`
-	Name   string `db:"name"`
+	CharID        uint32 `db:"id"`
+	HRP           uint16 `db:"hrp"`
+	GR            uint16 `db:"gr"`
+	Name          string `db:"name"`
+	HouseState    uint8  `db:"house_state"`
+	HousePassword string `db:"house_password"`
 }
 
 func handleMsgMhfEnumerateHouse(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateHouse)
 	bf := byteframe.NewByteFrame()
+	bf.WriteUint16(0)
 	var houses []HouseData
+	houseQuery := `SELECT c.id, hrp, gr, name, COALESCE(ub.house_state, 2) as house_state, COALESCE(ub.house_password, '') as house_password
+		FROM characters c LEFT JOIN user_binary ub ON ub.id = c.id WHERE c.id=$1`
 	switch pkt.Method {
 	case 1:
 		var friendsList string
@@ -63,17 +65,15 @@ func handleMsgMhfEnumerateHouse(s *Session, p mhfpacket.MHFPacket) {
 		cids := stringsupport.CSVElems(friendsList)
 		for _, cid := range cids {
 			house := HouseData{}
-			row := s.server.db.QueryRowx("SELECT id, hrp, gr, name FROM characters WHERE id=$1", cid)
+			row := s.server.db.QueryRowx(houseQuery, cid)
 			err := row.StructScan(&house)
-			if err != nil {
-				panic(err)
-			} else {
+			if err == nil {
 				houses = append(houses, house)
 			}
 		}
 	case 2:
 		guild, err := GetGuildInfoByCharacterId(s, s.charID)
-		if err != nil {
+		if err != nil || guild == nil {
 			break
 		}
 		guildMembers, err := GetGuildMembers(s, guild.ID, false)
@@ -82,58 +82,48 @@ func handleMsgMhfEnumerateHouse(s *Session, p mhfpacket.MHFPacket) {
 		}
 		for _, member := range guildMembers {
 			house := HouseData{}
-			row := s.server.db.QueryRowx("SELECT id, hrp, gr, name FROM characters WHERE id=$1", member.CharID)
-			err := row.StructScan(&house)
-			if err != nil {
-				panic(err)
-			} else {
+			row := s.server.db.QueryRowx(houseQuery, member.CharID)
+			err = row.StructScan(&house)
+			if err == nil {
 				houses = append(houses, house)
 			}
 		}
 	case 3:
+		houseQuery = `SELECT c.id, hrp, gr, name, COALESCE(ub.house_state, 2) as house_state, COALESCE(ub.house_password, '') as house_password
+			FROM characters c LEFT JOIN user_binary ub ON ub.id = c.id WHERE name ILIKE $1`
 		house := HouseData{}
-		row := s.server.db.QueryRowx("SELECT id, hrp, gr, name FROM characters WHERE name ILIKE $1", fmt.Sprintf(`%%%s%%`, pkt.Name))
-		err := row.StructScan(&house)
-		if err != nil {
-			panic(err)
-		} else {
-			houses = append(houses, house)
+		rows, _ := s.server.db.Queryx(houseQuery, fmt.Sprintf(`%%%s%%`, pkt.Name))
+		for rows.Next() {
+			err := rows.StructScan(&house)
+			if err == nil {
+				houses = append(houses, house)
+			}
 		}
 	case 4:
 		house := HouseData{}
-		row := s.server.db.QueryRowx("SELECT id, hrp, gr, name FROM characters WHERE id=$1", pkt.CharID)
+		row := s.server.db.QueryRowx(houseQuery, pkt.CharID)
 		err := row.StructScan(&house)
-		if err != nil {
-			panic(err)
-		} else {
+		if err == nil {
 			houses = append(houses, house)
 		}
 	case 5: // Recent visitors
 		break
 	}
-	var exists int
 	for _, house := range houses {
-		for _, session := range s.server.sessions {
-			if session.charID == house.CharID {
-				exists++
-				bf.WriteUint32(house.CharID)
-				bf.WriteUint8(session.myseries.state)
-				if len(session.myseries.password) > 0 {
-					bf.WriteUint8(3)
-				} else {
-					bf.WriteUint8(0)
-				}
-				bf.WriteUint16(house.HRP)
-				bf.WriteUint16(house.GR)
-				ps.Uint8(bf, house.Name, true)
-				break
-			}
+		bf.WriteUint32(house.CharID)
+		bf.WriteUint8(house.HouseState)
+		if len(house.HousePassword) > 0 {
+			bf.WriteUint8(3)
+		} else {
+			bf.WriteUint8(0)
 		}
+		bf.WriteUint16(house.HRP)
+		bf.WriteUint16(house.GR)
+		ps.Uint8(bf, house.Name, true)
 	}
-	resp := byteframe.NewByteFrame()
-	resp.WriteUint16(uint16(exists))
-	resp.WriteBytes(bf.Data())
-	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
+	bf.Seek(0, 0)
+	bf.WriteUint16(uint16(len(houses)))
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfUpdateHouse(s *Session, p mhfpacket.MHFPacket) {
@@ -143,72 +133,89 @@ func handleMsgMhfUpdateHouse(s *Session, p mhfpacket.MHFPacket) {
 	// 03 = open friends
 	// 04 = open guild
 	// 05 = open friends+guild
-	s.myseries.state = pkt.State
-	s.myseries.password = pkt.Password
+	s.server.db.Exec(`UPDATE user_binary SET house_state=$1, house_password=$2 WHERE id=$3`, pkt.State, pkt.Password, s.charID)
 	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfLoadHouse(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfLoadHouse)
 	bf := byteframe.NewByteFrame()
+
+	var state uint8
+	var password string
+	s.server.db.QueryRow(`SELECT COALESCE(house_state, 2) as house_state, COALESCE(house_password, '') as house_password FROM user_binary WHERE id=$1
+	`, pkt.CharID).Scan(&state, &password)
+
 	if pkt.Destination != 9 && len(pkt.Password) > 0 && pkt.CheckPass {
-		for _, session := range s.server.sessions {
-			if session.charID == pkt.CharID && pkt.Password != session.myseries.password {
-				doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
-				return
-			}
+		if pkt.Password != password {
+			doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+			return
 		}
 	}
 
-	var furniture []byte
-	err := s.server.db.QueryRow("SELECT house FROM characters WHERE id=$1", pkt.CharID).Scan(&furniture)
-	if err != nil {
-		panic(err)
+	if pkt.Destination != 9 && state > 2 {
+		allowed := false
+
+		// Friends list verification
+		if state == 3 || state == 5 {
+			var friendsList string
+			s.server.db.QueryRow(`SELECT friends FROM characters WHERE id=$1`, pkt.CharID).Scan(&friendsList)
+			cids := stringsupport.CSVElems(friendsList)
+			for _, cid := range cids {
+				if uint32(cid) == s.charID {
+					allowed = true
+					break
+				}
+			}
+		}
+
+		// Guild verification
+		if state > 3 {
+			ownGuild, err := GetGuildInfoByCharacterId(s, s.charID)
+			isApplicant, _ := ownGuild.HasApplicationForCharID(s, s.charID)
+			if err == nil && ownGuild != nil {
+				othersGuild, err := GetGuildInfoByCharacterId(s, pkt.CharID)
+				if err == nil && othersGuild != nil {
+					if othersGuild.ID == ownGuild.ID && !isApplicant {
+						allowed = true
+					}
+				}
+			}
+		}
+
+		if !allowed {
+			doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+			return
+		}
 	}
-	if furniture == nil {
-		furniture = make([]byte, 20)
+
+	var houseTier, houseData, houseFurniture, bookshelf, gallery, tore, garden []byte
+	s.server.db.QueryRow(`SELECT house_tier, house_data, house_furniture, bookshelf, gallery, tore, garden FROM user_binary WHERE id=$1
+	`, pkt.CharID).Scan(&houseTier, &houseData, &houseFurniture, &bookshelf, &gallery, &tore, &garden)
+	if houseFurniture == nil {
+		houseFurniture = make([]byte, 20)
 	}
 
 	switch pkt.Destination {
 	case 3: // Others house
-		for _, session := range s.server.sessions {
-			if session.charID == pkt.CharID {
-				bf.WriteBytes(session.myseries.houseTier)
-				bf.WriteBytes(session.myseries.houseData)
-				bf.WriteBytes(make([]byte, 19)) // Padding?
-				bf.WriteBytes(furniture)
-			}
-		}
+		bf.WriteBytes(houseTier)
+		bf.WriteBytes(houseData)
+		bf.WriteBytes(make([]byte, 19)) // Padding?
+		bf.WriteBytes(houseFurniture)
 	case 4: // Bookshelf
-		for _, session := range s.server.sessions {
-			if session.charID == pkt.CharID {
-				bf.WriteBytes(session.myseries.bookshelfData)
-			}
-		}
+		bf.WriteBytes(bookshelf)
 	case 5: // Gallery
-		for _, session := range s.server.sessions {
-			if session.charID == pkt.CharID {
-				bf.WriteBytes(session.myseries.galleryData)
-			}
-		}
+		bf.WriteBytes(gallery)
 	case 8: // Tore
-		for _, session := range s.server.sessions {
-			if session.charID == pkt.CharID {
-				bf.WriteBytes(session.myseries.toreData)
-			}
-		}
+		bf.WriteBytes(tore)
 	case 9: // Own house
-		bf.WriteBytes(furniture)
+		bf.WriteBytes(houseFurniture)
 	case 10: // Garden
-		for _, session := range s.server.sessions {
-			if session.charID == pkt.CharID {
-				bf.WriteBytes(session.myseries.gardenData)
-				c, d := getGookData(s, pkt.CharID)
-				bf.WriteUint16(c)
-				bf.WriteUint16(0)
-				bf.WriteBytes(d)
-			}
-		}
+		bf.WriteBytes(garden)
+		c, d := getGookData(s, pkt.CharID)
+		bf.WriteUint16(c)
+		bf.WriteUint16(0)
+		bf.WriteBytes(d)
 	}
 	if len(bf.Data()) == 0 {
 		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
@@ -219,26 +226,18 @@ func handleMsgMhfLoadHouse(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfGetMyhouseInfo(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetMyhouseInfo)
-
 	var data []byte
-	err := s.server.db.QueryRow("SELECT trophy FROM characters WHERE id = $1", s.charID).Scan(&data)
-	if err != nil {
-		panic(err)
-	}
+	s.server.db.QueryRow(`SELECT mission FROM user_binary WHERE id=$1`, s.charID).Scan(&data)
 	if len(data) > 0 {
 		doAckBufSucceed(s, pkt.AckHandle, data)
 	} else {
-		doAckBufSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
+		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 9))
 	}
 }
 
 func handleMsgMhfUpdateMyhouseInfo(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfUpdateMyhouseInfo)
-
-	_, err := s.server.db.Exec("UPDATE characters SET trophy=$1 WHERE id=$2", pkt.Unk0, s.charID)
-	if err != nil {
-		panic(err)
-	}
+	s.server.db.Exec("UPDATE user_binary SET mission=$1 WHERE id=$2", pkt.Unk0, s.charID)
 	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
@@ -311,6 +310,7 @@ func handleMsgMhfSaveDecoMyset(s *Session, p mhfpacket.MHFPacket) {
 			}
 			loadData[1] = savedSets // update set count
 		}
+		dumpSaveData(s, loadData, "decomyset")
 		_, err := s.server.db.Exec("UPDATE characters SET decomyset=$1 WHERE id=$2", loadData, s.charID)
 		if err != nil {
 			s.logger.Fatal("Failed to update decomyset savedata in db", zap.Error(err))

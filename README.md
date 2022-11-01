@@ -1,8 +1,18 @@
 # Erupe Community Edition
+## Setup
+- If you are only looking to install Erupe, please use [a pre-compiled binary](https://github.com/ZeruLight/Erupe/releases/latest).
+- If you want to modify or compile Erupe yourself please read on.
+### Requirements
+- [Go](https://go.dev/dl/)
+- [PostgreSQL](https://www.postgresql.org/download/)
+### Installation
+1. Bring up a fresh database by using the [backup file attached with the latest release](https://github.com/ZeruLight/Erupe/releases/latest/download/Erupe.sql).
+2. Run each script under [patch-schema](./patch-schema) as they introduce newer schema.
+3. Edit [config.json](./config.json) such that the database password matches your PostgreSQL setup.
+4. Run `go build` or `go run .` to compile Erupe.
+### Note
+- You will need to acquire and install the client files and quest binaries separately.
+# Resources
+[Community FAQ Pastebin](https://pastebin.com/QqAwZSTC)
 
-This is a community upload of a community project. The amount of people who worked on it is innumerous, and hard to keep track of. Credits to Andoryuuta, Fist's Team, the French Team, Mai's Team and many others. No matter the relations, these files will remain public and open source, free for all to use and modify.
-
-[A pastebin with various links, tips, and FAQ](https://pastebin.com/QqAwZSTC)
-
-[An upload for the quest and scenario files exists here](https://github.com/xl3lackout/MHFZ-Quest-Files)
-(Over 300k+ files)
+[Quests and Scenario Binary Files](https://github.com/xl3lackout/MHFZ-Quest-Files)

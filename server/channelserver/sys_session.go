@@ -1,21 +1,27 @@
 package channelserver
 
 import (
+	"encoding/binary"
 	"encoding/hex"
 	"fmt"
 	"io"
 	"net"
+	"strings"
 	"sync"
+	"time"
 
 	"erupe-ce/common/byteframe"
 	"erupe-ce/common/stringstack"
-	"erupe-ce/common/stringsupport"
 	"erupe-ce/network"
 	"erupe-ce/network/clientctx"
 	"erupe-ce/network/mhfpacket"
 	"go.uber.org/zap"
-	"golang.org/x/text/encoding/japanese"
 )
+
+type packet struct {
+	data        []byte
+	nonBlocking bool
+}
 
 // Session holds state for the channel server connection.
 type Session struct {
@@ -24,11 +30,10 @@ type Session struct {
 	server        *Server
 	rawConn       net.Conn
 	cryptConn     *network.CryptConn
-	sendPackets   chan []byte
+	sendPackets   chan packet
 	clientContext *clientctx.ClientContext
 
 	userEnteredStage bool // If the user has entered a stage before
-	myseries         MySeries
 	stageID          string
 	stage            *Stage
 	reservationStage *Stage // Required for the stateful MsgSysUnreserveStage packet.
@@ -37,8 +42,10 @@ type Session struct {
 	charID           uint32
 	logKey           []byte
 	sessionStart     int64
-	rights           uint32
+	courses          []mhfpacket.Course
 	token            string
+	kqf              []byte
+	kqfOverride      bool
 
 	semaphore *Semaphore // Required for the stateful MsgSysUnreserveStage packet.
 
@@ -53,36 +60,21 @@ type Session struct {
 	mailList []int
 
 	// For Debuging
-	Name string
-}
-
-type MySeries struct {
-	houseTier     []byte
-	houseData     []byte
-	bookshelfData []byte
-	galleryData   []byte
-	toreData      []byte
-	gardenData    []byte
-	state         uint8
-	password      string
+	Name   string
+	closed bool
 }
 
 // NewSession creates a new Session type.
 func NewSession(server *Server, conn net.Conn) *Session {
 	s := &Session{
-		logger:      server.logger.Named(conn.RemoteAddr().String()),
-		server:      server,
-		rawConn:     conn,
-		cryptConn:   network.NewCryptConn(conn),
-		sendPackets: make(chan []byte, 20),
-		clientContext: &clientctx.ClientContext{
-			StrConv: &stringsupport.StringConverter{
-				Encoding: japanese.ShiftJIS,
-			},
-		},
-		userEnteredStage: false,
-		sessionStart:     Time_Current_Adjusted().Unix(),
-		stageMoveStack:   stringstack.New(),
+		logger:         server.logger.Named(conn.RemoteAddr().String()),
+		server:         server,
+		rawConn:        conn,
+		cryptConn:      network.NewCryptConn(conn),
+		sendPackets:    make(chan packet, 20),
+		clientContext:  &clientctx.ClientContext{}, // Unused
+		sessionStart:   Time_Current_Adjusted().Unix(),
+		stageMoveStack: stringstack.New(),
 	}
 	return s
 }
@@ -100,19 +92,34 @@ func (s *Session) Start() {
 
 // QueueSend queues a packet (raw []byte) to be sent.
 func (s *Session) QueueSend(data []byte) {
-	bf := byteframe.NewByteFrameFromBytes(data[:2])
-	s.logMessage(bf.ReadUint16(), data, "Server", s.Name)
-	s.sendPackets <- data
+	s.logMessage(binary.BigEndian.Uint16(data[0:2]), data, "Server", s.Name)
+	select {
+	case s.sendPackets <- packet{data, false}:
+		// Enqueued data
+	default:
+		s.logger.Warn("Packet queue too full, flushing!")
+		var tempPackets []packet
+		for len(s.sendPackets) > 0 {
+			tempPacket := <-s.sendPackets
+			if !tempPacket.nonBlocking {
+				tempPackets = append(tempPackets, tempPacket)
+			}
+		}
+		for _, tempPacket := range tempPackets {
+			s.sendPackets <- tempPacket
+		}
+		s.sendPackets <- packet{data, false}
+	}
 }
 
 // QueueSendNonBlocking queues a packet (raw []byte) to be sent, dropping the packet entirely if the queue is full.
 func (s *Session) QueueSendNonBlocking(data []byte) {
 	select {
-	case s.sendPackets <- data:
-		// Enqueued properly.
+	case s.sendPackets <- packet{data, true}:
+		// Enqueued data
 	default:
-		// Couldn't enqueue, likely something wrong with the connection.
-		s.logger.Warn("Dropped packet for session because of full send buffer, something is probably wrong")
+		s.logger.Warn("Packet queue too full, dropping!")
+		// Queue too full
 	}
 }
 
@@ -140,29 +147,25 @@ func (s *Session) QueueAck(ackHandle uint32, data []byte) {
 
 func (s *Session) sendLoop() {
 	for {
-		// TODO(Andoryuuta): Test making this into a buffered channel and grouping the packet together before sending.
-		rawPacket := <-s.sendPackets
-
-		if rawPacket == nil {
-			s.logger.Debug("Got nil from s.SendPackets, exiting send loop")
+		if s.closed {
 			return
 		}
-
-		// Make a copy of the data.
-		terminatedPacket := make([]byte, len(rawPacket))
-		copy(terminatedPacket, rawPacket)
-
-		// Append the MSG_SYS_END tailing opcode.
-		terminatedPacket = append(terminatedPacket, []byte{0x00, 0x10}...)
-
-		s.cryptConn.SendPacket(terminatedPacket)
+		pkt := <-s.sendPackets
+		err := s.cryptConn.SendPacket(append(pkt.data, []byte{0x00, 0x10}...))
+		if err != nil {
+			s.logger.Warn("Failed to send packet")
+		}
+		time.Sleep(10 * time.Millisecond)
 	}
 }
 
 func (s *Session) recvLoop() {
 	for {
+		if s.closed {
+			logoutPlayer(s)
+			return
+		}
 		pkt, err := s.cryptConn.ReadPacket()
-
 		if err == io.EOF {
 			s.logger.Info(fmt.Sprintf("[%s] Disconnected", s.Name))
 			logoutPlayer(s)
@@ -174,6 +177,7 @@ func (s *Session) recvLoop() {
 			return
 		}
 		s.handlePacketGroup(pkt)
+		time.Sleep(10 * time.Millisecond)
 	}
 }
 
@@ -193,7 +197,8 @@ func (s *Session) handlePacketGroup(pktGroup []byte) {
 	s.logMessage(opcodeUint16, pktGroup, s.Name, "Server")
 
 	if opcode == network.MSG_SYS_LOGOUT {
-		s.rawConn.Close()
+		s.closed = true
+		return
 	}
 	// Get the packet parser and handler for this opcode.
 	mhfPkt := mhfpacket.FromOpcode(opcode)
@@ -257,4 +262,15 @@ func (s *Session) logMessage(opcode uint16, data []byte, sender string, recipien
 	} else {
 		fmt.Printf("Data [%d bytes]:\n(Too long!)\n\n", len(data))
 	}
+}
+
+func (s *Session) FindCourse(name string) mhfpacket.Course {
+	for _, course := range s.courses {
+		for _, alias := range course.Aliases {
+			if strings.ToLower(name) == strings.ToLower(alias) {
+				return course
+			}
+		}
+	}
+	return mhfpacket.Course{}
 }

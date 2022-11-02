@@ -77,7 +77,13 @@ func updateRights(s *Session) {
 	s.server.db.QueryRow("SELECT rights FROM users u INNER JOIN characters c ON u.id = c.user_id WHERE c.id = $1", s.charID).Scan(&rightsInt)
 	s.courses = mhfpacket.GetCourseStruct(rightsInt)
 	rights := []mhfpacket.ClientRight{{1, 0, 0}}
+	var netcafeBitSet bool
 	for _, course := range s.courses {
+		if (course.ID == 9 || course.ID == 26) && !netcafeBitSet {
+			netcafeBitSet = true
+			rightsInt += 0x40000000 // set netcafe bit
+			rights = append(rights, mhfpacket.ClientRight{ID: 30})
+		}
 		rights = append(rights, mhfpacket.ClientRight{ID: course.ID, Timestamp: 0x70DB59F0})
 	}
 	update := &mhfpacket.MsgSysUpdateRight{
@@ -213,16 +219,16 @@ func logoutPlayer(s *Session) {
 	timePlayed += sessionTime
 
 	var rpGained int
-	if s.FindCourse("Netcafe").ID != 0 {
+	if s.FindCourse("NetCafe").ID != 0 || s.FindCourse("N").ID != 0 {
 		rpGained = timePlayed / 900
 		timePlayed = timePlayed % 900
+		s.server.db.Exec("UPDATE characters SET cafe_time=cafe_time+$1 WHERE id=$2", sessionTime, s.charID)
 	} else {
 		rpGained = timePlayed / 1800
 		timePlayed = timePlayed % 1800
 	}
 
 	s.server.db.Exec("UPDATE characters SET time_played = $1 WHERE id = $2", timePlayed, s.charID)
-	s.server.db.Exec("UPDATE characters SET cafe_time=cafe_time+$1 WHERE id=$2", sessionTime, s.charID)
 
 	treasureHuntUnregister(s)
 

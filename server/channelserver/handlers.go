@@ -220,13 +220,13 @@ func logoutPlayer(s *Session) {
 	if s.FindCourse("NetCafe").ID != 0 || s.FindCourse("N").ID != 0 {
 		rpGained = timePlayed / 900
 		timePlayed = timePlayed % 900
+		s.server.db.Exec("UPDATE characters SET cafe_time=cafe_time+$1 WHERE id=$2", sessionTime, s.charID)
 	} else {
 		rpGained = timePlayed / 1800
 		timePlayed = timePlayed % 1800
 	}
 
 	s.server.db.Exec("UPDATE characters SET time_played = $1 WHERE id = $2", timePlayed, s.charID)
-	s.server.db.Exec("UPDATE characters SET cafe_time=cafe_time+$1 WHERE id=$2", sessionTime, s.charID)
 
 	treasureHuntUnregister(s)
 

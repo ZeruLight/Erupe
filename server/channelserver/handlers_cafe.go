@@ -84,7 +84,9 @@ func handleMsgMhfGetCafeDuration(s *Session, p mhfpacket.MHFPacket) {
 	if err != nil {
 		panic(err)
 	}
-	cafeTime = uint32(Time_Current_Adjusted().Unix()) - uint32(s.sessionStart) + cafeTime
+	if s.FindCourse("NetCafe").ID != 0 || s.FindCourse("N").ID != 0 {
+		cafeTime = uint32(Time_Current_Adjusted().Unix()) - uint32(s.sessionStart) + cafeTime
+	}
 	bf.WriteUint32(cafeTime) // Total cafe time
 	bf.WriteUint16(0)
 	ps.Uint16(bf, fmt.Sprintf("Resets on %s %d", cafeReset.Month().String(), cafeReset.Day()), true)

@@ -2,13 +2,13 @@ package channelserver
 
 import (
 	"fmt"
-	"go.uber.org/zap"
-	"io/ioutil"
+	"io"
 	"os"
 	"path/filepath"
 
 	"erupe-ce/common/byteframe"
 	"erupe-ce/network/mhfpacket"
+	"go.uber.org/zap"
 )
 
 func handleMsgSysGetFile(s *Session, p mhfpacket.MHFPacket) {
@@ -26,7 +26,7 @@ func handleMsgSysGetFile(s *Session, p mhfpacket.MHFPacket) {
 		}
 		filename := fmt.Sprintf("%d_0_0_0_S%d_T%d_C%d", pkt.ScenarioIdentifer.CategoryID, pkt.ScenarioIdentifer.MainID, pkt.ScenarioIdentifer.Flags, pkt.ScenarioIdentifer.ChapterID)
 		// Read the scenario file.
-		data, err := ioutil.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("scenarios/%s.bin", filename)))
+		data, err := os.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("scenarios/%s.bin", filename)))
 		if err != nil {
 			s.logger.Error(fmt.Sprintf("Failed to open file: %s/scenarios/%s.bin", s.server.erupeConfig.BinPath, filename))
 			// This will crash the game.
@@ -36,7 +36,7 @@ func handleMsgSysGetFile(s *Session, p mhfpacket.MHFPacket) {
 		doAckBufSucceed(s, pkt.AckHandle, data)
 	} else {
 		if _, err := os.Stat(filepath.Join(s.server.erupeConfig.BinPath, "quest_override.bin")); err == nil {
-			data, err := ioutil.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, "quest_override.bin"))
+			data, err := os.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, "quest_override.bin"))
 			if err != nil {
 				panic(err)
 			}
@@ -49,7 +49,7 @@ func handleMsgSysGetFile(s *Session, p mhfpacket.MHFPacket) {
 				)
 			}
 			// Get quest file.
-			data, err := ioutil.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("quests/%s.bin", pkt.Filename)))
+			data, err := os.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("quests/%s.bin", pkt.Filename)))
 			if err != nil {
 				s.logger.Error(fmt.Sprintf("Failed to open file: %s/quests/%s.bin", s.server.erupeConfig.BinPath, pkt.Filename))
 				// This will crash the game.
@@ -80,15 +80,47 @@ func handleMsgMhfSaveFavoriteQuest(s *Session, p mhfpacket.MHFPacket) {
 }
 
 func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
-	// local files are easier for now, probably best would be to generate dynamically
 	pkt := p.(*mhfpacket.MsgMhfEnumerateQuest)
-	data, err := ioutil.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("questlists/list_%d.bin", pkt.QuestList)))
-	if err != nil {
-		fmt.Printf("questlists/list_%d.bin", pkt.QuestList)
-		stubEnumerateNoResults(s, pkt.AckHandle)
-	} else {
-		doAckBufSucceed(s, pkt.AckHandle, data)
+	var totalCount, returnedCount uint16
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint16(0)
+	err := filepath.Walk(fmt.Sprintf("%s/events/", s.server.erupeConfig.BinPath), func(path string, info os.FileInfo, err error) error {
+		if err != nil {
+			return err
+		} else if info.IsDir() {
+			return nil
+		}
+		data, err := os.ReadFile(path)
+		if err != nil {
+			return err
+		} else {
+			if len(data) > 850 || len(data) < 400 {
+				return nil // Could be more or less strict with size limits
+			} else {
+				totalCount++
+				if totalCount > pkt.Offset && len(bf.Data()) < 64000 {
+					returnedCount++
+					bf.WriteBytes(data)
+					return nil
+				}
+			}
+		}
+		return nil
+	})
+	if err != nil || totalCount == 0 {
+		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 18))
+		return
 	}
+	bf.WriteUint16(0) // Unk
+	bf.WriteUint16(0) // Unk
+	bf.WriteUint16(0) // Unk
+	bf.WriteUint32(0) // Unk
+	bf.WriteUint16(0) // Unk
+	bf.WriteUint16(totalCount)
+	bf.WriteUint16(pkt.Offset)
+	bf.Seek(0, io.SeekStart)
+	bf.WriteUint16(returnedCount)
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfEnterTournamentQuest(s *Session, p mhfpacket.MHFPacket) {}

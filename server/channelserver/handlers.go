@@ -77,8 +77,10 @@ func updateRights(s *Session) {
 	s.server.db.QueryRow("SELECT rights FROM users u INNER JOIN characters c ON u.id = c.user_id WHERE c.id = $1", s.charID).Scan(&rightsInt)
 	s.courses = mhfpacket.GetCourseStruct(rightsInt)
 	rights := []mhfpacket.ClientRight{{1, 0, 0}}
+	var netcafeBitSet bool
 	for _, course := range s.courses {
-		if course.ID == 9 || course.ID == 26 {
+		if (course.ID == 9 || course.ID == 26) && !netcafeBitSet {
+			netcafeBitSet = true
 			rightsInt += 0x40000000 // set netcafe bit
 			rights = append(rights, mhfpacket.ClientRight{ID: 30})
 		}

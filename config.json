@@ -63,7 +63,7 @@
   ],
   "Courses": [
     {"Name": "HunterLife", "Enabled": true},
-    {"Name": "ExtraA", "Enabled": true},
+    {"Name": "Extra", "Enabled": true},
     {"Name": "Premium", "Enabled": true},
     {"Name": "Assist", "Enabled": false},
     {"Name": "Netcafe", "Enabled": false},

@@ -66,10 +66,14 @@
     {"Name": "Extra", "Enabled": true},
     {"Name": "Premium", "Enabled": true},
     {"Name": "Assist", "Enabled": false},
-    {"Name": "Netcafe", "Enabled": false},
+    {"Name": "N", "Enabled": false},
     {"Name": "Hiden", "Enabled": false},
     {"Name": "HunterSupport", "Enabled": false},
-    {"Name": "NetcafeBoost", "Enabled": false}
+    {"Name": "NBoost", "Enabled": false},
+    {"Name": "NetCafe", "Enabled": true},
+    {"Name": "HLContinue", "Enabled": true},
+    {"Name": "EXContinue", "Enabled": true},
+    {"Name": "Free", "Enabled": true}
   ],
   "Database": {
     "Host": "localhost",

@@ -324,7 +324,7 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 						for _, alias := range course.Aliases {
 							if strings.ToLower(name) == strings.ToLower(alias) {
 								if slices.Contains(s.server.erupeConfig.Courses, config.Course{Name: course.Aliases[0], Enabled: true}) {
-									if s.FindCourse(name).Value != 0 {
+									if s.FindCourse(name).ID != 0 {
 										ei := slices.IndexFunc(s.courses, func(c mhfpacket.Course) bool {
 											for _, alias := range c.Aliases {
 												if strings.ToLower(name) == strings.ToLower(alias) {
@@ -335,20 +335,20 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 										})
 										if ei != -1 {
 											s.courses = append(s.courses[:ei], s.courses[ei+1:]...)
-											sendServerChatMessage(s, fmt.Sprintf(`%s Course disabled.`, course.Aliases[0]))
+											sendServerChatMessage(s, fmt.Sprintf(`%s Course disabled`, course.Aliases[0]))
 										}
 									} else {
 										s.courses = append(s.courses, course)
-										sendServerChatMessage(s, fmt.Sprintf(`%s Course enabled.`, course.Aliases[0]))
+										sendServerChatMessage(s, fmt.Sprintf(`%s Course enabled`, course.Aliases[0]))
 									}
 									var newInt uint32
 									for _, course := range s.courses {
-										newInt += course.Value
+										newInt += uint32(math.Pow(2, float64(course.ID)))
 									}
 									s.server.db.Exec("UPDATE users u SET rights=$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)", newInt, s.charID)
 									updateRights(s)
 								} else {
-									sendServerChatMessage(s, fmt.Sprintf(`%s Course is locked.`, course.Aliases[0]))
+									sendServerChatMessage(s, fmt.Sprintf(`%s Course is locked`, course.Aliases[0]))
 								}
 							}
 						}

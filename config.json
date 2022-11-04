@@ -71,8 +71,8 @@
     {"Name": "HunterSupport", "Enabled": false},
     {"Name": "NBoost", "Enabled": false},
     {"Name": "NetCafe", "Enabled": true},
-    {"Name": "HLContinue", "Enabled": true},
-    {"Name": "EXContinue", "Enabled": true}
+    {"Name": "HLRenewing", "Enabled": true},
+    {"Name": "EXRenewing", "Enabled": true}
   ],
   "Database": {
     "Host": "localhost",

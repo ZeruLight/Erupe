@@ -91,8 +91,8 @@ func Courses() []Course {
 		{Aliases: []string{"NBoost", "NetCafeBoost", "Boost"}, ID: 12},
 		// 13-25 do nothing
 		{Aliases: []string{"NetCafe", "Cafe", "InternetCafe"}, ID: 26},
-		{Aliases: []string{"HLContinue", "HLC"}, ID: 27},
-		{Aliases: []string{"EXContinue", "EXC"}, ID: 28},
+		{Aliases: []string{"HLRenewing", "HLR", "HLRenewal", "HLRenew"}, ID: 27},
+		{Aliases: []string{"EXRenewing", "EXR", "EXRenewal", "EXRenew"}, ID: 28},
 		{Aliases: []string{"Free"}, ID: 29},
 		// 30 = real netcafe bit
 	}

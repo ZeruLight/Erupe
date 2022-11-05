@@ -25,6 +25,7 @@ type Config struct {
 	Database       Database
 	Launcher       Launcher
 	Sign           Sign
+	NewSign        NewSign
 	Channel        Channel
 	Entrance       Entrance
 }
@@ -95,6 +96,12 @@ type Launcher struct {
 
 // Sign holds the sign server config.
 type Sign struct {
+	Enabled bool
+	Port    int
+}
+
+// NewSign holds the new sign server config
+type NewSign struct {
 	Enabled bool
 	Port    int
 }

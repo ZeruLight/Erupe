@@ -13,6 +13,7 @@ import (
 	"erupe-ce/server/discordbot"
 	"erupe-ce/server/entranceserver"
 	"erupe-ce/server/launcherserver"
+	"erupe-ce/server/newsignserver"
 	"erupe-ce/server/signserver"
 
 	"github.com/jmoiron/sqlx"
@@ -166,6 +167,22 @@ func main() {
 		logger.Info("Started sign server")
 	}
 
+	// New Sign server
+	var newSignServer *newsignserver.Server
+	if config.ErupeConfig.NewSign.Enabled {
+		newSignServer = newsignserver.NewServer(
+			&newsignserver.Config{
+				Logger:      logger.Named("sign"),
+				ErupeConfig: config.ErupeConfig,
+				DB:          db,
+			})
+		err = newSignServer.Start()
+		if err != nil {
+			preventClose(fmt.Sprintf("Failed to start new sign server: %s", err.Error()))
+		}
+		logger.Info("Started new sign server")
+	}
+
 	var channels []*channelserver.Server
 
 	if config.ErupeConfig.Channel.Enabled {
@@ -227,6 +244,10 @@ func main() {
 
 	if config.ErupeConfig.Sign.Enabled {
 		signServer.Shutdown()
+	}
+
+	if config.ErupeConfig.NewSign.Enabled {
+		newSignServer.Shutdown()
 	}
 
 	if config.ErupeConfig.Entrance.Enabled {

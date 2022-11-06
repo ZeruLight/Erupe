@@ -36,7 +36,7 @@ func main() {
 	defer zapLogger.Sync()
 	logger := zapLogger.Named("main")
 
-	logger.Info("Starting Erupe (9.1)")
+	logger.Info("Starting Erupe (9.2b)")
 
 	if config.ErupeConfig.Database.Password == "" {
 		preventClose("Database password is blank")

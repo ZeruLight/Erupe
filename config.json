@@ -90,6 +90,10 @@
     "Enabled": true,
     "Port": 53312
   },
+  "SignV2": {
+    "Enabled": false,
+    "Port": 8080
+  },
   "Channel": {
     "Enabled": true
   },

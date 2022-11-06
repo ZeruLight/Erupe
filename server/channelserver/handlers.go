@@ -1495,10 +1495,6 @@ func handleMsgMhfInfoScenarioCounter(s *Session, p mhfpacket.MHFPacket) {
 	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
 }
 
-func handleMsgMhfGetBbsSnsStatus(s *Session, p mhfpacket.MHFPacket) {}
-
-func handleMsgMhfApplyBbsArticle(s *Session, p mhfpacket.MHFPacket) {}
-
 func handleMsgMhfGetEtcPoints(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetEtcPoints)
 

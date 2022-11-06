@@ -4,6 +4,7 @@ import (
 	"erupe-ce/common/byteframe"
 	ps "erupe-ce/common/pascalstring"
 	"erupe-ce/common/stringsupport"
+	"erupe-ce/common/token"
 	"erupe-ce/server/channelserver"
 	"fmt"
 	"math/rand"
@@ -18,15 +19,6 @@ func makeSignInFailureResp(respID RespID) []byte {
 	return bf.Data()
 }
 
-func randSeq(n int) string {
-	var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-	b := make([]rune, n)
-	for i := range b {
-		b[i] = letters[rand.Intn(len(letters))]
-	}
-	return string(b)
-}
-
 func (s *Session) makeSignInResp(uid int) []byte {
 	returnExpiry := s.server.getReturnExpiry(uid)
 
@@ -37,13 +29,13 @@ func (s *Session) makeSignInResp(uid int) []byte {
 	}
 
 	rand.Seed(time.Now().UnixNano())
-	token := randSeq(16)
-	s.server.registerToken(uid, token)
+	sessToken := token.Generate(16)
+	s.server.registerToken(uid, sessToken)
 
 	bf := byteframe.NewByteFrame()
 
 	bf.WriteUint8(1) // resp_code
-	if s.server.erupeConfig.DevMode && s.server.erupeConfig.DevModeOptions.PatchServerManifest != "" && s.server.erupeConfig.DevModeOptions.PatchServerFile != "" {
+	if s.server.erupeConfig.DevMode && s.server.erupeConfig.PatchServerManifest != "" && s.server.erupeConfig.PatchServerFile != "" {
 		bf.WriteUint8(2)
 	} else {
 		bf.WriteUint8(0)
@@ -51,12 +43,12 @@ func (s *Session) makeSignInResp(uid int) []byte {
 	bf.WriteUint8(1)                          // entrance server count
 	bf.WriteUint8(uint8(len(chars)))          // character count
 	bf.WriteUint32(0xFFFFFFFF)                // login_token_number
-	bf.WriteBytes([]byte(token))              // login_token
+	bf.WriteBytes([]byte(sessToken))          // login_token
 	bf.WriteUint32(uint32(time.Now().Unix())) // current time
 	if s.server.erupeConfig.DevMode {
-		if s.server.erupeConfig.DevModeOptions.PatchServerManifest != "" && s.server.erupeConfig.DevModeOptions.PatchServerFile != "" {
-			ps.Uint8(bf, s.server.erupeConfig.DevModeOptions.PatchServerManifest, false)
-			ps.Uint8(bf, s.server.erupeConfig.DevModeOptions.PatchServerFile, false)
+		if s.server.erupeConfig.PatchServerManifest != "" && s.server.erupeConfig.PatchServerFile != "" {
+			ps.Uint8(bf, s.server.erupeConfig.PatchServerManifest, false)
+			ps.Uint8(bf, s.server.erupeConfig.PatchServerFile, false)
 		}
 	}
 	ps.Uint8(bf, fmt.Sprintf("%s:%d", s.server.erupeConfig.Host, s.server.erupeConfig.Entrance.Port), false)
@@ -111,11 +103,11 @@ func (s *Session) makeSignInResp(uid int) []byte {
 		}
 	}
 
-	if s.server.erupeConfig.DevModeOptions.HideLoginNotice {
+	if s.server.erupeConfig.HideLoginNotice {
 		bf.WriteUint8(0)
 	} else {
 		bf.WriteUint8(1) // Notice count
-		noticeText := s.server.erupeConfig.DevModeOptions.LoginNotice
+		noticeText := s.server.erupeConfig.LoginNotice
 		ps.Uint32(bf, noticeText, true)
 	}
 

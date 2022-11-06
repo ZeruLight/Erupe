@@ -54,5 +54,3 @@ func handleMsgSysGetUserBinary(s *Session, p mhfpacket.MHFPacket) {
 }
 
 func handleMsgSysNotifyUserBinary(s *Session, p mhfpacket.MHFPacket) {}
-
-func handleMsgMhfGetBbsUserStatus(s *Session, p mhfpacket.MHFPacket) {}

@@ -20,6 +20,7 @@ type Config struct {
 	LoginNotice         string // MHFML string of the login notice displayed
 	PatchServerManifest string // Manifest patch server override
 	PatchServerFile     string // File patch server override
+	ScreenshotAPIURL    string // Destination for screenshots uploaded to BBS
 	DevMode             bool
 
 	DevModeOptions DevModeOptions

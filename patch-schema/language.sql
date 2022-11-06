@@ -1,0 +1,6 @@
+BEGIN;
+
+ALTER TABLE IF EXISTS public.users
+    ADD COLUMN IF NOT EXISTS language text NOT NULL DEFAULT 'en';
+
+END;

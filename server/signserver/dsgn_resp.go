@@ -103,11 +103,11 @@ func (s *Session) makeSignInResp(uid int) []byte {
 		}
 	}
 
-	if s.server.erupeConfig.DevModeOptions.HideLoginNotice {
+	if s.server.erupeConfig.HideLoginNotice {
 		bf.WriteUint8(0)
 	} else {
 		bf.WriteUint8(1) // Notice count
-		noticeText := s.server.erupeConfig.DevModeOptions.LoginNotice
+		noticeText := s.server.erupeConfig.LoginNotice
 		ps.Uint32(bf, noticeText, true)
 	}
 

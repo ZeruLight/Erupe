@@ -1,10 +1,9 @@
-package newsignserver
+package signv2server
 
 import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"math/rand"
 	"net/http"
 	"time"
 
@@ -12,15 +11,6 @@ import (
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 )
-
-func randSeq(n int) string {
-	var letters = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
-	b := make([]rune, n)
-	for i := range b {
-		b[i] = letters[rand.Intn(len(letters))]
-	}
-	return string(b)
-}
 
 type LauncherMessage struct {
 	Message string `json:"message"`

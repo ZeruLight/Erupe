@@ -90,8 +90,8 @@
     "Enabled": true,
     "Port": 53312
   },
-  "NewSign": {
-    "Enabled": true,
+  "SignV2": {
+    "Enabled": false,
     "Port": 8080
   },
   "Channel": {

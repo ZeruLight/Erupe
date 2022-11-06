@@ -1,8 +1,9 @@
-package newsignserver
+package signv2server
 
 import (
 	"context"
 	"database/sql"
+	"erupe-ce/common/token"
 	"fmt"
 	"time"
 
@@ -29,12 +30,12 @@ func (s *Server) createNewUser(ctx context.Context, username string, password st
 }
 
 func (s *Server) createLoginToken(ctx context.Context, uid int) (string, error) {
-	token := randSeq(16)
-	_, err := s.db.ExecContext(ctx, "INSERT INTO sign_sessions (user_id, token) VALUES ($1, $2)", uid, token)
+	loginToken := token.Generate(16)
+	_, err := s.db.ExecContext(ctx, "INSERT INTO sign_sessions (user_id, token) VALUES ($1, $2)", uid, loginToken)
 	if err != nil {
 		return "", err
 	}
-	return token, nil
+	return loginToken, nil
 }
 
 func (s *Server) userIDFromToken(ctx context.Context, token string) (int, error) {

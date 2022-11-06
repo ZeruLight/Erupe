@@ -1,4 +1,4 @@
-package newsignserver
+package signv2server
 
 import (
 	"context"
@@ -53,7 +53,7 @@ func (s *Server) Start() error {
 	r.HandleFunc("/character/delete", s.DeleteCharacter)
 	handler := handlers.CORS(handlers.AllowedHeaders([]string{"Content-Type"}))(r)
 	s.httpServer.Handler = handlers.LoggingHandler(os.Stdout, handler)
-	s.httpServer.Addr = fmt.Sprintf(":%d", s.erupeConfig.NewSign.Port)
+	s.httpServer.Addr = fmt.Sprintf(":%d", s.erupeConfig.SignV2.Port)
 
 	serveError := make(chan error, 1)
 	go func() {

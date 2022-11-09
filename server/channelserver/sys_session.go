@@ -47,8 +47,6 @@ type Session struct {
 	kqf              []byte
 	kqfOverride      bool
 
-	dict map[string]string
-
 	semaphore *Semaphore // Required for the stateful MsgSysUnreserveStage packet.
 
 	// A stack containing the stage movement history (push on enter/move, pop on back)

@@ -89,7 +89,7 @@ func handleMsgMhfGetCafeDuration(s *Session, p mhfpacket.MHFPacket) {
 	}
 	bf.WriteUint32(cafeTime) // Total cafe time
 	bf.WriteUint16(0)
-	ps.Uint16(bf, fmt.Sprintf(s.dict["cafeReset"], int(cafeReset.Month()), cafeReset.Day()), true)
+	ps.Uint16(bf, fmt.Sprintf(s.server.dict["cafeReset"], int(cafeReset.Month()), cafeReset.Day()), true)
 
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }

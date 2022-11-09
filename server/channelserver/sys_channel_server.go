@@ -52,6 +52,9 @@ type Server struct {
 	stagesLock sync.RWMutex
 	stages     map[string]*Stage
 
+	// Used to map different languages
+	dict map[string]string
+
 	// UserBinary
 	userBinaryPartsLock sync.RWMutex
 	userBinaryParts     map[userBinaryPartID][]byte
@@ -163,6 +166,8 @@ func NewServer(config *Config) *Server {
 
 	// MezFes
 	s.stages["sl1Ns462p0a0u0"] = NewStage("sl1Ns462p0a0u0")
+
+	s.dict = getLangStrings(s)
 
 	return s
 }

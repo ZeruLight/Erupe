@@ -14,6 +14,7 @@ import (
 type Config struct {
 	Host                string `mapstructure:"Host"`
 	BinPath             string `mapstructure:"BinPath"`
+	Language            string
 	DisableSoftCrash    bool   // Disables the 'Press Return to exit' dialog allowing scripts to reboot the server automatically
 	FeaturedWeapons     int    // Number of Active Feature weapons to generate daily
 	HideLoginNotice     bool   // Hide the Erupe notice on login

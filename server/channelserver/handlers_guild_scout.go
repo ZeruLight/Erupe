@@ -62,10 +62,9 @@ func handleMsgMhfPostGuildScout(s *Session, p mhfpacket.MHFPacket) {
 	mail := &Mail{
 		SenderID:    s.charID,
 		RecipientID: pkt.CharID,
-		Subject:     "Invitation!",
+		Subject:     s.server.dict["guildInviteName"],
 		Body: fmt.Sprintf(
-			"%s has invited you to join 「%s」\nDo you want to accept?",
-			getCharacterName(s, s.charID),
+			s.server.dict["guildInvite"],
 			guildInfo.Name,
 		),
 		IsGuildInvite: true,

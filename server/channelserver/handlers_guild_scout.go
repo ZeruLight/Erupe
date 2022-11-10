@@ -148,30 +148,30 @@ func handleMsgMhfAnswerGuildScout(s *Session, p mhfpacket.MHFPacket) {
 		err = guild.AcceptApplication(s, s.charID)
 		mail = append(mail, Mail{
 			RecipientID:     s.charID,
-			Subject:         "Success!",
-			Body:            fmt.Sprintf("You successfully joined 「%s」.", guild.Name),
+			Subject:         s.server.dict["guildInviteSuccessName"],
+			Body:            fmt.Sprintf(s.server.dict["guildInviteSuccess"], guild.Name),
 			IsSystemMessage: true,
 		})
 		mail = append(mail, Mail{
 			SenderID:        s.charID,
 			RecipientID:     pkt.LeaderID,
-			Subject:         "Accepted",
-			Body:            fmt.Sprintf("%s accepted your invitation to join 「%s」.", s.Name, guild.Name),
+			Subject:         s.server.dict["guildInviteAcceptedName"],
+			Body:            fmt.Sprintf(s.server.dict["guildInviteAccepted"], guild.Name),
 			IsSystemMessage: true,
 		})
 	} else {
 		err = guild.RejectApplication(s, s.charID)
 		mail = append(mail, Mail{
 			RecipientID:     s.charID,
-			Subject:         "Declined",
-			Body:            fmt.Sprintf("You declined the invitation to join 「%s」.", guild.Name),
+			Subject:         s.server.dict["guildInviteRejectName"],
+			Body:            fmt.Sprintf(s.server.dict["guildInviteReject"], guild.Name),
 			IsSystemMessage: true,
 		})
 		mail = append(mail, Mail{
 			SenderID:        s.charID,
 			RecipientID:     pkt.LeaderID,
-			Subject:         "Declined",
-			Body:            fmt.Sprintf("%s declined your invitation to join 「%s」.", s.Name, guild.Name),
+			Subject:         s.server.dict["guildInviteDeclined"],
+			Body:            fmt.Sprintf(s.server.dict["guildInviteDeclined"], guild.Name),
 			IsSystemMessage: true,
 		})
 	}

@@ -318,11 +318,11 @@ func (s *Server) BroadcastRaviente(ip uint32, port uint16, stage []byte, _type u
 	var text string
 	switch _type {
 	case 2:
-		text = "<Great Slaying: Berserk> is being held!"
+		text = s.dict["ravienteBerserk"]
 	case 4:
-		text = "<Great Slaying: Extreme> is being held!"
+		text = s.dict["ravienteExtreme"]
 	case 5:
-		text = "<Great Slaying: Berserk Practice> is being held!"
+		text = s.dict["ravienteBerserkSmall"]
 	default:
 		s.logger.Error("Unk raviente type", zap.Uint8("_type", _type))
 	}

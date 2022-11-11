@@ -69,6 +69,8 @@ func NewStage(ID string) *Stage {
 
 // BroadcastMHF queues a MHFPacket to be sent to all sessions in the stage.
 func (s *Stage) BroadcastMHF(pkt mhfpacket.MHFPacket, ignoredSession *Session) {
+	s.Lock()
+	defer s.Unlock()
 	// Broadcast the data.
 	for session := range s.clients {
 		if session == ignoredSession {

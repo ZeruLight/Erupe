@@ -17,7 +17,7 @@ func getLangStrings(s *Server) map[string]string {
 		strings["guildInviteAccepted"] = "招待した狩人が「%s」への招待を承諾しました。"
 
 		strings["guildInviteRejectName"] = "却下しました"
-		strings["guildInviteReject"] = "あなたは「%s」への参加を却下しました"
+		strings["guildInviteReject"] = "あなたは「%s」への参加を却下しました。"
 
 		strings["guildInviteDeclinedName"] = "辞退しました"
 		strings["guildInviteDeclined"] = "招待した狩人が「%s」への招待を辞退しました。"

@@ -10,17 +10,17 @@ func getLangStrings(s *Server) map[string]string {
 		strings["guildInviteName"] = "猟団勧誘のご案内"
 		strings["guildInvite"] = "猟団「%s」からの勧誘通知です。\n「勧誘に返答」より、返答を行ってください。"
 
-		strings["guildInviteSuccessName"] = ""
-		strings["guildInviteSuccess"] = ""
+		strings["guildInviteSuccessName"] = "成功"
+		strings["guildInviteSuccess"] = "あなたは「%s」に参加できました。"
 
-		strings["guildInviteAcceptedName"] = ""
-		strings["guildInviteAccepted"] = ""
+		strings["guildInviteAcceptedName"] = "承諾されました"
+		strings["guildInviteAccepted"] = "招待した狩人が「%s」への招待を承諾しました。"
 
-		strings["guildInviteRejectName"] = ""
-		strings["guildInviteReject"] = ""
+		strings["guildInviteRejectName"] = "却下しました"
+		strings["guildInviteReject"] = "あなたは「%s」への参加を却下しました"
 
-		strings["guildInviteDeclinedName"] = ""
-		strings["guildInviteDeclined"] = ""
+		strings["guildInviteDeclinedName"] = "辞退しました"
+		strings["guildInviteDeclined"] = "招待した狩人が「%s」への招待を辞退しました。"
 	default:
 		strings["language"] = "English"
 		strings["cafeReset"] = "Resets on %d/%d"

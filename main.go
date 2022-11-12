@@ -14,6 +14,7 @@ import (
 	"erupe-ce/server/entranceserver"
 	"erupe-ce/server/launcherserver"
 	"erupe-ce/server/signserver"
+	"erupe-ce/server/signv2server"
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
@@ -35,7 +36,7 @@ func main() {
 	defer zapLogger.Sync()
 	logger := zapLogger.Named("main")
 
-	logger.Info("Starting Erupe (9.1b)")
+	logger.Info("Starting Erupe (9.2b)")
 
 	if config.ErupeConfig.Database.Password == "" {
 		preventClose("Database password is blank")
@@ -166,6 +167,22 @@ func main() {
 		logger.Info("Started sign server")
 	}
 
+	// New Sign server
+	var newSignServer *signv2server.Server
+	if config.ErupeConfig.SignV2.Enabled {
+		newSignServer = signv2server.NewServer(
+			&signv2server.Config{
+				Logger:      logger.Named("sign"),
+				ErupeConfig: config.ErupeConfig,
+				DB:          db,
+			})
+		err = newSignServer.Start()
+		if err != nil {
+			preventClose(fmt.Sprintf("Failed to start sign-v2 server: %s", err.Error()))
+		}
+		logger.Info("Started new sign server")
+	}
+
 	var channels []*channelserver.Server
 
 	if config.ErupeConfig.Channel.Enabled {
@@ -227,6 +244,10 @@ func main() {
 
 	if config.ErupeConfig.Sign.Enabled {
 		signServer.Shutdown()
+	}
+
+	if config.ErupeConfig.SignV2.Enabled {
+		newSignServer.Shutdown()
 	}
 
 	if config.ErupeConfig.Entrance.Enabled {

@@ -74,9 +74,14 @@ func handleMsgMhfGetCafeDuration(s *Session, p mhfpacket.MHFPacket) {
 
 	var cafeReset time.Time
 	err := s.server.db.QueryRow(`SELECT cafe_reset FROM characters WHERE id=$1`, s.charID).Scan(&cafeReset)
+	if err != nil {
+		cafeReset = TimeWeekNext()
+		s.server.db.Exec(`UPDATE characters SET cafe_reset=$1 WHERE id=$2`, cafeReset, s.charID)
+	}
 	if Time_Current_Adjusted().After(cafeReset) {
 		cafeReset = TimeWeekNext()
-		s.server.db.Exec(`UPDATE characters SET cafe_time=0, cafe_reset=$1 WHERE id=$2; DELETE FROM cafe_accepted WHERE character_id=$2`, cafeReset, s.charID)
+		s.server.db.Exec(`UPDATE characters SET cafe_time=0, cafe_reset=$1 WHERE id=$2`, cafeReset, s.charID)
+		s.server.db.Exec(`DELETE FROM cafe_accepted WHERE character_id=$1`, s.charID)
 	}
 
 	var cafeTime uint32
@@ -84,10 +89,13 @@ func handleMsgMhfGetCafeDuration(s *Session, p mhfpacket.MHFPacket) {
 	if err != nil {
 		panic(err)
 	}
-	cafeTime = uint32(Time_Current_Adjusted().Unix()) - uint32(s.sessionStart) + cafeTime
+	if s.FindCourse("NetCafe").ID != 0 || s.FindCourse("N").ID != 0 {
+		cafeTime = uint32(Time_Current_Adjusted().Unix()) - uint32(s.sessionStart) + cafeTime
+	}
 	bf.WriteUint32(cafeTime) // Total cafe time
 	bf.WriteUint16(0)
-	ps.Uint16(bf, fmt.Sprintf("Resets on %s %d", cafeReset.Month().String(), cafeReset.Day()), true)
+	ps.Uint16(bf, fmt.Sprintf(s.server.dict["cafeReset"], int(cafeReset.Month()), cafeReset.Day()), true)
+
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 

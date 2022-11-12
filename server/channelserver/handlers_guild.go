@@ -2005,6 +2005,7 @@ func handleMsgMhfCheckMonthlyItem(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfCheckMonthlyItem)
 	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x01})
 	// TODO: Implement month-by-month tracker, 0 = Not claimed, 1 = Claimed
+	// Also handles HLC and EXC items, IDs = 064D, 076B
 }
 
 func handleMsgMhfAcquireMonthlyItem(s *Session, p mhfpacket.MHFPacket) {

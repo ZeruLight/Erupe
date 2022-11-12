@@ -2,12 +2,12 @@ package mhfpacket
 
 import (
 	"errors"
-	ps "erupe-ce/common/pascalstring"
-	"golang.org/x/exp/slices"
-
 	"erupe-ce/common/byteframe"
+	ps "erupe-ce/common/pascalstring"
 	"erupe-ce/network"
 	"erupe-ce/network/clientctx"
+	"golang.org/x/exp/slices"
+	"math"
 )
 
 /*
@@ -77,18 +77,27 @@ func (m *MsgSysUpdateRight) Build(bf *byteframe.ByteFrame, ctx *clientctx.Client
 
 func Courses() []Course {
 	var courses = []Course{
-		{[]string{"Trial", "TL"}, 1, 0x00000002},
-		{[]string{"HunterLife", "HL"}, 2, 0x00000004},
-		{[]string{"ExtraA", "Extra", "EX"}, 3, 0x00000008},
-		{[]string{"ExtraB"}, 4, 0x00000010},
-		{[]string{"Mobile"}, 5, 0x00000020},
-		{[]string{"Premium"}, 6, 0x00000040},
-		{[]string{"Pallone"}, 7, 0x00000080},
-		{[]string{"Assist", "Legend", "Rasta"}, 8, 0x00000100}, // Legend
-		{[]string{"Netcafe", "N", "Cafe"}, 9, 0x00000200},
-		{[]string{"Hiden", "Secret"}, 10, 0x00000400},                                       // Secret
-		{[]string{"HunterSupport", "HunterAid", "Support", "Royal", "Aid"}, 11, 0x00000800}, // Royal
-		{[]string{"NetcafeBoost", "NBoost", "Boost"}, 12, 0x00001000},
+		{Aliases: []string{"Trial", "TL"}, ID: 1},
+		{Aliases: []string{"HunterLife", "HL"}, ID: 2},
+		{Aliases: []string{"Extra", "ExtraA", "EX"}, ID: 3},
+		{Aliases: []string{"ExtraB"}, ID: 4},
+		{Aliases: []string{"Mobile"}, ID: 5},
+		{Aliases: []string{"Premium"}, ID: 6},
+		{Aliases: []string{"Pallone", "ExtraC"}, ID: 7},
+		{Aliases: []string{"Assist", "Legend", "Rasta"}, ID: 8}, // Legend
+		{Aliases: []string{"N"}, ID: 9},
+		{Aliases: []string{"Hiden", "Secret"}, ID: 10},                                       // Secret
+		{Aliases: []string{"HunterSupport", "HunterAid", "Support", "Aid", "Royal"}, ID: 11}, // Royal
+		{Aliases: []string{"NBoost", "NetCafeBoost", "Boost"}, ID: 12},
+		// 13-25 do nothing
+		{Aliases: []string{"NetCafe", "Cafe", "InternetCafe"}, ID: 26},
+		{Aliases: []string{"HLRenewing", "HLR", "HLRenewal", "HLRenew"}, ID: 27},
+		{Aliases: []string{"EXRenewing", "EXR", "EXRenewal", "EXRenew"}, ID: 28},
+		{Aliases: []string{"Free"}, ID: 29},
+		// 30 = real netcafe bit
+	}
+	for i := range courses {
+		courses[i].Value = uint32(math.Pow(2, float64(courses[i].ID)))
 	}
 	return courses
 }

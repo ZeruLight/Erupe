@@ -2,13 +2,13 @@ package channelserver
 
 import (
 	"fmt"
-	"go.uber.org/zap"
 	"io"
 	"os"
 	"path/filepath"
 
 	"erupe-ce/common/byteframe"
 	"erupe-ce/network/mhfpacket"
+	"go.uber.org/zap"
 )
 
 func handleMsgSysGetFile(s *Session, p mhfpacket.MHFPacket) {

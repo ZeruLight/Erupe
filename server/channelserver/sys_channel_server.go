@@ -284,6 +284,7 @@ func (s *Server) WorldcastMHF(pkt mhfpacket.MHFPacket, ignoredSession *Session, 
 			bf := byteframe.NewByteFrame()
 			bf.WriteUint16(uint16(pkt.Opcode()))
 			pkt.Build(bf, session.clientContext)
+			bf.WriteUint16(0x0010)
 			session.QueueSendNonBlocking(bf.Data())
 		}
 	}
@@ -319,14 +320,16 @@ func (s *Server) BroadcastRaviente(ip uint32, port uint16, stage []byte, _type u
 	switch _type {
 	case 2:
 		text = s.dict["ravienteBerserk"]
-	case 4:
+	case 3:
 		text = s.dict["ravienteExtreme"]
+	case 4:
+		text = s.dict["ravienteExtremeLimited"]
 	case 5:
 		text = s.dict["ravienteBerserkSmall"]
 	default:
 		s.logger.Error("Unk raviente type", zap.Uint8("_type", _type))
 	}
-	ps.Uint16(bf, text, false)
+	ps.Uint16(bf, text, true)
 	bf.WriteBytes([]byte{0x5F, 0x53, 0x00})
 	bf.WriteUint32(ip)   // IP address
 	bf.WriteUint16(port) // Port

@@ -8,6 +8,7 @@ func getLangStrings(s *Server) map[string]string {
 		strings["cafeReset"] = "%d/%dにリセット"
 		strings["ravienteBerserk"] = "<大討伐：猛狂期>が開催されました！"
 		strings["ravienteExtreme"] = "<大討伐：猛狂期【極】>が開催されました！"
+		strings["ravienteExtremeLimited"] = "<大討伐：猛狂期【極】(制限付)>が開催されました！"
 		strings["ravienteBerserkSmall"] = "<大討伐：猛狂期(小数)>が開催されました！"
 
 		strings["guildInviteName"] = "猟団勧誘のご案内"
@@ -29,6 +30,7 @@ func getLangStrings(s *Server) map[string]string {
 		strings["cafeReset"] = "Resets on %d/%d"
 		strings["ravienteBerserk"] = "<Great Slaying: Berserk> is being held!"
 		strings["ravienteExtreme"] = "<Great Slaying: Extreme> is being held!"
+		strings["ravienteExtremeLimited"] = "<Great Slaying: Extreme (Limited)> is being held!"
 		strings["ravienteBerserkSmall"] = "<Great Slaying: Berserk (Small)> is being held!"
 
 		strings["guildInviteName"] = "Invitation!"

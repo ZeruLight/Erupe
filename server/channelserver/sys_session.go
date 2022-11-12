@@ -116,10 +116,9 @@ func (s *Session) QueueSend(data []byte) {
 func (s *Session) QueueSendNonBlocking(data []byte) {
 	select {
 	case s.sendPackets <- packet{data, true}:
-		// Enqueued data
+		s.logMessage(binary.BigEndian.Uint16(data[0:2]), data, "Server", s.Name)
 	default:
 		s.logger.Warn("Packet queue too full, dropping!")
-		// Queue too full
 	}
 }
 

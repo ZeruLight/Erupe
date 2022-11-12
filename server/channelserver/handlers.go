@@ -141,6 +141,7 @@ func handleMsgSysLogin(s *Session, p mhfpacket.MHFPacket) {
 	s.charID = pkt.CharID0
 	s.token = pkt.LoginTokenString
 	s.Unlock()
+
 	updateRights(s)
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint32(uint32(Time_Current_Adjusted().Unix())) // Unix timestamp

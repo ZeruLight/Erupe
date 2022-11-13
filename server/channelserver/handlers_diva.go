@@ -400,7 +400,13 @@ type Tile struct {
 	Unk2        uint32
 }
 
-type mapProg struct {
+type MapData struct {
+	ID     uint32
+	NextID uint32
+	Tiles  []Tile
+}
+
+type MapProg struct {
 	ID    uint32
 	Unk   uint16
 	Tiles []Tile
@@ -411,29 +417,9 @@ func handleMsgMhfGetUdGuildMapInfo(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetUdGuildMapInfo)
 
 	// rudimentary example
-	interceptionPoints := map[uint16]int32{0: 2000, 58079: 50}
-	var guildProg []mapProg
-	mapData := []struct {
-		ID     uint32
-		NextID uint32
-		Tiles  []Tile
-	}{
-		{ID: 1, NextID: 1, Tiles: []Tile{
-			{ID: 101, NextID: 102, BranchIndex: 1, Type: 1},
-			{ID: 102, NextID: 103, BranchID: 202, BranchIndex: 2, Type: 3, PointsReq: 500},
-			{ID: 103, BranchIndex: 3, Type: 2, PointsReq: 500},
-			{ID: 202, QuestFile: 58079, BranchIndex: 1, Type: 4, PointsReq: 100, Unk1: 1, Unk2: 1},
-		}}, {ID: 2, NextID: 3, Tiles: []Tile{
-			{ID: 105, NextID: 205, BranchIndex: 1, Type: 1},
-			{ID: 205, NextID: 305, BranchIndex: 2, Type: 0, PointsReq: 500},
-			{ID: 305, NextID: 405, BranchIndex: 3, Type: 0, PointsReq: 500},
-			{ID: 405, NextID: 505, BranchIndex: 4, Type: 0, PointsReq: 500},
-			{ID: 505, BranchIndex: 5, Type: 2, PointsReq: 5000},
-		}}, {ID: 3, NextID: 1, Tiles: []Tile{
-			{ID: 512, NextID: 412, BranchIndex: 1, Type: 1},
-			{ID: 412, BranchIndex: 2, Type: 2, PointsReq: 500},
-		}},
-	}
+	interceptionPoints := map[uint16]int32{0: 200000, 58079: 50}
+	var guildProg []MapProg
+	mapData := GenerateUdGuildMaps()
 
 	unkData := []struct {
 		Unk0 uint32
@@ -450,7 +436,7 @@ func handleMsgMhfGetUdGuildMapInfo(s *Session, p mhfpacket.MHFPacket) {
 
 	bf.WriteUint16(uint16(len(mapData)))
 	for _, _map := range mapData {
-		guildProg = append(guildProg, mapProg{ID: _map.ID, Unk: 1, Tiles: _map.Tiles})
+		guildProg = append(guildProg, MapProg{ID: _map.ID, Unk: 1, Tiles: _map.Tiles})
 		bf.WriteUint32(_map.ID)
 		bf.WriteUint32(_map.NextID)
 		for _, tile := range _map.Tiles {
@@ -568,9 +554,7 @@ func getNeighbourTiles(tiles [][]uint16, tile uint16) []uint16 {
 	return vals
 }
 
-func handleMsgMhfGenerateUdGuildMap(s *Session, p mhfpacket.MHFPacket) {
-	pkt := p.(*mhfpacket.MsgMhfGenerateUdGuildMap)
-
+func GenerateUdGuildMaps() []MapData {
 	tiles := make([][]uint16, 5)
 	for i := range tiles {
 		tiles[i] = make([]uint16, 12)
@@ -579,7 +563,7 @@ func handleMsgMhfGenerateUdGuildMap(s *Session, p mhfpacket.MHFPacket) {
 		}
 	}
 
-	var guildMaps [][]Tile
+	var guildMaps []MapData
 
 	for i := 0; i < 5; i++ {
 		var startTile, endTile uint16
@@ -656,16 +640,37 @@ func handleMsgMhfGenerateUdGuildMap(s *Session, p mhfpacket.MHFPacket) {
 				mapTile.NextID = tilePath[j+1]
 			case len(tilePath) - 1:
 				mapTile.Type = 2
-				mapTile.PointsReq = 5000
 			default:
 				mapTile.NextID = tilePath[j+1]
-				mapTile.PointsReq = int32((j + 1) * 200)
+			}
+			switch i {
+			case 0:
+				mapTile.PointsReq = int32(2500 + 150*(j-1))
+			case 1:
+				mapTile.PointsReq = int32(5500 + 600*(j-1))
+			case 2:
+				mapTile.PointsReq = int32(6500 + 800*(j-1))
+			case 3:
+				mapTile.PointsReq = int32(7500 + 1000*(j-1))
+			case 4:
+				mapTile.PointsReq = int32(8500 + 1000*(j-1))
 			}
 			mapTiles = append(mapTiles, mapTile)
 		}
 
-		guildMaps = append(guildMaps, mapTiles)
+		if i >= 4 {
+			guildMaps = append(guildMaps, MapData{uint32(i + 1), 3, mapTiles})
+		} else {
+			guildMaps = append(guildMaps, MapData{uint32(i + 1), uint32(i + 2), mapTiles})
+		}
 	}
+	return guildMaps
+}
+
+func handleMsgMhfGenerateUdGuildMap(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfGenerateUdGuildMap)
+
+	// GenerateUdGuildMaps()
 
 	doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 }

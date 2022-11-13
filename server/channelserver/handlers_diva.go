@@ -581,7 +581,7 @@ func handleMsgMhfGenerateUdGuildMap(s *Session, p mhfpacket.MHFPacket) {
 
 	var guildMaps [][]Tile
 
-	for i := 0; i < 1000; i++ {
+	for i := 0; i < 5; i++ {
 		var startTile, endTile uint16
 		var randTemp []uint16
 		rand.Seed(time.Now().UnixNano())

@@ -3,6 +3,8 @@ package channelserver
 import (
 	"encoding/hex"
 	"erupe-ce/common/stringsupport"
+	"golang.org/x/exp/slices"
+	"math/rand"
 	"time"
 
 	"erupe-ce/common/byteframe"
@@ -382,4 +384,288 @@ func handleMsgMhfGetUdMyRanking(s *Session, p mhfpacket.MHFPacket) {
 	bf.WriteUint32(0) // guildPointsDupe?
 	bf.WriteBytes(stringsupport.PaddedString("", 25, true))
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+}
+
+type Tile struct {
+	ID          uint16
+	NextID      uint16
+	BranchID    uint16
+	QuestFile   uint16
+	Unk0        uint32
+	BranchIndex uint8
+	Type        uint8
+	PointsReq   int32
+	Claimed     bool
+	Unk1        uint8
+	Unk2        uint32
+}
+
+type mapProg struct {
+	ID    uint32
+	Unk   uint16
+	Tiles []Tile
+	Bytes *byteframe.ByteFrame
+}
+
+func handleMsgMhfGetUdGuildMapInfo(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfGetUdGuildMapInfo)
+
+	// rudimentary example
+	interceptionPoints := map[uint16]int32{0: 2000, 58079: 50}
+	var guildProg []mapProg
+	mapData := []struct {
+		ID     uint32
+		NextID uint32
+		Tiles  []Tile
+	}{
+		{ID: 1, NextID: 1, Tiles: []Tile{
+			{ID: 101, NextID: 102, BranchIndex: 1, Type: 1},
+			{ID: 102, NextID: 103, BranchID: 202, BranchIndex: 2, Type: 3, PointsReq: 500},
+			{ID: 103, BranchIndex: 3, Type: 2, PointsReq: 500},
+			{ID: 202, QuestFile: 58079, BranchIndex: 1, Type: 4, PointsReq: 100, Unk1: 1, Unk2: 1},
+		}}, {ID: 2, NextID: 3, Tiles: []Tile{
+			{ID: 105, NextID: 205, BranchIndex: 1, Type: 1},
+			{ID: 205, NextID: 305, BranchIndex: 2, Type: 0, PointsReq: 500},
+			{ID: 305, NextID: 405, BranchIndex: 3, Type: 0, PointsReq: 500},
+			{ID: 405, NextID: 505, BranchIndex: 4, Type: 0, PointsReq: 500},
+			{ID: 505, BranchIndex: 5, Type: 2, PointsReq: 5000},
+		}}, {ID: 3, NextID: 1, Tiles: []Tile{
+			{ID: 512, NextID: 412, BranchIndex: 1, Type: 1},
+			{ID: 412, BranchIndex: 2, Type: 2, PointsReq: 500},
+		}},
+	}
+
+	unkData := []struct {
+		Unk0 uint32
+		Unk1 uint8
+		Unk2 uint8
+		Unk3 uint8
+		Unk4 uint16
+		Unk5 uint16
+		Unk6 uint16
+		Unk7 uint8
+	}{}
+
+	bf := byteframe.NewByteFrame()
+
+	bf.WriteUint16(uint16(len(mapData)))
+	for _, _map := range mapData {
+		guildProg = append(guildProg, mapProg{ID: _map.ID, Unk: 1, Tiles: _map.Tiles})
+		bf.WriteUint32(_map.ID)
+		bf.WriteUint32(_map.NextID)
+		for _, tile := range _map.Tiles {
+			bf.WriteUint16(tile.ID)
+			bf.WriteUint16(tile.NextID)
+			bf.WriteUint16(tile.BranchID)
+			bf.WriteUint16(tile.QuestFile)
+			bf.WriteUint32(tile.Unk0)
+			bf.WriteUint8(tile.BranchIndex)
+			bf.WriteUint8(tile.Type)
+			bf.WriteInt32(tile.PointsReq)
+
+			bf.WriteUint8(tile.Unk1)
+			bf.WriteUint32(tile.Unk2)
+		}
+		bf.WriteBytes(make([]byte, 23*(64-len(_map.Tiles)))) // Fill out 64 tiles
+	}
+
+	bf.WriteUint16(uint16(len(unkData)))
+	for _, unk := range unkData {
+		bf.WriteUint32(unk.Unk0)
+		bf.WriteUint8(unk.Unk1)
+		bf.WriteUint8(unk.Unk2)
+		bf.WriteUint8(unk.Unk3)
+		bf.WriteUint16(unk.Unk4)
+		bf.WriteUint16(unk.Unk5)
+		bf.WriteUint16(unk.Unk6)
+		bf.WriteUint8(unk.Unk7)
+	}
+
+	var tilesClaimed uint32
+	var currentMapID uint32
+	var prevMapID uint32
+
+	for i, prog := range guildProg {
+		guildProg[i].Bytes = byteframe.NewByteFrame()
+		guildProg[i].Bytes.WriteUint32(prog.ID)
+		guildProg[i].Bytes.WriteUint16(prog.Unk)
+		guildProg[i].Bytes.WriteUint8(uint8(len(prog.Tiles)))
+		for _, tile := range prog.Tiles {
+			if tile.Type != 1 && interceptionPoints[tile.QuestFile] > 0 {
+				if tile.PointsReq-interceptionPoints[tile.QuestFile] < 0 {
+					interceptionPoints[tile.QuestFile] -= tile.PointsReq
+					guildProg[i].Bytes.WriteInt32(tile.PointsReq)
+					tilesClaimed++
+					tile.Claimed = true
+				} else {
+					if tile.QuestFile == 0 {
+						currentMapID = prog.ID
+						if i > 0 {
+							prevMapID = guildProg[i-1].ID
+						}
+					}
+					guildProg[i].Bytes.WriteInt32(interceptionPoints[tile.QuestFile])
+					interceptionPoints[tile.QuestFile] = 0
+				}
+			} else {
+				guildProg[i].Bytes.WriteUint32(0)
+			}
+			guildProg[i].Bytes.WriteInt32(tile.PointsReq)
+			guildProg[i].Bytes.WriteUint16(tile.ID)
+			guildProg[i].Bytes.WriteUint16(tile.NextID)
+			guildProg[i].Bytes.WriteUint16(tile.BranchID)
+			guildProg[i].Bytes.WriteUint16(tile.QuestFile)
+			guildProg[i].Bytes.WriteUint32(tile.Unk0)
+			guildProg[i].Bytes.WriteUint8(tile.BranchIndex)
+			guildProg[i].Bytes.WriteUint8(tile.Type)
+			guildProg[i].Bytes.WriteBool(tile.Claimed)
+		}
+	}
+
+	if prevMapID != 0 {
+		bf.WriteUint8(2)
+		for _, prog := range guildProg {
+			if prog.ID == currentMapID {
+				bf.WriteBytes(prog.Bytes.Data())
+			}
+		}
+		for _, prog := range guildProg {
+			if prog.ID == prevMapID {
+				bf.WriteBytes(prog.Bytes.Data())
+			}
+		}
+	} else {
+		bf.WriteUint8(1)
+		for _, prog := range guildProg {
+			if prog.ID == currentMapID {
+				bf.WriteBytes(prog.Bytes.Data())
+			}
+		}
+	}
+
+	bf.WriteUint32(tilesClaimed)
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+}
+
+func getNeighbourTiles(tiles [][]uint16, tile uint16) []uint16 {
+	var vals []uint16
+	var temp []uint16
+	if tile%2 == 0 {
+		temp = []uint16{tile - 100, tile - 1, tile + 1, tile + 99, tile + 100, tile + 101}
+	} else {
+		temp = []uint16{tile - 101, tile - 100, tile - 99, tile - 1, tile + 1, tile + 100}
+	}
+
+	for _, val := range temp {
+		for x := range tiles {
+			for y := range tiles[x] {
+				if tiles[x][y] == val {
+					vals = append(vals, val)
+				}
+			}
+		}
+	}
+	return vals
+}
+
+func handleMsgMhfGenerateUdGuildMap(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfGenerateUdGuildMap)
+
+	tiles := make([][]uint16, 5)
+	for i := range tiles {
+		tiles[i] = make([]uint16, 12)
+		for j := range tiles[i] {
+			tiles[i][j] = uint16(((i + 1) * 100) + j + 1)
+		}
+	}
+
+	var guildMaps [][]Tile
+
+	for i := 0; i < 1000; i++ {
+		var startTile, endTile uint16
+		var randTemp []uint16
+		rand.Seed(time.Now().UnixNano())
+		randTemp = tiles[rand.Intn(len(tiles))]
+		startTile = randTemp[rand.Intn(len(randTemp))]
+		for {
+			rand.Seed(time.Now().UnixNano())
+			randTemp = tiles[rand.Intn(len(tiles))]
+			endTile = randTemp[rand.Intn(len(randTemp))]
+			invalidTiles := append(getNeighbourTiles(tiles, startTile), startTile)
+			if !slices.Contains(invalidTiles, endTile) {
+				break
+			}
+		}
+
+		var tilePath []uint16
+		var iterations int
+		var tooDifficult bool
+		for {
+			var pathFailed bool
+			var evictedTiles []uint16
+			tilePath = []uint16{startTile}
+			for {
+				var possibleTiles []uint16
+				tempTiles := getNeighbourTiles(tiles, tilePath[len(tilePath)-1])
+				for _, tile := range tempTiles {
+					if !slices.Contains(evictedTiles, tile) {
+						possibleTiles = append(possibleTiles, tile)
+					}
+				}
+				if len(possibleTiles) == 0 {
+					pathFailed = true
+					break
+				}
+				for _, tile := range possibleTiles {
+					evictedTiles = append(evictedTiles, tile)
+				}
+				newTile := possibleTiles[rand.Intn(len(possibleTiles))]
+				tilePath = append(tilePath, newTile)
+				if tilePath[len(tilePath)-1] == endTile {
+					if len(tilePath) < 20 {
+						pathFailed = true
+					}
+					break
+				}
+			}
+			if !pathFailed {
+				break
+			}
+			if pathFailed {
+				iterations = iterations + 1
+			}
+			if iterations > 1000 {
+				tooDifficult = true
+				break
+			}
+		}
+
+		if tooDifficult {
+			i--
+			continue
+		}
+
+		var mapTiles []Tile
+		for j, tile := range tilePath {
+			mapTile := Tile{}
+			mapTile.ID = tile
+			mapTile.BranchIndex = uint8(j + 1)
+			switch j {
+			case 0:
+				mapTile.Type = 1
+				mapTile.NextID = tilePath[j+1]
+			case len(tilePath) - 1:
+				mapTile.Type = 2
+				mapTile.PointsReq = 5000
+			default:
+				mapTile.NextID = tilePath[j+1]
+				mapTile.PointsReq = int32((j + 1) * 200)
+			}
+			mapTiles = append(mapTiles, mapTile)
+		}
+
+		guildMaps = append(guildMaps, mapTiles)
+	}
+
+	doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 }

@@ -468,7 +468,7 @@ func handleMsgMhfGetUdGuildMapInfo(s *Session, p mhfpacket.MHFPacket) {
 	}
 
 	var tilesClaimed uint32
-	var currentMapID uint32
+	currentMapID := uint32(1)
 	var prevMapID uint32
 
 	for i, prog := range guildProg {

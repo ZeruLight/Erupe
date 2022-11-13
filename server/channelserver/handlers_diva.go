@@ -1,8 +1,11 @@
 package channelserver
 
 import (
+	"database/sql/driver"
 	"encoding/hex"
+	"encoding/json"
 	"erupe-ce/common/stringsupport"
+	"go.uber.org/zap"
 	"golang.org/x/exp/slices"
 	"math/rand"
 	"time"
@@ -400,6 +403,25 @@ type Tile struct {
 	Unk2        uint32
 }
 
+type InterceptionMaps struct {
+	Maps []MapData
+}
+
+func (im *InterceptionMaps) Scan(val interface{}) (err error) {
+	switch v := val.(type) {
+	case []byte:
+		err = json.Unmarshal(v, &im)
+	case string:
+		err = json.Unmarshal([]byte(v), &im)
+	}
+
+	return
+}
+
+func (im *InterceptionMaps) Value() (valuer driver.Value, err error) {
+	return json.Marshal(im)
+}
+
 type MapData struct {
 	ID     uint32
 	NextID uint32
@@ -416,10 +438,28 @@ type MapProg struct {
 func handleMsgMhfGetUdGuildMapInfo(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetUdGuildMapInfo)
 
+	guild, err := GetGuildInfoByCharacterId(s, s.charID)
+	if err != nil || guild == nil {
+		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+		return
+	}
+	isApplicant, _ := guild.HasApplicationForCharID(s, s.charID)
+	if err != nil || isApplicant {
+		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+		return
+	}
+
+	var interceptionMaps InterceptionMaps
+	err = s.server.db.QueryRow(`SELECT interception_maps FROM public.guilds WHERE guilds.id=$1`, guild.ID).Scan(&interceptionMaps)
+	if err != nil {
+		s.server.logger.Debug("err", zap.Error(err))
+		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+		return
+	}
+
 	// rudimentary example
 	interceptionPoints := map[uint16]int32{0: 200000, 58079: 50}
 	var guildProg []MapProg
-	mapData := GenerateUdGuildMaps()
 
 	unkData := []struct {
 		Unk0 uint32
@@ -434,8 +474,8 @@ func handleMsgMhfGetUdGuildMapInfo(s *Session, p mhfpacket.MHFPacket) {
 
 	bf := byteframe.NewByteFrame()
 
-	bf.WriteUint16(uint16(len(mapData)))
-	for _, _map := range mapData {
+	bf.WriteUint16(uint16(len(interceptionMaps.Maps)))
+	for _, _map := range interceptionMaps.Maps {
 		guildProg = append(guildProg, MapProg{ID: _map.ID, Unk: 1, Tiles: _map.Tiles})
 		bf.WriteUint32(_map.ID)
 		bf.WriteUint32(_map.NextID)
@@ -563,7 +603,7 @@ func GenerateUdGuildMaps() []MapData {
 		}
 	}
 
-	var guildMaps []MapData
+	var mapData []MapData
 
 	for i := 0; i < 5; i++ {
 		var startTile, endTile uint16
@@ -659,18 +699,31 @@ func GenerateUdGuildMaps() []MapData {
 		}
 
 		if i >= 4 {
-			guildMaps = append(guildMaps, MapData{uint32(i + 1), 3, mapTiles})
+			mapData = append(mapData, MapData{uint32(i + 1), 3, mapTiles})
 		} else {
-			guildMaps = append(guildMaps, MapData{uint32(i + 1), uint32(i + 2), mapTiles})
+			mapData = append(mapData, MapData{uint32(i + 1), uint32(i + 2), mapTiles})
 		}
 	}
-	return guildMaps
+	return mapData
 }
 
 func handleMsgMhfGenerateUdGuildMap(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGenerateUdGuildMap)
-
-	// GenerateUdGuildMaps()
-
-	doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+	interceptionMaps := &InterceptionMaps{}
+	interceptionMaps.Maps = GenerateUdGuildMaps()
+	guild, err := GetGuildInfoByCharacterId(s, s.charID)
+	if err != nil || guild == nil {
+		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+		return
+	}
+	isApplicant, _ := guild.HasApplicationForCharID(s, s.charID)
+	if err != nil || isApplicant {
+		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+		return
+	}
+	_, err = s.server.db.Exec(`UPDATE guilds SET interception_maps=$1 WHERE guilds.id=$2`, interceptionMaps, guild.ID)
+	if err != nil {
+		s.server.logger.Debug("err", zap.Error(err))
+	}
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }

@@ -424,9 +424,10 @@ func (im *InterceptionMaps) Value() (valuer driver.Value, err error) {
 }
 
 type MapData struct {
-	ID     uint32
-	NextID uint32
-	Tiles  []Tile
+	ID       uint32
+	NextID   uint32
+	Tiles    []Tile
+	Branches []MapBranch
 }
 
 type MapProg struct {
@@ -434,6 +435,16 @@ type MapProg struct {
 	Unk   uint16
 	Tiles []Tile
 	Bytes *byteframe.ByteFrame
+}
+
+type MapBranch struct {
+	MapIndex   uint32
+	ItemType   uint8
+	ItemID     uint16
+	Quantity   uint16
+	TileIndex1 uint16 // Sequential
+	TileIndex2 uint16 // Sequential, last = 99
+	ChestType  uint8
 }
 
 func handleMsgMhfGetUdGuildMapInfo(s *Session, p mhfpacket.MHFPacket) {
@@ -474,17 +485,6 @@ func handleMsgMhfGetUdGuildMapInfo(s *Session, p mhfpacket.MHFPacket) {
 
 	var guildProg []MapProg
 
-	unkData := []struct {
-		Unk0 uint32
-		Unk1 uint8
-		Unk2 uint8
-		Unk3 uint8
-		Unk4 uint16
-		Unk5 uint16
-		Unk6 uint16
-		Unk7 uint8
-	}{}
-
 	bf := byteframe.NewByteFrame()
 
 	bf.WriteUint16(uint16(len(interceptionMaps.Maps)))
@@ -508,16 +508,17 @@ func handleMsgMhfGetUdGuildMapInfo(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteBytes(make([]byte, 23*(64-len(_map.Tiles)))) // Fill out 64 tiles
 	}
 
-	bf.WriteUint16(uint16(len(unkData)))
-	for _, unk := range unkData {
-		bf.WriteUint32(unk.Unk0)
-		bf.WriteUint8(unk.Unk1)
-		bf.WriteUint8(unk.Unk2)
-		bf.WriteUint8(unk.Unk3)
-		bf.WriteUint16(unk.Unk4)
-		bf.WriteUint16(unk.Unk5)
-		bf.WriteUint16(unk.Unk6)
-		bf.WriteUint8(unk.Unk7)
+	var mapBranch []MapBranch
+
+	bf.WriteUint16(uint16(len(mapBranch)))
+	for _, tile := range mapBranch {
+		bf.WriteUint32(tile.MapIndex)
+		bf.WriteUint8(tile.ItemType)
+		bf.WriteUint16(tile.ItemID)
+		bf.WriteUint16(tile.Quantity)
+		bf.WriteUint16(tile.TileIndex1)
+		bf.WriteUint16(tile.TileIndex2)
+		bf.WriteUint8(tile.ChestType)
 	}
 
 	var tilesClaimed uint32
@@ -712,9 +713,9 @@ func GenerateUdGuildMaps() []MapData {
 		}
 
 		if i >= 4 {
-			mapData = append(mapData, MapData{uint32(i + 1), 3, mapTiles})
+			mapData = append(mapData, MapData{ID: uint32(i + 1), NextID: 3, Tiles: mapTiles})
 		} else {
-			mapData = append(mapData, MapData{uint32(i + 1), uint32(i + 2), mapTiles})
+			mapData = append(mapData, MapData{ID: uint32(i + 1), NextID: uint32(i + 2), Tiles: mapTiles})
 		}
 	}
 	return mapData

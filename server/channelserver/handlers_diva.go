@@ -766,7 +766,9 @@ func GenerateUdGuildMaps() ([]MapData, []MapBranch) {
 				newBranchTile = getBranchTile(tiles, evictedTiles, currentBranchTile.ID)
 				if newBranchTile == 0 {
 					if currentBranchTile != mapTiles[j] {
-						currentBranchTile.Type = 4
+						branchTiles[len(branchTiles)-1].Type = 4
+						branchTiles[len(branchTiles)-1].Unk1 = 1
+						branchTiles[len(branchTiles)-1].Unk2 = 2
 						// Make treasure more interesting
 						mapBranches = append(mapBranches, MapBranch{
 							MapIndex:   uint32(i + 1),
@@ -780,9 +782,11 @@ func GenerateUdGuildMaps() ([]MapData, []MapBranch) {
 					}
 					break
 				} else {
-					currentBranchTile.BranchID = newBranchTile
 					if currentBranchTile.ID == mapTiles[j].ID {
-						currentBranchTile.Type = 3
+						mapTiles[j].BranchID = newBranchTile
+						mapTiles[j].Type = 3
+					} else {
+						branchTiles[len(branchTiles)-1].NextID = newBranchTile
 					}
 					branchIndex++
 					newTile := Tile{
@@ -791,8 +795,8 @@ func GenerateUdGuildMaps() ([]MapData, []MapBranch) {
 						BranchIndex: uint8(branchIndex),
 						Type:        0,
 						PointsReq:   100,
-						Unk1:        1,
-						Unk2:        1,
+						Unk1:        0,
+						Unk2:        0,
 					}
 					branchTiles = append(branchTiles, newTile)
 					for _, k := range getNeighbourTiles(tiles, currentBranchTile.ID) {

@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"erupe-ce/common/stringsupport"
+	"github.com/lib/pq"
 	"go.uber.org/zap"
 	"golang.org/x/exp/slices"
 	"math/rand"
@@ -450,15 +451,27 @@ func handleMsgMhfGetUdGuildMapInfo(s *Session, p mhfpacket.MHFPacket) {
 	}
 
 	var interceptionMaps InterceptionMaps
-	err = s.server.db.QueryRow(`SELECT interception_maps FROM public.guilds WHERE guilds.id=$1`, guild.ID).Scan(&interceptionMaps)
+	var personalPoints map[uint16]int32
+
+	interceptionPoints := make(map[uint16]int32)
+	var _interceptionPoints pq.ByteaArray
+	err = s.server.db.QueryRow(`SELECT interception_maps, (SELECT ARRAY(SELECT interception_points FROM guild_characters gc WHERE gc.guild_id = g.id)) AS interception_points FROM public.guilds g WHERE g.id=$1`, guild.ID).Scan(&interceptionMaps, &_interceptionPoints)
 	if err != nil {
 		s.server.logger.Debug("err", zap.Error(err))
 		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
+	for _, playerPoints := range _interceptionPoints {
+		json.Unmarshal(playerPoints, &personalPoints)
+		for u, i := range personalPoints {
+			if u < 58079 || u > 58083 {
+				interceptionPoints[0] += i
+			} else {
+				interceptionPoints[u] += i
+			}
+		}
+	}
 
-	// rudimentary example
-	interceptionPoints := map[uint16]int32{0: 200000, 58079: 50}
 	var guildProg []MapProg
 
 	unkData := []struct {

@@ -11,7 +11,7 @@ import (
 type MsgMhfAddUdTacticsPoint struct {
 	AckHandle   uint32
 	QuestFileID uint16
-	Points      uint32
+	Points      int32
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -23,7 +23,7 @@ func (m *MsgMhfAddUdTacticsPoint) Opcode() network.PacketID {
 func (m *MsgMhfAddUdTacticsPoint) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
 	m.QuestFileID = bf.ReadUint16()
-	m.Points = bf.ReadUint32()
+	m.Points = bf.ReadInt32()
 	return nil
 }
 

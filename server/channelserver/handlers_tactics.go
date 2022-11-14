@@ -2,6 +2,7 @@ package channelserver
 
 import (
 	"encoding/hex"
+	"encoding/json"
 	"erupe-ce/common/byteframe"
 	"erupe-ce/common/stringsupport"
 	"erupe-ce/network/mhfpacket"
@@ -18,6 +19,18 @@ func handleMsgMhfGetUdTacticsPoint(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfAddUdTacticsPoint(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfAddUdTacticsPoint)
+	var personalPoints map[uint16]int32
+	var temp []byte
+	s.server.db.QueryRow(`SELECT interception_points FROM guild_characters WHERE id=$1`, s.charID).Scan(&temp)
+	json.Unmarshal(temp, &personalPoints)
+	if personalPoints == nil {
+		personalPoints = make(map[uint16]int32)
+		personalPoints[pkt.QuestFileID] = pkt.Points
+	} else {
+		personalPoints[pkt.QuestFileID] += pkt.Points
+	}
+	val, _ := json.Marshal(personalPoints)
+	s.server.db.Exec(`UPDATE guild_characters SET interception_points=$1 WHERE id=$2`, val, s.charID)
 	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 

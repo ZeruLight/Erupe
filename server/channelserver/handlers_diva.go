@@ -405,7 +405,8 @@ type Tile struct {
 }
 
 type InterceptionMaps struct {
-	Maps []MapData
+	Maps     []MapData
+	Branches []MapBranch
 }
 
 func (im *InterceptionMaps) Scan(val interface{}) (err error) {
@@ -424,10 +425,9 @@ func (im *InterceptionMaps) Value() (valuer driver.Value, err error) {
 }
 
 type MapData struct {
-	ID       uint32
-	NextID   uint32
-	Tiles    []Tile
-	Branches []MapBranch
+	ID     uint32
+	NextID uint32
+	Tiles  []Tile
 }
 
 type MapProg struct {
@@ -508,17 +508,15 @@ func handleMsgMhfGetUdGuildMapInfo(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteBytes(make([]byte, 23*(64-len(_map.Tiles)))) // Fill out 64 tiles
 	}
 
-	var mapBranch []MapBranch
-
-	bf.WriteUint16(uint16(len(mapBranch)))
-	for _, tile := range mapBranch {
-		bf.WriteUint32(tile.MapIndex)
-		bf.WriteUint8(tile.ItemType)
-		bf.WriteUint16(tile.ItemID)
-		bf.WriteUint16(tile.Quantity)
-		bf.WriteUint16(tile.TileIndex1)
-		bf.WriteUint16(tile.TileIndex2)
-		bf.WriteUint8(tile.ChestType)
+	bf.WriteUint16(uint16(len(interceptionMaps.Branches)))
+	for _, branch := range interceptionMaps.Branches {
+		bf.WriteUint32(branch.MapIndex)
+		bf.WriteUint8(branch.ItemType)
+		bf.WriteUint16(branch.ItemID)
+		bf.WriteUint16(branch.Quantity)
+		bf.WriteUint16(branch.TileIndex1)
+		bf.WriteUint16(branch.TileIndex2)
+		bf.WriteUint8(branch.ChestType)
 	}
 
 	var tilesClaimed uint32
@@ -608,7 +606,45 @@ func getNeighbourTiles(tiles [][]uint16, tile uint16) []uint16 {
 	return vals
 }
 
-func GenerateUdGuildMaps() []MapData {
+func getBranchTile(tiles [][]uint16, excluded []uint16, tile uint16) uint16 {
+	neighbours := getNeighbourTiles(tiles, tile)
+	var validNeighbours, validBranchTiles []uint16
+	for i := range neighbours {
+		if !slices.Contains(excluded, neighbours[i]) {
+			// Neighbour tiles that are not in the path
+			validNeighbours = append(validNeighbours, neighbours[i])
+		}
+	}
+	if len(validNeighbours) == 0 {
+		return 0
+	}
+	for i := range validNeighbours {
+		subNeighbours := getNeighbourTiles(tiles, validNeighbours[i])
+		var invalid bool
+		var cleanSubNeighbours []uint16
+		for _, subNeighbour := range subNeighbours {
+			if subNeighbour != validNeighbours[i] && subNeighbour != tile {
+				cleanSubNeighbours = append(cleanSubNeighbours, subNeighbour)
+			}
+		}
+		for _, subNeighbour := range cleanSubNeighbours {
+			if slices.Contains(excluded, subNeighbour) {
+				invalid = true
+				break
+			}
+		}
+		if !invalid {
+			validBranchTiles = append(validBranchTiles, validNeighbours[i])
+		}
+	}
+	if len(validBranchTiles) == 0 {
+		return 0
+	}
+	rand.Seed(time.Now().UnixNano())
+	return validBranchTiles[rand.Intn(len(validBranchTiles))]
+}
+
+func GenerateUdGuildMaps() ([]MapData, []MapBranch) {
 	tiles := make([][]uint16, 5)
 	for i := range tiles {
 		tiles[i] = make([]uint16, 12)
@@ -618,6 +654,7 @@ func GenerateUdGuildMaps() []MapData {
 	}
 
 	var mapData []MapData
+	var mapBranches []MapBranch
 
 	for i := 0; i < 5; i++ {
 		var startTile, endTile uint16
@@ -712,19 +749,75 @@ func GenerateUdGuildMaps() []MapData {
 			mapTiles = append(mapTiles, mapTile)
 		}
 
+		var evictedTiles []uint16
+		for _, tile := range tilePath {
+			evictedTiles = append(evictedTiles, tile)
+		}
+
+		var branchTiles []Tile
+		for j := range mapTiles {
+			if mapTiles[j].Type != 0 {
+				continue
+			}
+			var newBranchTile uint16
+			var branchIndex int
+			currentBranchTile := mapTiles[j]
+			for {
+				newBranchTile = getBranchTile(tiles, evictedTiles, currentBranchTile.ID)
+				if newBranchTile == 0 {
+					if currentBranchTile != mapTiles[j] {
+						currentBranchTile.Type = 4
+						// Make treasure more interesting
+						mapBranches = append(mapBranches, MapBranch{
+							MapIndex:   uint32(i + 1),
+							ItemType:   7,
+							ItemID:     7,
+							Quantity:   5,
+							TileIndex1: uint16(branchIndex),
+							TileIndex2: 99,
+							ChestType:  2,
+						})
+					}
+					break
+				} else {
+					currentBranchTile.BranchID = newBranchTile
+					if currentBranchTile.ID == mapTiles[j].ID {
+						currentBranchTile.Type = 3
+					}
+					branchIndex++
+					newTile := Tile{
+						ID:          newBranchTile,
+						QuestFile:   uint16(j%5 + 58079),
+						BranchIndex: uint8(branchIndex),
+						Type:        0,
+						PointsReq:   100,
+						Unk1:        1,
+						Unk2:        1,
+					}
+					branchTiles = append(branchTiles, newTile)
+					for _, k := range getNeighbourTiles(tiles, currentBranchTile.ID) {
+						evictedTiles = append(evictedTiles, k)
+					}
+					currentBranchTile = newTile
+				}
+			}
+		}
+		for j := range branchTiles {
+			mapTiles = append(mapTiles, branchTiles[j])
+		}
 		if i >= 4 {
-			mapData = append(mapData, MapData{ID: uint32(i + 1), NextID: 3, Tiles: mapTiles})
+			mapData = append(mapData, MapData{uint32(i + 1), 3, mapTiles})
 		} else {
-			mapData = append(mapData, MapData{ID: uint32(i + 1), NextID: uint32(i + 2), Tiles: mapTiles})
+			mapData = append(mapData, MapData{uint32(i + 1), uint32(i + 2), mapTiles})
 		}
 	}
-	return mapData
+	return mapData, mapBranches
 }
 
 func handleMsgMhfGenerateUdGuildMap(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGenerateUdGuildMap)
 	interceptionMaps := &InterceptionMaps{}
-	interceptionMaps.Maps = GenerateUdGuildMaps()
+	interceptionMaps.Maps, interceptionMaps.Branches = GenerateUdGuildMaps()
 	guild, err := GetGuildInfoByCharacterId(s, s.charID)
 	if err != nil || guild == nil {
 		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))

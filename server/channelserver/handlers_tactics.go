@@ -10,10 +10,21 @@ import (
 
 func handleMsgMhfGetUdTacticsPoint(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetUdTacticsPoint)
+	personalPoints := make(map[uint16]int32)
+	var totalPoints int32
+	var temp []byte
+	s.server.db.QueryRow(`SELECT interception_points FROM guild_characters WHERE id=$1`, s.charID).Scan(&temp)
+	json.Unmarshal(temp, &personalPoints)
+	for _, i := range personalPoints {
+		totalPoints += i
+	}
 	bf := byteframe.NewByteFrame()
 	bf.WriteBool(false) // Unk, will not update if true
-	bf.WriteUint32(0)
-	bf.WriteUint8(3) // Unk
+	bf.WriteInt32(totalPoints)
+	bf.WriteUint8(uint8(len(personalPoints)))
+	for i := range personalPoints {
+		bf.WriteUint16(i)
+	}
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
@@ -31,7 +42,13 @@ func handleMsgMhfAddUdTacticsPoint(s *Session, p mhfpacket.MHFPacket) {
 	}
 	val, _ := json.Marshal(personalPoints)
 	s.server.db.Exec(`UPDATE guild_characters SET interception_points=$1 WHERE id=$2`, val, s.charID)
-	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint8(0) // Unk
+	bf.WriteUint8(uint8(len(personalPoints)))
+	for i := range personalPoints {
+		bf.WriteUint16(i)
+	}
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfGetUdTacticsRewardList(s *Session, p mhfpacket.MHFPacket) {

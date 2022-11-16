@@ -452,12 +452,12 @@ func handleMsgMhfGetUdGuildMapInfo(s *Session, p mhfpacket.MHFPacket) {
 
 	guild, err := GetGuildInfoByCharacterId(s, s.charID)
 	if err != nil || guild == nil {
-		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+		doAckBufSucceed(s, pkt.AckHandle, []byte{0xFF})
 		return
 	}
 	isApplicant, _ := guild.HasApplicationForCharID(s, s.charID)
 	if err != nil || isApplicant {
-		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+		doAckBufSucceed(s, pkt.AckHandle, []byte{0xFF})
 		return
 	}
 
@@ -468,7 +468,7 @@ func handleMsgMhfGetUdGuildMapInfo(s *Session, p mhfpacket.MHFPacket) {
 	var _interceptionPoints pq.ByteaArray
 	err = s.server.db.QueryRow(`SELECT interception_maps, (SELECT ARRAY(SELECT interception_points FROM guild_characters gc WHERE gc.guild_id = g.id)) AS interception_points FROM public.guilds g WHERE g.id=$1`, guild.ID).Scan(&interceptionMaps, &_interceptionPoints)
 	if err != nil {
-		s.server.logger.Debug("err", zap.Error(err))
+		s.server.logger.Error("Failed to load interception map data", zap.Error(err))
 		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}

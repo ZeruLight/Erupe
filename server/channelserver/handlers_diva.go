@@ -820,8 +820,6 @@ func GenerateUdGuildMaps() ([]MapData, []MapBranch) {
 
 func handleMsgMhfGenerateUdGuildMap(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGenerateUdGuildMap)
-	interceptionMaps := &InterceptionMaps{}
-	interceptionMaps.Maps, interceptionMaps.Branches = GenerateUdGuildMaps()
 	guild, err := GetGuildInfoByCharacterId(s, s.charID)
 	if err != nil || guild == nil {
 		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
@@ -832,6 +830,8 @@ func handleMsgMhfGenerateUdGuildMap(s *Session, p mhfpacket.MHFPacket) {
 		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
+	interceptionMaps := &InterceptionMaps{}
+	interceptionMaps.Maps, interceptionMaps.Branches = GenerateUdGuildMaps()
 	_, err = s.server.db.Exec(`UPDATE guilds SET interception_maps=$1 WHERE guilds.id=$2`, interceptionMaps, guild.ID)
 	if err != nil {
 		s.server.logger.Debug("err", zap.Error(err))

@@ -19,7 +19,7 @@ func handleMsgMhfGetUdTacticsPoint(s *Session, p mhfpacket.MHFPacket) {
 		totalPoints += i
 	}
 	bf := byteframe.NewByteFrame()
-	bf.WriteBool(false) // Unk, will not update if true
+	bf.WriteUint8(0x00) // Unk, some kind of error code?
 	bf.WriteInt32(totalPoints)
 	bf.WriteUint8(uint8(len(personalPoints)))
 	for i := range personalPoints {
@@ -105,7 +105,7 @@ func handleMsgMhfGetUdTacticsLog(s *Session, p mhfpacket.MHFPacket) {
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint8(0) // Logs
 	// Log format:
-	// uint8 LogType, 0=addPoints, 1=tileClaimed, 5=newDate
+	// uint8 LogType, 0=addPoints, 1=tileClaimed, 5=newDate, 6=branchFinished
 	// uint8 Unk
 	// uint32 CharID
 	// []byte CharName[32]

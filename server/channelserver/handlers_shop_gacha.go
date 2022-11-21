@@ -28,16 +28,16 @@ type ShopItem struct {
 }
 
 type Gacha struct {
-	ID    uint32
-	MinGR uint32
-	MinHR uint32
-	Name  string
-	Link1 string
-	Link2 string
-	Link3 string
-	Icon  uint16
-	Type  uint16
-	Hide  bool
+	ID    uint32 `db:"id"`
+	MinGR uint32 `db:"min_gr"`
+	MinHR uint32 `db:"min_hr"`
+	Name  string `db:"name"`
+	Link1 string `db:"link1"`
+	Link2 string `db:"link2"`
+	Link3 string `db:"link3"`
+	Icon  uint16 `db:"icon"`
+	Type  uint16 `db:"type"`
+	Hide  bool   `db:"hide"`
 }
 
 func handleMsgMhfEnumerateShop(s *Session, p mhfpacket.MHFPacket) {
@@ -319,31 +319,26 @@ func handleMsgMhfUseGachaPoint(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfExchangeFpoint2Item(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfExchangeFpoint2Item)
-
-	var itemValue, quant int
-	_ = s.server.db.QueryRow("SELECT quant, itemValue FROM fpoint_items WHERE hash=$1", pkt.ItemHash).Scan(&quant, &itemValue)
-	itemCost := (int(pkt.Quantity) * quant) * itemValue
-
-	// also update frontierpoints entry in database
-	_, err := s.server.db.Exec("UPDATE characters SET frontier_points=frontier_points::int - $1 WHERE id=$2", itemCost, s.charID)
-	if err != nil {
-		s.logger.Fatal("Failed to update minidata in db", zap.Error(err))
-	}
-	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
+	var balance uint32
+	var itemValue, quantity int
+	_ = s.server.db.QueryRow("SELECT quantity, fpoints FROM fpoint_items WHERE id=$1", pkt.TradeID).Scan(&quantity, &itemValue)
+	cost := (int(pkt.Quantity) * quantity) * itemValue
+	s.server.db.QueryRow("UPDATE characters SET frontier_points=frontier_points::int - $1 WHERE id=$2 RETURNING frontier_points", cost, s.charID).Scan(&balance)
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint32(balance)
+	doAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfExchangeItem2Fpoint(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfExchangeItem2Fpoint)
-
-	var itemValue, quant int
-	_ = s.server.db.QueryRow("SELECT quant, itemValue FROM fpoint_items WHERE hash=$1", pkt.ItemHash).Scan(&quant, &itemValue)
-	itemCost := (int(pkt.Quantity) / quant) * itemValue
-	// also update frontierpoints entry in database
-	_, err := s.server.db.Exec("UPDATE characters SET frontier_points=COALESCE(frontier_points::int + $1, $1) WHERE id=$2", itemCost, s.charID)
-	if err != nil {
-		s.logger.Fatal("Failed to update minidata in db", zap.Error(err))
-	}
-	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
+	var balance uint32
+	var itemValue, quantity int
+	s.server.db.QueryRow("SELECT quantity, fpoints FROM fpoint_items WHERE id=$1", pkt.TradeID).Scan(&quantity, &itemValue)
+	cost := (int(pkt.Quantity) / quantity) * itemValue
+	s.server.db.QueryRow("UPDATE characters SET frontier_points=COALESCE(frontier_points::int + $1, $1) WHERE id=$2 RETURNING frontier_points", cost, s.charID).Scan(&balance)
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint32(balance)
+	doAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfGetFpointExchangeList(s *Session, p mhfpacket.MHFPacket) {
@@ -351,48 +346,50 @@ func handleMsgMhfGetFpointExchangeList(s *Session, p mhfpacket.MHFPacket) {
 	resp := byteframe.NewByteFrame()
 	resp.WriteUint32(0)
 	var buyables, sellables uint16
-	var hash uint32
+	var id uint32
 	var itemType uint8
-	var itemID, quant, itemValue uint16
+	var itemID, quantity, fPoints uint16
 
-	buyRows, err := s.server.db.Query("SELECT hash,itemType,itemID,quant,itemValue FROM fpoint_items WHERE tradeType=0")
+	buyRows, err := s.server.db.Query("SELECT id,item_type,item_id,quantity,fpoints FROM fpoint_items WHERE trade_type=0")
 	if err == nil {
 		for buyRows.Next() {
-			err = buyRows.Scan(&hash, &itemType, &itemID, &quant, &itemValue)
+			err = buyRows.Scan(&id, &itemType, &itemID, &quantity, &fPoints)
 			if err != nil {
 				continue
 			}
-			resp.WriteUint32(hash)
-			resp.WriteUint32(0) // this and following only 0 in known packets
+			resp.WriteUint32(id)
+			resp.WriteUint16(0)
+			resp.WriteUint16(0)
 			resp.WriteUint16(0)
 			resp.WriteUint8(itemType)
 			resp.WriteUint16(itemID)
-			resp.WriteUint16(quant)
-			resp.WriteUint16(itemValue)
+			resp.WriteUint16(quantity)
+			resp.WriteUint16(fPoints)
 			buyables++
 		}
 	}
 
-	sellRows, err := s.server.db.Query("SELECT hash,itemType,itemID,quant,itemValue FROM fpoint_items WHERE tradeType=1")
+	sellRows, err := s.server.db.Query("SELECT id,item_type,item_id,quantity,fpoints FROM fpoint_items WHERE trade_type=1")
 	if err == nil {
 		for sellRows.Next() {
-			err = sellRows.Scan(&hash, &itemType, &itemID, &quant, &itemValue)
+			err = sellRows.Scan(&id, &itemType, &itemID, &quantity, &fPoints)
 			if err != nil {
 				continue
 			}
-			resp.WriteUint32(hash)
-			resp.WriteUint32(0) // this and following only 0 in known packets
+			resp.WriteUint32(id)
+			resp.WriteUint16(0)
+			resp.WriteUint16(0)
 			resp.WriteUint16(0)
 			resp.WriteUint8(itemType)
 			resp.WriteUint16(itemID)
-			resp.WriteUint16(quant)
-			resp.WriteUint16(itemValue)
+			resp.WriteUint16(quantity)
+			resp.WriteUint16(fPoints)
 			sellables++
 		}
 	}
 	resp.Seek(0, 0)
-	resp.WriteUint16(sellables)
 	resp.WriteUint16(buyables)
+	resp.WriteUint16(sellables)
 
 	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
 }

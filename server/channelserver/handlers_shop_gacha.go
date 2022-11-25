@@ -289,11 +289,11 @@ func handleMsgMhfPlayNormalGacha(s *Session, p mhfpacket.MHFPacket) {
 			dbUpdate.Seek(0, 0)
 			// response needs all item info and the rarity
 			resp.WriteBytes(dbUpdate.Data())
-			resp.WriteUint8(uint8(items[ind].(*gachaItem).rarityIcon))
+			resp.WriteUint8(items[ind].(*gachaItem).rarityIcon)
 		}
 	}
 	resp.Seek(0, 0)
-	resp.WriteUint8(uint8(results))
+	resp.WriteUint8(results)
 	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
 
 	// add claimables to DB
@@ -454,13 +454,13 @@ func handleMsgMhfPlayStepupGacha(s *Session, p mhfpacket.MHFPacket) {
 			rollFrame.Seek(0, 0)
 			// response needs all item info and the rarity
 			resp.WriteBytes(rollFrame.Data())
-			resp.WriteUint8(uint8(items[ind].(*gachaItem).rarityIcon))
+			resp.WriteUint8(items[ind].(*gachaItem).rarityIcon)
 		}
 	}
 	resp.WriteBytes(stepFrame.Data())
 	resp.Seek(0, 0)
-	resp.WriteUint8(uint8(results + stepResults))
-	resp.WriteUint8(uint8(results))
+	resp.WriteUint8(results + stepResults)
+	resp.WriteUint8(results)
 	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
 
 	// add claimables to DB
@@ -474,10 +474,9 @@ func handleMsgMhfPlayStepupGacha(s *Session, p mhfpacket.MHFPacket) {
 	// reduce real if trial don't cover cost
 	if currType == 19 {
 		_, err = s.server.db.Exec(`UPDATE characters
-																	SET gacha_trial = CASE WHEN (gacha_trial > $1) then gacha_trial - $1 else gacha_trial end,
-																	gacha_prem = CASE WHEN NOT (gacha_trial > $1) then gacha_prem - $1 else gacha_prem end
-																	WHERE id=$2`, currNumber, s.charID)
-
+			SET gacha_trial = CASE WHEN (gacha_trial > $1) then gacha_trial - $1 else gacha_trial end,
+			gacha_prem = CASE WHEN NOT (gacha_trial > $1) then gacha_prem - $1 else gacha_prem end
+			WHERE id=$2`, currNumber, s.charID)
 	}
 	if err != nil {
 		s.logger.Fatal("Failed to update gacha_items in db", zap.Error(err))
@@ -545,9 +544,9 @@ func handleMsgMhfGetStepupStatus(s *Session, p mhfpacket.MHFPacket) {
 		step_progression = 0
 	}
 	_, err = s.server.db.Exec(`INSERT INTO stepup_state (shophash, step_progression, step_time, char_id)
-														 VALUES ($1,$2,$3,$4) ON CONFLICT (shophash, char_id)
-														 DO UPDATE SET step_progression=$2, step_time=$3
-														 WHERE EXCLUDED.char_id=$4 AND EXCLUDED.shophash=$1`, pkt.GachaHash, step_progression, midday, s.charID)
+		VALUES ($1,$2,$3,$4) ON CONFLICT (shophash, char_id)
+		DO UPDATE SET step_progression=$2, step_time=$3
+		WHERE EXCLUDED.char_id=$4 AND EXCLUDED.shophash=$1`, pkt.GachaHash, step_progression, midday, s.charID)
 	if err != nil {
 		s.logger.Fatal("Failed to update platedata savedata in db", zap.Error(err))
 	}
@@ -606,11 +605,11 @@ func handleMsgMhfPlayBoxGacha(s *Session, p mhfpacket.MHFPacket) {
 	}
 	// get gacha items and iterate through them for gacha roll
 	shopEntries, err := s.server.db.Query(`SELECT itemhash, percentage, rarityIcon, itemCount, itemType, itemId, quantity
-																				 FROM gacha_shop_items
-																				 WHERE shophash=$1 AND entryType=100
-																				 EXCEPT ALL SELECT itemhash, percentage, rarityIcon, itemCount, itemType, itemId, quantity
-																				 FROM gacha_shop_items gsi JOIN lucky_box_state lbs ON gsi.itemhash = ANY(lbs.used_itemhash)
-																				 WHERE lbs.char_id=$2`, pkt.GachaHash, s.charID)
+		FROM gacha_shop_items
+		WHERE shophash=$1 AND entryType=100
+		EXCEPT ALL SELECT itemhash, percentage, rarityIcon, itemCount, itemType, itemId, quantity
+		FROM gacha_shop_items gsi JOIN lucky_box_state lbs ON gsi.itemhash = ANY(lbs.used_itemhash)
+		WHERE lbs.char_id=$2`, pkt.GachaHash, s.charID)
 	if err != nil {
 		panic(err)
 	}
@@ -639,7 +638,7 @@ func handleMsgMhfPlayBoxGacha(s *Session, p mhfpacket.MHFPacket) {
 			dbUpdate.Seek(0, 0)
 			// response needs all item info and the rarity
 			resp.WriteBytes(dbUpdate.Data())
-			resp.WriteUint8(uint8(items[ind].(*gachaItem).rarityIcon))
+			resp.WriteUint8(items[ind].(*gachaItem).rarityIcon)
 
 			usedItemHash = append(usedItemHash, int64(items[ind].(*gachaItem).itemhash))
 		}
@@ -647,7 +646,7 @@ func handleMsgMhfPlayBoxGacha(s *Session, p mhfpacket.MHFPacket) {
 		items = append(items[:ind], items[ind+1:]...)
 	}
 	resp.Seek(0, 0)
-	resp.WriteUint8(uint8(results))
+	resp.WriteUint8(results)
 	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
 
 	// add claimables to DB
@@ -657,18 +656,18 @@ func handleMsgMhfPlayBoxGacha(s *Session, p mhfpacket.MHFPacket) {
 		s.logger.Fatal("Failed to update gacha_items in db", zap.Error(err))
 	}
 	// update lucky_box_state
-	_, err = s.server.db.Exec(`	INSERT INTO lucky_box_state (char_id, shophash, used_itemhash)
-								VALUES ($1,$2,$3) ON CONFLICT (char_id, shophash)
-								DO UPDATE SET used_itemhash = COALESCE(lucky_box_state.used_itemhash::int[] || $3::int[], $3::int[])
-								WHERE EXCLUDED.char_id=$1 AND EXCLUDED.shophash=$2`, s.charID, pkt.GachaHash, usedItemHash)
+	_, err = s.server.db.Exec(`INSERT INTO lucky_box_state (char_id, shophash, used_itemhash)
+		VALUES ($1,$2,$3) ON CONFLICT (char_id, shophash)
+		DO UPDATE SET used_itemhash = COALESCE(lucky_box_state.used_itemhash::int[] || $3::int[], $3::int[])
+		WHERE EXCLUDED.char_id=$1 AND EXCLUDED.shophash=$2`, s.charID, pkt.GachaHash, usedItemHash)
 	if err != nil {
 		s.logger.Fatal("Failed to update lucky box state in db", zap.Error(err))
 	}
 	// deduct gacha coins if relevant, items are handled fine by the standard savedata packet immediately afterwards
 	if currType == 19 {
-		_, err = s.server.db.Exec(`	UPDATE characters
-									SET gacha_trial = CASE WHEN (gacha_trial > $1) then gacha_trial - $1 else gacha_trial end, gacha_prem = CASE WHEN NOT (gacha_trial > $1) then gacha_prem - $1 else gacha_prem end
-									WHERE id=$2`, currNumber, s.charID)
+		_, err = s.server.db.Exec(`UPDATE characters
+			SET gacha_trial = CASE WHEN (gacha_trial > $1) then gacha_trial - $1 else gacha_trial end, gacha_prem = CASE WHEN NOT (gacha_trial > $1) then gacha_prem - $1 else gacha_prem end
+			WHERE id=$2`, currNumber, s.charID)
 	}
 	if err != nil {
 		s.logger.Fatal("Failed to update gacha_trial in db", zap.Error(err))

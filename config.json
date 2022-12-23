@@ -9,6 +9,7 @@
   "PatchServerManifest": "",
   "PatchServerFile": "",
   "ScreenshotAPIURL": "",
+  "DeleteOnSaveCorruption": false,
   "DevMode": true,
   "DevModeOptions": {
     "AutoCreateAccount": true,

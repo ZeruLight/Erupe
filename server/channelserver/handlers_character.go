@@ -2,6 +2,8 @@ package channelserver
 
 import (
 	"encoding/binary"
+	"erupe-ce/common/bfutil"
+	"erupe-ce/common/stringsupport"
 
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/server/channelserver/compression/nullcomp"
@@ -135,6 +137,7 @@ func (save *CharacterSaveData) updateSaveDataWithStruct() {
 
 // This will update the save struct with the values stored in the character save
 func (save *CharacterSaveData) updateStructWithSaveData() {
+	save.Name = stringsupport.SJISToUTF8(bfutil.UpToNull(save.decompSave[88:100]))
 	if save.decompSave[pointerGender] == 1 {
 		save.Gender = true
 	} else {

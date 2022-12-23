@@ -93,6 +93,9 @@ func handleMsgMhfGetWeeklySchedule(s *Session, p mhfpacket.MHFPacket) {
 }
 
 func generateFeatureWeapons(count int) activeFeature {
+	if count > 14 {
+		count = 14
+	}
 	nums := make([]int, 0)
 	var result int
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))

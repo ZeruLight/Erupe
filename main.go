@@ -83,7 +83,7 @@ func main() {
 
 	// Create the postgres DB pool.
 	connectString := fmt.Sprintf(
-		"host=%s port=%d user=%s password=%s dbname= %s sslmode=disable",
+		"host='%s' port='%d' user='%s' password='%s' dbname='%s' sslmode=disable",
 		config.ErupeConfig.Database.Host,
 		config.ErupeConfig.Database.Port,
 		config.ErupeConfig.Database.User,

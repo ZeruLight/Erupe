@@ -98,7 +98,7 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 				return nil // Could be more or less strict with size limits
 			} else {
 				totalCount++
-				if totalCount > pkt.Offset && len(bf.Data()) < 64000 {
+				if totalCount > pkt.Offset && len(bf.Data()) < 60000 {
 					returnedCount++
 					bf.WriteBytes(data)
 					return nil
@@ -111,11 +111,19 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 18))
 		return
 	}
+
+	vsQuestItems := []uint16{1580, 1581, 1582, 1583, 1584, 1585, 1587, 1588, 1589, 1595, 1596, 1597, 1598, 1599, 1600, 1601, 1602, 1603, 1604}
+
 	bf.WriteUint16(0) // Unk
 	bf.WriteUint16(0) // Unk
-	bf.WriteUint16(0) // Unk
+	bf.WriteUint16(uint16(len(vsQuestItems)))
 	bf.WriteUint32(0) // Unk
 	bf.WriteUint16(0) // Unk
+
+	for i := range vsQuestItems {
+		bf.WriteUint16(vsQuestItems[i])
+	}
+
 	bf.WriteUint16(totalCount)
 	bf.WriteUint16(pkt.Offset)
 	bf.Seek(0, io.SeekStart)

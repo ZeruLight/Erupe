@@ -1,20 +1,20 @@
 package mhfpacket
 
-import ( 
- "errors" 
+import (
+	"errors"
 
- 	"erupe-ce/network/clientctx"
-	"erupe-ce/network"
 	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgMhfExchangeFpoint2Item represents the MSG_MHF_EXCHANGE_FPOINT_2_ITEM
-type MsgMhfExchangeFpoint2Item struct{
+type MsgMhfExchangeFpoint2Item struct {
 	AckHandle uint32
-	ItemHash uint32
-	ItemType uint16
-	ItemId uint16
-	Quantity byte
+	TradeID   uint32
+	ItemType  uint16
+	ItemId    uint16
+	Quantity  byte
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -25,7 +25,7 @@ func (m *MsgMhfExchangeFpoint2Item) Opcode() network.PacketID {
 // Parse parses the packet from binary
 func (m *MsgMhfExchangeFpoint2Item) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
-	m.ItemHash = bf.ReadUint32()
+	m.TradeID = bf.ReadUint32()
 	m.ItemType = bf.ReadUint16()
 	m.ItemId = bf.ReadUint16()
 	m.Quantity = bf.ReadUint8()

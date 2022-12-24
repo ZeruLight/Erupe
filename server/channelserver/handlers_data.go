@@ -2,7 +2,6 @@ package channelserver
 
 import (
 	"encoding/hex"
-	"erupe-ce/common/bfutil"
 	"erupe-ce/common/stringsupport"
 	"fmt"
 	"io"
@@ -46,10 +45,17 @@ func handleMsgMhfSavedata(s *Session, p mhfpacket.MHFPacket) {
 		characterSaveData.decompSave = saveData
 	}
 	characterSaveData.updateStructWithSaveData()
-	characterSaveData.Save(s)
-	s.logger.Info("Wrote recompressed savedata back to DB.")
-
-	characterSaveData.Name = stringsupport.SJISToUTF8(bfutil.UpToNull(characterSaveData.decompSave[88:100]))
+	if characterSaveData.Name == s.Name {
+		characterSaveData.Save(s)
+		s.logger.Info("Wrote recompressed savedata back to DB.")
+	} else {
+		s.rawConn.Close()
+		s.logger.Warn("Save cancelled due to corruption.")
+		if s.server.erupeConfig.DeleteOnSaveCorruption {
+			s.server.db.Exec("UPDATE characters SET deleted=true WHERE id=$1", s.charID)
+		}
+		return
+	}
 	_, err = s.server.db.Exec("UPDATE characters SET name=$1 WHERE id=$2", characterSaveData.Name, s.charID)
 	if err != nil {
 		s.logger.Fatal("Failed to update character name in db", zap.Error(err))

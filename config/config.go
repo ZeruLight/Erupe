@@ -30,7 +30,6 @@ type Config struct {
 	Commands       []Command
 	Courses        []Course
 	Database       Database
-	Launcher       Launcher
 	Sign           Sign
 	SignV2         SignV2
 	Channel        Channel
@@ -88,13 +87,6 @@ type Database struct {
 	User     string
 	Password string
 	Database string
-}
-
-// Launcher holds the launcher server config.
-type Launcher struct {
-	Enabled                  bool
-	Port                     int
-	UseOriginalLauncherFiles bool
 }
 
 // Sign holds the sign server config.

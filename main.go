@@ -12,7 +12,6 @@ import (
 	"erupe-ce/server/channelserver"
 	"erupe-ce/server/discordbot"
 	"erupe-ce/server/entranceserver"
-	"erupe-ce/server/launcherserver"
 	"erupe-ce/server/signserver"
 	"erupe-ce/server/signv2server"
 
@@ -115,23 +114,6 @@ func main() {
 	}
 
 	// Now start our server(s).
-
-	// Launcher HTTP server.
-	var launcherServer *launcherserver.Server
-	if config.ErupeConfig.Launcher.Enabled {
-		launcherServer = launcherserver.NewServer(
-			&launcherserver.Config{
-				Logger:                   logger.Named("launcher"),
-				ErupeConfig:              config.ErupeConfig,
-				DB:                       db,
-				UseOriginalLauncherFiles: config.ErupeConfig.Launcher.UseOriginalLauncherFiles,
-			})
-		err = launcherServer.Start()
-		if err != nil {
-			preventClose(fmt.Sprintf("Failed to start launcher server: %s", err.Error()))
-		}
-		logger.Info("Started launcher server")
-	}
 
 	// Entrance server.
 
@@ -252,10 +234,6 @@ func main() {
 
 	if config.ErupeConfig.Entrance.Enabled {
 		entranceServer.Shutdown()
-	}
-
-	if config.ErupeConfig.Launcher.Enabled {
-		launcherServer.Shutdown()
 	}
 
 	time.Sleep(1 * time.Second)

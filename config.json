@@ -83,11 +83,6 @@
     "Password": "",
     "Database": "erupe"
   },
-  "Launcher": {
-    "Enabled": false,
-    "Port": 80,
-    "UseOriginalLauncherFiles": false
-  },
   "Sign": {
     "Enabled": true,
     "Port": 53312

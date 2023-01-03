@@ -48,7 +48,7 @@ func handleMsgMhfSavedata(s *Session, p mhfpacket.MHFPacket) {
 	if characterSaveData.Name == s.Name {
 		characterSaveData.Save(s)
 		s.logger.Info("Wrote recompressed savedata back to DB.")
-	} else {
+	} else if characterSaveData.IsNewCharacter == false {
 		s.rawConn.Close()
 		s.logger.Warn("Save cancelled due to corruption.")
 		if s.server.erupeConfig.DeleteOnSaveCorruption {

@@ -17,7 +17,7 @@ func handleMsgMhfInfoTournament(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint32(0) // Tied to schedule ID?
 	case 1:
 
-		bf.WriteBytes(make([]byte, 15))
+		bf.WriteBytes(make([]byte, 21))
 		ps.Uint8(bf, "", false)
 		break
 

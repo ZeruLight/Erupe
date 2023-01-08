@@ -37,10 +37,6 @@ func handleMsgMhfUpdateCafepoint(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfCheckDailyCafepoint(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfCheckDailyCafepoint)
 
-	// I am not sure exactly what this does, but all responses I have seen include this exact sequence of bytes
-	// 1 daily, 5 daily halk pots, 3 point boosted quests, also adds 5 netcafe points but not sent to client
-	// available once after midday every day
-
 	// get next midday
 	var t = Time_static()
 	year, month, day := t.Date()
@@ -56,16 +52,22 @@ func handleMsgMhfCheckDailyCafepoint(s *Session, p mhfpacket.MHFPacket) {
 		s.logger.Fatal("Failed to get daily_time savedata from db", zap.Error(err))
 	}
 
+	var bondBonus, pointBonus, dailyQuests uint32
+	bf := byteframe.NewByteFrame()
 	if t.After(dailyTime) {
-		// +5 netcafe points and setting next valid window
-		_, err := s.server.db.Exec("UPDATE characters SET daily_time=$1, netcafe_points=netcafe_points+5 WHERE id=$2", midday, s.charID)
-		if err != nil {
-			s.logger.Fatal("Failed to update daily_time and netcafe_points savedata in db", zap.Error(err))
-		}
-		doAckBufSucceed(s, pkt.AckHandle, []byte{0x01, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00, 0x01})
+		addPointNetcafe(s, 5)
+		s.server.db.Exec("UPDATE characters SET daily_time=$1 WHERE id=$2", midday, s.charID)
+		bf.WriteBool(true) // Success?
+		bondBonus = 5      // Bond point bonus quests
+		pointBonus = 3     // HRP bonus quests?
+		dailyQuests = 1    // Daily quests
 	} else {
-		doAckBufSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
+		bf.WriteBool(false)
 	}
+	bf.WriteUint32(bondBonus)
+	bf.WriteUint32(pointBonus)
+	bf.WriteUint32(dailyQuests)
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfGetCafeDuration(s *Session, p mhfpacket.MHFPacket) {
@@ -194,12 +196,27 @@ func handleMsgMhfPostCafeDurationBonusReceived(s *Session, p mhfpacket.MHFPacket
 		`, cbID).Scan(&cafeBonus.ID, &cafeBonus.ItemType, &cafeBonus.Quantity)
 		if err == nil {
 			if cafeBonus.ItemType == 17 {
-				s.server.db.Exec("UPDATE characters SET netcafe_points=netcafe_points+$1 WHERE id=$2", cafeBonus.Quantity, s.charID)
+				addPointNetcafe(s, int(cafeBonus.Quantity))
 			}
 		}
 		s.server.db.Exec("INSERT INTO public.cafe_accepted VALUES ($1, $2)", cbID, s.charID)
 	}
 	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+}
+
+func addPointNetcafe(s *Session, p int) error {
+	var points int
+	err := s.server.db.QueryRow("SELECT netcafe_points FROM characters WHERE id = $1", s.charID).Scan(&points)
+	if err != nil {
+		return err
+	}
+	if points+p > 100000 {
+		points = 100000
+	} else {
+		points += p
+	}
+	s.server.db.Exec("UPDATE characters SET netcafe_points=$1 WHERE id=$2", points, s.charID)
+	return nil
 }
 
 func handleMsgMhfStartBoostTime(s *Session, p mhfpacket.MHFPacket) {

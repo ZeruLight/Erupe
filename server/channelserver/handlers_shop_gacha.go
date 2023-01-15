@@ -243,7 +243,7 @@ func handleMsgMhfGetGachaPlayHistory(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfGetGachaPoint(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetGachaPoint)
 	var fp, gp, gt uint32
-	s.server.db.QueryRow("SELECT COALESCE(frontier_points, 0), COALESCE(gacha_premium, 0), COALESCE(gacha_trial, 0) FROM users WHERE id=$1", s.charID).Scan(&fp, &gp, &gt)
+	s.server.db.QueryRow("SELECT COALESCE(frontier_points, 0), COALESCE(gacha_premium, 0), COALESCE(gacha_trial, 0) FROM users u WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$1)", s.charID).Scan(&fp, &gp, &gt)
 	resp := byteframe.NewByteFrame()
 	resp.WriteUint32(gp)
 	resp.WriteUint32(gt)
@@ -337,9 +337,9 @@ func handleMsgMhfExchangeFpoint2Item(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfExchangeFpoint2Item)
 	var balance uint32
 	var itemValue, quantity int
-	_ = s.server.db.QueryRow("SELECT quantity, fpoints FROM fpoint_items WHERE id=$1", pkt.TradeID).Scan(&quantity, &itemValue)
+	s.server.db.QueryRow("SELECT quantity, fpoints FROM fpoint_items WHERE id=$1", pkt.TradeID).Scan(&quantity, &itemValue)
 	cost := (int(pkt.Quantity) * quantity) * itemValue
-	s.server.db.QueryRow("UPDATE users SET frontier_points=frontier_points::int - $1 WHERE id=$2 RETURNING frontier_points", cost, s.charID).Scan(&balance)
+	s.server.db.QueryRow("UPDATE users u SET frontier_points=frontier_points::int - $1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2) RETURNING frontier_points", cost, s.charID).Scan(&balance)
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint32(balance)
 	doAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
@@ -351,7 +351,7 @@ func handleMsgMhfExchangeItem2Fpoint(s *Session, p mhfpacket.MHFPacket) {
 	var itemValue, quantity int
 	s.server.db.QueryRow("SELECT quantity, fpoints FROM fpoint_items WHERE id=$1", pkt.TradeID).Scan(&quantity, &itemValue)
 	cost := (int(pkt.Quantity) / quantity) * itemValue
-	s.server.db.QueryRow("UPDATE users SET frontier_points=COALESCE(frontier_points::int + $1, $1) WHERE id=$2 RETURNING frontier_points", cost, s.charID).Scan(&balance)
+	s.server.db.QueryRow("UPDATE users u SET frontier_points=COALESCE(frontier_points::int + $1, $1) WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2) RETURNING frontier_points", cost, s.charID).Scan(&balance)
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint32(balance)
 	doAckSimpleSucceed(s, pkt.AckHandle, bf.Data())

@@ -29,14 +29,13 @@ type Gacha struct {
 	MinGR        uint32 `db:"min_gr"`
 	MinHR        uint32 `db:"min_hr"`
 	Name         string `db:"name"`
-	Link1        string `db:"link1"`
-	Link2        string `db:"link2"`
-	Link3        string `db:"link3"`
-	IsWideBanner bool   `db:"is_wide_banner"`
-	Flag1        uint8  `db:"flag1"`
-	Flag2        uint8  `db:"flag2"`
-	Flag3        uint8  `db:"flag3"`
-	Flag4        uint8  `db:"flag4"`
+	URLBanner    string `db:"url_banner"`
+	URLFeature   string `db:"url_feature"`
+	URLThumbnail string `db:"url_thumbnail"`
+	Wide         bool   `db:"wide"`
+	Recommended  bool   `db:"recommended"`
+	GachaType    uint8  `db:"gacha_type"`
+	Hidden       bool   `db:"hidden"`
 }
 
 type GachaEntry struct {
@@ -72,7 +71,7 @@ func handleMsgMhfEnumerateShop(s *Session, p mhfpacket.MHFPacket) {
 	switch pkt.ShopType {
 	case 1: // Running gachas
 		var count uint16
-		shopEntries, err := s.server.db.Queryx("SELECT id, min_gr, min_hr, name, link1, link2, link3, is_wide_banner, flag1, flag2, flag3, flag4 FROM gacha_shop")
+		shopEntries, err := s.server.db.Queryx("SELECT id, min_gr, min_hr, name, url_banner, url_feature, url_thumbnail, wide, recommended, gacha_type, hidden FROM gacha_shop")
 		if err != nil {
 			doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
 			return
@@ -91,14 +90,13 @@ func handleMsgMhfEnumerateShop(s *Session, p mhfpacket.MHFPacket) {
 			resp.WriteUint32(gacha.MinHR)
 			resp.WriteUint32(0) // only 0 in known packet
 			ps.Uint8(resp, gacha.Name, true)
-			ps.Uint8(resp, gacha.Link1, false)
-			ps.Uint8(resp, gacha.Link2, false)
-			resp.WriteBool(gacha.IsWideBanner)
-			ps.Uint8(resp, gacha.Link3, false)
-			resp.WriteUint8(gacha.Flag1)
-			resp.WriteUint8(gacha.Flag2)
-			resp.WriteUint8(gacha.Flag3)
-			resp.WriteUint8(gacha.Flag4)
+			ps.Uint8(resp, gacha.URLBanner, false)
+			ps.Uint8(resp, gacha.URLFeature, false)
+			resp.WriteBool(gacha.Wide)
+			ps.Uint8(resp, gacha.URLThumbnail, false)
+			resp.WriteBool(gacha.Recommended)
+			resp.WriteUint8(gacha.GachaType)
+			resp.WriteBool(gacha.Hidden)
 			count++
 		}
 		resp.Seek(0, 0)

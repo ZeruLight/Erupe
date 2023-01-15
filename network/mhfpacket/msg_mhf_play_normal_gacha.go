@@ -10,10 +10,10 @@ import (
 
 // MsgMhfPlayNormalGacha represents the MSG_MHF_PLAY_NORMAL_GACHA
 type MsgMhfPlayNormalGacha struct {
-	AckHandle    uint32
-	GachaID      uint32
-	RollType     uint8
-	CurrencyMode uint8
+	AckHandle uint32
+	GachaID   uint32
+	RollType  uint8
+	GachaType uint8
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -26,7 +26,7 @@ func (m *MsgMhfPlayNormalGacha) Parse(bf *byteframe.ByteFrame, ctx *clientctx.Cl
 	m.AckHandle = bf.ReadUint32()
 	m.GachaID = bf.ReadUint32()
 	m.RollType = bf.ReadUint8()
-	m.CurrencyMode = bf.ReadUint8()
+	m.GachaType = bf.ReadUint8()
 	return nil
 }
 

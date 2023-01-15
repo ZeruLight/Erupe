@@ -25,14 +25,13 @@ CREATE TABLE IF NOT EXISTS public.gacha_shop (
     min_gr INTEGER,
     min_hr INTEGER,
     name TEXT,
-    link1 TEXT,
-    link2 TEXT,
-    link3 TEXT,
-    is_wide_banner BOOLEAN,
-    flag1 INTEGER,
-    flag2 INTEGER,
-    flag3 INTEGER,
-    flag4 INTEGER
+    url_banner TEXT,
+    url_feature TEXT,
+    url_thumbnail TEXT,
+    wide BOOLEAN,
+    recommended BOOLEAN,
+    gacha_type INTEGER,
+    hidden BOOLEAN
 );
 
 DROP TABLE IF EXISTS public.gacha_shop_items;

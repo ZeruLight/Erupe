@@ -113,15 +113,30 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 	}
 
 	vsQuestItems := []uint16{1580, 1581, 1582, 1583, 1584, 1585, 1587, 1588, 1589, 1595, 1596, 1597, 1598, 1599, 1600, 1601, 1602, 1603, 1604}
+	vsQuestBets := []struct {
+		IsTicket bool
+		Quantity uint32
+	}{
+		{true, 5},
+		{false, 1000},
+		{false, 5000},
+		{false, 10000},
+	}
 
 	bf.WriteUint16(0) // Unk
 	bf.WriteUint16(0) // Unk
 	bf.WriteUint16(uint16(len(vsQuestItems)))
-	bf.WriteUint32(0) // Unk
+	bf.WriteUint32(uint32(len(vsQuestBets)))
 	bf.WriteUint16(0) // Unk
 
 	for i := range vsQuestItems {
 		bf.WriteUint16(vsQuestItems[i])
+	}
+	for i := range vsQuestBets {
+		bf.WriteBool(vsQuestBets[i].IsTicket)
+		bf.WriteUint8(9)
+		bf.WriteUint16(7)
+		bf.WriteUint32(vsQuestBets[i].Quantity)
 	}
 
 	bf.WriteUint16(totalCount)

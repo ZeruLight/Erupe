@@ -1502,18 +1502,45 @@ func handleMsgMhfInfoScenarioCounter(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfGetEtcPoints(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetEtcPoints)
 
-	resp := byteframe.NewByteFrame()
-	resp.WriteUint8(0x3) // Maybe a count of uint32(s)?
-	resp.WriteUint32(0)  // Point bonus quests
-	resp.WriteUint32(0)  // Daily quests
-	resp.WriteUint32(0)  // HS promotion points
+	var dailyTime time.Time
+	_ = s.server.db.QueryRow("SELECT COALESCE(daily_time, $2) FROM characters WHERE id = $1", s.charID, time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)).Scan(&dailyTime)
+	if Time_Current_Adjusted().After(dailyTime) {
+		s.server.db.Exec("UPDATE characters SET bonus_quests = 0, daily_quests = 0 WHERE id=$1", s.charID)
+	}
 
+	var bonusQuests, dailyQuests, promoPoints uint32
+	_ = s.server.db.QueryRow(`SELECT bonus_quests, daily_quests, promo_points FROM characters WHERE id = $1`, s.charID).Scan(&bonusQuests, &dailyQuests, &promoPoints)
+	resp := byteframe.NewByteFrame()
+	resp.WriteUint8(3) // Maybe a count of uint32(s)?
+	resp.WriteUint32(bonusQuests)
+	resp.WriteUint32(dailyQuests)
+	resp.WriteUint32(promoPoints)
 	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
 }
 
 func handleMsgMhfUpdateEtcPoint(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfUpdateEtcPoint)
-	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
+
+	var column string
+	switch pkt.PointType {
+	case 0:
+		column = "bonus_quests"
+	case 1:
+		column = "daily_quests"
+	case 2:
+		column = "promo_points"
+	}
+
+	var value int
+	err := s.server.db.QueryRow(fmt.Sprintf(`SELECT %s FROM characters WHERE id = $1`, column), s.charID).Scan(&value)
+	if err == nil {
+		if value-int(pkt.Delta) < 0 {
+			s.server.db.Exec(fmt.Sprintf(`UPDATE characters SET %s = 0 WHERE id = $1`, column), s.charID)
+		} else {
+			s.server.db.Exec(fmt.Sprintf(`UPDATE characters SET %s = %s + $1 WHERE id = $2`, column, column), pkt.Delta, s.charID)
+		}
+	}
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfStampcardStamp(s *Session, p mhfpacket.MHFPacket) {

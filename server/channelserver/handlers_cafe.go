@@ -52,20 +52,20 @@ func handleMsgMhfCheckDailyCafepoint(s *Session, p mhfpacket.MHFPacket) {
 		s.logger.Fatal("Failed to get daily_time savedata from db", zap.Error(err))
 	}
 
-	var bondBonus, pointBonus, dailyQuests uint32
+	var bondBonus, bonusQuests, dailyQuests uint32
 	bf := byteframe.NewByteFrame()
 	if t.After(dailyTime) {
 		addPointNetcafe(s, 5)
-		s.server.db.Exec("UPDATE characters SET daily_time=$1 WHERE id=$2", midday, s.charID)
+		bondBonus = 5   // Bond point bonus quests
+		bonusQuests = 3 // HRP bonus quests?
+		dailyQuests = 1 // Daily quests
+		s.server.db.Exec("UPDATE characters SET daily_time=$1, bonus_quests = $2, daily_quests = $3 WHERE id=$4", midday, bonusQuests, dailyQuests, s.charID)
 		bf.WriteBool(true) // Success?
-		bondBonus = 5      // Bond point bonus quests
-		pointBonus = 3     // HRP bonus quests?
-		dailyQuests = 1    // Daily quests
 	} else {
 		bf.WriteBool(false)
 	}
 	bf.WriteUint32(bondBonus)
-	bf.WriteUint32(pointBonus)
+	bf.WriteUint32(bonusQuests)
 	bf.WriteUint32(dailyQuests)
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }

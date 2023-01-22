@@ -1545,9 +1545,31 @@ func handleMsgMhfUpdateEtcPoint(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfStampcardStamp(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfStampcardStamp)
-	// TODO: Work out where it gets existing stamp count from, its format and then
-	// update the actual sent values to be correct
-	doAckBufSucceed(s, pkt.AckHandle, []byte{0x03, 0xe7, 0x03, 0xe7, 0x02, 0x99, 0x02, 0x9c, 0x00, 0x00, 0x00, 0x00, 0x14, 0xf8, 0x69, 0x54})
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint16(pkt.HR)
+	bf.WriteUint16(pkt.GR)
+	var stamps uint16
+	_ = s.server.db.QueryRow(`SELECT stampcard FROM characters WHERE id = $1`, s.charID).Scan(&stamps)
+	bf.WriteUint16(stamps)
+	stamps += pkt.Stamps
+	bf.WriteUint16(stamps)
+	s.server.db.Exec(`UPDATE characters SET stampcard = $1 WHERE id = $2`, stamps, s.charID)
+	if stamps%30 == 0 {
+		bf.WriteUint16(2)
+		bf.WriteUint16(pkt.Reward2)
+		bf.WriteUint16(pkt.Item2)
+		bf.WriteUint16(pkt.Quantity2)
+		addWarehouseGift(s, "item", mhfpacket.WarehouseStack{ItemID: pkt.Item2, Quantity: pkt.Quantity2})
+	} else if stamps%15 == 0 {
+		bf.WriteUint16(1)
+		bf.WriteUint16(pkt.Reward1)
+		bf.WriteUint16(pkt.Item1)
+		bf.WriteUint16(pkt.Quantity1)
+		addWarehouseGift(s, "item", mhfpacket.WarehouseStack{ItemID: pkt.Item1, Quantity: pkt.Quantity1})
+	} else {
+		bf.WriteBytes(make([]byte, 8))
+	}
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfStampcardPrize(s *Session, p mhfpacket.MHFPacket) {}

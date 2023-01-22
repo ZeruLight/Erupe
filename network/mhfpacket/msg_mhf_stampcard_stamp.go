@@ -1,27 +1,25 @@
 package mhfpacket
 
-import ( 
- "errors" 
+import (
+	"errors"
 
- 	"erupe-ce/network/clientctx"
-	"erupe-ce/network"
 	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgMhfStampcardStamp represents the MSG_MHF_STAMPCARD_STAMP
 type MsgMhfStampcardStamp struct {
-	// Field-size accurate.
 	AckHandle uint32
-	Unk0      uint16
-	Unk1      uint16
-	Unk2      uint16
-	Unk3      uint16 // Hardcoded 0 in binary
-	Unk4      uint32
-	Unk5      uint32
-	Unk6      uint32
-	Unk7      uint32
-	Unk8      uint32
-	Unk9      uint32
+	HR        uint16
+	GR        uint16
+	Stamps    uint16
+	Reward1   uint16
+	Reward2   uint16
+	Item1     uint16
+	Item2     uint16
+	Quantity1 uint16
+	Quantity2 uint16
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -32,16 +30,16 @@ func (m *MsgMhfStampcardStamp) Opcode() network.PacketID {
 // Parse parses the packet from binary
 func (m *MsgMhfStampcardStamp) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
-	m.Unk0 = bf.ReadUint16()
-	m.Unk1 = bf.ReadUint16()
-	m.Unk2 = bf.ReadUint16()
-	m.Unk3 = bf.ReadUint16()
-	m.Unk4 = bf.ReadUint32()
-	m.Unk5 = bf.ReadUint32()
-	m.Unk6 = bf.ReadUint32()
-	m.Unk7 = bf.ReadUint32()
-	m.Unk8 = bf.ReadUint32()
-	m.Unk9 = bf.ReadUint32()
+	m.HR = bf.ReadUint16()
+	m.GR = bf.ReadUint16()
+	m.Stamps = bf.ReadUint16()
+	_ = bf.ReadUint16()
+	m.Reward1 = uint16(bf.ReadUint32())
+	m.Reward2 = uint16(bf.ReadUint32())
+	m.Item1 = uint16(bf.ReadUint32())
+	m.Item2 = uint16(bf.ReadUint32())
+	m.Quantity1 = uint16(bf.ReadUint32())
+	m.Quantity2 = uint16(bf.ReadUint32())
 	return nil
 }
 

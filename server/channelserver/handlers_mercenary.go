@@ -181,6 +181,7 @@ func handleMsgMhfReadMercenaryW(s *Session, p mhfpacket.MHFPacket) {
 			bf.WriteUint32(uint32(Time_Current_Adjusted().Add(time.Hour * 24 * 7).Unix()))
 			bf.WriteBytes(stringsupport.PaddedString(name, 18, true))
 			bf.WriteBool(false)
+			doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 		} else {
 			doAckBufSucceed(s, pkt.AckHandle, make([]byte, 2))
 		}
@@ -216,13 +217,11 @@ func handleMsgMhfReadMercenaryM(s *Session, p mhfpacket.MHFPacket) {
 	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
 }
 
-func handleMsgMhfContractMercenary(s *Session, p mhfpacket.MHFPacket) {}
-
-///////////////////////////////////////////
-
-///////////////////////////////////////////
-///				OTOMO AIRU				 //
-///////////////////////////////////////////
+func handleMsgMhfContractMercenary(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfContractMercenary)
+	s.server.db.Exec("UPDATE characters SET pact_id=0 WHERE id=$1", s.charID)
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+}
 
 func handleMsgMhfLoadOtomoAirou(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfLoadOtomoAirou)

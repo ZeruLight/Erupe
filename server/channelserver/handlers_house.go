@@ -248,12 +248,10 @@ func handleMsgMhfLoadDecoMyset(s *Session, p mhfpacket.MHFPacket) {
 	if err != nil {
 		s.logger.Error("Failed to load decomyset", zap.Error(err))
 	}
-
-	if len(data) > 0 {
-		doAckBufSucceed(s, pkt.AckHandle, data)
-	} else {
-		doAckBufSucceed(s, pkt.AckHandle, []byte{0x01, 0x00})
+	if len(data) == 0 {
+		data = []byte{0x01, 0x00}
 	}
+	doAckBufSucceed(s, pkt.AckHandle, data)
 }
 
 func handleMsgMhfSaveDecoMyset(s *Session, p mhfpacket.MHFPacket) {

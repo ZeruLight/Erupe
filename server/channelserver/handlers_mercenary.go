@@ -18,12 +18,11 @@ func handleMsgMhfLoadPartner(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfLoadPartner)
 	var data []byte
 	err := s.server.db.QueryRow("SELECT partner FROM characters WHERE id = $1", s.charID).Scan(&data)
-	if len(data) > 0 {
-		doAckBufSucceed(s, pkt.AckHandle, data)
-	} else {
+	if len(data) == 0 {
 		s.logger.Error("Failed to load partner", zap.Error(err))
-		doAckBufSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
+		data = make([]byte, 9)
 	}
+	doAckBufSucceed(s, pkt.AckHandle, data)
 	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
@@ -47,13 +46,11 @@ func handleMsgMhfLoadHunterNavi(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfLoadHunterNavi)
 	var data []byte
 	err := s.server.db.QueryRow("SELECT hunternavi FROM characters WHERE id = $1", s.charID).Scan(&data)
-	if len(data) > 0 {
-		doAckBufSucceed(s, pkt.AckHandle, data)
-	} else {
+	if len(data) == 0 {
 		s.logger.Error("Failed to load hunternavi", zap.Error(err))
-		body := make([]byte, 0x226)
-		doAckBufSucceed(s, pkt.AckHandle, body)
+		data = make([]byte, 0x226)
 	}
+	doAckBufSucceed(s, pkt.AckHandle, data)
 }
 
 func handleMsgMhfSaveHunterNavi(s *Session, p mhfpacket.MHFPacket) {
@@ -227,14 +224,11 @@ func handleMsgMhfLoadOtomoAirou(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfLoadOtomoAirou)
 	var data []byte
 	err := s.server.db.QueryRow("SELECT otomoairou FROM characters WHERE id = $1", s.charID).Scan(&data)
-	if err != nil {
-		s.logger.Fatal("Failed to get partnyaa savedata from db", zap.Error(err))
+	if len(data) == 0 {
+		s.logger.Error("Failed to load otomoairou", zap.Error(err))
+		data = make([]byte, 10)
 	}
-	if len(data) > 0 {
-		doAckBufSucceed(s, pkt.AckHandle, data)
-	} else {
-		doAckBufSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
-	}
+	doAckBufSucceed(s, pkt.AckHandle, data)
 }
 
 func handleMsgMhfSaveOtomoAirou(s *Session, p mhfpacket.MHFPacket) {

@@ -14,12 +14,7 @@ func handleMsgMhfLoadPlateData(s *Session, p mhfpacket.MHFPacket) {
 	if err != nil {
 		s.logger.Error("Failed to load platedata", zap.Error(err))
 	}
-
-	if len(data) > 0 {
-		doAckBufSucceed(s, pkt.AckHandle, data)
-	} else {
-		doAckBufSucceed(s, pkt.AckHandle, []byte{})
-	}
+	doAckBufSucceed(s, pkt.AckHandle, data)
 }
 
 func handleMsgMhfSavePlateData(s *Session, p mhfpacket.MHFPacket) {
@@ -86,12 +81,7 @@ func handleMsgMhfLoadPlateBox(s *Session, p mhfpacket.MHFPacket) {
 	if err != nil {
 		s.logger.Error("Failed to load platebox", zap.Error(err))
 	}
-
-	if len(data) > 0 {
-		doAckBufSucceed(s, pkt.AckHandle, data)
-	} else {
-		doAckBufSucceed(s, pkt.AckHandle, []byte{})
-	}
+	doAckBufSucceed(s, pkt.AckHandle, data)
 }
 
 func handleMsgMhfSavePlateBox(s *Session, p mhfpacket.MHFPacket) {
@@ -155,16 +145,11 @@ func handleMsgMhfLoadPlateMyset(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfLoadPlateMyset)
 	var data []byte
 	err := s.server.db.QueryRow("SELECT platemyset FROM characters WHERE id = $1", s.charID).Scan(&data)
-	if err != nil {
+	if len(data) == 0 {
 		s.logger.Error("Failed to load platemyset", zap.Error(err))
+		data = make([]byte, 0x780)
 	}
-
-	if len(data) > 0 {
-		doAckBufSucceed(s, pkt.AckHandle, data)
-	} else {
-		blankData := make([]byte, 0x780)
-		doAckBufSucceed(s, pkt.AckHandle, blankData)
-	}
+	doAckBufSucceed(s, pkt.AckHandle, data)
 }
 
 func handleMsgMhfSavePlateMyset(s *Session, p mhfpacket.MHFPacket) {

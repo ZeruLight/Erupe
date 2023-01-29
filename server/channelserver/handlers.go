@@ -1834,8 +1834,7 @@ func handleMsgMhfGetEnhancedMinidata(s *Session, p mhfpacket.MHFPacket) {
 	var data []byte
 	err := s.server.db.QueryRow("SELECT minidata FROM characters WHERE id = $1", pkt.CharID).Scan(&data)
 	if err != nil {
-		data = make([]byte, 0x400) // returning empty might avoid a client softlock
-		//s.logger.Fatal("Failed to get minidata from db", zap.Error(err))
+		data = make([]byte, 1)
 	}
 	doAckBufSucceed(s, pkt.AckHandle, data)
 }

@@ -11,6 +11,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"time"
 )
 
 func handleMsgMhfLoadPartner(s *Session, p mhfpacket.MHFPacket) {
@@ -122,15 +123,11 @@ func handleMsgMhfEnumerateMercenaryLog(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfCreateMercenary(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfCreateMercenary)
-
 	bf := byteframe.NewByteFrame()
-
 	var nextID uint32
-	s.server.db.QueryRow("SELECT nextval('rasta_id_seq')").Scan(&nextID)
-
-	bf.WriteUint32(nextID)     // New MercID
-	bf.WriteUint32(0xDEADBEEF) // Unk
-
+	_ = s.server.db.QueryRow("SELECT nextval('rasta_id_seq')").Scan(&nextID)
+	s.server.db.Exec("UPDATE characters SET rasta_id=$1 WHERE id=$2", nextID, s.charID)
+	bf.WriteUint32(nextID)
 	doAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
 }
 
@@ -138,29 +135,66 @@ func handleMsgMhfSaveMercenary(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSaveMercenary)
 	dumpSaveData(s, pkt.MercData, "mercenary")
 	if len(pkt.MercData) > 0 {
-		s.server.db.Exec("UPDATE characters SET savemercenary=$1 WHERE id=$2", pkt.MercData, s.charID)
+		temp := byteframe.NewByteFrameFromBytes(pkt.MercData)
+		s.server.db.Exec("UPDATE characters SET savemercenary=$1, rasta_id=$2 WHERE id=$3", pkt.MercData, temp.ReadUint32(), s.charID)
 	}
-	s.server.db.Exec("UPDATE characters SET gcp=$1 WHERE id=$2", pkt.GCP, s.charID)
+	s.server.db.Exec("UPDATE characters SET gcp=$1, pact_id=$2 WHERE id=$3", pkt.GCP, pkt.PactMercID, s.charID)
 	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
 func handleMsgMhfReadMercenaryW(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfReadMercenaryW)
-	if pkt.Unk0 {
-		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 2))
+	if pkt.Op > 0 {
+		bf := byteframe.NewByteFrame()
+		var pactID uint32
+		var name string
+		var cid uint32
+
+		s.server.db.QueryRow("SELECT pact_id FROM characters WHERE id=$1", s.charID).Scan(&pactID)
+		if pactID > 0 {
+			s.server.db.QueryRow("SELECT name, id FROM characters WHERE rasta_id = $1", pactID).Scan(&name, &cid)
+			bf.WriteUint8(1) // numLends
+			bf.WriteUint32(pactID)
+			bf.WriteUint32(cid)
+			bf.WriteBool(false) // ?
+			bf.WriteUint32(uint32(Time_Current_Adjusted().Add(time.Hour * 24 * -8).Unix()))
+			bf.WriteUint32(uint32(Time_Current_Adjusted().Add(time.Hour * 24 * -1).Unix()))
+			bf.WriteBytes(stringsupport.PaddedString(name, 18, true))
+		} else {
+			bf.WriteUint8(0)
+		}
+
+		if pkt.Op < 2 {
+			var loans uint8
+			temp := byteframe.NewByteFrame()
+			rows, _ := s.server.db.Query("SELECT name, id, pact_id FROM characters WHERE pact_id=(SELECT rasta_id FROM characters WHERE id=$1)", s.charID)
+			for rows.Next() {
+				loans++
+				rows.Scan(&name, &cid, &pactID)
+				temp.WriteUint32(pactID)
+				temp.WriteUint32(cid)
+				temp.WriteUint32(uint32(Time_Current_Adjusted().Add(time.Hour * 24 * -8).Unix()))
+				temp.WriteUint32(uint32(Time_Current_Adjusted().Add(time.Hour * 24 * -1).Unix()))
+				temp.WriteBytes(stringsupport.PaddedString(name, 18, true))
+			}
+			bf.WriteUint8(loans)
+			bf.WriteBytes(temp.Data())
+		}
+		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 		return
 	}
 	var data []byte
 	var gcp uint32
-	s.server.db.QueryRow("SELECT savemercenary FROM characters WHERE id = $1", s.charID).Scan(&data)
-	s.server.db.QueryRow("SELECT COALESCE(gcp, 0) FROM characters WHERE id = $1", s.charID).Scan(&gcp)
+	s.server.db.QueryRow("SELECT savemercenary FROM characters WHERE id=$1", s.charID).Scan(&data)
+	s.server.db.QueryRow("SELECT COALESCE(gcp, 0) FROM characters WHERE id=$1", s.charID).Scan(&gcp)
 
 	resp := byteframe.NewByteFrame()
+	resp.WriteUint16(0)
 	if len(data) == 0 {
-		resp.WriteBytes(make([]byte, 3))
+		resp.WriteBool(false)
 	} else {
-		resp.WriteBytes(data[1:])
-		resp.WriteUint32(0) // Unk
+		resp.WriteBool(true)
+		resp.WriteBytes(data)
 	}
 	resp.WriteUint32(gcp)
 	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
@@ -174,12 +208,23 @@ func handleMsgMhfReadMercenaryM(s *Session, p mhfpacket.MHFPacket) {
 	if len(data) == 0 {
 		resp.WriteBool(false)
 	} else {
-		resp.WriteBytes(data[4:])
+		resp.WriteBytes(data)
 	}
 	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
 }
 
-func handleMsgMhfContractMercenary(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfContractMercenary(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfContractMercenary)
+	switch pkt.Op {
+	case 0:
+		s.server.db.Exec("UPDATE characters SET pact_id=$1 WHERE id=$2", pkt.PactMercID, s.charID)
+	case 1: // Cancel lend
+		s.server.db.Exec("UPDATE characters SET pact_id=0 WHERE id=$1", s.charID)
+	case 2: // Cancel loan
+		s.server.db.Exec("UPDATE characters SET pact_id=0 WHERE id=$1", pkt.CID)
+	}
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+}
 
 func handleMsgMhfLoadOtomoAirou(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfLoadOtomoAirou)

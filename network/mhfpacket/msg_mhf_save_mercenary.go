@@ -10,11 +10,10 @@ import (
 
 // MsgMhfSaveMercenary represents the MSG_MHF_SAVE_MERCENARY
 type MsgMhfSaveMercenary struct {
-	AckHandle uint32
-	GCP       uint32
-	Unk0      uint32
-	MercData  []byte
-	Unk1      uint32
+	AckHandle  uint32
+	GCP        uint32
+	PactMercID uint32
+	MercData   []byte
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -27,9 +26,10 @@ func (m *MsgMhfSaveMercenary) Parse(bf *byteframe.ByteFrame, ctx *clientctx.Clie
 	m.AckHandle = bf.ReadUint32()
 	bf.ReadUint32() // lenData
 	m.GCP = bf.ReadUint32()
-	m.Unk0 = bf.ReadUint32()
-	m.MercData = bf.ReadBytes(uint(bf.ReadUint32()))
-	m.Unk1 = bf.ReadUint32()
+	m.PactMercID = bf.ReadUint32()
+	dataSize := bf.ReadUint32()
+	_ = bf.ReadUint32() // Merc index?
+	m.MercData = bf.ReadBytes(uint(dataSize))
 	return nil
 }
 

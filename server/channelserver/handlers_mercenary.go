@@ -21,7 +21,7 @@ func handleMsgMhfLoadPartner(s *Session, p mhfpacket.MHFPacket) {
 	if len(data) > 0 {
 		doAckBufSucceed(s, pkt.AckHandle, data)
 	} else {
-		s.logger.Warn("Failed to load partner data", zap.Error(err))
+		s.logger.Error("Failed to load partner", zap.Error(err))
 		doAckBufSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
 	}
 	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
@@ -32,7 +32,7 @@ func handleMsgMhfSavePartner(s *Session, p mhfpacket.MHFPacket) {
 	dumpSaveData(s, pkt.RawDataPayload, "partner")
 	_, err := s.server.db.Exec("UPDATE characters SET partner=$1 WHERE id=$2", pkt.RawDataPayload, s.charID)
 	if err != nil {
-		s.logger.Warn("Failed to save partner data", zap.Error(err))
+		s.logger.Error("Failed to save partner", zap.Error(err))
 	}
 	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
@@ -50,10 +50,8 @@ func handleMsgMhfLoadHunterNavi(s *Session, p mhfpacket.MHFPacket) {
 	if len(data) > 0 {
 		doAckBufSucceed(s, pkt.AckHandle, data)
 	} else {
-		s.logger.Warn("Failed to load navi data", zap.Error(err))
-		// set first byte to 1 to avoid pop up every time without save
+		s.logger.Error("Failed to load hunternavi", zap.Error(err))
 		body := make([]byte, 0x226)
-		body[0] = 1
 		doAckBufSucceed(s, pkt.AckHandle, body)
 	}
 }
@@ -65,14 +63,13 @@ func handleMsgMhfSaveHunterNavi(s *Session, p mhfpacket.MHFPacket) {
 		// Load existing save
 		err := s.server.db.QueryRow("SELECT hunternavi FROM characters WHERE id = $1", s.charID).Scan(&data)
 		if err != nil {
-			s.logger.Warn("Failed to save navi data", zap.Error(err))
+			s.logger.Error("Failed to load hunternavi", zap.Error(err))
 		}
 
 		// Check if we actually had any hunternavi data, using a blank buffer if not.
 		// This is requried as the client will try to send a diff after character creation without a prior MsgMhfSaveHunterNavi packet.
 		if len(data) == 0 {
 			data = make([]byte, 0x226)
-			data[0] = 1 // set first byte to 1 to avoid pop up every time without save
 		}
 
 		// Perform diff and compress it to write back to db
@@ -80,15 +77,15 @@ func handleMsgMhfSaveHunterNavi(s *Session, p mhfpacket.MHFPacket) {
 		saveOutput := deltacomp.ApplyDataDiff(pkt.RawDataPayload, data)
 		_, err = s.server.db.Exec("UPDATE characters SET hunternavi=$1 WHERE id=$2", saveOutput, s.charID)
 		if err != nil {
-			s.logger.Warn("Failed to save navi data", zap.Error(err))
+			s.logger.Error("Failed to save hunternavi", zap.Error(err))
 		}
-		s.logger.Info("Wrote recompressed hunternavi back to DB.")
+		s.logger.Info("Wrote recompressed hunternavi back to DB")
 	} else {
 		dumpSaveData(s, pkt.RawDataPayload, "hunternavi")
 		// simply update database, no extra processing
 		_, err := s.server.db.Exec("UPDATE characters SET hunternavi=$1 WHERE id=$2", pkt.RawDataPayload, s.charID)
 		if err != nil {
-			s.logger.Warn("Failed to save navi data", zap.Error(err))
+			s.logger.Error("Failed to save hunternavi", zap.Error(err))
 		}
 	}
 	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})

@@ -246,17 +246,13 @@ func handleMsgMhfLoadDecoMyset(s *Session, p mhfpacket.MHFPacket) {
 	var data []byte
 	err := s.server.db.QueryRow("SELECT decomyset FROM characters WHERE id = $1", s.charID).Scan(&data)
 	if err != nil {
-		s.logger.Fatal("Failed to get preset decorations savedata from db", zap.Error(err))
+		s.logger.Error("Failed to load decomyset", zap.Error(err))
 	}
 
 	if len(data) > 0 {
 		doAckBufSucceed(s, pkt.AckHandle, data)
-		//doAckBufSucceed(s, pkt.AckHandle, data)
 	} else {
-		// set first byte to 1 to avoid pop up every time without save
-		body := make([]byte, 0x226)
-		body[0] = 1
-		doAckBufSucceed(s, pkt.AckHandle, body)
+		doAckBufSucceed(s, pkt.AckHandle, []byte{0x01, 0x00})
 	}
 }
 
@@ -267,7 +263,7 @@ func handleMsgMhfSaveDecoMyset(s *Session, p mhfpacket.MHFPacket) {
 	bf := byteframe.NewByteFrameFromBytes(pkt.RawDataPayload[1:]) // skip first unk byte
 	err := s.server.db.QueryRow("SELECT decomyset FROM characters WHERE id = $1", s.charID).Scan(&loadData)
 	if err != nil {
-		s.logger.Fatal("Failed to get preset decorations savedata from db", zap.Error(err))
+		s.logger.Error("Failed to load decomyset", zap.Error(err))
 	} else {
 		numSets := bf.ReadUint8() // sets being written
 		// empty save
@@ -313,7 +309,7 @@ func handleMsgMhfSaveDecoMyset(s *Session, p mhfpacket.MHFPacket) {
 		dumpSaveData(s, loadData, "decomyset")
 		_, err := s.server.db.Exec("UPDATE characters SET decomyset=$1 WHERE id=$2", loadData, s.charID)
 		if err != nil {
-			s.logger.Fatal("Failed to update decomyset savedata in db", zap.Error(err))
+			s.logger.Error("Failed to save decomyset", zap.Error(err))
 		}
 	}
 	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})

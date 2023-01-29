@@ -165,7 +165,7 @@ func handleMsgMhfSaveMercenary(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfReadMercenaryW(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfReadMercenaryW)
-	if pkt.GetPact {
+	if pkt.Op > 0 {
 		var pactID uint32
 		s.server.db.QueryRow("SELECT pact_id FROM characters WHERE id=$1", s.charID).Scan(&pactID)
 		if pactID > 0 {
@@ -177,10 +177,12 @@ func handleMsgMhfReadMercenaryW(s *Session, p mhfpacket.MHFPacket) {
 			bf.WriteUint32(pactID)
 			bf.WriteUint32(cid)
 			bf.WriteBool(true)
-			bf.WriteUint32(uint32(Time_Current_Adjusted().Unix()))
-			bf.WriteUint32(uint32(Time_Current_Adjusted().Add(time.Hour * 24 * 7).Unix()))
+			bf.WriteUint32(uint32(Time_Current_Adjusted().Add(time.Hour * 24 * -8).Unix()))
+			bf.WriteUint32(uint32(Time_Current_Adjusted().Add(time.Hour * 24 * -1).Unix()))
 			bf.WriteBytes(stringsupport.PaddedString(name, 18, true))
-			bf.WriteBool(false)
+			if pkt.Op == 1 {
+				bf.WriteBool(false)
+			}
 			doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 		} else {
 			doAckBufSucceed(s, pkt.AckHandle, make([]byte, 2))
@@ -219,7 +221,11 @@ func handleMsgMhfReadMercenaryM(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfContractMercenary(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfContractMercenary)
-	s.server.db.Exec("UPDATE characters SET pact_id=0 WHERE id=$1", s.charID)
+	if pkt.Cancel {
+		s.server.db.Exec("UPDATE characters SET pact_id=0 WHERE id=$1", s.charID)
+	} else {
+		s.server.db.Exec("UPDATE characters SET pact_id=$1 WHERE id=$2", pkt.PactMercID, s.charID)
+	}
 	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 

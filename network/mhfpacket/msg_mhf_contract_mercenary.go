@@ -13,7 +13,7 @@ type MsgMhfContractMercenary struct {
 	AckHandle  uint32
 	PactMercID uint32
 	CID        uint32
-	Cancel     bool
+	Op         uint8
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -26,7 +26,7 @@ func (m *MsgMhfContractMercenary) Parse(bf *byteframe.ByteFrame, ctx *clientctx.
 	m.AckHandle = bf.ReadUint32()
 	m.PactMercID = bf.ReadUint32()
 	m.CID = bf.ReadUint32()
-	m.Cancel = bf.ReadBool()
+	m.Op = bf.ReadUint8()
 	return nil
 }
 

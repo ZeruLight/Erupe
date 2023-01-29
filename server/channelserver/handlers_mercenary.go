@@ -14,37 +14,25 @@ import (
 	"time"
 )
 
-// THERE ARE [PARTENER] [MERCENARY] [OTOMO AIRU]
-
-///////////////////////////////////////////
-///				 PARTENER				 //
-///////////////////////////////////////////
-
 func handleMsgMhfLoadPartner(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfLoadPartner)
-	// load partner from database
 	var data []byte
 	err := s.server.db.QueryRow("SELECT partner FROM characters WHERE id = $1", s.charID).Scan(&data)
-	if err != nil {
-		s.logger.Fatal("Failed to get partner savedata from db", zap.Error(err))
-	}
 	if len(data) > 0 {
 		doAckBufSucceed(s, pkt.AckHandle, data)
 	} else {
+		s.logger.Warn("Failed to load partner data", zap.Error(err))
 		doAckBufSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
 	}
-	// TODO(Andoryuuta): Figure out unusual double ack. One sized, one not.
 	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
 func handleMsgMhfSavePartner(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSavePartner)
-
 	dumpSaveData(s, pkt.RawDataPayload, "partner")
-
 	_, err := s.server.db.Exec("UPDATE characters SET partner=$1 WHERE id=$2", pkt.RawDataPayload, s.charID)
 	if err != nil {
-		s.logger.Fatal("Failed to update partner savedata in db", zap.Error(err))
+		s.logger.Warn("Failed to save partner data", zap.Error(err))
 	}
 	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
@@ -59,13 +47,10 @@ func handleMsgMhfLoadHunterNavi(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfLoadHunterNavi)
 	var data []byte
 	err := s.server.db.QueryRow("SELECT hunternavi FROM characters WHERE id = $1", s.charID).Scan(&data)
-	if err != nil {
-		s.logger.Fatal("Failed to get hunter navigation savedata from db", zap.Error(err))
-	}
-
 	if len(data) > 0 {
 		doAckBufSucceed(s, pkt.AckHandle, data)
 	} else {
+		s.logger.Warn("Failed to load navi data", zap.Error(err))
 		// set first byte to 1 to avoid pop up every time without save
 		body := make([]byte, 0x226)
 		body[0] = 1
@@ -75,16 +60,12 @@ func handleMsgMhfLoadHunterNavi(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfSaveHunterNavi(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSaveHunterNavi)
-
-	dumpSaveData(s, pkt.RawDataPayload, "hunternavi")
-
 	if pkt.IsDataDiff {
 		var data []byte
-
 		// Load existing save
 		err := s.server.db.QueryRow("SELECT hunternavi FROM characters WHERE id = $1", s.charID).Scan(&data)
 		if err != nil {
-			s.logger.Fatal("Failed to get hunternavi savedata from db", zap.Error(err))
+			s.logger.Warn("Failed to save navi data", zap.Error(err))
 		}
 
 		// Check if we actually had any hunternavi data, using a blank buffer if not.
@@ -97,19 +78,17 @@ func handleMsgMhfSaveHunterNavi(s *Session, p mhfpacket.MHFPacket) {
 		// Perform diff and compress it to write back to db
 		s.logger.Info("Diffing...")
 		saveOutput := deltacomp.ApplyDataDiff(pkt.RawDataPayload, data)
-
 		_, err = s.server.db.Exec("UPDATE characters SET hunternavi=$1 WHERE id=$2", saveOutput, s.charID)
 		if err != nil {
-			s.logger.Fatal("Failed to update hunternavi savedata in db", zap.Error(err))
+			s.logger.Warn("Failed to save navi data", zap.Error(err))
 		}
-
 		s.logger.Info("Wrote recompressed hunternavi back to DB.")
 	} else {
 		dumpSaveData(s, pkt.RawDataPayload, "hunternavi")
 		// simply update database, no extra processing
 		_, err := s.server.db.Exec("UPDATE characters SET hunternavi=$1 WHERE id=$2", pkt.RawDataPayload, s.charID)
 		if err != nil {
-			s.logger.Fatal("Failed to update hunternavi savedata in db", zap.Error(err))
+			s.logger.Warn("Failed to save navi data", zap.Error(err))
 		}
 	}
 	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
@@ -444,5 +423,3 @@ func GetCatDetails(bf *byteframe.ByteFrame) []CatDefinition {
 	}
 	return cats
 }
-
-///////////////////////////////////////////

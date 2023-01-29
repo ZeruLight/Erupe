@@ -1621,7 +1621,7 @@ func handleMsgMhfGetEarthStatus(s *Session, p mhfpacket.MHFPacket) {
 
 			s.QueueAck(pkt.AckHandle, resp.Data())
 	*/
-	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+	doAckBufSucceed(s, pkt.AckHandle, []byte{})
 }
 
 func handleMsgMhfRegistSpabiTime(s *Session, p mhfpacket.MHFPacket) {}

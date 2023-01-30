@@ -236,7 +236,7 @@ func dumpSaveData(s *Session, data []byte, suffix string) {
 		_, err := os.Stat(dir)
 		if err != nil {
 			if os.IsNotExist(err) {
-				err = os.Mkdir(dir, os.ModeDir)
+				err = os.Mkdir(dir, os.ModePerm)
 				if err != nil {
 					s.logger.Warn("Error dumping savedata, could not create folder")
 					return

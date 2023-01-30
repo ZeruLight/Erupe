@@ -27,17 +27,17 @@ func handleMsgSysGetFile(s *Session, p mhfpacket.MHFPacket) {
 		}
 		filename := fmt.Sprintf("%d_0_0_0_S%d_T%d_C%d", pkt.ScenarioIdentifer.CategoryID, pkt.ScenarioIdentifer.MainID, pkt.ScenarioIdentifer.Flags, pkt.ScenarioIdentifer.ChapterID)
 		// Read the scenario file.
-		data, err := os.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("scenarios/%s.bin", filename)))
+		data, err := os.ReadFile(fmt.Sprintf("scenarios/%s.bin", filename))
 		if err != nil {
-			s.logger.Error(fmt.Sprintf("Failed to open file: %s/scenarios/%s.bin", s.server.erupeConfig.BinPath, filename))
+			s.logger.Error(fmt.Sprintf("Failed to open file: scenarios/%s.bin", filename))
 			// This will crash the game.
 			doAckBufSucceed(s, pkt.AckHandle, data)
 			return
 		}
 		doAckBufSucceed(s, pkt.AckHandle, data)
 	} else {
-		if _, err := os.Stat(filepath.Join(s.server.erupeConfig.BinPath, "quest_override.bin")); err == nil {
-			data, err := os.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, "quest_override.bin"))
+		if _, err := os.Stat("quest_override.bin"); err == nil {
+			data, err := os.ReadFile("quest_override.bin")
 			if err != nil {
 				panic(err)
 			}
@@ -50,9 +50,9 @@ func handleMsgSysGetFile(s *Session, p mhfpacket.MHFPacket) {
 				)
 			}
 			// Get quest file.
-			data, err := os.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("quests/%s.bin", pkt.Filename)))
+			data, err := os.ReadFile(fmt.Sprintf("quests/%s.bin", pkt.Filename))
 			if err != nil {
-				s.logger.Error(fmt.Sprintf("Failed to open file: %s/quests/%s.bin", s.server.erupeConfig.BinPath, pkt.Filename))
+				s.logger.Error(fmt.Sprintf("Failed to open file: quests/%s.bin", pkt.Filename))
 				// This will crash the game.
 				doAckBufSucceed(s, pkt.AckHandle, data)
 				return

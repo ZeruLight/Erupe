@@ -1774,7 +1774,8 @@ func handleMsgMhfGetEquipSkinHist(s *Session, p mhfpacket.MHFPacket) {
 	var data []byte
 	err := s.server.db.QueryRow("SELECT COALESCE(skin_hist::bytea, $2::bytea) FROM characters WHERE id = $1", s.charID, make([]byte, 0xC80)).Scan(&data)
 	if err != nil {
-		s.logger.Fatal("Failed to get skin_hist savedata from db", zap.Error(err))
+		s.logger.Error("Failed to load skin_hist", zap.Error(err))
+		data = make([]byte, 3200)
 	}
 	doAckBufSucceed(s, pkt.AckHandle, data)
 }
@@ -1785,7 +1786,9 @@ func handleMsgMhfUpdateEquipSkinHist(s *Session, p mhfpacket.MHFPacket) {
 	var data []byte
 	err := s.server.db.QueryRow("SELECT COALESCE(skin_hist, $2) FROM characters WHERE id = $1", s.charID, make([]byte, 0xC80)).Scan(&data)
 	if err != nil {
-		s.logger.Fatal("Failed to get skin_hist from db", zap.Error(err))
+		s.logger.Error("Failed to save skin_hist", zap.Error(err))
+		doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+		return
 	}
 
 	var bit int
@@ -1834,6 +1837,7 @@ func handleMsgMhfGetEnhancedMinidata(s *Session, p mhfpacket.MHFPacket) {
 	var data []byte
 	err := s.server.db.QueryRow("SELECT minidata FROM characters WHERE id = $1", pkt.CharID).Scan(&data)
 	if err != nil {
+		s.logger.Error("Failed to load minidata")
 		data = make([]byte, 1)
 	}
 	doAckBufSucceed(s, pkt.AckHandle, data)
@@ -1844,7 +1848,7 @@ func handleMsgMhfSetEnhancedMinidata(s *Session, p mhfpacket.MHFPacket) {
 	dumpSaveData(s, pkt.RawDataPayload, "minidata")
 	_, err := s.server.db.Exec("UPDATE characters SET minidata=$1 WHERE id=$2", pkt.RawDataPayload, s.charID)
 	if err != nil {
-		s.logger.Fatal("Failed to update minidata in db", zap.Error(err))
+		s.logger.Error("Failed to save minidata", zap.Error(err))
 	}
 	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }

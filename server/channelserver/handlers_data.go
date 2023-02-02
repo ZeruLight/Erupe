@@ -305,13 +305,10 @@ func handleMsgMhfLoadScenarioData(s *Session, p mhfpacket.MHFPacket) {
 	bf := byteframe.NewByteFrame()
 	err := s.server.db.QueryRow("SELECT scenariodata FROM characters WHERE id = $1", s.charID).Scan(&scenarioData)
 	if err != nil {
-		s.logger.Fatal("Failed to get scenario data contents in db", zap.Error(err))
+		s.logger.Error("Failed to load scenariodata", zap.Error(err))
+		bf.WriteBytes(make([]byte, 10))
 	} else {
-		if len(scenarioData) == 0 {
-			bf.WriteUint32(0x00)
-		} else {
-			bf.WriteBytes(scenarioData)
-		}
+		bf.WriteBytes(scenarioData)
 	}
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }

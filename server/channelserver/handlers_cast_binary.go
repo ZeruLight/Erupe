@@ -167,8 +167,7 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 		}
 	case BroadcastTypeServer:
 		if pkt.MessageType == 1 {
-			raviSema := getRaviSemaphore(s)
-			if raviSema != "" {
+			if getRaviSemaphore(s.server) != nil {
 				s.server.BroadcastMHF(resp, s)
 			}
 		} else {
@@ -361,7 +360,7 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 
 		if strings.HasPrefix(chatMessage.Message, commands["Raviente"].Prefix) {
 			if commands["Raviente"].Enabled {
-				if getRaviSemaphore(s) != "" {
+				if getRaviSemaphore(s.server) != nil {
 					s.server.raviente.Lock()
 					if !strings.HasPrefix(chatMessage.Message, "!ravi ") {
 						sendServerChatMessage(s, "No Raviente command specified!")
@@ -374,24 +373,8 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 							} else {
 								sendServerChatMessage(s, "The Great Slaying has already begun!")
 							}
-						} else if strings.HasPrefix(chatMessage.Message, "!ravi sm") || strings.HasPrefix(chatMessage.Message, "!ravi setmultiplier") {
-							var num uint16
-							n, numerr := fmt.Sscanf(chatMessage.Message, "!ravi sm %d", &num)
-							if numerr != nil || n != 1 {
-								sendServerChatMessage(s, "Error in command. Format: !ravi sm n")
-							} else if s.server.raviente.state.damageMultiplier == 1 {
-								if num > 32 {
-									sendServerChatMessage(s, "Raviente multiplier too high, defaulting to 32x")
-									s.server.raviente.state.damageMultiplier = 32
-								} else {
-									sendServerChatMessage(s, fmt.Sprintf("Raviente multiplier set to %dx", num))
-									s.server.raviente.state.damageMultiplier = uint32(num)
-								}
-							} else {
-								sendServerChatMessage(s, fmt.Sprintf("Raviente multiplier is already set to %dx!", s.server.raviente.state.damageMultiplier))
-							}
 						} else if strings.HasPrefix(chatMessage.Message, "!ravi cm") || strings.HasPrefix(chatMessage.Message, "!ravi checkmultiplier") {
-							sendServerChatMessage(s, fmt.Sprintf("Raviente multiplier is currently %dx", s.server.raviente.state.damageMultiplier))
+							sendServerChatMessage(s, fmt.Sprintf("Raviente multiplier is currently %dx", s.server.raviente.GetRaviMultiplier(s.server)))
 						} else if strings.HasPrefix(chatMessage.Message, "!ravi sr") || strings.HasPrefix(chatMessage.Message, "!ravi sendres") {
 							if s.server.raviente.state.stateData[28] > 0 {
 								sendServerChatMessage(s, "Sending resurrection support!")

@@ -73,7 +73,8 @@ func buildAllianceObjectFromDbResult(result *sqlx.Rows, err error, s *Session) (
 
 	parentGuild, err := GetGuildInfoByID(s, alliance.ParentGuildID)
 	if err != nil {
-		s.logger.Fatal("Failed to get parent guild info", zap.Error(err))
+		s.logger.Error("Failed to get parent guild info", zap.Error(err))
+		return nil, err
 	} else {
 		alliance.ParentGuild = *parentGuild
 		alliance.TotalMembers += parentGuild.MemberCount
@@ -82,7 +83,8 @@ func buildAllianceObjectFromDbResult(result *sqlx.Rows, err error, s *Session) (
 	if alliance.SubGuild1ID > 0 {
 		subGuild1, err := GetGuildInfoByID(s, alliance.SubGuild1ID)
 		if err != nil {
-			s.logger.Fatal("Failed to get sub guild 1 info", zap.Error(err))
+			s.logger.Error("Failed to get sub guild 1 info", zap.Error(err))
+			return nil, err
 		} else {
 			alliance.SubGuild1 = *subGuild1
 			alliance.TotalMembers += subGuild1.MemberCount
@@ -92,7 +94,8 @@ func buildAllianceObjectFromDbResult(result *sqlx.Rows, err error, s *Session) (
 	if alliance.SubGuild2ID > 0 {
 		subGuild2, err := GetGuildInfoByID(s, alliance.SubGuild2ID)
 		if err != nil {
-			s.logger.Fatal("Failed to get sub guild 2 info", zap.Error(err))
+			s.logger.Error("Failed to get sub guild 2 info", zap.Error(err))
+			return nil, err
 		} else {
 			alliance.SubGuild2 = *subGuild2
 			alliance.TotalMembers += subGuild2.MemberCount

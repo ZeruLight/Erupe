@@ -588,10 +588,11 @@ func handleMsgMhfEnumerateUnionItem(s *Session, p mhfpacket.MHFPacket) {
 	bf := byteframe.NewByteFrame()
 	err := s.server.db.QueryRow("SELECT item_box FROM users, characters WHERE characters.id = $1 AND users.id = characters.user_id", int(s.charID)).Scan(&boxContents)
 	if err != nil {
-		s.logger.Fatal("Failed to get shared item box contents from db", zap.Error(err))
+		s.logger.Error("Failed to get shared item box contents from db", zap.Error(err))
+		bf.WriteBytes(make([]byte, 4))
 	} else {
 		if len(boxContents) == 0 {
-			bf.WriteUint32(0x00)
+			bf.WriteBytes(make([]byte, 4))
 		} else {
 			amount := len(boxContents) / 4
 			bf.WriteUint16(uint16(amount))
@@ -616,7 +617,9 @@ func handleMsgMhfUpdateUnionItem(s *Session, p mhfpacket.MHFPacket) {
 
 	err := s.server.db.QueryRow("SELECT item_box FROM users, characters WHERE characters.id = $1 AND users.id = characters.user_id", int(s.charID)).Scan(&boxContents)
 	if err != nil {
-		s.logger.Fatal("Failed to get shared item box contents from db", zap.Error(err))
+		s.logger.Error("Failed to get shared item box contents from db", zap.Error(err))
+		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+		return
 	} else {
 		amount := len(boxContents) / 4
 		oldItems = make([]Item, amount)
@@ -664,9 +667,9 @@ func handleMsgMhfUpdateUnionItem(s *Session, p mhfpacket.MHFPacket) {
 	// Upload new item cache
 	_, err = s.server.db.Exec("UPDATE users SET item_box = $1 FROM characters WHERE  users.id = characters.user_id AND characters.id = $2", bf.Data(), int(s.charID))
 	if err != nil {
-		s.logger.Fatal("Failed to update shared item box contents in db", zap.Error(err))
+		s.logger.Error("Failed to update shared item box contents in db", zap.Error(err))
 	}
-	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfGetCogInfo(s *Session, p mhfpacket.MHFPacket) {}

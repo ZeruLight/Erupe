@@ -1531,10 +1531,11 @@ func handleMsgMhfEnumerateGuildItem(s *Session, p mhfpacket.MHFPacket) {
 	bf := byteframe.NewByteFrame()
 	err := s.server.db.QueryRow("SELECT item_box FROM guilds WHERE id = $1", int(pkt.GuildId)).Scan(&boxContents)
 	if err != nil {
-		s.logger.Fatal("Failed to get guild item box contents from db", zap.Error(err))
+		s.logger.Error("Failed to get guild item box contents from db", zap.Error(err))
+		bf.WriteBytes(make([]byte, 4))
 	} else {
 		if len(boxContents) == 0 {
-			bf.WriteUint32(0x00)
+			bf.WriteBytes(make([]byte, 4))
 		} else {
 			amount := len(boxContents) / 4
 			bf.WriteUint16(uint16(amount))
@@ -1564,7 +1565,9 @@ func handleMsgMhfUpdateGuildItem(s *Session, p mhfpacket.MHFPacket) {
 	var oldItems []Item
 	err := s.server.db.QueryRow("SELECT item_box FROM guilds WHERE id = $1", int(pkt.GuildId)).Scan(&boxContents)
 	if err != nil {
-		s.logger.Fatal("Failed to get guild item box contents from db", zap.Error(err))
+		s.logger.Error("Failed to get guild item box contents from db", zap.Error(err))
+		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+		return
 	} else {
 		amount := len(boxContents) / 4
 		oldItems = make([]Item, amount)
@@ -1612,7 +1615,7 @@ func handleMsgMhfUpdateGuildItem(s *Session, p mhfpacket.MHFPacket) {
 	// Upload new item cache
 	_, err = s.server.db.Exec("UPDATE guilds SET item_box = $1 WHERE id = $2", bf.Data(), int(pkt.GuildId))
 	if err != nil {
-		s.logger.Fatal("Failed to update guild item box contents in db", zap.Error(err))
+		s.logger.Error("Failed to update guild item box contents in db", zap.Error(err))
 	}
 
 	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
@@ -1737,7 +1740,8 @@ func handleMsgMhfLoadGuildCooking(s *Session, p mhfpacket.MHFPacket) {
 	guild, _ := GetGuildInfoByCharacterId(s, s.charID)
 	data, err := s.server.db.Queryx("SELECT id, meal_id, level, expires FROM guild_meals WHERE guild_id = $1", guild.ID)
 	if err != nil {
-		s.logger.Fatal("Failed to get guild meals from db", zap.Error(err))
+		s.logger.Error("Failed to get guild meals from db", zap.Error(err))
+		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 2))
 	}
 	temp := byteframe.NewByteFrame()
 	count := 0
@@ -1745,7 +1749,7 @@ func handleMsgMhfLoadGuildCooking(s *Session, p mhfpacket.MHFPacket) {
 		mealData := &GuildMeal{}
 		err = data.StructScan(&mealData)
 		if err != nil {
-			s.logger.Fatal("Failed to scan meal data", zap.Error(err))
+			continue
 		}
 		if mealData.Expires > uint32(Time_Current_Adjusted().Add(-60*time.Minute).Unix()) {
 			count++
@@ -1767,12 +1771,12 @@ func handleMsgMhfRegistGuildCooking(s *Session, p mhfpacket.MHFPacket) {
 	if pkt.OverwriteID != 0 {
 		_, err := s.server.db.Exec("DELETE FROM guild_meals WHERE id = $1", pkt.OverwriteID)
 		if err != nil {
-			s.logger.Fatal("Failed to delete meal in db", zap.Error(err))
+			s.logger.Error("Failed to delete meal in db", zap.Error(err))
 		}
 	}
 	_, err := s.server.db.Exec("INSERT INTO guild_meals (guild_id, meal_id, level, expires) VALUES ($1, $2, $3, $4)", guild.ID, pkt.MealID, pkt.Success, Time_Current_Adjusted().Add(30*time.Minute).Unix())
 	if err != nil {
-		s.logger.Fatal("Failed to register meal in db", zap.Error(err))
+		s.logger.Error("Failed to register meal in db", zap.Error(err))
 	}
 	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x01, 0x00})
 }
@@ -1826,7 +1830,9 @@ func handleMsgMhfEnumerateGuildMessageBoard(s *Session, p mhfpacket.MHFPacket) {
 
 	msgs, err := s.server.db.Queryx("SELECT post_type, stamp_id, title, body, author_id, (EXTRACT(epoch FROM created_at)::int) as created_at, liked_by FROM guild_posts WHERE guild_id = $1 AND post_type = $2 ORDER BY created_at DESC", guild.ID, int(pkt.BoardType))
 	if err != nil {
-		s.logger.Fatal("Failed to get guild messages from db", zap.Error(err))
+		s.logger.Error("Failed to get guild messages from db", zap.Error(err))
+		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
+		return
 	}
 
 	bf := byteframe.NewByteFrame()
@@ -1836,11 +1842,10 @@ func handleMsgMhfEnumerateGuildMessageBoard(s *Session, p mhfpacket.MHFPacket) {
 		noMsgs = false
 		postCount++
 		postData := &MessageBoardPost{}
-		err = msgs.StructScan(&postData)
+		msgs.StructScan(&postData)
 		if err != nil {
-			s.logger.Fatal("Failed to get guild messages from db", zap.Error(err))
+			continue
 		}
-
 		bf.WriteUint32(postData.Type)
 		bf.WriteUint32(postData.AuthorID)
 		bf.WriteUint64(postData.Timestamp)
@@ -1856,7 +1861,7 @@ func handleMsgMhfEnumerateGuildMessageBoard(s *Session, p mhfpacket.MHFPacket) {
 		ps.Uint32(bf, postData.Body, true)
 	}
 	if noMsgs {
-		doAckBufSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
 	} else {
 		data := byteframe.NewByteFrame()
 		data.WriteUint32(uint32(postCount))
@@ -1890,19 +1895,20 @@ func handleMsgMhfUpdateGuildMessageBoard(s *Session, p mhfpacket.MHFPacket) {
 		bodyConv = stringsupport.SJISToUTF8(body)
 		_, err := s.server.db.Exec("INSERT INTO guild_posts (guild_id, author_id, stamp_id, post_type, title, body) VALUES ($1, $2, $3, $4, $5, $6)", guild.ID, s.charID, int(stampId), int(postType), titleConv, bodyConv)
 		if err != nil {
-			s.logger.Fatal("Failed to add new guild message to db", zap.Error(err))
+			s.logger.Error("Failed to add new guild message to db", zap.Error(err))
 		}
-		// TODO: if there are too many messages, purge excess
+		/* TODO: if there are too many messages, purge excess
 		_, err = s.server.db.Exec("")
 		if err != nil {
 			s.logger.Fatal("Failed to remove excess guild messages from db", zap.Error(err))
 		}
+		*/
 	case 1: // Delete message
 		postType := bf.ReadUint32()
 		timestamp := bf.ReadUint64()
 		_, err := s.server.db.Exec("DELETE FROM guild_posts WHERE post_type = $1 AND (EXTRACT(epoch FROM created_at)::int) = $2 AND guild_id = $3", int(postType), int(timestamp), guild.ID)
 		if err != nil {
-			s.logger.Fatal("Failed to delete guild message from db", zap.Error(err))
+			s.logger.Error("Failed to delete guild message from db", zap.Error(err))
 		}
 	case 2: // Update message
 		postType := bf.ReadUint32()
@@ -1915,7 +1921,7 @@ func handleMsgMhfUpdateGuildMessageBoard(s *Session, p mhfpacket.MHFPacket) {
 		bodyConv = stringsupport.SJISToUTF8(body)
 		_, err := s.server.db.Exec("UPDATE guild_posts SET title = $1, body = $2 WHERE post_type = $3 AND (EXTRACT(epoch FROM created_at)::int) = $4 AND guild_id = $5", titleConv, bodyConv, int(postType), int(timestamp), guild.ID)
 		if err != nil {
-			s.logger.Fatal("Failed to update guild message in db", zap.Error(err))
+			s.logger.Error("Failed to update guild message in db", zap.Error(err))
 		}
 	case 3: // Update stamp
 		postType := bf.ReadUint32()
@@ -1923,7 +1929,7 @@ func handleMsgMhfUpdateGuildMessageBoard(s *Session, p mhfpacket.MHFPacket) {
 		stampId := bf.ReadUint32()
 		_, err := s.server.db.Exec("UPDATE guild_posts SET stamp_id = $1 WHERE post_type = $2 AND (EXTRACT(epoch FROM created_at)::int) = $3 AND guild_id = $4", int(stampId), int(postType), int(timestamp), guild.ID)
 		if err != nil {
-			s.logger.Fatal("Failed to update guild message stamp in db", zap.Error(err))
+			s.logger.Error("Failed to update guild message stamp in db", zap.Error(err))
 		}
 	case 4: // Like message
 		postType := bf.ReadUint32()
@@ -1932,19 +1938,19 @@ func handleMsgMhfUpdateGuildMessageBoard(s *Session, p mhfpacket.MHFPacket) {
 		var likedBy string
 		err := s.server.db.QueryRow("SELECT liked_by FROM guild_posts WHERE post_type = $1 AND (EXTRACT(epoch FROM created_at)::int) = $2 AND guild_id = $3", int(postType), int(timestamp), guild.ID).Scan(&likedBy)
 		if err != nil {
-			s.logger.Fatal("Failed to get guild message like data from db", zap.Error(err))
+			s.logger.Error("Failed to get guild message like data from db", zap.Error(err))
 		} else {
 			if likeState {
 				likedBy = stringsupport.CSVAdd(likedBy, int(s.charID))
 				_, err := s.server.db.Exec("UPDATE guild_posts SET liked_by = $1 WHERE post_type = $2 AND (EXTRACT(epoch FROM created_at)::int) = $3 AND guild_id = $4", likedBy, int(postType), int(timestamp), guild.ID)
 				if err != nil {
-					s.logger.Fatal("Failed to like guild message in db", zap.Error(err))
+					s.logger.Error("Failed to like guild message in db", zap.Error(err))
 				}
 			} else {
 				likedBy = stringsupport.CSVRemove(likedBy, int(s.charID))
 				_, err := s.server.db.Exec("UPDATE guild_posts SET liked_by = $1 WHERE post_type = $2 AND (EXTRACT(epoch FROM created_at)::int) = $3 AND guild_id = $4", likedBy, int(postType), int(timestamp), guild.ID)
 				if err != nil {
-					s.logger.Fatal("Failed to unlike guild message in db", zap.Error(err))
+					s.logger.Error("Failed to unlike guild message in db", zap.Error(err))
 				}
 			}
 		}
@@ -1953,15 +1959,15 @@ func handleMsgMhfUpdateGuildMessageBoard(s *Session, p mhfpacket.MHFPacket) {
 		var newPosts int
 		err := s.server.db.QueryRow("SELECT (EXTRACT(epoch FROM guild_post_checked)::int) FROM characters WHERE id = $1", s.charID).Scan(&timeChecked)
 		if err != nil {
-			s.logger.Fatal("Failed to get last guild post check timestamp from db", zap.Error(err))
+			s.logger.Error("Failed to get last guild post check timestamp from db", zap.Error(err))
 		} else {
 			_, err = s.server.db.Exec("UPDATE characters SET guild_post_checked = $1 WHERE id = $2", time.Now(), s.charID)
 			if err != nil {
-				s.logger.Fatal("Failed to update guild post check timestamp in db", zap.Error(err))
+				s.logger.Error("Failed to update guild post check timestamp in db", zap.Error(err))
 			} else {
 				err = s.server.db.QueryRow("SELECT COUNT(*) FROM guild_posts WHERE guild_id = $1 AND (EXTRACT(epoch FROM created_at)::int) > $2 AND author_id != $3", guild.ID, timeChecked, s.charID).Scan(&newPosts)
 				if err != nil {
-					s.logger.Fatal("Failed to check for new guild posts in db", zap.Error(err))
+					s.logger.Error("Failed to check for new guild posts in db", zap.Error(err))
 				} else {
 					if newPosts > 0 {
 						doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x01})
@@ -1971,7 +1977,7 @@ func handleMsgMhfUpdateGuildMessageBoard(s *Session, p mhfpacket.MHFPacket) {
 			}
 		}
 	}
-	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfEntryRookieGuild(s *Session, p mhfpacket.MHFPacket) {

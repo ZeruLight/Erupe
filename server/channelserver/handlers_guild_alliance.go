@@ -106,7 +106,7 @@ func handleMsgMhfCreateJoint(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfCreateJoint)
 	_, err := s.server.db.Exec("INSERT INTO guild_alliances (name, parent_id) VALUES ($1, $2)", pkt.Name, pkt.GuildID)
 	if err != nil {
-		s.logger.Fatal("Failed to create guild alliance in db", zap.Error(err))
+		s.logger.Error("Failed to create guild alliance in db", zap.Error(err))
 	}
 	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x01, 0x01, 0x01, 0x01})
 }
@@ -116,11 +116,11 @@ func handleMsgMhfOperateJoint(s *Session, p mhfpacket.MHFPacket) {
 
 	guild, err := GetGuildInfoByID(s, pkt.GuildID)
 	if err != nil {
-		s.logger.Fatal("Failed to get guild info", zap.Error(err))
+		s.logger.Error("Failed to get guild info", zap.Error(err))
 	}
 	alliance, err := GetAllianceData(s, pkt.AllianceID)
 	if err != nil {
-		s.logger.Fatal("Failed to get alliance info", zap.Error(err))
+		s.logger.Error("Failed to get alliance info", zap.Error(err))
 	}
 
 	switch pkt.Action {
@@ -128,7 +128,7 @@ func handleMsgMhfOperateJoint(s *Session, p mhfpacket.MHFPacket) {
 		if guild.LeaderCharID == s.charID && alliance.ParentGuildID == guild.ID {
 			_, err = s.server.db.Exec("DELETE FROM guild_alliances WHERE id=$1", alliance.ID)
 			if err != nil {
-				s.logger.Fatal("Failed to disband alliance", zap.Error(err))
+				s.logger.Error("Failed to disband alliance", zap.Error(err))
 			}
 			doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 		} else {

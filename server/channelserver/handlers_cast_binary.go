@@ -53,7 +53,7 @@ func init() {
 }
 
 func sendDisabledCommandMessage(s *Session, cmd config.Command) {
-	sendServerChatMessage(s, fmt.Sprintf("%s command is disabled", cmd.Name))
+	sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandDisabled"], cmd.Name))
 }
 
 func sendServerChatMessage(s *Session, message string) {
@@ -82,7 +82,7 @@ func parseChatCommand(s *Session, command string) {
 	if strings.HasPrefix(command, commands["Reload"].Prefix) {
 		// Flush all objects and users and reload
 		if commands["Reload"].Enabled {
-			sendServerChatMessage(s, "Reloading players...")
+			sendServerChatMessage(s, s.server.dict["commandReload"])
 			var temp mhfpacket.MHFPacket
 			deleteNotif := byteframe.NewByteFrame()
 			for _, object := range s.stage.objects {
@@ -145,18 +145,18 @@ func parseChatCommand(s *Session, command string) {
 
 	if strings.HasPrefix(command, commands["KeyQuest"].Prefix) {
 		if commands["KeyQuest"].Enabled {
-			if strings.HasPrefix(command, "!kqf get") {
-				sendServerChatMessage(s, fmt.Sprintf("KQF: %x", s.kqf))
-			} else if strings.HasPrefix(command, "!kqf set") {
+			if strings.HasPrefix(command, fmt.Sprintf("%s get", commands["KeyQuest"].Prefix)) {
+				sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandKqfGet"], s.kqf))
+			} else if strings.HasPrefix(command, fmt.Sprintf("%s set", commands["KeyQuest"].Prefix)) {
 				var hexs string
-				n, numerr := fmt.Sscanf(command, "!kqf set %s", &hexs)
+				n, numerr := fmt.Sscanf(command, fmt.Sprintf("%s set %%s", commands["KeyQuest"].Prefix), &hexs)
 				if numerr != nil || n != 1 || len(hexs) != 16 {
-					sendServerChatMessage(s, "Error in command. Format: !kqf set xxxxxxxxxxxxxxxx")
+					sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandKqfSetError"], commands["KeyQuest"].Prefix))
 				} else {
 					hexd, _ := hex.DecodeString(hexs)
 					s.kqf = hexd
 					s.kqfOverride = true
-					sendServerChatMessage(s, "KQF set, please switch Land/World")
+					sendServerChatMessage(s, s.server.dict["commandKqfSetSuccess"])
 				}
 			}
 		} else {
@@ -168,13 +168,13 @@ func parseChatCommand(s *Session, command string) {
 		// Set account rights
 		if commands["Rights"].Enabled {
 			var v uint32
-			n, err := fmt.Sscanf(command, "!rights %d", &v)
+			n, err := fmt.Sscanf(command, fmt.Sprintf("%s %%d", commands["Rights"].Prefix), &v)
 			if err != nil || n != 1 {
-				sendServerChatMessage(s, "Error in command. Format: !rights n")
+				sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandRightsError"], commands["Rights"].Prefix))
 			} else {
 				_, err = s.server.db.Exec("UPDATE users u SET rights=$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)", v, s.charID)
 				if err == nil {
-					sendServerChatMessage(s, fmt.Sprintf("Set rights integer: %d", v))
+					sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandRightsSuccess"], v))
 				}
 			}
 		} else {
@@ -185,9 +185,9 @@ func parseChatCommand(s *Session, command string) {
 	if strings.HasPrefix(command, commands["Course"].Prefix) {
 		if commands["Course"].Enabled {
 			var name string
-			n, err := fmt.Sscanf(command, "!course %s", &name)
+			n, err := fmt.Sscanf(command, fmt.Sprintf("%s %%s", commands["Course"].Prefix), &name)
 			if err != nil || n != 1 {
-				sendServerChatMessage(s, "Error in command. Format: !course <name>")
+				sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandCourseError"], commands["Course"].Prefix))
 			} else {
 				name = strings.ToLower(name)
 				for _, course := range mhfpacket.Courses() {
@@ -205,11 +205,11 @@ func parseChatCommand(s *Session, command string) {
 									})
 									if ei != -1 {
 										s.courses = append(s.courses[:ei], s.courses[ei+1:]...)
-										sendServerChatMessage(s, fmt.Sprintf(`%s Course disabled`, course.Aliases[0]))
+										sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandCourseDisabled"], course.Aliases[0]))
 									}
 								} else {
 									s.courses = append(s.courses, course)
-									sendServerChatMessage(s, fmt.Sprintf(`%s Course enabled`, course.Aliases[0]))
+									sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandCourseEnabled"], course.Aliases[0]))
 								}
 								var newInt uint32
 								for _, course := range s.courses {
@@ -218,7 +218,7 @@ func parseChatCommand(s *Session, command string) {
 								s.server.db.Exec("UPDATE users u SET rights=$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)", newInt, s.charID)
 								updateRights(s)
 							} else {
-								sendServerChatMessage(s, fmt.Sprintf(`%s Course is locked`, course.Aliases[0]))
+								sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandCourseLocked"], course.Aliases[0]))
 							}
 						}
 					}
@@ -234,42 +234,42 @@ func parseChatCommand(s *Session, command string) {
 			if getRaviSemaphore(s.server) != nil {
 				s.server.raviente.Lock()
 				if !strings.HasPrefix(command, "!ravi ") {
-					sendServerChatMessage(s, "No Raviente command specified!")
+					sendServerChatMessage(s, s.server.dict["commandRaviNoCommand"])
 				} else {
 					if strings.HasPrefix(command, "!ravi start") {
 						if s.server.raviente.register.startTime == 0 {
 							s.server.raviente.register.startTime = s.server.raviente.register.postTime
-							sendServerChatMessage(s, "The Great Slaying will begin in a moment")
+							sendServerChatMessage(s, s.server.dict["commandRaviStartSuccess"])
 							s.notifyRavi()
 						} else {
-							sendServerChatMessage(s, "The Great Slaying has already begun!")
+							sendServerChatMessage(s, s.server.dict["commandRaviStartError"])
 						}
 					} else if strings.HasPrefix(command, "!ravi cm") || strings.HasPrefix(command, "!ravi checkmultiplier") {
-						sendServerChatMessage(s, fmt.Sprintf("Raviente multiplier is currently %dx", s.server.raviente.GetRaviMultiplier(s.server)))
+						sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandRaviMultiplier"], s.server.raviente.GetRaviMultiplier(s.server)))
 					} else if strings.HasPrefix(command, "!ravi sr") || strings.HasPrefix(command, "!ravi sendres") {
 						if s.server.raviente.state.stateData[28] > 0 {
-							sendServerChatMessage(s, "Sending resurrection support!")
+							sendServerChatMessage(s, s.server.dict["commandRaviResSuccess"])
 							s.server.raviente.state.stateData[28] = 0
 						} else {
-							sendServerChatMessage(s, "Resurrection support has not been requested!")
+							sendServerChatMessage(s, s.server.dict["commandRaviResError"])
 						}
 					} else if strings.HasPrefix(command, "!ravi ss") || strings.HasPrefix(command, "!ravi sendsed") {
-						sendServerChatMessage(s, "Sending sedation support if requested!")
+						sendServerChatMessage(s, s.server.dict["commandRaviSedSuccess"])
 						// Total BerRavi HP
 						HP := s.server.raviente.state.stateData[0] + s.server.raviente.state.stateData[1] + s.server.raviente.state.stateData[2] + s.server.raviente.state.stateData[3] + s.server.raviente.state.stateData[4]
 						s.server.raviente.support.supportData[1] = HP
 					} else if strings.HasPrefix(command, "!ravi rs") || strings.HasPrefix(command, "!ravi reqsed") {
-						sendServerChatMessage(s, "Requesting sedation support!")
+						sendServerChatMessage(s, s.server.dict["commandRaviRequest"])
 						// Total BerRavi HP
 						HP := s.server.raviente.state.stateData[0] + s.server.raviente.state.stateData[1] + s.server.raviente.state.stateData[2] + s.server.raviente.state.stateData[3] + s.server.raviente.state.stateData[4]
 						s.server.raviente.support.supportData[1] = HP + 12
 					} else {
-						sendServerChatMessage(s, "Raviente command not recognised!")
+						sendServerChatMessage(s, s.server.dict["commandRaviError"])
 					}
 				}
 				s.server.raviente.Unlock()
 			} else {
-				sendServerChatMessage(s, "No one has joined the Great Slaying!")
+				sendServerChatMessage(s, s.server.dict["commandRaviNoPlayers"])
 			}
 		} else {
 			sendDisabledCommandMessage(s, commands["Raviente"])
@@ -279,11 +279,11 @@ func parseChatCommand(s *Session, command string) {
 	if strings.HasPrefix(command, commands["Teleport"].Prefix) {
 		if commands["Teleport"].Enabled {
 			var x, y int16
-			n, err := fmt.Sscanf(command, "!tele %d %d", &x, &y)
+			n, err := fmt.Sscanf(command, fmt.Sprintf("%s %%d %%d", commands["Teleport"].Prefix), &x, &y)
 			if err != nil || n != 2 {
-				sendServerChatMessage(s, "Invalid command. Usage:\"!tele 500 500\"")
+				sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandTeleportError"], commands["Teleport"].Prefix))
 			} else {
-				sendServerChatMessage(s, fmt.Sprintf("Teleporting to %d %d", x, y))
+				sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandTeleportSuccess"], x, y))
 
 				// Make the inside of the casted binary
 				payload := byteframe.NewByteFrame()

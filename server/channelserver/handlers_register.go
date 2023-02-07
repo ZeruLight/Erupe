@@ -262,7 +262,7 @@ func (s *Session) notifyRavi() {
 
 func getRaviSemaphore(s *Server) *Semaphore {
 	for _, semaphore := range s.semaphore {
-		if strings.HasPrefix(semaphore.id_semaphore, "hs_l0u3B5") && strings.HasSuffix(semaphore.id_semaphore, "4") {
+		if strings.HasPrefix(semaphore.id_semaphore, "hs_l0u3B5") && strings.HasSuffix(semaphore.id_semaphore, "3") {
 			return semaphore
 		}
 	}

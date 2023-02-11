@@ -785,7 +785,7 @@ func handleDonateRP(s *Session, amount uint16, guild *Guild, isEvent bool) []byt
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint32(0)
 	saveData, err := GetCharacterSaveData(s, s.charID)
-	if err != nil || saveData == nil {
+	if err != nil {
 		return bf.Data()
 	}
 	saveData.RP -= amount

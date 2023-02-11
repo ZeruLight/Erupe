@@ -253,7 +253,7 @@ func logoutPlayer(s *Session) {
 	removeSessionFromStage(s)
 
 	saveData, err := GetCharacterSaveData(s, s.charID)
-	if err != nil || saveData == nil {
+	if err != nil {
 		s.logger.Error("Failed to get savedata")
 		return
 	}

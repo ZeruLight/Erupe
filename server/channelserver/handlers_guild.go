@@ -736,7 +736,10 @@ func handleMsgMhfOperateGuild(s *Session, p mhfpacket.MHFPacket) {
 		// TODO: This doesn't implement blocking, if someone unlocked the same outfit at the same time
 		s.server.db.Exec(`UPDATE guilds SET pugi_outfits=pugi_outfits+$1 WHERE id=$2`, int(math.Pow(float64(pkt.Data1.ReadUint32()), 2)), guild.ID)
 	case mhfpacket.OPERATE_GUILD_DONATE_EVENT:
-		bf.WriteBytes(handleDonateRP(s, uint16(pkt.Data1.ReadUint32()), guild, true))
+		quantity := uint16(pkt.Data1.ReadUint32())
+		bf.WriteBytes(handleDonateRP(s, quantity, guild, true))
+		// TODO: Move this value onto rp_yesterday and reset to 0... daily?
+		s.server.db.Exec(`UPDATE guild_characters SET rp_today=rp_today+$1 WHERE character_id=$2`, quantity, s.charID)
 	case mhfpacket.OPERATE_GUILD_EVENT_EXCHANGE:
 		rp := uint16(pkt.Data1.ReadUint32())
 		var balance uint32
@@ -782,7 +785,7 @@ func handleDonateRP(s *Session, amount uint16, guild *Guild, isEvent bool) []byt
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint32(0)
 	saveData, err := GetCharacterSaveData(s, s.charID)
-	if err != nil {
+	if err != nil || saveData == nil {
 		return bf.Data()
 	}
 	saveData.RP -= amount
@@ -1443,8 +1446,9 @@ func handleMsgMhfEnumerateGuildMember(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint16(0)
 	}
 
-	for range guildMembers {
-		bf.WriteUint32(0x00) // Unk
+	for _, member := range guildMembers {
+		bf.WriteUint16(member.RPToday)
+		bf.WriteUint16(member.RPYesterday)
 	}
 
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())

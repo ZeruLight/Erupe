@@ -72,6 +72,8 @@ func (s *Stage) BroadcastMHF(pkt mhfpacket.MHFPacket, ignoredSession *Session) {
 	s.Lock()
 	defer s.Unlock()
 	// Broadcast the data.
+	s.Lock()
+	defer s.Unlock()
 	for session := range s.clients {
 		if session == ignoredSession {
 			continue

@@ -94,7 +94,12 @@ func handleMsgMhfEnumerateShop(s *Session, p mhfpacket.MHFPacket) {
 			ps.Uint8(resp, gacha.URLFeature, false)
 			resp.WriteBool(gacha.Wide)
 			ps.Uint8(resp, gacha.URLThumbnail, false)
-			resp.WriteBool(gacha.Recommended)
+			resp.WriteUint8(0) // Unk
+			if gacha.Recommended {
+				resp.WriteUint8(2)
+			} else {
+				resp.WriteUint8(0)
+			}
 			resp.WriteUint8(gacha.GachaType)
 			resp.WriteBool(gacha.Hidden)
 			count++

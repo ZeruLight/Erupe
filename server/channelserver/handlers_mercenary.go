@@ -38,8 +38,21 @@ func handleMsgMhfSavePartner(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfLoadLegendDispatch(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfLoadLegendDispatch)
-	data := []byte{0x03, 0x00, 0x00, 0x00, 0x00, 0x5e, 0x01, 0x8d, 0x40, 0x00, 0x00, 0x00, 0x00, 0x5e, 0x02, 0xde, 0xc0, 0x00, 0x00, 0x00, 0x00, 0x5e, 0x04, 0x30, 0x40}
-	doAckBufSucceed(s, pkt.AckHandle, data)
+	bf := byteframe.NewByteFrame()
+	legendDispatch := []struct {
+		Unk       uint32
+		Timestamp uint32
+	}{
+		{0, uint32(Time_Current_Midnight().Add(-12 * time.Hour).Unix())},
+		{0, uint32(Time_Current_Midnight().Add(12 * time.Hour).Unix())},
+		{0, uint32(Time_Current_Midnight().Add(36 * time.Hour).Unix())},
+	}
+	bf.WriteUint8(uint8(len(legendDispatch)))
+	for _, dispatch := range legendDispatch {
+		bf.WriteUint32(dispatch.Unk)
+		bf.WriteUint32(dispatch.Timestamp)
+	}
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfLoadHunterNavi(s *Session, p mhfpacket.MHFPacket) {

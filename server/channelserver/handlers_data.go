@@ -294,13 +294,7 @@ func handleMsgMhfSaveScenarioData(s *Session, p mhfpacket.MHFPacket) {
 	if err != nil {
 		s.logger.Error("Failed to update scenario data in db", zap.Error(err))
 	}
-	// Do this ack manually because it uses a non-(0|1) error code
-	s.QueueSendMHF(&mhfpacket.MsgSysAck{
-		AckHandle:        pkt.AckHandle,
-		IsBufferResponse: false,
-		ErrorCode:        0x40,
-		AckData:          []byte{0x00, 0x00, 0x00, 0x40},
-	})
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfLoadScenarioData(s *Session, p mhfpacket.MHFPacket) {

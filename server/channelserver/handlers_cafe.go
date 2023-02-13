@@ -15,7 +15,7 @@ func handleMsgMhfAcquireCafeItem(s *Session, p mhfpacket.MHFPacket) {
 	var netcafePoints uint32
 	err := s.server.db.QueryRow("UPDATE characters SET netcafe_points = netcafe_points - $1 WHERE id = $2 RETURNING netcafe_points", pkt.PointCost, s.charID).Scan(&netcafePoints)
 	if err != nil {
-		s.logger.Fatal("Failed to get netcafe points from db", zap.Error(err))
+		s.logger.Error("Failed to get netcafe points from db", zap.Error(err))
 	}
 	resp := byteframe.NewByteFrame()
 	resp.WriteUint32(netcafePoints)
@@ -27,7 +27,7 @@ func handleMsgMhfUpdateCafepoint(s *Session, p mhfpacket.MHFPacket) {
 	var netcafePoints uint32
 	err := s.server.db.QueryRow("SELECT COALESCE(netcafe_points, 0) FROM characters WHERE id = $1", s.charID).Scan(&netcafePoints)
 	if err != nil {
-		s.logger.Fatal("Failed to get netcate points from db", zap.Error(err))
+		s.logger.Error("Failed to get netcate points from db", zap.Error(err))
 	}
 	resp := byteframe.NewByteFrame()
 	resp.WriteUint32(netcafePoints)
@@ -49,7 +49,7 @@ func handleMsgMhfCheckDailyCafepoint(s *Session, p mhfpacket.MHFPacket) {
 	var dailyTime time.Time
 	err := s.server.db.QueryRow("SELECT COALESCE(daily_time, $2) FROM characters WHERE id = $1", s.charID, time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)).Scan(&dailyTime)
 	if err != nil {
-		s.logger.Fatal("Failed to get daily_time savedata from db", zap.Error(err))
+		s.logger.Error("Failed to get daily_time savedata from db", zap.Error(err))
 	}
 
 	var bondBonus, bonusQuests, dailyQuests uint32

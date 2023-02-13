@@ -21,7 +21,7 @@ func handleMsgSysOperateRegister(s *Session, p mhfpacket.MHFPacket) {
 			resp.WriteUint8(1)
 			resp.WriteUint8(dest)
 			ref := &s.server.raviente.state.stateData[dest]
-			damageMultiplier := s.server.raviente.state.damageMultiplier
+			damageMultiplier := s.server.raviente.GetRaviMultiplier(s.server)
 			switch op {
 			case 2:
 				resp.WriteUint32(*ref)
@@ -252,21 +252,21 @@ func (s *Session) notifyRavi() {
 	raviNotif.WriteUint16(uint16(temp.Opcode()))
 	temp.Build(raviNotif, s.clientContext)
 	raviNotif.WriteUint16(0x0010) // End it.
-	sema := getRaviSemaphore(s)
-	if sema != "" {
-		for session := range s.server.semaphore[sema].clients {
+	sema := getRaviSemaphore(s.server)
+	if sema != nil {
+		for session := range sema.clients {
 			session.QueueSend(raviNotif.Data())
 		}
 	}
 }
 
-func getRaviSemaphore(s *Session) string {
-	for _, semaphore := range s.server.semaphore {
-		if strings.HasPrefix(semaphore.id_semaphore, "hs_l0u3B5") && strings.HasSuffix(semaphore.id_semaphore, "4") {
-			return semaphore.id_semaphore
+func getRaviSemaphore(s *Server) *Semaphore {
+	for _, semaphore := range s.semaphore {
+		if strings.HasPrefix(semaphore.id_semaphore, "hs_l0u3B5") && strings.HasSuffix(semaphore.id_semaphore, "3") {
+			return semaphore
 		}
 	}
-	return ""
+	return nil
 }
 
 func resetRavi(s *Session) {
@@ -278,7 +278,6 @@ func resetRavi(s *Session) {
 	s.server.raviente.register.ravienteType = 0
 	s.server.raviente.register.maxPlayers = 0
 	s.server.raviente.register.carveQuest = 0
-	s.server.raviente.state.damageMultiplier = 1
 	s.server.raviente.register.register = []uint32{0, 0, 0, 0, 0}
 	s.server.raviente.state.stateData = []uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
 	s.server.raviente.support.supportData = []uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}

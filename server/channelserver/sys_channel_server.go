@@ -92,8 +92,7 @@ type RavienteRegister struct {
 }
 
 type RavienteState struct {
-	damageMultiplier uint32
-	stateData        []uint32
+	stateData []uint32
 }
 
 type RavienteSupport struct {
@@ -111,9 +110,7 @@ func NewRaviente() *Raviente {
 		maxPlayers:   0,
 		carveQuest:   0,
 	}
-	ravienteState := &RavienteState{
-		damageMultiplier: 1,
-	}
+	ravienteState := &RavienteState{}
 	ravienteSupport := &RavienteSupport{}
 	ravienteRegister.register = []uint32{0, 0, 0, 0, 0}
 	ravienteState.stateData = []uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
@@ -125,6 +122,23 @@ func NewRaviente() *Raviente {
 		support:  ravienteSupport,
 	}
 	return raviente
+}
+
+func (r *Raviente) GetRaviMultiplier(s *Server) uint32 {
+	raviSema := getRaviSemaphore(s)
+	if raviSema != nil {
+		var minPlayers uint32
+		if r.register.maxPlayers > 8 {
+			minPlayers = 24
+		} else {
+			minPlayers = 4
+		}
+		if uint32(len(raviSema.clients)) > minPlayers {
+			return 1
+		}
+		return minPlayers / uint32(len(raviSema.clients))
+	}
+	return 0
 }
 
 // NewServer creates a new Server type.

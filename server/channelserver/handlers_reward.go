@@ -43,7 +43,3 @@ func handleMsgMhfAcquireMonthlyReward(s *Session, p mhfpacket.MHFPacket) {
 }
 
 func handleMsgMhfAcceptReadReward(s *Session, p mhfpacket.MHFPacket) {}
-
-func handleMsgMhfGetBreakSeibatuLevelReward(s *Session, p mhfpacket.MHFPacket) {}
-
-func handleMsgMhfGetWeeklySeibatuRankingReward(s *Session, p mhfpacket.MHFPacket) {}

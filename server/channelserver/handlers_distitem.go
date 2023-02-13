@@ -94,6 +94,35 @@ func handleMsgMhfApplyDistItem(s *Session, p mhfpacket.MHFPacket) {
 			return
 		}
 
+		if len(dist.Data) >= 2 {
+			distData := byteframe.NewByteFrameFromBytes(dist.Data)
+			distItems := int(distData.ReadUint16())
+			for i := 0; i < distItems; i++ {
+				if len(dist.Data) >= 2+(i*13) {
+					itemType := distData.ReadUint8()
+					_ = distData.ReadBytes(6)
+					quantity := int(distData.ReadUint16())
+					_ = distData.ReadBytes(4)
+					switch itemType {
+					case 17:
+						_ = addPointNetcafe(s, quantity)
+					case 19:
+						s.server.db.Exec("UPDATE users u SET gacha_premium=gacha_premium+$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)", quantity, s.charID)
+					case 20:
+						s.server.db.Exec("UPDATE users u SET gacha_trial=gacha_trial+$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)", quantity, s.charID)
+					case 21:
+						s.server.db.Exec("UPDATE users u SET frontier_points=frontier_points+$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)", quantity, s.charID)
+					case 23:
+						saveData, err := GetCharacterSaveData(s, s.charID)
+						if err == nil {
+							saveData.RP += uint16(quantity)
+							saveData.Save(s)
+						}
+					}
+				}
+			}
+		}
+
 		bf := byteframe.NewByteFrame()
 		bf.WriteUint32(pkt.DistributionID)
 		bf.WriteBytes(dist.Data)

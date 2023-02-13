@@ -13,6 +13,8 @@ type GuildMember struct {
 	CharID          uint32     `db:"character_id"`
 	JoinedAt        *time.Time `db:"joined_at"`
 	Souls           uint32     `db:"souls"`
+	RPToday         uint16     `db:"rp_today"`
+	RPYesterday     uint16     `db:"rp_yesterday"`
 	Name            string     `db:"name"`
 	IsApplicant     bool       `db:"is_applicant"`
 	OrderIndex      uint8      `db:"order_index"`
@@ -63,6 +65,8 @@ SELECT
 	g.id as guild_id,
 	joined_at,
 	coalesce(souls, 0) as souls,
+	rp_today,
+	rp_yesterday,
 	c.name,
 	character.character_id,
 	coalesce(gc.order_index, 0) as order_index,

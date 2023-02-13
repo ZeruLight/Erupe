@@ -1,15 +1,18 @@
 package mhfpacket
 
-import ( 
- "errors" 
+import (
+	"errors"
 
- 	"erupe-ce/network/clientctx"
-	"erupe-ce/network"
 	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgMhfPostTinyBin represents the MSG_MHF_POST_TINY_BIN
-type MsgMhfPostTinyBin struct{}
+type MsgMhfPostTinyBin struct {
+	AckHandle uint32
+	Unk       []byte
+}
 
 // Opcode returns the ID associated with this packet type.
 func (m *MsgMhfPostTinyBin) Opcode() network.PacketID {
@@ -18,7 +21,9 @@ func (m *MsgMhfPostTinyBin) Opcode() network.PacketID {
 
 // Parse parses the packet from binary
 func (m *MsgMhfPostTinyBin) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
-	return errors.New("NOT IMPLEMENTED")
+	m.AckHandle = bf.ReadUint32()
+	m.Unk = bf.ReadBytes(14)
+	return nil
 }
 
 // Build builds a binary packet from the current data.

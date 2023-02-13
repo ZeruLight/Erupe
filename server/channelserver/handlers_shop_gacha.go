@@ -254,6 +254,16 @@ func handleMsgMhfGetGachaPoint(s *Session, p mhfpacket.MHFPacket) {
 	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
 }
 
+func spendGachaCoin(s *Session, quantity uint16) {
+	var gt uint16
+	s.server.db.QueryRow(`SELECT COALESCE(gacha_trial, 0) FROM users u WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$1)`, s.charID).Scan(&gt)
+	if quantity <= gt {
+		s.server.db.Exec(`UPDATE users u SET gacha_trial=gacha_trial-$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)`, quantity, s.charID)
+	} else {
+		s.server.db.Exec(`UPDATE users u SET gacha_premium=gacha_premium-$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)`, quantity, s.charID)
+	}
+}
+
 func handleMsgMhfPlayNormalGacha(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfPlayNormalGacha)
 	bf := byteframe.NewByteFrame()
@@ -262,6 +272,19 @@ func handleMsgMhfPlayNormalGacha(s *Session, p mhfpacket.MHFPacket) {
 	var rewards []GachaItem
 	var reward GachaItem
 	var totalWeight float64
+
+	err := s.server.db.QueryRowx(`SELECT item_type, item_number, rolls FROM gacha_entries WHERE gacha_id = $1 AND entry_type = $2`, pkt.GachaID, pkt.RollType).StructScan(&entry)
+	if err != nil {
+		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 1))
+		return
+	}
+	switch entry.ItemType {
+	case 19:
+		fallthrough
+	case 20:
+		spendGachaCoin(s, entry.ItemNumber)
+	}
+
 	entries, err := s.server.db.Queryx(`SELECT id, weight, rarity FROM gacha_entries WHERE gacha_id = $1 AND entry_type = 100 ORDER BY weight DESC`, pkt.GachaID)
 	if err != nil {
 		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 1))

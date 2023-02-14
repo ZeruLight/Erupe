@@ -279,11 +279,25 @@ func handleMsgMhfPlayNormalGacha(s *Session, p mhfpacket.MHFPacket) {
 		return
 	}
 	switch entry.ItemType {
+	/*
+		valid types that need manual savedata manipulation:
+		- Ryoudan Points
+		- Bond Points
+		- Image Change Points
+		valid types that work (no additional code needed):
+		- Tore Points
+		- Festa Points
+	*/
+	case 17:
+		_ = addPointNetcafe(s, int(entry.ItemNumber)*-1)
 	case 19:
 		fallthrough
 	case 20:
 		spendGachaCoin(s, entry.ItemNumber)
+	case 21:
+		s.server.db.Exec("UPDATE users u SET frontier_points=frontier_points-$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)", entry.ItemNumber, s.charID)
 	}
+	rolls := int(entry.Rolls)
 
 	entries, err := s.server.db.Queryx(`SELECT id, weight, rarity FROM gacha_entries WHERE gacha_id = $1 AND entry_type = 100 ORDER BY weight DESC`, pkt.GachaID)
 	if err != nil {
@@ -298,31 +312,32 @@ func handleMsgMhfPlayNormalGacha(s *Session, p mhfpacket.MHFPacket) {
 	result := rand.Float64() * totalWeight
 	var rewardCount uint8
 	temp := byteframe.NewByteFrame()
-	for _, entry := range gachaEntries {
-		result -= entry.Weight
-		if result < 0 {
-			items, err := s.server.db.Queryx(`SELECT item_type, item_id, quantity FROM gacha_items WHERE entry_id = $1`, entry.ID)
-			if err != nil {
-				doAckBufSucceed(s, pkt.AckHandle, make([]byte, 1))
-				return
+	for i := 0; i < rolls; i++ {
+		for _, entry := range gachaEntries {
+			result -= entry.Weight
+			if result < 0 {
+				items, err := s.server.db.Queryx(`SELECT item_type, item_id, quantity FROM gacha_items WHERE entry_id = $1`, entry.ID)
+				if err != nil {
+					doAckBufSucceed(s, pkt.AckHandle, make([]byte, 1))
+					return
+				}
+				for items.Next() {
+					rewardCount++
+					items.StructScan(&reward)
+					rewards = append(rewards, reward)
+					temp.WriteUint8(reward.ItemType)
+					temp.WriteUint16(reward.ItemID)
+					temp.WriteUint16(reward.Quantity)
+					temp.WriteUint8(entry.Rarity)
+				}
+				break
 			}
-			for items.Next() {
-				rewardCount++
-				items.StructScan(&reward)
-				rewards = append(rewards, reward)
-				temp.WriteUint8(reward.ItemType)
-				temp.WriteUint16(reward.ItemID)
-				temp.WriteUint16(reward.Quantity)
-				temp.WriteUint8(entry.Rarity)
-			}
-			break
 		}
 	}
 	bf.WriteUint8(rewardCount)
 	bf.WriteBytes(temp.Data())
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 	addGachaItem(s, rewards)
-	// TODO: subtract gacha coins if spent
 }
 
 func addGachaItem(s *Session, items []GachaItem) {

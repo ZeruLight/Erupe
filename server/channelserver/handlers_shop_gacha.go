@@ -294,6 +294,19 @@ func transactGacha(s *Session, gachaID uint32, rollID uint8) (error, int) {
 	return nil, rolls
 }
 
+func getGuaranteedItems(s *Session, gachaID uint32, rollID uint8) []GachaItem {
+	var rewards []GachaItem
+	var reward GachaItem
+	items, err := s.server.db.Queryx(`SELECT item_type, item_id, quantity FROM gacha_items WHERE entry_id = (SELECT id FROM gacha_entries WHERE entry_type = $1 AND gacha_id = $2)`, rollID, gachaID)
+	if err == nil {
+		for items.Next() {
+			items.StructScan(&reward)
+			rewards = append(rewards, reward)
+		}
+	}
+	return rewards
+}
+
 func handleMsgMhfPlayNormalGacha(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfPlayNormalGacha)
 	bf := byteframe.NewByteFrame()
@@ -307,6 +320,19 @@ func handleMsgMhfPlayNormalGacha(s *Session, p mhfpacket.MHFPacket) {
 		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 1))
 		return
 	}
+
+	temp := byteframe.NewByteFrame()
+
+	/* Optional extended functionality
+	guaranteedItems := getGuaranteedItems(s, pkt.GachaID, pkt.RollType)
+	for _, item := range guaranteedItems {
+		temp.WriteUint8(item.ItemType)
+		temp.WriteUint16(reward.ItemID)
+		temp.WriteUint16(reward.Quantity)
+		temp.WriteUint8(0) // Lowest rarity
+	}
+	*/
+
 	entries, err := s.server.db.Queryx(`SELECT id, weight, rarity FROM gacha_entries WHERE gacha_id = $1 AND entry_type = 100 ORDER BY weight DESC`, pkt.GachaID)
 	if err != nil {
 		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 1))
@@ -317,10 +343,9 @@ func handleMsgMhfPlayNormalGacha(s *Session, p mhfpacket.MHFPacket) {
 		gachaEntries = append(gachaEntries, entry)
 		totalWeight += entry.Weight
 	}
-	result := rand.Float64() * totalWeight
-	var rewardCount uint8
-	temp := byteframe.NewByteFrame()
+
 	for i := 0; i < rolls; i++ {
+		result := rand.Float64() * totalWeight
 		for _, entry := range gachaEntries {
 			result -= entry.Weight
 			if result < 0 {
@@ -330,7 +355,6 @@ func handleMsgMhfPlayNormalGacha(s *Session, p mhfpacket.MHFPacket) {
 					return
 				}
 				for items.Next() {
-					rewardCount++
 					items.StructScan(&reward)
 					rewards = append(rewards, reward)
 					temp.WriteUint8(reward.ItemType)
@@ -342,7 +366,8 @@ func handleMsgMhfPlayNormalGacha(s *Session, p mhfpacket.MHFPacket) {
 			}
 		}
 	}
-	bf.WriteUint8(rewardCount)
+
+	bf.WriteUint8(uint8(len(rewards)))
 	bf.WriteBytes(temp.Data())
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 	addGachaItem(s, rewards)

@@ -402,9 +402,14 @@ func addGachaItem(s *Session, items []GachaItem) {
 }
 
 func handleMsgMhfUseGachaPoint(s *Session, p mhfpacket.MHFPacket) {
-	// should write to database when that's set up
 	pkt := p.(*mhfpacket.MsgMhfUseGachaPoint)
-	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+	if pkt.TrialCoins > 0 {
+		s.server.db.Exec(`UPDATE users u SET gacha_trial=gacha_trial-$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)`, pkt.TrialCoins, s.charID)
+	}
+	if pkt.PremiumCoins > 0 {
+		s.server.db.Exec(`UPDATE users u SET gacha_premium=gacha_premium-$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)`, pkt.PremiumCoins, s.charID)
+	}
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfExchangeFpoint2Item(s *Session, p mhfpacket.MHFPacket) {

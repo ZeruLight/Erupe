@@ -124,7 +124,10 @@ func treasureHuntUnregister(s *Session) {
 	}
 	var huntID int
 	var hunters string
-	rows, _ := s.server.db.Queryx("SELECT id, hunters FROM guild_hunts WHERE guild_id=$1", guild.ID)
+	rows, err := s.server.db.Queryx("SELECT id, hunters FROM guild_hunts WHERE guild_id=$1", guild.ID)
+	if err != nil {
+		return
+	}
 	for rows.Next() {
 		rows.Scan(&huntID, &hunters)
 		hunters = stringsupport.CSVRemove(hunters, int(s.charID))

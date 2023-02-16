@@ -388,9 +388,6 @@ func addGachaItem(s *Session, items []GachaItem) {
 			})
 		}
 	}
-	if len(items) > 36 {
-		items = items[:36]
-	}
 	newItem := byteframe.NewByteFrame()
 	newItem.WriteUint8(uint8(len(items)))
 	for i := range items {
@@ -602,9 +599,25 @@ func handleMsgMhfReceiveGachaItem(s *Session, p mhfpacket.MHFPacket) {
 	if err != nil {
 		data = []byte{0x00}
 	}
-	doAckBufSucceed(s, pkt.AckHandle, data)
+
+	if data[0] > 36 {
+		resp := byteframe.NewByteFrame()
+		resp.WriteUint8(36)
+		resp.WriteBytes(data[1:181])
+		doAckBufSucceed(s, pkt.AckHandle, resp.Data())
+	} else {
+		doAckBufSucceed(s, pkt.AckHandle, data)
+	}
+
 	if !pkt.Freeze {
-		s.server.db.Exec("UPDATE characters SET gacha_items = null WHERE id = $1", s.charID)
+		if data[0] > 36 {
+			update := byteframe.NewByteFrame()
+			update.WriteUint8(uint8(len(data[181:]) / 5))
+			update.WriteBytes(data[181:])
+			s.server.db.Exec("UPDATE characters SET gacha_items = $1 WHERE id = $2", update.Data(), s.charID)
+		} else {
+			s.server.db.Exec("UPDATE characters SET gacha_items = null WHERE id = $1", s.charID)
+		}
 	}
 }
 

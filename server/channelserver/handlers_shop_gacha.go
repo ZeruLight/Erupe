@@ -600,7 +600,8 @@ func handleMsgMhfReceiveGachaItem(s *Session, p mhfpacket.MHFPacket) {
 		data = []byte{0x00}
 	}
 
-	if data[0] > 36 {
+	// I think there are still some edge cases where rewards can be nulled via overflow
+	if data[0] > 36 || len(data) > 181 {
 		resp := byteframe.NewByteFrame()
 		resp.WriteUint8(36)
 		resp.WriteBytes(data[1:181])
@@ -610,7 +611,7 @@ func handleMsgMhfReceiveGachaItem(s *Session, p mhfpacket.MHFPacket) {
 	}
 
 	if !pkt.Freeze {
-		if data[0] > 36 {
+		if data[0] > 36 || len(data) > 181 {
 			update := byteframe.NewByteFrame()
 			update.WriteUint8(uint8(len(data[181:]) / 5))
 			update.WriteBytes(data[181:])

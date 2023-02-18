@@ -419,15 +419,6 @@ func handleMsgMhfPlayNormalGacha(s *Session, p mhfpacket.MHFPacket) {
 		return
 	}
 	temp := byteframe.NewByteFrame()
-	/* Optional extended functionality
-	guaranteedItems := getGuaranteedItems(s, pkt.GachaID, pkt.RollType)
-	for _, item := range guaranteedItems {
-		temp.WriteUint8(item.ItemType)
-		temp.WriteUint16(reward.ItemID)
-		temp.WriteUint16(reward.Quantity)
-		temp.WriteUint8(0) // Lowest rarity
-	}
-	*/
 	entries, err := s.server.db.Queryx(`SELECT id, weight, rarity FROM gacha_entries WHERE gacha_id = $1 AND entry_type = 100 ORDER BY weight DESC`, pkt.GachaID)
 	if err != nil {
 		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 1))

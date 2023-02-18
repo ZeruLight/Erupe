@@ -551,6 +551,8 @@ func handleMsgMhfPlayStepupGacha(s *Session, p mhfpacket.MHFPacket) {
 	bf.WriteUint8(uint8(len(rewards)))
 	bf.WriteBytes(temp.Data())
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	addGachaItem(s, rewards)
+	addGachaItem(s, guaranteedItems)
 }
 
 func handleMsgMhfReceiveGachaItem(s *Session, p mhfpacket.MHFPacket) {
@@ -673,6 +675,7 @@ func handleMsgMhfPlayBoxGacha(s *Session, p mhfpacket.MHFPacket) {
 	bf.WriteUint8(uint8(len(rewards)))
 	bf.WriteBytes(temp.Data())
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	addGachaItem(s, rewards)
 }
 
 func handleMsgMhfResetBoxGachaInfo(s *Session, p mhfpacket.MHFPacket) {

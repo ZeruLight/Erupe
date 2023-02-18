@@ -347,6 +347,35 @@ func addGachaItem(s *Session, items []GachaItem) {
 	s.server.db.Exec(`UPDATE characters SET gacha_items = $1 WHERE id = $2`, newItem.Data(), s.charID)
 }
 
+func getRandomEntries(entries []GachaEntry, rolls int, isBox bool) ([]GachaEntry, error) {
+	var chosen []GachaEntry
+	var totalWeight float64
+	for i := range entries {
+		totalWeight += entries[i].Weight
+	}
+	for {
+		if !isBox {
+			result := rand.Float64() * totalWeight
+			for _, entry := range entries {
+				result -= entry.Weight
+				if result < 0 {
+					chosen = append(chosen, entry)
+					break
+				}
+			}
+		} else {
+			result := rand.Intn(len(entries))
+			chosen = append(chosen, entries[result])
+			entries[result] = entries[len(entries)-1]
+			entries = entries[:len(entries)-1]
+		}
+		if rolls == len(chosen) {
+			break
+		}
+	}
+	return chosen, nil
+}
+
 func handleMsgMhfReceiveGachaItem(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfReceiveGachaItem)
 	var data []byte
@@ -384,7 +413,6 @@ func handleMsgMhfPlayNormalGacha(s *Session, p mhfpacket.MHFPacket) {
 	var entry GachaEntry
 	var rewards []GachaItem
 	var reward GachaItem
-	var totalWeight float64
 	err, rolls := transactGacha(s, pkt.GachaID, pkt.RollType)
 	if err != nil {
 		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 1))
@@ -408,31 +436,20 @@ func handleMsgMhfPlayNormalGacha(s *Session, p mhfpacket.MHFPacket) {
 	for entries.Next() {
 		entries.StructScan(&entry)
 		gachaEntries = append(gachaEntries, entry)
-		totalWeight += entry.Weight
 	}
-	for {
-		result := rand.Float64() * totalWeight
-		for _, entry := range gachaEntries {
-			result -= entry.Weight
-			if result < 0 {
-				items, err := s.server.db.Queryx(`SELECT item_type, item_id, quantity FROM gacha_items WHERE entry_id = $1`, entry.ID)
-				if err != nil {
-					doAckBufSucceed(s, pkt.AckHandle, make([]byte, 1))
-					return
-				}
-				for items.Next() {
-					items.StructScan(&reward)
-					rewards = append(rewards, reward)
-					temp.WriteUint8(reward.ItemType)
-					temp.WriteUint16(reward.ItemID)
-					temp.WriteUint16(reward.Quantity)
-					temp.WriteUint8(entry.Rarity)
-				}
-				break
-			}
+	rewardEntries, err := getRandomEntries(gachaEntries, rolls, false)
+	for i := range rewardEntries {
+		items, err := s.server.db.Queryx(`SELECT item_type, item_id, quantity FROM gacha_items WHERE entry_id = $1`, rewardEntries[i].ID)
+		if err != nil {
+			continue
 		}
-		if rolls == len(rewards) {
-			break
+		for items.Next() {
+			items.StructScan(&reward)
+			rewards = append(rewards, reward)
+			temp.WriteUint8(reward.ItemType)
+			temp.WriteUint16(reward.ItemID)
+			temp.WriteUint16(reward.Quantity)
+			temp.WriteUint8(entry.Rarity)
 		}
 	}
 	bf.WriteUint8(uint8(len(rewards)))
@@ -448,7 +465,6 @@ func handleMsgMhfPlayStepupGacha(s *Session, p mhfpacket.MHFPacket) {
 	var entry GachaEntry
 	var rewards []GachaItem
 	var reward GachaItem
-	var totalWeight float64
 	err, rolls := transactGacha(s, pkt.GachaID, pkt.RollType)
 	if err != nil {
 		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 1))
@@ -473,31 +489,20 @@ func handleMsgMhfPlayStepupGacha(s *Session, p mhfpacket.MHFPacket) {
 	for entries.Next() {
 		entries.StructScan(&entry)
 		gachaEntries = append(gachaEntries, entry)
-		totalWeight += entry.Weight
 	}
-	for {
-		result := rand.Float64() * totalWeight
-		for _, entry := range gachaEntries {
-			result -= entry.Weight
-			if result < 0 {
-				items, err := s.server.db.Queryx(`SELECT item_type, item_id, quantity FROM gacha_items WHERE entry_id = $1`, entry.ID)
-				if err != nil {
-					doAckBufSucceed(s, pkt.AckHandle, make([]byte, 1))
-					return
-				}
-				for items.Next() {
-					items.StructScan(&reward)
-					rewards = append(rewards, reward)
-					temp.WriteUint8(reward.ItemType)
-					temp.WriteUint16(reward.ItemID)
-					temp.WriteUint16(reward.Quantity)
-					temp.WriteUint8(entry.Rarity)
-				}
-				break
-			}
+	rewardEntries, err := getRandomEntries(gachaEntries, rolls, false)
+	for i := range rewardEntries {
+		items, err := s.server.db.Queryx(`SELECT item_type, item_id, quantity FROM gacha_items WHERE entry_id = $1`, rewardEntries[i].ID)
+		if err != nil {
+			continue
 		}
-		if rolls == len(rewards) {
-			break
+		for items.Next() {
+			items.StructScan(&reward)
+			rewards = append(rewards, reward)
+			temp.WriteUint8(reward.ItemType)
+			temp.WriteUint16(reward.ItemID)
+			temp.WriteUint16(reward.Quantity)
+			temp.WriteUint8(entry.Rarity)
 		}
 	}
 	bf.WriteUint8(uint8(len(rewards) + len(guaranteedItems)))
@@ -569,13 +574,13 @@ func handleMsgMhfPlayBoxGacha(s *Session, p mhfpacket.MHFPacket) {
 		entries.StructScan(&entry)
 		gachaEntries = append(gachaEntries, entry)
 	}
-	for {
-		randomEntry := rand.Intn(len(gachaEntries))
-		items, err := s.server.db.Queryx(`SELECT item_type, item_id, quantity FROM gacha_items WHERE entry_id = $1`, gachaEntries[randomEntry].ID)
+	rewardEntries, err := getRandomEntries(gachaEntries, rolls, true)
+	for i := range rewardEntries {
+		items, err := s.server.db.Queryx(`SELECT item_type, item_id, quantity FROM gacha_items WHERE entry_id = $1`, rewardEntries[i].ID)
 		if err != nil {
-			doAckBufSucceed(s, pkt.AckHandle, make([]byte, 1))
-			return
+			continue
 		}
+		s.server.db.Exec(`INSERT INTO gacha_box (gacha_id, entry_id, character_id) VALUES ($1, $2, $3)`, pkt.GachaID, rewardEntries[i].ID, s.charID)
 		for items.Next() {
 			items.StructScan(&reward)
 			rewards = append(rewards, reward)
@@ -583,12 +588,6 @@ func handleMsgMhfPlayBoxGacha(s *Session, p mhfpacket.MHFPacket) {
 			temp.WriteUint16(reward.ItemID)
 			temp.WriteUint16(reward.Quantity)
 			temp.WriteUint8(0)
-		}
-		s.server.db.Exec(`INSERT INTO gacha_box (gacha_id, entry_id, character_id) VALUES ($1, $2, $3)`, pkt.GachaID, gachaEntries[randomEntry].ID, s.charID)
-		gachaEntries[randomEntry] = gachaEntries[len(gachaEntries)-1]
-		gachaEntries = gachaEntries[:len(gachaEntries)-1]
-		if rolls == len(rewards) {
-			break
 		}
 	}
 	bf.WriteUint8(uint8(len(rewards)))

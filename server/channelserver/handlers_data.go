@@ -29,7 +29,9 @@ func handleMsgMhfSavedata(s *Session, p mhfpacket.MHFPacket) {
 		// diffs themselves are also potentially compressed
 		diff, err := nullcomp.Decompress(pkt.RawDataPayload)
 		if err != nil {
-			s.logger.Fatal("Failed to decompress diff", zap.Error(err))
+			s.logger.Error("Failed to decompress diff", zap.Error(err))
+			doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+			return
 		}
 		// Perform diff.
 		s.logger.Info("Diffing...")
@@ -39,12 +41,20 @@ func handleMsgMhfSavedata(s *Session, p mhfpacket.MHFPacket) {
 		// Regular blob update.
 		saveData, err := nullcomp.Decompress(pkt.RawDataPayload)
 		if err != nil {
-			s.logger.Fatal("Failed to decompress savedata from packet", zap.Error(err))
+			s.logger.Error("Failed to decompress savedata from packet", zap.Error(err))
+			doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+			return
 		}
 		s.logger.Info("Updating save with blob")
 		characterSaveData.decompSave = saveData
 	}
 	characterSaveData.updateStructWithSaveData()
+
+	// Bypass name-checker if new
+	if characterSaveData.IsNewCharacter == true {
+		s.Name = characterSaveData.Name
+	}
+
 	if characterSaveData.Name == s.Name {
 		characterSaveData.Save(s)
 		s.logger.Info("Wrote recompressed savedata back to DB.")
@@ -58,9 +68,9 @@ func handleMsgMhfSavedata(s *Session, p mhfpacket.MHFPacket) {
 	}
 	_, err = s.server.db.Exec("UPDATE characters SET name=$1 WHERE id=$2", characterSaveData.Name, s.charID)
 	if err != nil {
-		s.logger.Fatal("Failed to update character name in db", zap.Error(err))
+		s.logger.Error("Failed to update character name in db", zap.Error(err))
 	}
-	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func grpToGR(n uint32) uint16 {
@@ -230,7 +240,7 @@ func dumpSaveData(s *Session, data []byte, suffix string) {
 		_, err := os.Stat(dir)
 		if err != nil {
 			if os.IsNotExist(err) {
-				err = os.Mkdir(dir, os.ModeDir)
+				err = os.Mkdir(dir, os.ModePerm)
 				if err != nil {
 					s.logger.Warn("Error dumping savedata, could not create folder")
 					return
@@ -282,15 +292,9 @@ func handleMsgMhfSaveScenarioData(s *Session, p mhfpacket.MHFPacket) {
 	dumpSaveData(s, pkt.RawDataPayload, "scenario")
 	_, err := s.server.db.Exec("UPDATE characters SET scenariodata = $1 WHERE id = $2", pkt.RawDataPayload, s.charID)
 	if err != nil {
-		s.logger.Fatal("Failed to update scenario data in db", zap.Error(err))
+		s.logger.Error("Failed to update scenario data in db", zap.Error(err))
 	}
-	// Do this ack manually because it uses a non-(0|1) error code
-	s.QueueSendMHF(&mhfpacket.MsgSysAck{
-		AckHandle:        pkt.AckHandle,
-		IsBufferResponse: false,
-		ErrorCode:        0x40,
-		AckData:          []byte{0x00, 0x00, 0x00, 0x40},
-	})
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfLoadScenarioData(s *Session, p mhfpacket.MHFPacket) {
@@ -299,13 +303,10 @@ func handleMsgMhfLoadScenarioData(s *Session, p mhfpacket.MHFPacket) {
 	bf := byteframe.NewByteFrame()
 	err := s.server.db.QueryRow("SELECT scenariodata FROM characters WHERE id = $1", s.charID).Scan(&scenarioData)
 	if err != nil {
-		s.logger.Fatal("Failed to get scenario data contents in db", zap.Error(err))
+		s.logger.Error("Failed to load scenariodata", zap.Error(err))
+		bf.WriteBytes(make([]byte, 10))
 	} else {
-		if len(scenarioData) == 0 {
-			bf.WriteUint32(0x00)
-		} else {
-			bf.WriteBytes(scenarioData)
-		}
+		bf.WriteBytes(scenarioData)
 	}
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }

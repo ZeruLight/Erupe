@@ -1,17 +1,17 @@
 package mhfpacket
 
-import ( 
- "errors" 
+import (
+	"errors"
 
- 	"erupe-ce/network/clientctx"
-	"erupe-ce/network"
 	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgMhfGetBoxGachaInfo represents the MSG_MHF_GET_BOX_GACHA_INFO
-type MsgMhfGetBoxGachaInfo struct{
+type MsgMhfGetBoxGachaInfo struct {
 	AckHandle uint32
-	GachaHash uint32
+	GachaID   uint32
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -22,7 +22,7 @@ func (m *MsgMhfGetBoxGachaInfo) Opcode() network.PacketID {
 // Parse parses the packet from binary
 func (m *MsgMhfGetBoxGachaInfo) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
-	m.GachaHash = bf.ReadUint32()
+	m.GachaID = bf.ReadUint32()
 	return nil
 }
 

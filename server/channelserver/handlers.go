@@ -258,6 +258,9 @@ func logoutPlayer(s *Session) {
 		return
 	}
 	saveData.RP += uint16(rpGained)
+	if saveData.RP >= 50000 {
+		saveData.RP = 50000
+	}
 	saveData.Save(s)
 }
 
@@ -525,8 +528,6 @@ func handleMsgMhfTransitMessage(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgCaExchangeItem(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfPresentBox(s *Session, p mhfpacket.MHFPacket) {}
-
 func handleMsgMhfServerCommand(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfAnnounce(s *Session, p mhfpacket.MHFPacket) {
@@ -585,10 +586,11 @@ func handleMsgMhfEnumerateUnionItem(s *Session, p mhfpacket.MHFPacket) {
 	bf := byteframe.NewByteFrame()
 	err := s.server.db.QueryRow("SELECT item_box FROM users, characters WHERE characters.id = $1 AND users.id = characters.user_id", int(s.charID)).Scan(&boxContents)
 	if err != nil {
-		s.logger.Fatal("Failed to get shared item box contents from db", zap.Error(err))
+		s.logger.Error("Failed to get shared item box contents from db", zap.Error(err))
+		bf.WriteBytes(make([]byte, 4))
 	} else {
 		if len(boxContents) == 0 {
-			bf.WriteUint32(0x00)
+			bf.WriteBytes(make([]byte, 4))
 		} else {
 			amount := len(boxContents) / 4
 			bf.WriteUint16(uint16(amount))
@@ -613,7 +615,9 @@ func handleMsgMhfUpdateUnionItem(s *Session, p mhfpacket.MHFPacket) {
 
 	err := s.server.db.QueryRow("SELECT item_box FROM users, characters WHERE characters.id = $1 AND users.id = characters.user_id", int(s.charID)).Scan(&boxContents)
 	if err != nil {
-		s.logger.Fatal("Failed to get shared item box contents from db", zap.Error(err))
+		s.logger.Error("Failed to get shared item box contents from db", zap.Error(err))
+		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+		return
 	} else {
 		amount := len(boxContents) / 4
 		oldItems = make([]Item, amount)
@@ -661,9 +665,9 @@ func handleMsgMhfUpdateUnionItem(s *Session, p mhfpacket.MHFPacket) {
 	// Upload new item cache
 	_, err = s.server.db.Exec("UPDATE users SET item_box = $1 FROM characters WHERE  users.id = characters.user_id AND characters.id = $2", bf.Data(), int(s.charID))
 	if err != nil {
-		s.logger.Fatal("Failed to update shared item box contents in db", zap.Error(err))
+		s.logger.Error("Failed to update shared item box contents in db", zap.Error(err))
 	}
-	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfGetCogInfo(s *Session, p mhfpacket.MHFPacket) {}
@@ -1499,25 +1503,74 @@ func handleMsgMhfInfoScenarioCounter(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfGetEtcPoints(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetEtcPoints)
 
-	resp := byteframe.NewByteFrame()
-	resp.WriteUint8(0x3) // Maybe a count of uint32(s)?
-	resp.WriteUint32(0)  // Point bonus quests
-	resp.WriteUint32(0)  // Daily quests
-	resp.WriteUint32(0)  // HS promotion points
+	var dailyTime time.Time
+	_ = s.server.db.QueryRow("SELECT COALESCE(daily_time, $2) FROM characters WHERE id = $1", s.charID, time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)).Scan(&dailyTime)
+	if Time_Current_Adjusted().After(dailyTime) {
+		s.server.db.Exec("UPDATE characters SET bonus_quests = 0, daily_quests = 0 WHERE id=$1", s.charID)
+	}
 
+	var bonusQuests, dailyQuests, promoPoints uint32
+	_ = s.server.db.QueryRow(`SELECT bonus_quests, daily_quests, promo_points FROM characters WHERE id = $1`, s.charID).Scan(&bonusQuests, &dailyQuests, &promoPoints)
+	resp := byteframe.NewByteFrame()
+	resp.WriteUint8(3) // Maybe a count of uint32(s)?
+	resp.WriteUint32(bonusQuests)
+	resp.WriteUint32(dailyQuests)
+	resp.WriteUint32(promoPoints)
 	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
 }
 
 func handleMsgMhfUpdateEtcPoint(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfUpdateEtcPoint)
-	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
+
+	var column string
+	switch pkt.PointType {
+	case 0:
+		column = "bonus_quests"
+	case 1:
+		column = "daily_quests"
+	case 2:
+		column = "promo_points"
+	}
+
+	var value int
+	err := s.server.db.QueryRow(fmt.Sprintf(`SELECT %s FROM characters WHERE id = $1`, column), s.charID).Scan(&value)
+	if err == nil {
+		if value-int(pkt.Delta) < 0 {
+			s.server.db.Exec(fmt.Sprintf(`UPDATE characters SET %s = 0 WHERE id = $1`, column), s.charID)
+		} else {
+			s.server.db.Exec(fmt.Sprintf(`UPDATE characters SET %s = %s + $1 WHERE id = $2`, column, column), pkt.Delta, s.charID)
+		}
+	}
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfStampcardStamp(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfStampcardStamp)
-	// TODO: Work out where it gets existing stamp count from, its format and then
-	// update the actual sent values to be correct
-	doAckBufSucceed(s, pkt.AckHandle, []byte{0x03, 0xe7, 0x03, 0xe7, 0x02, 0x99, 0x02, 0x9c, 0x00, 0x00, 0x00, 0x00, 0x14, 0xf8, 0x69, 0x54})
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint16(pkt.HR)
+	bf.WriteUint16(pkt.GR)
+	var stamps uint16
+	_ = s.server.db.QueryRow(`SELECT stampcard FROM characters WHERE id = $1`, s.charID).Scan(&stamps)
+	bf.WriteUint16(stamps)
+	stamps += pkt.Stamps
+	bf.WriteUint16(stamps)
+	s.server.db.Exec(`UPDATE characters SET stampcard = $1 WHERE id = $2`, stamps, s.charID)
+	if stamps%30 == 0 {
+		bf.WriteUint16(2)
+		bf.WriteUint16(pkt.Reward2)
+		bf.WriteUint16(pkt.Item2)
+		bf.WriteUint16(pkt.Quantity2)
+		addWarehouseGift(s, "item", mhfpacket.WarehouseStack{ItemID: pkt.Item2, Quantity: pkt.Quantity2})
+	} else if stamps%15 == 0 {
+		bf.WriteUint16(1)
+		bf.WriteUint16(pkt.Reward1)
+		bf.WriteUint16(pkt.Item1)
+		bf.WriteUint16(pkt.Quantity1)
+		addWarehouseGift(s, "item", mhfpacket.WarehouseStack{ItemID: pkt.Item1, Quantity: pkt.Quantity1})
+	} else {
+		bf.WriteBytes(make([]byte, 8))
+	}
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfStampcardPrize(s *Session, p mhfpacket.MHFPacket) {}
@@ -1569,7 +1622,7 @@ func handleMsgMhfGetEarthStatus(s *Session, p mhfpacket.MHFPacket) {
 
 			s.QueueAck(pkt.AckHandle, resp.Data())
 	*/
-	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+	doAckBufSucceed(s, pkt.AckHandle, []byte{})
 }
 
 func handleMsgMhfRegistSpabiTime(s *Session, p mhfpacket.MHFPacket) {}
@@ -1651,14 +1704,6 @@ func handleMsgMhfPostNotice(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfGetRandFromTable(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfGetTinyBin(s *Session, p mhfpacket.MHFPacket) {
-	pkt := p.(*mhfpacket.MsgMhfGetTinyBin)
-	// requested after conquest quests
-	doAckBufSucceed(s, pkt.AckHandle, []byte{})
-}
-
-func handleMsgMhfPostTinyBin(s *Session, p mhfpacket.MHFPacket) {}
-
 func handleMsgMhfGetSenyuDailyCount(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfGetSeibattle(s *Session, p mhfpacket.MHFPacket) {
@@ -1667,45 +1712,6 @@ func handleMsgMhfGetSeibattle(s *Session, p mhfpacket.MHFPacket) {
 }
 
 func handleMsgMhfPostSeibattle(s *Session, p mhfpacket.MHFPacket) {}
-
-func handleMsgMhfGetRyoudama(s *Session, p mhfpacket.MHFPacket) {
-	pkt := p.(*mhfpacket.MsgMhfGetRyoudama)
-	// likely guild related
-	// REQ: 00 04 13 53 8F 18 00
-	// RSP: 0A 21 8E AD 00 00 00 00 00 00 00 00 00 00 00 01 00 01 FE 4E
-	// REQ: 00 06 13 53 8F 18 00
-	// RSP: 0A 21 8E AD 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 00
-	// REQ: 00 05 13 53 8F 18 00
-	// RSP: 0A 21 8E AD 00 00 00 00 00 00 00 00 00 00 00 0E 2A 15 9E CC 00 00 00 01 82 79 83 4E 83 8A 81 5B 83 69 00 00 00 00 1E 55 B0 2F 00 00 00 01 8D F7 00 00 00 00 00 00 00 00 00 00 00 00 2A 15 9E CC 00 00 00 02 82 79 83 4E 83 8A 81 5B 83 69 00 00 00 00 03 D5 30 56 00 00 00 02 95 BD 91 F2 97 42 00 00 00 00 00 00 00 00 3F 57 76 9F 00 00 00 03 93 56 92 6E 96 B3 97 70 00 00 00 00 00 00 38 D9 0E C4 00 00 00 03 87 64 83 78 83 42 00 00 00 00 00 00 00 00 23 F3 B9 77 00 00 00 04 82 B3 82 CC 82 DC 82 E9 81 99 00 00 00 00 3F 1B 17 9C 00 00 00 04 82 B1 82 A4 82 BD 00 00 00 00 00 00 00 00 00 B9 F9 C0 00 00 00 05 82 CD 82 E9 82 A9 00 00 00 00 00 00 00 00 23 9F 9A EA 00 00 00 05 83 70 83 62 83 4C 83 83 83 49 00 00 00 00 38 D9 0E C4 00 00 00 06 87 64 83 78 83 42 00 00 00 00 00 00 00 00 1E 55 B0 2F 00 00 00 06 8D F7 00 00 00 00 00 00 00 00 00 00 00 00 03 D5 30 56 00 00 00 07 95 BD 91 F2 97 42 00 00 00 00 00 00 00 00 02 D3 B8 77 00 00 00 07 6F 77 6C 32 35 32 35 00 00 00 00 00 00 00
-	data, _ := hex.DecodeString("0A218EAD0000000000000000000000010000000000000000")
-	doAckBufSucceed(s, pkt.AckHandle, data)
-}
-
-func handleMsgMhfPostRyoudama(s *Session, p mhfpacket.MHFPacket) {}
-
-func handleMsgMhfGetTenrouirai(s *Session, p mhfpacket.MHFPacket) {
-	// if the game gets bad responses for this it breaks the ability to save
-	pkt := p.(*mhfpacket.MsgMhfGetTenrouirai)
-	var data []byte
-	var err error
-	if pkt.Unk0 == 1 {
-		data, err = hex.DecodeString("0A218EAD000000000000000000000001010000000000060010")
-	} else if pkt.Unk2 == 4 {
-		data, err = hex.DecodeString("0A218EAD0000000000000000000000210101005000000202010102020104001000000202010102020106003200000202010002020104000C003202020101020201030032000002020101020202059C4000000202010002020105C35000320202010102020201003C00000202010102020203003200000201010001020203002800320201010101020204000C00000201010101020206002800000201010001020101003C00320201020101020105C35000000301020101020106003200000301020001020104001000320301020101020105C350000003010201010202030028000003010200010201030032003203010201010202059C4000000301020101010206002800000301020001010201003C00320301020101010206003200000301020101010204000C000003010200010101010050003203010201010101059C40000003010201010101030032000003010200010101040010003203010001010101060032000003010001010102030028000003010001010101010050003203010000010102059C4000000301000001010206002800000301000001010010")
-	} else {
-		data = []byte{0x00, 0x00, 0x00, 0x00}
-		s.logger.Info("GET_TENROUIRAI request for unknown type")
-	}
-	if err != nil {
-		panic(err)
-	}
-	doAckBufSucceed(s, pkt.AckHandle, data)
-}
-
-func handleMsgMhfPostTenrouirai(s *Session, p mhfpacket.MHFPacket) {
-	pkt := p.(*mhfpacket.MsgMhfPostTenrouirai)
-	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
-}
 
 func handleMsgMhfGetDailyMissionMaster(s *Session, p mhfpacket.MHFPacket) {}
 
@@ -1722,7 +1728,8 @@ func handleMsgMhfGetEquipSkinHist(s *Session, p mhfpacket.MHFPacket) {
 	var data []byte
 	err := s.server.db.QueryRow("SELECT COALESCE(skin_hist::bytea, $2::bytea) FROM characters WHERE id = $1", s.charID, make([]byte, 0xC80)).Scan(&data)
 	if err != nil {
-		s.logger.Fatal("Failed to get skin_hist savedata from db", zap.Error(err))
+		s.logger.Error("Failed to load skin_hist", zap.Error(err))
+		data = make([]byte, 3200)
 	}
 	doAckBufSucceed(s, pkt.AckHandle, data)
 }
@@ -1733,7 +1740,9 @@ func handleMsgMhfUpdateEquipSkinHist(s *Session, p mhfpacket.MHFPacket) {
 	var data []byte
 	err := s.server.db.QueryRow("SELECT COALESCE(skin_hist, $2) FROM characters WHERE id = $1", s.charID, make([]byte, 0xC80)).Scan(&data)
 	if err != nil {
-		s.logger.Fatal("Failed to get skin_hist from db", zap.Error(err))
+		s.logger.Error("Failed to save skin_hist", zap.Error(err))
+		doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+		return
 	}
 
 	var bit int
@@ -1787,8 +1796,8 @@ func handleMsgMhfGetEnhancedMinidata(s *Session, p mhfpacket.MHFPacket) {
 	var data []byte
 	err := s.server.db.QueryRow("SELECT minidata FROM characters WHERE id = $1", pkt.CharID).Scan(&data)
 	if err != nil {
-		data = make([]byte, 0x400) // returning empty might avoid a client softlock
-		//s.logger.Fatal("Failed to get minidata from db", zap.Error(err))
+		s.logger.Error("Failed to load minidata")
+		data = make([]byte, 1)
 	}
 	doAckBufSucceed(s, pkt.AckHandle, data)
 }
@@ -1798,7 +1807,7 @@ func handleMsgMhfSetEnhancedMinidata(s *Session, p mhfpacket.MHFPacket) {
 	dumpSaveData(s, pkt.RawDataPayload, "minidata")
 	_, err := s.server.db.Exec("UPDATE characters SET minidata=$1 WHERE id=$2", pkt.RawDataPayload, s.charID)
 	if err != nil {
-		s.logger.Fatal("Failed to update minidata in db", zap.Error(err))
+		s.logger.Error("Failed to save minidata", zap.Error(err))
 	}
 	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }

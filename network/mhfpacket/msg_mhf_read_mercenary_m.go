@@ -12,7 +12,7 @@ import (
 type MsgMhfReadMercenaryM struct {
 	AckHandle uint32
 	CharID    uint32
-	Unk0      uint32
+	MercID    uint32
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -24,7 +24,7 @@ func (m *MsgMhfReadMercenaryM) Opcode() network.PacketID {
 func (m *MsgMhfReadMercenaryM) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
 	m.CharID = bf.ReadUint32()
-	m.Unk0 = bf.ReadUint32()
+	m.MercID = bf.ReadUint32()
 	return nil
 }
 

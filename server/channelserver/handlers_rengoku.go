@@ -19,7 +19,9 @@ func handleMsgMhfSaveRengokuData(s *Session, p mhfpacket.MHFPacket) {
 	dumpSaveData(s, pkt.RawDataPayload, "rengoku")
 	_, err := s.server.db.Exec("UPDATE characters SET rengokudata=$1 WHERE id=$2", pkt.RawDataPayload, s.charID)
 	if err != nil {
-		s.logger.Fatal("Failed to update rengokudata savedata in db", zap.Error(err))
+		s.logger.Error("Failed to save rengokudata", zap.Error(err))
+		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+		return
 	}
 	bf := byteframe.NewByteFrameFromBytes(pkt.RawDataPayload)
 	bf.Seek(71, 0)
@@ -34,7 +36,7 @@ func handleMsgMhfSaveRengokuData(s *Session, p mhfpacket.MHFPacket) {
 		s.server.db.Exec("INSERT INTO rengoku_score (character_id) VALUES ($1)", s.charID)
 	}
 	s.server.db.Exec("UPDATE rengoku_score SET max_stages_mp=$1, max_points_mp=$2, max_stages_sp=$3, max_points_sp=$4 WHERE character_id=$5", maxStageMp, maxScoreMp, maxStageSp, maxScoreSp, s.charID)
-	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfLoadRengokuData(s *Session, p mhfpacket.MHFPacket) {
@@ -42,7 +44,7 @@ func handleMsgMhfLoadRengokuData(s *Session, p mhfpacket.MHFPacket) {
 	var data []byte
 	err := s.server.db.QueryRow("SELECT rengokudata FROM characters WHERE id = $1", s.charID).Scan(&data)
 	if err != nil {
-		s.logger.Fatal("Failed to get rengokudata savedata from db", zap.Error(err))
+		s.logger.Error("Failed to load rengokudata", zap.Error(err))
 	}
 	if len(data) > 0 {
 		doAckBufSucceed(s, pkt.AckHandle, data)

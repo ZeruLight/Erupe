@@ -23,7 +23,9 @@ func handleMsgMhfLoadGuildAdventure(s *Session, p mhfpacket.MHFPacket) {
 	guild, _ := GetGuildInfoByCharacterId(s, s.charID)
 	data, err := s.server.db.Queryx("SELECT id, destination, charge, depart, return, collected_by FROM guild_adventures WHERE guild_id = $1", guild.ID)
 	if err != nil {
-		s.logger.Fatal("Failed to get guild adventures from db", zap.Error(err))
+		s.logger.Error("Failed to get guild adventures from db", zap.Error(err))
+		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 1))
+		return
 	}
 	temp := byteframe.NewByteFrame()
 	count := 0
@@ -32,7 +34,7 @@ func handleMsgMhfLoadGuildAdventure(s *Session, p mhfpacket.MHFPacket) {
 		adventureData := &GuildAdventure{}
 		err = data.StructScan(&adventureData)
 		if err != nil {
-			s.logger.Fatal("Failed to scan adventure data", zap.Error(err))
+			continue
 		}
 		temp.WriteUint32(adventureData.ID)
 		temp.WriteUint32(adventureData.Destination)
@@ -52,7 +54,7 @@ func handleMsgMhfRegistGuildAdventure(s *Session, p mhfpacket.MHFPacket) {
 	guild, _ := GetGuildInfoByCharacterId(s, s.charID)
 	_, err := s.server.db.Exec("INSERT INTO guild_adventures (guild_id, destination, depart, return) VALUES ($1, $2, $3, $4)", guild.ID, pkt.Destination, Time_Current_Adjusted().Unix(), Time_Current_Adjusted().Add(6*time.Hour).Unix())
 	if err != nil {
-		s.logger.Fatal("Failed to register guild adventure", zap.Error(err))
+		s.logger.Error("Failed to register guild adventure", zap.Error(err))
 	}
 	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
@@ -62,12 +64,12 @@ func handleMsgMhfAcquireGuildAdventure(s *Session, p mhfpacket.MHFPacket) {
 	var collectedBy string
 	err := s.server.db.QueryRow("SELECT collected_by FROM guild_adventures WHERE id = $1", pkt.ID).Scan(&collectedBy)
 	if err != nil {
-		s.logger.Fatal("Error parsing adventure collected by", zap.Error(err))
+		s.logger.Error("Error parsing adventure collected by", zap.Error(err))
 	} else {
 		collectedBy = stringsupport.CSVAdd(collectedBy, int(s.charID))
 		_, err := s.server.db.Exec("UPDATE guild_adventures SET collected_by = $1 WHERE id = $2", collectedBy, pkt.ID)
 		if err != nil {
-			s.logger.Fatal("Failed to collect adventure in db", zap.Error(err))
+			s.logger.Error("Failed to collect adventure in db", zap.Error(err))
 		}
 	}
 	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
@@ -77,7 +79,7 @@ func handleMsgMhfChargeGuildAdventure(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfChargeGuildAdventure)
 	_, err := s.server.db.Exec("UPDATE guild_adventures SET charge = charge + $1 WHERE id = $2", pkt.Amount, pkt.ID)
 	if err != nil {
-		s.logger.Fatal("Failed to charge guild adventure", zap.Error(err))
+		s.logger.Error("Failed to charge guild adventure", zap.Error(err))
 	}
 	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
@@ -87,7 +89,7 @@ func handleMsgMhfRegistGuildAdventureDiva(s *Session, p mhfpacket.MHFPacket) {
 	guild, _ := GetGuildInfoByCharacterId(s, s.charID)
 	_, err := s.server.db.Exec("INSERT INTO guild_adventures (guild_id, destination, charge, depart, return) VALUES ($1, $2, $3, $4, $5)", guild.ID, pkt.Destination, pkt.Charge, Time_Current_Adjusted().Unix(), Time_Current_Adjusted().Add(1*time.Hour).Unix())
 	if err != nil {
-		s.logger.Fatal("Failed to register guild adventure", zap.Error(err))
+		s.logger.Error("Failed to register guild adventure", zap.Error(err))
 	}
 	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }

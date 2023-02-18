@@ -46,6 +46,7 @@ CREATE TABLE IF NOT EXISTS public.gacha_entries (
     weight        INTEGER,
     rarity        INTEGER,
     rolls         INTEGER,
+    frontier_points INTEGER,
     daily_limit   INTEGER
 );
 
@@ -55,6 +56,14 @@ CREATE TABLE IF NOT EXISTS public.gacha_items (
     item_type INTEGER,
     item_id   INTEGER,
     quantity  INTEGER
+);
+
+DROP TABLE IF EXISTS public.stepup_state;
+
+CREATE TABLE IF NOT EXISTS public.gacha_stepup (
+    gacha_id INTEGER,
+    step INTEGER,
+    character_id INTEGER
 );
 
 END;

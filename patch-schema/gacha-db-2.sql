@@ -66,4 +66,12 @@ CREATE TABLE IF NOT EXISTS public.gacha_stepup (
     character_id INTEGER
 );
 
+DROP TABLE IF EXISTS public.lucky_box_state;
+
+CREATE TABLE IF NOT EXISTS public.gacha_box (
+    gacha_id INTEGER,
+    entry_id INTEGER,
+    character_id INTEGER
+);
+
 END;

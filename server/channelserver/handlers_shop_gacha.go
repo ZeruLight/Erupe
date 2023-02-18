@@ -112,15 +112,15 @@ func handleMsgMhfEnumerateShop(s *Session, p mhfpacket.MHFPacket) {
 	case 2: // Actual gacha
 		bf := byteframe.NewByteFrame()
 		bf.WriteUint32(pkt.ShopID)
+		var gachaType int
+		s.server.db.QueryRow(`SELECT gacha_type FROM gacha_shop WHERE id = $1`, pkt.ShopID).Scan(&gachaType)
 		entries, err := s.server.db.Queryx(`SELECT entry_type, id, item_type, item_number, item_quantity, weight, rarity, rolls, daily_limit, frontier_points FROM gacha_entries WHERE gacha_id = $1 ORDER BY weight DESC`, pkt.ShopID)
 		if err != nil {
 			doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
 			return
 		}
-
 		var divisor float64
 		s.server.db.QueryRow(`SELECT COALESCE(SUM(weight) / 100000.0, 0) AS chance FROM gacha_entries WHERE gacha_id = $1`, pkt.ShopID).Scan(&divisor)
-
 		var entryCount uint16
 		bf.WriteUint16(0)
 		gachaEntry := GachaEntry{}
@@ -134,7 +134,11 @@ func handleMsgMhfEnumerateShop(s *Session, p mhfpacket.MHFPacket) {
 			bf.WriteUint16(0)
 			bf.WriteUint16(gachaEntry.ItemNumber)
 			bf.WriteUint16(gachaEntry.ItemQuantity)
-			bf.WriteUint16(uint16(gachaEntry.Weight / divisor))
+			if gachaType >= 4 { // If box
+				bf.WriteUint16(1)
+			} else {
+				bf.WriteUint16(uint16(gachaEntry.Weight / divisor))
+			}
 			bf.WriteUint8(gachaEntry.Rarity)
 			bf.WriteUint8(gachaEntry.Rolls)
 

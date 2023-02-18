@@ -2,14 +2,10 @@ package channelserver
 
 import (
 	"encoding/hex"
-	ps "erupe-ce/common/pascalstring"
-	"time"
-
 	"erupe-ce/common/byteframe"
+	ps "erupe-ce/common/pascalstring"
 	"erupe-ce/network/mhfpacket"
-	"github.com/lib/pq"
-	"github.com/sachaos/lottery"
-	"go.uber.org/zap"
+	"math/rand"
 )
 
 type ShopItem struct {
@@ -28,16 +24,36 @@ type ShopItem struct {
 }
 
 type Gacha struct {
-	ID    uint32 `db:"id"`
-	MinGR uint32 `db:"min_gr"`
-	MinHR uint32 `db:"min_hr"`
-	Name  string `db:"name"`
-	Link1 string `db:"link1"`
-	Link2 string `db:"link2"`
-	Link3 string `db:"link3"`
-	Icon  uint16 `db:"icon"`
-	Type  uint16 `db:"type"`
-	Hide  bool   `db:"hide"`
+	ID           uint32 `db:"id"`
+	MinGR        uint32 `db:"min_gr"`
+	MinHR        uint32 `db:"min_hr"`
+	Name         string `db:"name"`
+	URLBanner    string `db:"url_banner"`
+	URLFeature   string `db:"url_feature"`
+	URLThumbnail string `db:"url_thumbnail"`
+	Wide         bool   `db:"wide"`
+	Recommended  bool   `db:"recommended"`
+	GachaType    uint8  `db:"gacha_type"`
+	Hidden       bool   `db:"hidden"`
+}
+
+type GachaEntry struct {
+	EntryType      uint8   `db:"entry_type"`
+	ID             uint32  `db:"id"`
+	ItemType       uint8   `db:"item_type"`
+	ItemNumber     uint16  `db:"item_number"`
+	ItemQuantity   uint16  `db:"item_quantity"`
+	Weight         float64 `db:"weight"`
+	Rarity         uint8   `db:"rarity"`
+	Rolls          uint8   `db:"rolls"`
+	FrontierPoints uint16  `db:"frontier_points"`
+	DailyLimit     uint8   `db:"daily_limit"`
+}
+
+type GachaItem struct {
+	ItemType uint8  `db:"item_type"`
+	ItemID   uint16 `db:"item_id"`
+	Quantity uint16 `db:"quantity"`
 }
 
 func handleMsgMhfEnumerateShop(s *Session, p mhfpacket.MHFPacket) {
@@ -55,7 +71,7 @@ func handleMsgMhfEnumerateShop(s *Session, p mhfpacket.MHFPacket) {
 	switch pkt.ShopType {
 	case 1: // Running gachas
 		var count uint16
-		shopEntries, err := s.server.db.Queryx("SELECT id, min_gr, min_hr, name, link1, link2, link3, icon, type, hide FROM gacha_shop")
+		shopEntries, err := s.server.db.Queryx("SELECT id, min_gr, min_hr, name, url_banner, url_feature, url_thumbnail, wide, recommended, gacha_type, hidden FROM gacha_shop")
 		if err != nil {
 			doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
 			return
@@ -74,12 +90,18 @@ func handleMsgMhfEnumerateShop(s *Session, p mhfpacket.MHFPacket) {
 			resp.WriteUint32(gacha.MinHR)
 			resp.WriteUint32(0) // only 0 in known packet
 			ps.Uint8(resp, gacha.Name, true)
-			ps.Uint8(resp, gacha.Link1, false)
-			ps.Uint8(resp, gacha.Link2, false)
-			resp.WriteBool(gacha.Hide)
-			ps.Uint8(resp, gacha.Link3, false)
-			resp.WriteUint16(gacha.Icon)
-			resp.WriteUint16(gacha.Type)
+			ps.Uint8(resp, gacha.URLBanner, false)
+			ps.Uint8(resp, gacha.URLFeature, false)
+			resp.WriteBool(gacha.Wide)
+			ps.Uint8(resp, gacha.URLThumbnail, false)
+			resp.WriteUint8(0) // Unk
+			if gacha.Recommended {
+				resp.WriteUint8(2)
+			} else {
+				resp.WriteUint8(0)
+			}
+			resp.WriteUint8(gacha.GachaType)
+			resp.WriteBool(gacha.Hidden)
 			count++
 		}
 		resp.Seek(0, 0)
@@ -87,47 +109,62 @@ func handleMsgMhfEnumerateShop(s *Session, p mhfpacket.MHFPacket) {
 		resp.WriteUint16(count)
 		doAckBufSucceed(s, pkt.AckHandle, resp.Data())
 	case 2: // Actual gacha
-		shopEntries, err := s.server.db.Query("SELECT entryType, itemhash, currType, currNumber, currQuant, percentage, rarityIcon, rollsCount, itemCount, dailyLimit, itemType, itemId, quantity FROM gacha_shop_items WHERE shophash=$1", pkt.ShopID)
+		bf := byteframe.NewByteFrame()
+		bf.WriteUint32(pkt.ShopID)
+		var gachaType int
+		s.server.db.QueryRow(`SELECT gacha_type FROM gacha_shop WHERE id = $1`, pkt.ShopID).Scan(&gachaType)
+		entries, err := s.server.db.Queryx(`SELECT entry_type, id, item_type, item_number, item_quantity, weight, rarity, rolls, daily_limit, frontier_points FROM gacha_entries WHERE gacha_id = $1 ORDER BY weight DESC`, pkt.ShopID)
 		if err != nil {
 			doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
 			return
 		}
-		var entryType, currType, rarityIcon, rollsCount, itemCount, dailyLimit uint8
-		var currQuant, currNumber, percentage uint16
-		var itemhash uint32
-		var itemType, itemId, quantity pq.Int64Array
-		var count uint16
-		resp := byteframe.NewByteFrame()
-		resp.WriteUint32(pkt.ShopID)
-		resp.WriteUint16(0) // total defs
-		for shopEntries.Next() {
-			err = shopEntries.Scan(&entryType, &itemhash, &currType, &currNumber, &currQuant, &percentage, &rarityIcon, &rollsCount, &itemCount, &dailyLimit, (*pq.Int64Array)(&itemType), (*pq.Int64Array)(&itemId), (*pq.Int64Array)(&quantity))
+		var divisor float64
+		s.server.db.QueryRow(`SELECT COALESCE(SUM(weight) / 100000.0, 0) AS chance FROM gacha_entries WHERE gacha_id = $1`, pkt.ShopID).Scan(&divisor)
+		var entryCount uint16
+		bf.WriteUint16(0)
+		gachaEntry := GachaEntry{}
+		gachaItem := GachaItem{}
+		for entries.Next() {
+			entryCount++
+			entries.StructScan(&gachaEntry)
+			bf.WriteUint8(gachaEntry.EntryType)
+			bf.WriteUint32(gachaEntry.ID)
+			bf.WriteUint8(gachaEntry.ItemType)
+			bf.WriteUint16(0)
+			bf.WriteUint16(gachaEntry.ItemNumber)
+			bf.WriteUint16(gachaEntry.ItemQuantity)
+			if gachaType >= 4 { // If box
+				bf.WriteUint16(1)
+			} else {
+				bf.WriteUint16(uint16(gachaEntry.Weight / divisor))
+			}
+			bf.WriteUint8(gachaEntry.Rarity)
+			bf.WriteUint8(gachaEntry.Rolls)
+
+			var itemCount uint8
+			temp := byteframe.NewByteFrame()
+			items, err := s.server.db.Queryx(`SELECT item_type, item_id, quantity FROM gacha_items WHERE entry_id=$1`, gachaEntry.ID)
 			if err != nil {
-				panic(err)
+				bf.WriteUint8(0)
+			} else {
+				for items.Next() {
+					itemCount++
+					items.StructScan(&gachaItem)
+					temp.WriteUint16(uint16(gachaItem.ItemType))
+					temp.WriteUint16(gachaItem.ItemID)
+					temp.WriteUint16(gachaItem.Quantity)
+				}
+				bf.WriteUint8(itemCount)
 			}
-			resp.WriteUint8(entryType)
-			resp.WriteUint32(itemhash)
-			resp.WriteUint8(currType)
-			resp.WriteUint16(0)          // unk, always 0 in existing packets
-			resp.WriteUint16(currNumber) // it's either item ID or quantity for gacha coins
-			resp.WriteUint16(currQuant)  // only for item ID
-			resp.WriteUint16(percentage)
-			resp.WriteUint8(rarityIcon)
-			resp.WriteUint8(rollsCount)
-			resp.WriteUint8(itemCount)
-			resp.WriteUint16(0) // unk, always 0 in existing packets
-			resp.WriteUint8(dailyLimit)
-			resp.WriteUint8(0) // unk, always 0 in existing packets
-			for i := 0; i < int(itemCount); i++ {
-				resp.WriteUint16(uint16(itemType[i])) // unk, always 0 in existing packets
-				resp.WriteUint16(uint16(itemId[i]))   // unk, always 0 in existing packets
-				resp.WriteUint16(uint16(quantity[i])) // unk, always 0 in existing packets
-			}
-			count++
+
+			bf.WriteUint16(gachaEntry.FrontierPoints)
+			bf.WriteUint8(gachaEntry.DailyLimit)
+			bf.WriteUint8(0)
+			bf.WriteBytes(temp.Data())
 		}
-		resp.Seek(4, 0)
-		resp.WriteUint16(count)
-		doAckBufSucceed(s, pkt.AckHandle, resp.Data())
+		bf.Seek(4, 0)
+		bf.WriteUint16(entryCount)
+		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 	case 4: // N Points, 0-6
 		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
 	case 5: // GCP->Item, 0-6
@@ -206,124 +243,363 @@ func handleMsgMhfAcquireExchangeShop(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfGetGachaPlayHistory(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetGachaPlayHistory)
 	bf := byteframe.NewByteFrame()
-	bf.WriteUint8(0)
+	bf.WriteUint8(1)
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfGetGachaPoint(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetGachaPoint)
 	var fp, gp, gt uint32
-	s.server.db.QueryRow("SELECT COALESCE(frontier_points, 0), COALESCE(gacha_prem, 0), COALESCE(gacha_trial,0) FROM characters WHERE id=$1", s.charID).Scan(&fp, &gp, &gt)
+	s.server.db.QueryRow("SELECT COALESCE(frontier_points, 0), COALESCE(gacha_premium, 0), COALESCE(gacha_trial, 0) FROM users u WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$1)", s.charID).Scan(&fp, &gp, &gt)
 	resp := byteframe.NewByteFrame()
-	resp.WriteUint32(gp) // Real Gacha Points?
-	resp.WriteUint32(gt) // Trial Gacha Point?
-	resp.WriteUint32(fp) // Frontier Points?
+	resp.WriteUint32(gp)
+	resp.WriteUint32(gt)
+	resp.WriteUint32(fp)
 	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
 }
 
-type gachaItem struct {
-	itemhash   uint32
-	percentage uint16
-	rarityIcon byte
-	itemCount  byte
-	itemType   pq.Int64Array
-	itemId     pq.Int64Array
-	quantity   pq.Int64Array
+func handleMsgMhfUseGachaPoint(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfUseGachaPoint)
+	if pkt.TrialCoins > 0 {
+		s.server.db.Exec(`UPDATE users u SET gacha_trial=gacha_trial-$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)`, pkt.TrialCoins, s.charID)
+	}
+	if pkt.PremiumCoins > 0 {
+		s.server.db.Exec(`UPDATE users u SET gacha_premium=gacha_premium-$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)`, pkt.PremiumCoins, s.charID)
+	}
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
-func (i gachaItem) Weight() int {
-	return int(i.percentage)
+func spendGachaCoin(s *Session, quantity uint16) {
+	var gt uint16
+	s.server.db.QueryRow(`SELECT COALESCE(gacha_trial, 0) FROM users u WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$1)`, s.charID).Scan(&gt)
+	if quantity <= gt {
+		s.server.db.Exec(`UPDATE users u SET gacha_trial=gacha_trial-$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)`, quantity, s.charID)
+	} else {
+		s.server.db.Exec(`UPDATE users u SET gacha_premium=gacha_premium-$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)`, quantity, s.charID)
+	}
+}
+
+func transactGacha(s *Session, gachaID uint32, rollID uint8) (error, int) {
+	var itemType uint8
+	var itemNumber uint16
+	var rolls int
+	err := s.server.db.QueryRowx(`SELECT item_type, item_number, rolls FROM gacha_entries WHERE gacha_id = $1 AND entry_type = $2`, gachaID, rollID).Scan(&itemType, &itemNumber, &rolls)
+	if err != nil {
+		return err, 0
+	}
+	switch itemType {
+	/*
+		valid types that need manual savedata manipulation:
+		- Ryoudan Points
+		- Bond Points
+		- Image Change Points
+		valid types that work (no additional code needed):
+		- Tore Points
+		- Festa Points
+	*/
+	case 17:
+		_ = addPointNetcafe(s, int(itemNumber)*-1)
+	case 19:
+		fallthrough
+	case 20:
+		spendGachaCoin(s, itemNumber)
+	case 21:
+		s.server.db.Exec("UPDATE users u SET frontier_points=frontier_points-$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)", itemNumber, s.charID)
+	}
+	return nil, rolls
+}
+
+func getGuaranteedItems(s *Session, gachaID uint32, rollID uint8) []GachaItem {
+	var rewards []GachaItem
+	var reward GachaItem
+	items, err := s.server.db.Queryx(`SELECT item_type, item_id, quantity FROM gacha_items WHERE entry_id = (SELECT id FROM gacha_entries WHERE entry_type = $1 AND gacha_id = $2)`, rollID, gachaID)
+	if err == nil {
+		for items.Next() {
+			items.StructScan(&reward)
+			rewards = append(rewards, reward)
+		}
+	}
+	return rewards
+}
+
+func addGachaItem(s *Session, items []GachaItem) {
+	var data []byte
+	s.server.db.QueryRow(`SELECT gacha_items FROM characters WHERE id = $1`, s.charID).Scan(&data)
+	if len(data) > 0 {
+		numItems := int(data[0])
+		data = data[1:]
+		oldItem := byteframe.NewByteFrameFromBytes(data)
+		for i := 0; i < numItems; i++ {
+			items = append(items, GachaItem{
+				ItemType: oldItem.ReadUint8(),
+				ItemID:   oldItem.ReadUint16(),
+				Quantity: oldItem.ReadUint16(),
+			})
+		}
+	}
+	newItem := byteframe.NewByteFrame()
+	newItem.WriteUint8(uint8(len(items)))
+	for i := range items {
+		newItem.WriteUint8(items[i].ItemType)
+		newItem.WriteUint16(items[i].ItemID)
+		newItem.WriteUint16(items[i].Quantity)
+	}
+	s.server.db.Exec(`UPDATE characters SET gacha_items = $1 WHERE id = $2`, newItem.Data(), s.charID)
+}
+
+func getRandomEntries(entries []GachaEntry, rolls int, isBox bool) ([]GachaEntry, error) {
+	var chosen []GachaEntry
+	var totalWeight float64
+	for i := range entries {
+		totalWeight += entries[i].Weight
+	}
+	for {
+		if !isBox {
+			result := rand.Float64() * totalWeight
+			for _, entry := range entries {
+				result -= entry.Weight
+				if result < 0 {
+					chosen = append(chosen, entry)
+					break
+				}
+			}
+		} else {
+			result := rand.Intn(len(entries))
+			chosen = append(chosen, entries[result])
+			entries[result] = entries[len(entries)-1]
+			entries = entries[:len(entries)-1]
+		}
+		if rolls == len(chosen) {
+			break
+		}
+	}
+	return chosen, nil
+}
+
+func handleMsgMhfReceiveGachaItem(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfReceiveGachaItem)
+	var data []byte
+	err := s.server.db.QueryRow("SELECT COALESCE(gacha_items, $2) FROM characters WHERE id = $1", s.charID, []byte{0x00}).Scan(&data)
+	if err != nil {
+		data = []byte{0x00}
+	}
+
+	// I think there are still some edge cases where rewards can be nulled via overflow
+	if data[0] > 36 || len(data) > 181 {
+		resp := byteframe.NewByteFrame()
+		resp.WriteUint8(36)
+		resp.WriteBytes(data[1:181])
+		doAckBufSucceed(s, pkt.AckHandle, resp.Data())
+	} else {
+		doAckBufSucceed(s, pkt.AckHandle, data)
+	}
+
+	if !pkt.Freeze {
+		if data[0] > 36 || len(data) > 181 {
+			update := byteframe.NewByteFrame()
+			update.WriteUint8(uint8(len(data[181:]) / 5))
+			update.WriteBytes(data[181:])
+			s.server.db.Exec("UPDATE characters SET gacha_items = $1 WHERE id = $2", update.Data(), s.charID)
+		} else {
+			s.server.db.Exec("UPDATE characters SET gacha_items = null WHERE id = $1", s.charID)
+		}
+	}
 }
 
 func handleMsgMhfPlayNormalGacha(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfPlayNormalGacha)
-	// needs to query db for input gacha and return a result or number of results
-	// uint8 number of results
-	// uint8 item type
-	// uint16 item id
-	// uint16 quantity
-
-	var currType, rarityIcon, rollsCount, itemCount byte
-	var currQuant, currNumber, percentage uint16
-	var itemhash uint32
-	var itemType, itemId, quantity pq.Int64Array
-	var items []lottery.Weighter
-	// get info for updating data and calculating costs
-	err := s.server.db.QueryRow("SELECT currType, currNumber, currQuant, rollsCount FROM gacha_shop_items WHERE shophash=$1 AND entryType=$2", pkt.GachaHash, pkt.RollType).Scan(&currType, &currNumber, &currQuant, &rollsCount)
+	bf := byteframe.NewByteFrame()
+	var gachaEntries []GachaEntry
+	var entry GachaEntry
+	var rewards []GachaItem
+	var reward GachaItem
+	err, rolls := transactGacha(s, pkt.GachaID, pkt.RollType)
 	if err != nil {
-		panic(err)
+		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 1))
+		return
 	}
-	// get existing items in storage if any
-	var data []byte
-	_ = s.server.db.QueryRow("SELECT gacha_items FROM characters WHERE id = $1", s.charID).Scan(&data)
-	if len(data) == 0 {
-		data = []byte{0x00}
-	}
-	// get gacha items and iterate through them for gacha roll
-	shopEntries, err := s.server.db.Query("SELECT itemhash, percentage, rarityIcon, itemCount, itemType, itemId, quantity FROM gacha_shop_items WHERE shophash=$1 AND entryType=100", pkt.GachaHash)
+	temp := byteframe.NewByteFrame()
+	entries, err := s.server.db.Queryx(`SELECT id, weight, rarity FROM gacha_entries WHERE gacha_id = $1 AND entry_type = 100 ORDER BY weight DESC`, pkt.GachaID)
 	if err != nil {
-		panic(err)
+		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 1))
+		return
 	}
-	for shopEntries.Next() {
-		err = shopEntries.Scan(&itemhash, &percentage, &rarityIcon, &itemCount, (*pq.Int64Array)(&itemType), (*pq.Int64Array)(&itemId), (*pq.Int64Array)(&quantity))
+	for entries.Next() {
+		entries.StructScan(&entry)
+		gachaEntries = append(gachaEntries, entry)
+	}
+	rewardEntries, err := getRandomEntries(gachaEntries, rolls, false)
+	for i := range rewardEntries {
+		items, err := s.server.db.Queryx(`SELECT item_type, item_id, quantity FROM gacha_items WHERE entry_id = $1`, rewardEntries[i].ID)
 		if err != nil {
-			panic(err)
+			continue
 		}
-		items = append(items, &gachaItem{itemhash: itemhash, percentage: percentage, rarityIcon: rarityIcon, itemCount: itemCount, itemType: itemType, itemId: itemId, quantity: quantity})
-	}
-	// execute rolls, build response and update database
-	results := byte(0)
-	resp := byteframe.NewByteFrame()
-	dbUpdate := byteframe.NewByteFrame()
-	resp.WriteUint8(0) // results go here later
-	l := lottery.NewDefaultLottery()
-	for x := 0; x < int(rollsCount); x++ {
-		ind := l.Draw(items)
-		results += items[ind].(*gachaItem).itemCount
-		for y := 0; y < int(items[ind].(*gachaItem).itemCount); y++ {
-			// items in storage don't get rarity
-			dbUpdate.WriteUint8(uint8(items[ind].(*gachaItem).itemType[y]))
-			dbUpdate.WriteUint16(uint16(items[ind].(*gachaItem).itemId[y]))
-			dbUpdate.WriteUint16(uint16(items[ind].(*gachaItem).quantity[y]))
-			data = append(data, dbUpdate.Data()...)
-			dbUpdate.Seek(0, 0)
-			// response needs all item info and the rarity
-			resp.WriteBytes(dbUpdate.Data())
-			resp.WriteUint8(items[ind].(*gachaItem).rarityIcon)
+		for items.Next() {
+			items.StructScan(&reward)
+			rewards = append(rewards, reward)
+			temp.WriteUint8(reward.ItemType)
+			temp.WriteUint16(reward.ItemID)
+			temp.WriteUint16(reward.Quantity)
+			temp.WriteUint8(entry.Rarity)
 		}
 	}
-	resp.Seek(0, 0)
-	resp.WriteUint8(results)
-	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
-
-	// add claimables to DB
-	data[0] = data[0] + results
-	_, err = s.server.db.Exec("UPDATE characters SET gacha_items = $1 WHERE id = $2", data, s.charID)
-	if err != nil {
-		s.logger.Fatal("Failed to update minidata in db", zap.Error(err))
-	}
-	// deduct gacha coins if relevant, items are handled fine by the standard savedata packet immediately afterwards
-	if currType == 19 {
-		_, err = s.server.db.Exec("UPDATE characters SET gacha_trial = CASE WHEN (gacha_trial > $1) then gacha_trial - $1 else gacha_trial end, gacha_prem = CASE WHEN NOT (gacha_trial > $1) then gacha_prem - $1 else gacha_prem end WHERE id=$2", currNumber, s.charID)
-	}
-	if err != nil {
-		s.logger.Fatal("Failed to update gacha_items in db", zap.Error(err))
-	}
+	bf.WriteUint8(uint8(len(rewards)))
+	bf.WriteBytes(temp.Data())
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	addGachaItem(s, rewards)
 }
 
-func handleMsgMhfUseGachaPoint(s *Session, p mhfpacket.MHFPacket) {
-	// should write to database when that's set up
-	pkt := p.(*mhfpacket.MsgMhfUseGachaPoint)
-	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+func handleMsgMhfPlayStepupGacha(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfPlayStepupGacha)
+	bf := byteframe.NewByteFrame()
+	var gachaEntries []GachaEntry
+	var entry GachaEntry
+	var rewards []GachaItem
+	var reward GachaItem
+	err, rolls := transactGacha(s, pkt.GachaID, pkt.RollType)
+	if err != nil {
+		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 1))
+		return
+	}
+	s.server.db.Exec("UPDATE users u SET frontier_points=frontier_points+(SELECT frontier_points FROM gacha_entries WHERE gacha_id = $1 AND entry_type = $2) WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$3)", pkt.GachaID, pkt.RollType, s.charID)
+	s.server.db.Exec(`DELETE FROM gacha_stepup WHERE gacha_id = $1 AND character_id = $2`, pkt.GachaID, s.charID)
+	s.server.db.Exec(`INSERT INTO gacha_stepup (gacha_id, step, character_id) VALUES ($1, $2, $3)`, pkt.GachaID, pkt.RollType+1, s.charID)
+	temp := byteframe.NewByteFrame()
+	guaranteedItems := getGuaranteedItems(s, pkt.GachaID, pkt.RollType)
+	for _, item := range guaranteedItems {
+		temp.WriteUint8(item.ItemType)
+		temp.WriteUint16(item.ItemID)
+		temp.WriteUint16(item.Quantity)
+		temp.WriteUint8(0)
+	}
+	entries, err := s.server.db.Queryx(`SELECT id, weight, rarity FROM gacha_entries WHERE gacha_id = $1 AND entry_type = 100 ORDER BY weight DESC`, pkt.GachaID)
+	if err != nil {
+		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 1))
+		return
+	}
+	for entries.Next() {
+		entries.StructScan(&entry)
+		gachaEntries = append(gachaEntries, entry)
+	}
+	rewardEntries, err := getRandomEntries(gachaEntries, rolls, false)
+	for i := range rewardEntries {
+		items, err := s.server.db.Queryx(`SELECT item_type, item_id, quantity FROM gacha_items WHERE entry_id = $1`, rewardEntries[i].ID)
+		if err != nil {
+			continue
+		}
+		for items.Next() {
+			items.StructScan(&reward)
+			rewards = append(rewards, reward)
+			temp.WriteUint8(reward.ItemType)
+			temp.WriteUint16(reward.ItemID)
+			temp.WriteUint16(reward.Quantity)
+			temp.WriteUint8(entry.Rarity)
+		}
+	}
+	bf.WriteUint8(uint8(len(rewards) + len(guaranteedItems)))
+	bf.WriteUint8(uint8(len(rewards)))
+	bf.WriteBytes(temp.Data())
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	addGachaItem(s, rewards)
+	addGachaItem(s, guaranteedItems)
+}
+
+func handleMsgMhfGetStepupStatus(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfGetStepupStatus)
+	// TODO: Reset daily (noon)
+	var step uint8
+	s.server.db.QueryRow(`SELECT step FROM gacha_stepup WHERE gacha_id = $1 AND character_id = $2`, pkt.GachaID, s.charID).Scan(&step)
+	var stepCheck int
+	s.server.db.QueryRow(`SELECT COUNT(1) FROM gacha_entries WHERE gacha_id = $1 AND entry_type = $2`, pkt.GachaID, step).Scan(&stepCheck)
+	if stepCheck == 0 {
+		s.server.db.Exec(`DELETE FROM gacha_stepup WHERE gacha_id = $1 AND character_id = $2`, pkt.GachaID, s.charID)
+		step = 0
+	}
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint8(step)
+	bf.WriteUint32(uint32(Time_Current_Adjusted().Unix()))
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+}
+
+func handleMsgMhfGetBoxGachaInfo(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfGetBoxGachaInfo)
+	entries, err := s.server.db.Queryx(`SELECT entry_id FROM gacha_box WHERE gacha_id = $1 AND character_id = $2`, pkt.GachaID, s.charID)
+	if err != nil {
+		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 1))
+		return
+	}
+	var entryIDs []uint32
+	for entries.Next() {
+		var entryID uint32
+		entries.Scan(&entryID)
+		entryIDs = append(entryIDs, entryID)
+	}
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint8(uint8(len(entryIDs)))
+	for i := range entryIDs {
+		bf.WriteUint32(entryIDs[i])
+		bf.WriteBool(true)
+	}
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+}
+
+func handleMsgMhfPlayBoxGacha(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfPlayBoxGacha)
+	bf := byteframe.NewByteFrame()
+	var gachaEntries []GachaEntry
+	var entry GachaEntry
+	var rewards []GachaItem
+	var reward GachaItem
+	err, rolls := transactGacha(s, pkt.GachaID, pkt.RollType)
+	if err != nil {
+		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 1))
+		return
+	}
+	temp := byteframe.NewByteFrame()
+	entries, err := s.server.db.Queryx(`SELECT id, weight, rarity FROM gacha_entries WHERE gacha_id = $1 AND entry_type = 100 ORDER BY weight DESC`, pkt.GachaID)
+	if err != nil {
+		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 1))
+		return
+	}
+	for entries.Next() {
+		entries.StructScan(&entry)
+		gachaEntries = append(gachaEntries, entry)
+	}
+	rewardEntries, err := getRandomEntries(gachaEntries, rolls, true)
+	for i := range rewardEntries {
+		items, err := s.server.db.Queryx(`SELECT item_type, item_id, quantity FROM gacha_items WHERE entry_id = $1`, rewardEntries[i].ID)
+		if err != nil {
+			continue
+		}
+		s.server.db.Exec(`INSERT INTO gacha_box (gacha_id, entry_id, character_id) VALUES ($1, $2, $3)`, pkt.GachaID, rewardEntries[i].ID, s.charID)
+		for items.Next() {
+			items.StructScan(&reward)
+			rewards = append(rewards, reward)
+			temp.WriteUint8(reward.ItemType)
+			temp.WriteUint16(reward.ItemID)
+			temp.WriteUint16(reward.Quantity)
+			temp.WriteUint8(0)
+		}
+	}
+	bf.WriteUint8(uint8(len(rewards)))
+	bf.WriteBytes(temp.Data())
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	addGachaItem(s, rewards)
+}
+
+func handleMsgMhfResetBoxGachaInfo(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfResetBoxGachaInfo)
+	s.server.db.Exec("DELETE FROM gacha_box WHERE gacha_id = $1 AND character_id = $2", pkt.GachaID, s.charID)
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfExchangeFpoint2Item(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfExchangeFpoint2Item)
 	var balance uint32
 	var itemValue, quantity int
-	_ = s.server.db.QueryRow("SELECT quantity, fpoints FROM fpoint_items WHERE id=$1", pkt.TradeID).Scan(&quantity, &itemValue)
+	s.server.db.QueryRow("SELECT quantity, fpoints FROM fpoint_items WHERE id=$1", pkt.TradeID).Scan(&quantity, &itemValue)
 	cost := (int(pkt.Quantity) * quantity) * itemValue
-	s.server.db.QueryRow("UPDATE characters SET frontier_points=frontier_points::int - $1 WHERE id=$2 RETURNING frontier_points", cost, s.charID).Scan(&balance)
+	s.server.db.QueryRow("UPDATE users u SET frontier_points=frontier_points::int - $1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2) RETURNING frontier_points", cost, s.charID).Scan(&balance)
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint32(balance)
 	doAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
@@ -335,7 +611,7 @@ func handleMsgMhfExchangeItem2Fpoint(s *Session, p mhfpacket.MHFPacket) {
 	var itemValue, quantity int
 	s.server.db.QueryRow("SELECT quantity, fpoints FROM fpoint_items WHERE id=$1", pkt.TradeID).Scan(&quantity, &itemValue)
 	cost := (int(pkt.Quantity) / quantity) * itemValue
-	s.server.db.QueryRow("UPDATE characters SET frontier_points=COALESCE(frontier_points::int + $1, $1) WHERE id=$2 RETURNING frontier_points", cost, s.charID).Scan(&balance)
+	s.server.db.QueryRow("UPDATE users u SET frontier_points=COALESCE(frontier_points::int + $1, $1) WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2) RETURNING frontier_points", cost, s.charID).Scan(&balance)
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint32(balance)
 	doAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
@@ -394,291 +670,6 @@ func handleMsgMhfGetFpointExchangeList(s *Session, p mhfpacket.MHFPacket) {
 	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
 }
 
-func handleMsgMhfPlayStepupGacha(s *Session, p mhfpacket.MHFPacket) {
-	pkt := p.(*mhfpacket.MsgMhfPlayStepupGacha)
-	results := byte(0)
-	stepResults := byte(0)
-	resp := byteframe.NewByteFrame()
-	rollFrame := byteframe.NewByteFrame()
-	stepFrame := byteframe.NewByteFrame()
-	stepData := []byte{}
-	var currType, rarityIcon, rollsCount, itemCount byte
-	var currQuant, currNumber, percentage uint16
-	var itemhash uint32
-	var itemType, itemId, quantity pq.Int64Array
-	var items []lottery.Weighter
-	// get info for updating data and calculating costs
-	err := s.server.db.QueryRow("SELECT currType, currNumber, currQuant, rollsCount, itemCount, itemType, itemId, quantity FROM gacha_shop_items WHERE shophash=$1 AND entryType=$2", pkt.GachaHash, pkt.RollType).Scan(&currType, &currNumber, &currQuant, &rollsCount, &itemCount, (*pq.Int64Array)(&itemType), (*pq.Int64Array)(&itemId), (*pq.Int64Array)(&quantity))
-	if err != nil {
-		panic(err)
-	}
-	// get existing items in storage if any
-	var data []byte
-	_ = s.server.db.QueryRow("SELECT gacha_items FROM characters WHERE id = $1", s.charID).Scan(&data)
-	if len(data) == 0 {
-		data = []byte{0x00}
-	}
-	// roll definition includes items with step up gachas that are appended last
-	for x := 0; x < int(itemCount); x++ {
-		stepFrame.WriteUint8(uint8(itemType[x]))
-		stepFrame.WriteUint16(uint16(itemId[x]))
-		stepFrame.WriteUint16(uint16(quantity[x]))
-		stepData = append(stepData, stepFrame.Data()...)
-		stepFrame.WriteUint8(0) // rarity still defined
-		stepResults++
-	}
-	// get gacha items and iterate through them for gacha roll
-	shopEntries, err := s.server.db.Query("SELECT itemhash, percentage, rarityIcon, itemCount, itemType, itemId, quantity FROM gacha_shop_items WHERE shophash=$1 AND entryType=100", pkt.GachaHash)
-	if err != nil {
-		panic(err)
-	}
-	for shopEntries.Next() {
-		err = shopEntries.Scan(&itemhash, &percentage, &rarityIcon, &itemCount, (*pq.Int64Array)(&itemType), (*pq.Int64Array)(&itemId), (*pq.Int64Array)(&quantity))
-		if err != nil {
-			panic(err)
-		}
-		items = append(items, &gachaItem{itemhash: itemhash, percentage: percentage, rarityIcon: rarityIcon, itemCount: itemCount, itemType: itemType, itemId: itemId, quantity: quantity})
-	}
-	// execute rolls, build response and update database
-	resp.WriteUint16(0) // results count goes here later
-	l := lottery.NewDefaultLottery()
-	for x := 0; x < int(rollsCount); x++ {
-		ind := l.Draw(items)
-		results += items[ind].(*gachaItem).itemCount
-		for y := 0; y < int(items[ind].(*gachaItem).itemCount); y++ {
-			// items in storage don't get rarity
-			rollFrame.WriteUint8(uint8(items[ind].(*gachaItem).itemType[y]))
-			rollFrame.WriteUint16(uint16(items[ind].(*gachaItem).itemId[y]))
-			rollFrame.WriteUint16(uint16(items[ind].(*gachaItem).quantity[y]))
-			data = append(data, rollFrame.Data()...)
-			rollFrame.Seek(0, 0)
-			// response needs all item info and the rarity
-			resp.WriteBytes(rollFrame.Data())
-			resp.WriteUint8(items[ind].(*gachaItem).rarityIcon)
-		}
-	}
-	resp.WriteBytes(stepFrame.Data())
-	resp.Seek(0, 0)
-	resp.WriteUint8(results + stepResults)
-	resp.WriteUint8(results)
-	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
-
-	// add claimables to DB
-	data = append(data, stepData...)
-	data[0] = data[0] + results + stepResults
-	_, err = s.server.db.Exec("UPDATE characters SET gacha_items = $1 WHERE id = $2", data, s.charID)
-	if err != nil {
-		s.logger.Fatal("Failed to update gacha_items in db", zap.Error(err))
-	}
-	// deduct gacha coins if relevant, items are handled fine by the standard savedata packet immediately afterwards
-	// reduce real if trial don't cover cost
-	if currType == 19 {
-		_, err = s.server.db.Exec(`UPDATE characters
-			SET gacha_trial = CASE WHEN (gacha_trial > $1) then gacha_trial - $1 else gacha_trial end,
-			gacha_prem = CASE WHEN NOT (gacha_trial > $1) then gacha_prem - $1 else gacha_prem end
-			WHERE id=$2`, currNumber, s.charID)
-	}
-	if err != nil {
-		s.logger.Fatal("Failed to update gacha_items in db", zap.Error(err))
-	}
-	// update step progression
-	_, err = s.server.db.Exec("UPDATE stepup_state SET step_progression = $1 WHERE char_id = $2", pkt.RollType+1, s.charID)
-	if err != nil {
-		s.logger.Fatal("Failed to update step_progression in db", zap.Error(err))
-	}
-
-}
-
-func handleMsgMhfReceiveGachaItem(s *Session, p mhfpacket.MHFPacket) {
-	pkt := p.(*mhfpacket.MsgMhfReceiveGachaItem)
-	// persistent for claimable items on cat
-	var data []byte
-	err := s.server.db.QueryRow("SELECT COALESCE(gacha_items, $2) FROM characters WHERE id = $1", s.charID, []byte{0x00}).Scan(&data)
-	if err != nil {
-		panic("Failed to get gacha_items")
-	}
-	// limit of 36 items are returned
-	if data[0] > 36 {
-		outData := make([]byte, 181)
-		copy(outData, data[0:181])
-		outData[0] = byte(36)
-		saveData := append(data[:1], data[181:]...)
-		saveData[0] = saveData[0] - 36
-		doAckBufSucceed(s, pkt.AckHandle, outData)
-		if pkt.Unk0 != 0x2401 {
-			_, err := s.server.db.Exec("UPDATE characters SET gacha_items = $2 WHERE id = $1", s.charID, saveData)
-			if err != nil {
-				s.logger.Fatal("Failed to update gacha_items in db", zap.Error(err))
-			}
-		}
-	} else {
-		doAckBufSucceed(s, pkt.AckHandle, data)
-		if pkt.Unk0 != 0x2401 {
-			_, err := s.server.db.Exec("UPDATE characters SET gacha_items = null WHERE id = $1", s.charID)
-			if err != nil {
-				s.logger.Fatal("Failed to update gacha_items in db", zap.Error(err))
-			}
-		}
-	}
-}
-
-func handleMsgMhfGetStepupStatus(s *Session, p mhfpacket.MHFPacket) {
-	pkt := p.(*mhfpacket.MsgMhfGetStepupStatus)
-	// get the reset time from db
-	var step_progression int
-	var step_time time.Time
-	err := s.server.db.QueryRow(`SELECT COALESCE(step_progression, 0), COALESCE(step_time, $1) FROM stepup_state WHERE char_id = $2 AND shophash = $3`, time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC), s.charID, pkt.GachaHash).Scan(&step_progression, &step_time)
-	if err != nil {
-		s.logger.Fatal("Failed to Select coalesce in db", zap.Error(err))
-	}
-
-	// calculate next midday
-	var t = time.Now().In(time.FixedZone("UTC+9", 9*60*60))
-	year, month, day := t.Date()
-	midday := time.Date(year, month, day, 12, 0, 0, 0, t.Location())
-	if t.After(midday) {
-		midday = midday.Add(24 * time.Hour)
-	}
-	// after midday or not set
-	if t.After(step_time) {
-		step_progression = 0
-	}
-	_, err = s.server.db.Exec(`INSERT INTO stepup_state (shophash, step_progression, step_time, char_id)
-		VALUES ($1,$2,$3,$4) ON CONFLICT (shophash, char_id)
-		DO UPDATE SET step_progression=$2, step_time=$3
-		WHERE EXCLUDED.char_id=$4 AND EXCLUDED.shophash=$1`, pkt.GachaHash, step_progression, midday, s.charID)
-	if err != nil {
-		s.logger.Fatal("Failed to update platedata savedata in db", zap.Error(err))
-	}
-	resp := byteframe.NewByteFrame()
-	resp.WriteUint8(uint8(step_progression))
-	resp.WriteUint32(uint32(time.Now().In(time.FixedZone("UTC+9", 9*60*60)).Unix()))
-	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
-}
-
 func handleMsgMhfPlayFreeGacha(s *Session, p mhfpacket.MHFPacket) {
 	// not sure this is used anywhere, free gachas use the MSG_MHF_PLAY_NORMAL_GACHA method in captures
-}
-
-func handleMsgMhfGetBoxGachaInfo(s *Session, p mhfpacket.MHFPacket) {
-	pkt := p.(*mhfpacket.MsgMhfGetBoxGachaInfo)
-	count := 0
-	var used_itemhash pq.Int64Array
-	// pull array of used values
-	// single sized respone with 0x00 is a valid with no items present
-	_ = s.server.db.QueryRow("SELECT used_itemhash FROM lucky_box_state WHERE shophash=$1 AND char_id=$2", pkt.GachaHash, s.charID).Scan((*pq.Int64Array)(&used_itemhash))
-	resp := byteframe.NewByteFrame()
-	resp.WriteUint8(0)
-	for ind := range used_itemhash {
-		resp.WriteUint32(uint32(used_itemhash[ind]))
-		resp.WriteUint8(1)
-		count++
-	}
-	resp.Seek(0, 0)
-	resp.WriteUint8(uint8(count))
-	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
-}
-
-func handleMsgMhfPlayBoxGacha(s *Session, p mhfpacket.MHFPacket) {
-	pkt := p.(*mhfpacket.MsgMhfPlayBoxGacha)
-	// needs to query db for input gacha and return a result or number of results
-	// uint8 number of results
-	// uint8 item type
-	// uint16 item id
-	// uint16 quantity
-
-	var currType, rarityIcon, rollsCount, itemCount byte
-	var currQuant, currNumber, percentage uint16
-	var itemhash uint32
-	var itemType, itemId, quantity, usedItemHash pq.Int64Array
-	var items []lottery.Weighter
-	// get info for updating data and calculating costs
-	err := s.server.db.QueryRow("SELECT currType, currNumber, currQuant, rollsCount FROM gacha_shop_items WHERE shophash=$1 AND entryType=$2", pkt.GachaHash, pkt.RollType).Scan(&currType, &currNumber, &currQuant, &rollsCount)
-	if err != nil {
-		panic(err)
-	}
-	// get existing items in storage if any
-	var data []byte
-	_ = s.server.db.QueryRow("SELECT gacha_items FROM characters WHERE id = $1", s.charID).Scan(&data)
-	if len(data) == 0 {
-		data = []byte{0x00}
-	}
-	// get gacha items and iterate through them for gacha roll
-	shopEntries, err := s.server.db.Query(`SELECT itemhash, percentage, rarityIcon, itemCount, itemType, itemId, quantity
-		FROM gacha_shop_items
-		WHERE shophash=$1 AND entryType=100
-		EXCEPT ALL SELECT itemhash, percentage, rarityIcon, itemCount, itemType, itemId, quantity
-		FROM gacha_shop_items gsi JOIN lucky_box_state lbs ON gsi.itemhash = ANY(lbs.used_itemhash)
-		WHERE lbs.char_id=$2`, pkt.GachaHash, s.charID)
-	if err != nil {
-		panic(err)
-	}
-	for shopEntries.Next() {
-		err = shopEntries.Scan(&itemhash, &percentage, &rarityIcon, &itemCount, (*pq.Int64Array)(&itemType), (*pq.Int64Array)(&itemId), (*pq.Int64Array)(&quantity))
-		if err != nil {
-			panic(err)
-		}
-		items = append(items, &gachaItem{itemhash: itemhash, percentage: percentage, rarityIcon: rarityIcon, itemCount: itemCount, itemType: itemType, itemId: itemId, quantity: quantity})
-	}
-	// execute rolls, build response and update database
-	results := byte(0)
-	resp := byteframe.NewByteFrame()
-	dbUpdate := byteframe.NewByteFrame()
-	resp.WriteUint8(0) // results go here later
-	l := lottery.NewDefaultLottery()
-	for x := 0; x < int(rollsCount); x++ {
-		ind := l.Draw(items)
-		results += items[ind].(*gachaItem).itemCount
-		for y := 0; y < int(items[ind].(*gachaItem).itemCount); y++ {
-			// items in storage don't get rarity
-			dbUpdate.WriteUint8(uint8(items[ind].(*gachaItem).itemType[y]))
-			dbUpdate.WriteUint16(uint16(items[ind].(*gachaItem).itemId[y]))
-			dbUpdate.WriteUint16(uint16(items[ind].(*gachaItem).quantity[y]))
-			data = append(data, dbUpdate.Data()...)
-			dbUpdate.Seek(0, 0)
-			// response needs all item info and the rarity
-			resp.WriteBytes(dbUpdate.Data())
-			resp.WriteUint8(items[ind].(*gachaItem).rarityIcon)
-
-			usedItemHash = append(usedItemHash, int64(items[ind].(*gachaItem).itemhash))
-		}
-		// remove rolled
-		items = append(items[:ind], items[ind+1:]...)
-	}
-	resp.Seek(0, 0)
-	resp.WriteUint8(results)
-	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
-
-	// add claimables to DB
-	data[0] = data[0] + results
-	_, err = s.server.db.Exec("UPDATE characters SET gacha_items = $1 WHERE id = $2", data, s.charID)
-	if err != nil {
-		s.logger.Fatal("Failed to update gacha_items in db", zap.Error(err))
-	}
-	// update lucky_box_state
-	_, err = s.server.db.Exec(`INSERT INTO lucky_box_state (char_id, shophash, used_itemhash)
-		VALUES ($1,$2,$3) ON CONFLICT (char_id, shophash)
-		DO UPDATE SET used_itemhash = COALESCE(lucky_box_state.used_itemhash::int[] || $3::int[], $3::int[])
-		WHERE EXCLUDED.char_id=$1 AND EXCLUDED.shophash=$2`, s.charID, pkt.GachaHash, usedItemHash)
-	if err != nil {
-		s.logger.Fatal("Failed to update lucky box state in db", zap.Error(err))
-	}
-	// deduct gacha coins if relevant, items are handled fine by the standard savedata packet immediately afterwards
-	if currType == 19 {
-		_, err = s.server.db.Exec(`UPDATE characters
-			SET gacha_trial = CASE WHEN (gacha_trial > $1) then gacha_trial - $1 else gacha_trial end, gacha_prem = CASE WHEN NOT (gacha_trial > $1) then gacha_prem - $1 else gacha_prem end
-			WHERE id=$2`, currNumber, s.charID)
-	}
-	if err != nil {
-		s.logger.Fatal("Failed to update gacha_trial in db", zap.Error(err))
-	}
-}
-
-func handleMsgMhfResetBoxGachaInfo(s *Session, p mhfpacket.MHFPacket) {
-	pkt := p.(*mhfpacket.MsgMhfResetBoxGachaInfo)
-	_, err := s.server.db.Exec("DELETE FROM lucky_box_state WHERE shophash=$1 AND char_id=$2", pkt.GachaHash, s.charID)
-	if err != nil {
-		panic(err)
-	}
-	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }

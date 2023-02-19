@@ -1,7 +1,6 @@
 package channelserver
 
 import (
-	"encoding/hex"
 	"erupe-ce/common/byteframe"
 	ps "erupe-ce/common/pascalstring"
 	"erupe-ce/network/mhfpacket"
@@ -54,6 +53,26 @@ type GachaItem struct {
 	ItemType uint8  `db:"item_type"`
 	ItemID   uint16 `db:"item_id"`
 	Quantity uint16 `db:"quantity"`
+}
+
+func writeShopItems(bf *byteframe.ByteFrame, items []ShopItem) {
+	bf.WriteUint16(uint16(len(items)))
+	bf.WriteUint16(uint16(len(items)))
+	for _, item := range items {
+		bf.WriteUint32(item.ID)
+		bf.WriteUint16(0)
+		bf.WriteUint16(item.ItemID)
+		bf.WriteUint32(item.Cost)
+		bf.WriteUint16(item.Quantity)
+		bf.WriteUint16(item.MinHR)
+		bf.WriteUint16(item.MinSR)
+		bf.WriteUint16(item.MinGR)
+		bf.WriteUint16(item.ReqStoreLevel)
+		bf.WriteUint16(item.MaxQuantity)
+		bf.WriteUint16(item.CharQuantity)
+		bf.WriteUint16(item.RoadFloors)
+		bf.WriteUint16(item.RoadFatalis)
+	}
 }
 
 func handleMsgMhfEnumerateShop(s *Session, p mhfpacket.MHFPacket) {
@@ -168,21 +187,84 @@ func handleMsgMhfEnumerateShop(s *Session, p mhfpacket.MHFPacket) {
 	case 4: // N Points, 0-6
 		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
 	case 5: // GCP->Item, 0-6
-		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
+		switch pkt.ShopID {
+		case 5:
+			bf := byteframe.NewByteFrame()
+			items := []ShopItem{
+				{ItemID: 16516, Cost: 100, Quantity: 1, MinGR: 1},
+				{ItemID: 16517, Cost: 100, Quantity: 1, MinGR: 1},
+			}
+			writeShopItems(bf, items)
+			doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+		default:
+			doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
+		}
 	case 6: // Gacha coin->Item
 		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
 	case 7: // Item->GCP
-		data, _ := hex.DecodeString("000300033a9186fb000033860000000a000100000000000000000000000000000000097fdb1c0000067e0000000a0001000000000000000000000000000000001374db29000027c300000064000100000000000000000000000000000000")
-		doAckBufSucceed(s, pkt.AckHandle, data)
+		bf := byteframe.NewByteFrame()
+		items := []ShopItem{
+			{ItemID: 13190, Cost: 10, Quantity: 1},
+			{ItemID: 1662, Cost: 10, Quantity: 1},
+			{ItemID: 10179, Cost: 100, Quantity: 1},
+		}
+		writeShopItems(bf, items)
+		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 	case 8: // Diva
 		switch pkt.ShopID {
 		case 0: // Normal exchange
 			doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
 		case 5: // GCP skills
-			data, _ := hex.DecodeString("001f001f2c9365c1000000010000001e000a0000000000000000000a0000000000001979f1c2000000020000003c000a0000000000000000000a0000000000003e5197df000000030000003c000a0000000000000000000a000000000000219337c0000000040000001e000a0000000000000000000a00000000000009b24c9d000000140000001e000a0000000000000000000a0000000000001f1d496e000000150000001e000a0000000000000000000a0000000000003b918fcb000000160000003c000a0000000000000000000a0000000000000b7fd81c000000170000003c000a0000000000000000000a0000000000001374f239000000180000003c000a0000000000000000000a00000000000026950cba0000001c0000003c000a0000000000000000000a0000000000003797eae70000001d0000003c000a012b000000000000000a00000000000015758ad8000000050000003c00000000000000000000000a0000000000003c7035050000000600000050000a0000000000000001000a00000000000024f3b5560000000700000050000a0000000000000001000a00000000000000b600330000000800000050000a0000000000000001000a0000000000002efdce840000001900000050000a0000000000000001000a0000000000002d9365f10000001a00000050000a0000000000000001000a0000000000001979f3420000001f00000050000a012b000000000001000a0000000000003f5397cf0000002000000050000a012b000000000001000a000000000000319337c00000002100000050000a012b000000000001000a00000000000008b04cbd0000000900000064000a0000000000000002000a0000000000000b1d4b6e0000000a00000064000a0000000000000002000a0000000000003b918feb0000000b00000064000a0000000000000002000a0000000000001b7fd81c0000000c00000064000a0000000000000002000a0000000000001276f2290000000d00000064000a0000000000000002000a00000000000022950cba0000000e000000c8000a0000000000000002000a0000000000003697ead70000000f000001f4000a0000000000000003000a00000000000005758a5800000010000003e8000a0000000000000003000a0000000000003c7035250000001b000001f4000a0000000000010003000a00000000000034f3b5d60000001e00000064000a012b000000000003000a00000000000000b600030000002200000064000a0000000000010003000a000000000000")
-			doAckBufSucceed(s, pkt.AckHandle, data)
-		case 7: // Note exchange
-			doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
+			bf := byteframe.NewByteFrame()
+			items := []ShopItem{
+				{ItemID: 1, Cost: 30, Quantity: 10, MaxQuantity: 10},
+				{ItemID: 2, Cost: 60, Quantity: 10, MaxQuantity: 10},
+				{ItemID: 3, Cost: 60, Quantity: 10, MaxQuantity: 10},
+				{ItemID: 4, Cost: 30, Quantity: 10, MaxQuantity: 10},
+				{ItemID: 20, Cost: 30, Quantity: 10, MaxQuantity: 10},
+				{ItemID: 21, Cost: 30, Quantity: 10, MaxQuantity: 10},
+				{ItemID: 22, Cost: 60, Quantity: 10, MaxQuantity: 10},
+				{ItemID: 23, Cost: 60, Quantity: 10, MaxQuantity: 10},
+				{ItemID: 24, Cost: 60, Quantity: 10, MaxQuantity: 10},
+				{ItemID: 28, Cost: 60, Quantity: 10, MaxQuantity: 10},
+				{ItemID: 29, Cost: 60, Quantity: 10, MinHR: 299, MaxQuantity: 10},
+				{ItemID: 5, Cost: 60, Quantity: 10, MaxQuantity: 10},
+				{ItemID: 6, Cost: 80, Quantity: 10, ReqStoreLevel: 1, MaxQuantity: 10},
+				{ItemID: 7, Cost: 80, Quantity: 10, ReqStoreLevel: 1, MaxQuantity: 10},
+				{ItemID: 8, Cost: 80, Quantity: 10, ReqStoreLevel: 1, MaxQuantity: 10},
+				{ItemID: 25, Cost: 80, Quantity: 10, ReqStoreLevel: 1, MaxQuantity: 10},
+				{ItemID: 26, Cost: 80, Quantity: 10, ReqStoreLevel: 1, MaxQuantity: 10},
+				{ItemID: 31, Cost: 80, Quantity: 10, MinHR: 299, ReqStoreLevel: 1, MaxQuantity: 10},
+				{ItemID: 32, Cost: 80, Quantity: 10, MinHR: 299, ReqStoreLevel: 1, MaxQuantity: 10},
+				{ItemID: 33, Cost: 80, Quantity: 10, MinHR: 299, ReqStoreLevel: 1, MaxQuantity: 10},
+				{ItemID: 9, Cost: 100, Quantity: 10, ReqStoreLevel: 2, MaxQuantity: 10},
+				{ItemID: 10, Cost: 100, Quantity: 10, ReqStoreLevel: 2, MaxQuantity: 10},
+				{ItemID: 11, Cost: 100, Quantity: 10, ReqStoreLevel: 2, MaxQuantity: 10},
+				{ItemID: 12, Cost: 100, Quantity: 10, ReqStoreLevel: 2, MaxQuantity: 10},
+				{ItemID: 13, Cost: 100, Quantity: 10, ReqStoreLevel: 2, MaxQuantity: 10},
+				{ItemID: 14, Cost: 200, Quantity: 10, ReqStoreLevel: 2, MaxQuantity: 10},
+				{ItemID: 15, Cost: 500, Quantity: 10, ReqStoreLevel: 3, MaxQuantity: 10},
+				{ItemID: 16, Cost: 1000, Quantity: 10, ReqStoreLevel: 3, MaxQuantity: 10},
+				{ItemID: 27, Cost: 500, Quantity: 10, MinGR: 1, ReqStoreLevel: 3, MaxQuantity: 10},
+				{ItemID: 30, Cost: 100, Quantity: 10, MinHR: 299, ReqStoreLevel: 3, MaxQuantity: 10},
+				{ItemID: 30, Cost: 100, Quantity: 10, MinGR: 1, ReqStoreLevel: 3, MaxQuantity: 10},
+			}
+			writeShopItems(bf, items)
+			doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+		case 7: // Limited exchange
+			bf := byteframe.NewByteFrame()
+			items := []ShopItem{
+				{ItemID: 2209, Cost: 400, Quantity: 1, MinHR: 299, ReqStoreLevel: 2, MaxQuantity: 5},
+				{ItemID: 2208, Cost: 400, Quantity: 1, MinHR: 299, ReqStoreLevel: 2, MaxQuantity: 5},
+				{ItemID: 5113, Cost: 400, Quantity: 1, MinHR: 299, ReqStoreLevel: 2, MaxQuantity: 5},
+				{ItemID: 3571, Cost: 400, Quantity: 1, MinHR: 299, ReqStoreLevel: 2, MaxQuantity: 5},
+				{ItemID: 3572, Cost: 400, Quantity: 1, MinHR: 299, ReqStoreLevel: 2, MaxQuantity: 5},
+				{ItemID: 3738, Cost: 400, Quantity: 1, MinHR: 299, ReqStoreLevel: 2, MaxQuantity: 5},
+				{ItemID: 3737, Cost: 400, Quantity: 1, MinHR: 299, ReqStoreLevel: 2, MaxQuantity: 5},
+				{ItemID: 4399, Cost: 400, Quantity: 1, MinHR: 299, ReqStoreLevel: 2, MaxQuantity: 5},
+			}
+			writeShopItems(bf, items)
+			doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 		}
 	case 9: // Diva song shop
 		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
@@ -195,34 +277,18 @@ func handleMsgMhfEnumerateShop(s *Session, p mhfpacket.MHFPacket) {
 			doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
 			return
 		}
-		var count uint16
-		resp := byteframe.NewByteFrame()
-		resp.WriteBytes(make([]byte, 4))
-		var shopItem ShopItem
+		bf := byteframe.NewByteFrame()
+		var items []ShopItem
 		for shopEntries.Next() {
-			err = shopEntries.StructScan(&shopItem)
+			item := ShopItem{}
+			err = shopEntries.StructScan(&item)
 			if err != nil {
 				continue
 			}
-			resp.WriteUint32(shopItem.ID)
-			resp.WriteUint16(0)
-			resp.WriteUint16(shopItem.ItemID)
-			resp.WriteUint32(shopItem.Cost)
-			resp.WriteUint16(shopItem.Quantity)
-			resp.WriteUint16(shopItem.MinHR)
-			resp.WriteUint16(shopItem.MinSR)
-			resp.WriteUint16(shopItem.MinGR)
-			resp.WriteUint16(shopItem.ReqStoreLevel)
-			resp.WriteUint16(shopItem.MaxQuantity)
-			resp.WriteUint16(shopItem.CharQuantity)
-			resp.WriteUint16(shopItem.RoadFloors)
-			resp.WriteUint16(shopItem.RoadFatalis)
-			count++
+			items = append(items, item)
 		}
-		resp.Seek(0, 0)
-		resp.WriteUint16(count)
-		resp.WriteUint16(count)
-		doAckBufSucceed(s, pkt.AckHandle, resp.Data())
+		writeShopItems(bf, items)
+		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 	}
 }
 
@@ -232,6 +298,9 @@ func handleMsgMhfAcquireExchangeShop(s *Session, p mhfpacket.MHFPacket) {
 	exchanges := int(bf.ReadUint16())
 	for i := 0; i < exchanges; i++ {
 		itemHash := bf.ReadUint32()
+		if itemHash == 0 {
+			continue
+		}
 		buyCount := bf.ReadUint32()
 		s.server.db.Exec(`INSERT INTO shop_item_state (char_id, itemhash, usedquantity)
 			VALUES ($1,$2,$3) ON CONFLICT (char_id, itemhash)

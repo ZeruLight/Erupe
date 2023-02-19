@@ -208,9 +208,17 @@ func handleMsgMhfGetUdTotalPointInfo(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfGetUdSelectedColorInfo(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetUdSelectedColorInfo)
-
-	// Unk
-	doAckBufSucceed(s, pkt.AckHandle, []byte{0x00, 0x01, 0x01, 0x01, 0x02, 0x03, 0x02, 0x00, 0x00})
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint8(0)
+	// Index of bead levelled for each day of Prayer Week
+	bf.WriteUint8(0)
+	bf.WriteUint8(0)
+	bf.WriteUint8(0)
+	bf.WriteUint8(0)
+	bf.WriteUint8(0)
+	bf.WriteUint8(0)
+	bf.WriteUint8(0)
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfGetUdMonsterPoint(s *Session, p mhfpacket.MHFPacket) {

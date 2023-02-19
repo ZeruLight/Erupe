@@ -5,7 +5,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"erupe-ce/common/stringsupport"
-	"github.com/lib/pq"
 	"go.uber.org/zap"
 	"golang.org/x/exp/slices"
 	"math/rand"
@@ -424,9 +423,54 @@ func (im *InterceptionMaps) Value() (valuer driver.Value, err error) {
 	return json.Marshal(im)
 }
 
+func (md *MapData) GetClaimed() uint32 {
+	var claimed uint32
+	for _, tile := range md.Tiles {
+		if md.Points[tile.QuestFile]-tile.PointsReq > 0 {
+			tile.Claimed = true
+			if tile.PointsReq > 0 {
+				claimed++
+			}
+			md.Points[tile.QuestFile] -= tile.PointsReq
+		}
+	}
+	return claimed
+}
+
+func (md *MapData) TotalPoints() int32 {
+	var points int32
+	for i := range md.Tiles {
+		if md.Tiles[i].Type > 2 {
+			continue
+		}
+		points += md.Tiles[i].PointsReq
+	}
+	return points
+}
+
+func (md *MapData) Completed() bool {
+	if md.Points[0] > md.TotalPoints() {
+		return true
+	}
+	return false
+}
+
+func (im *InterceptionMaps) CurrPrevID() (uint32, uint32) {
+	var currID, prevID uint32
+	for i := range im.Maps {
+		prevID = currID
+		currID = im.Maps[i].ID
+		if im.Maps[i].Points[0] < im.Maps[i].TotalPoints() {
+			break
+		}
+	}
+	return currID, prevID
+}
+
 type MapData struct {
 	ID     uint32
 	NextID uint32
+	Points map[uint16]int32
 	Tiles  []Tile
 }
 
@@ -462,34 +506,20 @@ func handleMsgMhfGetUdGuildMapInfo(s *Session, p mhfpacket.MHFPacket) {
 	}
 
 	var interceptionMaps InterceptionMaps
-	var personalPoints map[uint16]int32
-
-	interceptionPoints := make(map[uint16]int32)
-	var _interceptionPoints pq.ByteaArray
-	err = s.server.db.QueryRow(`SELECT interception_maps, (SELECT ARRAY(SELECT interception_points FROM guild_characters gc WHERE gc.guild_id = g.id)) AS interception_points FROM public.guilds g WHERE g.id=$1`, guild.ID).Scan(&interceptionMaps, &_interceptionPoints)
+	err = s.server.db.QueryRow(`SELECT interception_maps FROM guilds WHERE id=$1`, guild.ID).Scan(&interceptionMaps)
 	if err != nil {
 		s.server.logger.Error("Failed to load interception map data", zap.Error(err))
 		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
-	for _, playerPoints := range _interceptionPoints {
-		json.Unmarshal(playerPoints, &personalPoints)
-		for u, i := range personalPoints {
-			if u < 58079 || u > 58083 {
-				interceptionPoints[0] += i
-			} else {
-				interceptionPoints[u] += i
-			}
-		}
-	}
 
-	var guildProg []MapProg
-
+	var tilesClaimed uint32
+	currentMapID, prevMapID := interceptionMaps.CurrPrevID()
+	currProg := byteframe.NewByteFrame()
+	prevProg := byteframe.NewByteFrame()
 	bf := byteframe.NewByteFrame()
-
 	bf.WriteUint16(uint16(len(interceptionMaps.Maps)))
 	for _, _map := range interceptionMaps.Maps {
-		guildProg = append(guildProg, MapProg{ID: _map.ID, Unk: 1, Tiles: _map.Tiles})
 		bf.WriteUint32(_map.ID)
 		bf.WriteUint32(_map.NextID)
 		for _, tile := range _map.Tiles {
@@ -506,6 +536,77 @@ func handleMsgMhfGetUdGuildMapInfo(s *Session, p mhfpacket.MHFPacket) {
 			bf.WriteUint32(tile.Unk2)
 		}
 		bf.WriteBytes(make([]byte, 23*(64-len(_map.Tiles)))) // Fill out 64 tiles
+
+		if _map.Completed() && _map.ID != prevMapID {
+			tilesClaimed += _map.GetClaimed()
+		}
+
+		if _map.ID == currentMapID {
+			currProg.WriteUint32(_map.ID)
+			currProg.WriteUint16(1)
+			currProg.WriteUint8(uint8(len(_map.Tiles)))
+			for _, tile := range _map.Tiles {
+				if tile.Type != 1 {
+					if _map.Points[tile.QuestFile]-tile.PointsReq > 0 {
+						tile.Claimed = true
+						tilesClaimed++
+						_map.Points[tile.QuestFile] -= tile.PointsReq
+						currProg.WriteInt32(tile.PointsReq)
+					} else {
+						currProg.WriteInt32(_map.Points[tile.QuestFile])
+						_map.Points[tile.QuestFile] = 0
+					}
+				} else {
+					currProg.WriteInt32(0)
+				}
+				currProg.WriteInt32(tile.PointsReq)
+				currProg.WriteUint16(tile.ID)
+				currProg.WriteUint16(tile.NextID)
+				currProg.WriteUint16(tile.BranchID)
+				currProg.WriteUint16(tile.QuestFile)
+				currProg.WriteUint32(tile.Unk0)
+				currProg.WriteUint8(tile.BranchIndex)
+				currProg.WriteUint8(tile.Type)
+				if tile.Claimed || tile.Type == 1 {
+					currProg.WriteBool(true)
+				} else {
+					currProg.WriteBool(false)
+				}
+			}
+		}
+		if _map.ID == prevMapID {
+			prevProg.WriteUint32(_map.ID)
+			prevProg.WriteUint16(1)
+			prevProg.WriteUint8(uint8(len(_map.Tiles)))
+			for _, tile := range _map.Tiles {
+				if tile.Type != 1 {
+					if _map.Points[tile.QuestFile]-tile.PointsReq > 0 {
+						tile.Claimed = true
+						tilesClaimed++
+						_map.Points[tile.QuestFile] -= tile.PointsReq
+						prevProg.WriteInt32(tile.PointsReq)
+					} else {
+						prevProg.WriteInt32(_map.Points[tile.QuestFile])
+						_map.Points[tile.QuestFile] = 0
+					}
+				} else {
+					prevProg.WriteInt32(0)
+				}
+				prevProg.WriteInt32(tile.PointsReq)
+				prevProg.WriteUint16(tile.ID)
+				prevProg.WriteUint16(tile.NextID)
+				prevProg.WriteUint16(tile.BranchID)
+				prevProg.WriteUint16(tile.QuestFile)
+				prevProg.WriteUint32(tile.Unk0)
+				prevProg.WriteUint8(tile.BranchIndex)
+				prevProg.WriteUint8(tile.Type)
+				if tile.Claimed || tile.Type == 1 {
+					prevProg.WriteBool(true)
+				} else {
+					prevProg.WriteBool(false)
+				}
+			}
+		}
 	}
 
 	bf.WriteUint16(uint16(len(interceptionMaps.Branches)))
@@ -519,68 +620,15 @@ func handleMsgMhfGetUdGuildMapInfo(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint8(branch.ChestType)
 	}
 
-	var tilesClaimed uint32
-	currentMapID := uint32(1)
-	var prevMapID uint32
-
-	for i, prog := range guildProg {
-		guildProg[i].Bytes = byteframe.NewByteFrame()
-		guildProg[i].Bytes.WriteUint32(prog.ID)
-		guildProg[i].Bytes.WriteUint16(prog.Unk)
-		guildProg[i].Bytes.WriteUint8(uint8(len(prog.Tiles)))
-		for _, tile := range prog.Tiles {
-			if tile.Type != 1 && interceptionPoints[tile.QuestFile] > 0 {
-				if tile.PointsReq-interceptionPoints[tile.QuestFile] < 0 {
-					interceptionPoints[tile.QuestFile] -= tile.PointsReq
-					guildProg[i].Bytes.WriteInt32(tile.PointsReq)
-					tilesClaimed++
-					tile.Claimed = true
-				} else {
-					if tile.QuestFile == 0 {
-						currentMapID = prog.ID
-						if i > 0 {
-							prevMapID = guildProg[i-1].ID
-						}
-					}
-					guildProg[i].Bytes.WriteInt32(interceptionPoints[tile.QuestFile])
-					interceptionPoints[tile.QuestFile] = 0
-				}
-			} else {
-				guildProg[i].Bytes.WriteUint32(0)
-			}
-			guildProg[i].Bytes.WriteInt32(tile.PointsReq)
-			guildProg[i].Bytes.WriteUint16(tile.ID)
-			guildProg[i].Bytes.WriteUint16(tile.NextID)
-			guildProg[i].Bytes.WriteUint16(tile.BranchID)
-			guildProg[i].Bytes.WriteUint16(tile.QuestFile)
-			guildProg[i].Bytes.WriteUint32(tile.Unk0)
-			guildProg[i].Bytes.WriteUint8(tile.BranchIndex)
-			guildProg[i].Bytes.WriteUint8(tile.Type)
-			guildProg[i].Bytes.WriteBool(tile.Claimed)
-		}
-	}
-
-	if prevMapID != 0 {
+	if prevMapID > 0 {
 		bf.WriteUint8(2)
-		for _, prog := range guildProg {
-			if prog.ID == currentMapID {
-				bf.WriteBytes(prog.Bytes.Data())
-			}
-		}
-		for _, prog := range guildProg {
-			if prog.ID == prevMapID {
-				bf.WriteBytes(prog.Bytes.Data())
-			}
-		}
 	} else {
 		bf.WriteUint8(1)
-		for _, prog := range guildProg {
-			if prog.ID == currentMapID {
-				bf.WriteBytes(prog.Bytes.Data())
-			}
-		}
 	}
-
+	bf.WriteBytes(currProg.Data())
+	if prevMapID > 0 {
+		bf.WriteBytes(prevProg.Data())
+	}
 	bf.WriteUint32(tilesClaimed)
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
@@ -746,6 +794,9 @@ func GenerateUdGuildMaps() ([]MapData, []MapBranch) {
 			case 4:
 				mapTile.PointsReq = int32(8500 + 1000*(j-1))
 			}
+			if mapTile.Type == 1 {
+				mapTile.PointsReq = 0
+			}
 			mapTiles = append(mapTiles, mapTile)
 		}
 
@@ -769,12 +820,12 @@ func GenerateUdGuildMaps() ([]MapData, []MapBranch) {
 						branchTiles[len(branchTiles)-1].Type = 4
 						branchTiles[len(branchTiles)-1].Unk1 = 1
 						branchTiles[len(branchTiles)-1].Unk2 = 2
-						// Make treasure more interesting
+						// Make treasure more interesting, 2000GCP for now
 						mapBranches = append(mapBranches, MapBranch{
 							MapIndex:   uint32(i + 1),
-							ItemType:   7,
-							ItemID:     7,
-							Quantity:   5,
+							ItemType:   26,
+							ItemID:     0,
+							Quantity:   2000,
 							TileIndex1: uint16(branchIndex),
 							TileIndex2: 99,
 							ChestType:  2,
@@ -810,9 +861,9 @@ func GenerateUdGuildMaps() ([]MapData, []MapBranch) {
 			mapTiles = append(mapTiles, branchTiles[j])
 		}
 		if i >= 4 {
-			mapData = append(mapData, MapData{uint32(i + 1), 3, mapTiles})
+			mapData = append(mapData, MapData{uint32(i + 1), 4, make(map[uint16]int32), mapTiles})
 		} else {
-			mapData = append(mapData, MapData{uint32(i + 1), uint32(i + 2), mapTiles})
+			mapData = append(mapData, MapData{uint32(i + 1), uint32(i + 2), make(map[uint16]int32), mapTiles})
 		}
 	}
 	return mapData, mapBranches
@@ -832,7 +883,7 @@ func handleMsgMhfGenerateUdGuildMap(s *Session, p mhfpacket.MHFPacket) {
 	}
 	interceptionMaps := &InterceptionMaps{}
 	interceptionMaps.Maps, interceptionMaps.Branches = GenerateUdGuildMaps()
-	_, err = s.server.db.Exec(`UPDATE guilds SET interception_maps=$1 WHERE guilds.id=$2`, interceptionMaps, guild.ID)
+	_, err = s.server.db.Exec(`UPDATE guilds SET interception_maps = $1 WHERE id = $2`, interceptionMaps, guild.ID)
 	if err != nil {
 		s.server.logger.Debug("err", zap.Error(err))
 	}

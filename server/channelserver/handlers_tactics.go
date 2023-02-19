@@ -30,6 +30,16 @@ func handleMsgMhfGetUdTacticsPoint(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfAddUdTacticsPoint(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfAddUdTacticsPoint)
+	guild, err := GetGuildInfoByCharacterId(s, s.charID)
+	if err != nil || guild == nil {
+		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+		return
+	}
+	isApplicant, _ := guild.HasApplicationForCharID(s, s.charID)
+	if err != nil || isApplicant {
+		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+		return
+	}
 	var personalPoints map[uint16]int32
 	var temp []byte
 	s.server.db.QueryRow(`SELECT interception_points FROM guild_characters WHERE id=$1`, s.charID).Scan(&temp)
@@ -48,6 +58,19 @@ func handleMsgMhfAddUdTacticsPoint(s *Session, p mhfpacket.MHFPacket) {
 	for i := range personalPoints {
 		bf.WriteUint16(i)
 	}
+
+	if pkt.QuestFileID < 58079 || pkt.QuestFileID > 58083 {
+		pkt.QuestFileID = 0
+	}
+	var mapData *InterceptionMaps
+	s.server.db.QueryRow(`SELECT interception_maps FROM guilds WHERE id = $1`, guild.ID).Scan(&mapData)
+	currID, _ := mapData.CurrPrevID()
+	for i := range mapData.Maps {
+		if mapData.Maps[i].ID == currID {
+			mapData.Maps[i].Points[pkt.QuestFileID] += pkt.Points
+		}
+	}
+	s.server.db.Exec(`UPDATE guilds SET interception_maps = $1 WHERE id = $2`, mapData, guild.ID)
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 

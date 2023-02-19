@@ -361,7 +361,19 @@ func handleMsgMhfGetUdNormaPresentList(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfAcquireUdItem(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfAcquireUdItem)
-	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+	// from gal
+	// daily = 0
+	// personal = 1
+	// personal rank = 2
+	// guild rank = 3
+	// gcp = 4
+	// from cat
+	// treasure achievement = 5
+	// personal achievement = 6
+	// guild achievement = 7
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint16(0) // NumRewards
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfGetUdRanking(s *Session, p mhfpacket.MHFPacket) {

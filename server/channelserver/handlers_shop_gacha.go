@@ -184,6 +184,8 @@ func handleMsgMhfEnumerateShop(s *Session, p mhfpacket.MHFPacket) {
 		case 7: // Note exchange
 			doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
 		}
+	case 9: // Diva song shop
+		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
 	case 10: // Item shop, 0-8
 		shopEntries, err := s.server.db.Queryx(`SELECT id, itemid, cost, quantity, min_hr, min_sr, min_gr, req_store_level, max_quantity,
        		COALESCE((SELECT usedquantity FROM shop_item_state WHERE itemhash=nsi.id AND char_id=$3), 0) as char_quantity,

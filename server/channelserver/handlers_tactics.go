@@ -140,9 +140,23 @@ func handleMsgMhfGetUdTacticsBonusQuest(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfGetUdTacticsFirstQuestBonus(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetUdTacticsFirstQuestBonus)
-	// Temporary canned response
-	data, _ := hex.DecodeString("0500000005DC01000007D002000009C40300000BB80400001194")
-	doAckBufSucceed(s, pkt.AckHandle, data)
+	bonus := []struct {
+		ID     uint8
+		Points uint32
+	}{
+		{0, 1500},
+		{1, 2000},
+		{2, 2500},
+		{3, 3000},
+		{4, 4500},
+	}
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint8(uint8(len(bonus)))
+	for i := range bonus {
+		bf.WriteUint8(bonus[i].ID)
+		bf.WriteUint32(bonus[i].Points)
+	}
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfGetUdTacticsRemainingPoint(s *Session, p mhfpacket.MHFPacket) {

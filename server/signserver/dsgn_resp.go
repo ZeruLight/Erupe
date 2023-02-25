@@ -8,6 +8,7 @@ import (
 	"erupe-ce/server/channelserver"
 	"fmt"
 	"math/rand"
+	"strings"
 	"time"
 
 	"go.uber.org/zap"
@@ -51,7 +52,11 @@ func (s *Session) makeSignInResp(uid int) []byte {
 			ps.Uint8(bf, s.server.erupeConfig.PatchServerFile, false)
 		}
 	}
-	ps.Uint8(bf, fmt.Sprintf("%s:%d", s.server.erupeConfig.Host, s.server.erupeConfig.Entrance.Port), false)
+	if strings.Split(s.rawConn.RemoteAddr().String(), ":")[0] == "127.0.0.1" {
+		ps.Uint8(bf, fmt.Sprintf("127.0.0.1:%d", s.server.erupeConfig.Entrance.Port), false)
+	} else {
+		ps.Uint8(bf, fmt.Sprintf("%s:%d", s.server.erupeConfig.Host, s.server.erupeConfig.Entrance.Port), false)
+	}
 
 	lastPlayed := uint32(0)
 	for _, char := range chars {

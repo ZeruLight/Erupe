@@ -1,39 +1,29 @@
 BEGIN;
 
-ALTER TABLE IF EXISTS public.normal_shop_items
-    RENAME COLUMN itemhash TO id;
+DROP TABLE IF EXISTS public.normal_shop_items;
 
-ALTER TABLE IF EXISTS public.normal_shop_items
-    ALTER COLUMN points TYPE integer;
+CREATE TABLE IF NOT EXISTS public.shop_items (
+    id SERIAL PRIMARY KEY,
+    shop_type INTEGER,
+    shop_id INTEGER,
+    item_id INTEGER,
+    cost INTEGER,
+    quantity INTEGER,
+    min_hr INTEGER,
+    min_sr INTEGER,
+    min_gr INTEGER,
+    store_level INTEGER,
+    max_quantity INTEGER,
+    road_floors INTEGER,
+    road_fatalis INTEGER
+);
 
-ALTER TABLE IF EXISTS public.normal_shop_items
-    RENAME COLUMN points TO cost;
+DROP TABLE IF EXISTS public.shop_item_state;
 
-ALTER TABLE IF EXISTS public.normal_shop_items
-    RENAME COLUMN tradequantity TO quantity;
-
-ALTER TABLE IF EXISTS public.normal_shop_items
-    RENAME COLUMN rankreqlow TO min_hr;
-
-ALTER TABLE IF EXISTS public.normal_shop_items
-    RENAME COLUMN rankreqhigh TO min_sr;
-
-ALTER TABLE IF EXISTS public.normal_shop_items
-    RENAME COLUMN rankreqg TO min_gr;
-
-ALTER TABLE IF EXISTS public.normal_shop_items
-    RENAME COLUMN storelevelreq TO req_store_level;
-
-ALTER TABLE IF EXISTS public.normal_shop_items
-    RENAME COLUMN maximumquantity TO max_quantity;
-
-ALTER TABLE IF EXISTS public.normal_shop_items
-    DROP COLUMN boughtquantity;
-
-ALTER TABLE IF EXISTS public.normal_shop_items
-    RENAME COLUMN roadfloorsrequired TO road_floors;
-
-ALTER TABLE IF EXISTS public.normal_shop_items
-    RENAME COLUMN weeklyfataliskills TO road_fatalis;
+CREATE TABLE IF NOT EXISTS public.shop_items_bought (
+    character_id INTEGER,
+    shop_item_id INTEGER,
+    bought INTEGER
+);
 
 END;

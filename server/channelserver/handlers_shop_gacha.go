@@ -8,18 +8,18 @@ import (
 )
 
 type ShopItem struct {
-	ID            uint32 `db:"id"`
-	ItemID        uint16 `db:"itemid"`
-	Cost          uint32 `db:"cost"`
-	Quantity      uint16 `db:"quantity"`
-	MinHR         uint16 `db:"min_hr"`
-	MinSR         uint16 `db:"min_sr"`
-	MinGR         uint16 `db:"min_gr"`
-	ReqStoreLevel uint16 `db:"req_store_level"`
-	MaxQuantity   uint16 `db:"max_quantity"`
-	CharQuantity  uint16 `db:"char_quantity"`
-	RoadFloors    uint16 `db:"road_floors"`
-	RoadFatalis   uint16 `db:"road_fatalis"`
+	ID           uint32 `db:"id"`
+	ItemID       uint16 `db:"item_id"`
+	Cost         uint32 `db:"cost"`
+	Quantity     uint16 `db:"quantity"`
+	MinHR        uint16 `db:"min_hr"`
+	MinSR        uint16 `db:"min_sr"`
+	MinGR        uint16 `db:"min_gr"`
+	StoreLevel   uint16 `db:"store_level"`
+	MaxQuantity  uint16 `db:"max_quantity"`
+	UsedQuantity uint16 `db:"used_quantity"`
+	RoadFloors   uint16 `db:"road_floors"`
+	RoadFatalis  uint16 `db:"road_fatalis"`
 }
 
 type Gacha struct {
@@ -67,12 +67,31 @@ func writeShopItems(bf *byteframe.ByteFrame, items []ShopItem) {
 		bf.WriteUint16(item.MinHR)
 		bf.WriteUint16(item.MinSR)
 		bf.WriteUint16(item.MinGR)
-		bf.WriteUint16(item.ReqStoreLevel)
+		bf.WriteUint16(item.StoreLevel)
 		bf.WriteUint16(item.MaxQuantity)
-		bf.WriteUint16(item.CharQuantity)
+		bf.WriteUint16(item.UsedQuantity)
 		bf.WriteUint16(item.RoadFloors)
 		bf.WriteUint16(item.RoadFatalis)
 	}
+}
+
+func getShopItems(s *Session, shopType uint8, shopID uint32) []ShopItem {
+	var items []ShopItem
+	var temp ShopItem
+	rows, err := s.server.db.Queryx(`SELECT id, item_id, cost, quantity, min_hr, min_sr, min_gr, store_level, max_quantity,
+       		COALESCE((SELECT bought FROM shop_items_bought WHERE shop_item_id=si.id AND character_id=$3), 0) as used_quantity,
+       		road_floors, road_fatalis FROM shop_items si WHERE shop_type=$1 AND shop_id=$2
+       		`, shopType, shopID, s.charID)
+	if err == nil {
+		for rows.Next() {
+			err = rows.StructScan(&temp)
+			if err != nil {
+				continue
+			}
+			items = append(items, temp)
+		}
+	}
+	return items
 }
 
 func handleMsgMhfEnumerateShop(s *Session, p mhfpacket.MHFPacket) {
@@ -184,109 +203,41 @@ func handleMsgMhfEnumerateShop(s *Session, p mhfpacket.MHFPacket) {
 		bf.Seek(4, 0)
 		bf.WriteUint16(entryCount)
 		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	case 3: // Hunting Festival Exchange
+		bf := byteframe.NewByteFrame()
+		items := getShopItems(s, pkt.ShopType, pkt.ShopID)
+		writeShopItems(bf, items)
+		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 	case 4: // N Points, 0-6
-		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
+		bf := byteframe.NewByteFrame()
+		items := getShopItems(s, pkt.ShopType, pkt.ShopID)
+		writeShopItems(bf, items)
+		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 	case 5: // GCP->Item, 0-6
-		switch pkt.ShopID {
-		case 5:
-			bf := byteframe.NewByteFrame()
-			items := []ShopItem{
-				{ItemID: 16516, Cost: 100, Quantity: 1, MinGR: 1},
-				{ItemID: 16517, Cost: 100, Quantity: 1, MinGR: 1},
-			}
-			writeShopItems(bf, items)
-			doAckBufSucceed(s, pkt.AckHandle, bf.Data())
-		default:
-			doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
-		}
+		bf := byteframe.NewByteFrame()
+		items := getShopItems(s, pkt.ShopType, pkt.ShopID)
+		writeShopItems(bf, items)
+		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 	case 6: // Gacha coin->Item
 		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
 	case 7: // Item->GCP
 		bf := byteframe.NewByteFrame()
-		items := []ShopItem{
-			{ItemID: 13190, Cost: 10, Quantity: 1},
-			{ItemID: 1662, Cost: 10, Quantity: 1},
-			{ItemID: 10179, Cost: 100, Quantity: 1},
-		}
+		items := getShopItems(s, pkt.ShopType, pkt.ShopID)
 		writeShopItems(bf, items)
 		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 	case 8: // Diva
-		switch pkt.ShopID {
-		case 0: // Normal exchange
-			doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
-		case 5: // GCP skills
-			bf := byteframe.NewByteFrame()
-			items := []ShopItem{
-				{ItemID: 1, Cost: 30, Quantity: 10, MaxQuantity: 10},
-				{ItemID: 2, Cost: 60, Quantity: 10, MaxQuantity: 10},
-				{ItemID: 3, Cost: 60, Quantity: 10, MaxQuantity: 10},
-				{ItemID: 4, Cost: 30, Quantity: 10, MaxQuantity: 10},
-				{ItemID: 20, Cost: 30, Quantity: 10, MaxQuantity: 10},
-				{ItemID: 21, Cost: 30, Quantity: 10, MaxQuantity: 10},
-				{ItemID: 22, Cost: 60, Quantity: 10, MaxQuantity: 10},
-				{ItemID: 23, Cost: 60, Quantity: 10, MaxQuantity: 10},
-				{ItemID: 24, Cost: 60, Quantity: 10, MaxQuantity: 10},
-				{ItemID: 28, Cost: 60, Quantity: 10, MaxQuantity: 10},
-				{ItemID: 29, Cost: 60, Quantity: 10, MinHR: 299, MaxQuantity: 10},
-				{ItemID: 5, Cost: 60, Quantity: 10, MaxQuantity: 10},
-				{ItemID: 6, Cost: 80, Quantity: 10, ReqStoreLevel: 1, MaxQuantity: 10},
-				{ItemID: 7, Cost: 80, Quantity: 10, ReqStoreLevel: 1, MaxQuantity: 10},
-				{ItemID: 8, Cost: 80, Quantity: 10, ReqStoreLevel: 1, MaxQuantity: 10},
-				{ItemID: 25, Cost: 80, Quantity: 10, ReqStoreLevel: 1, MaxQuantity: 10},
-				{ItemID: 26, Cost: 80, Quantity: 10, ReqStoreLevel: 1, MaxQuantity: 10},
-				{ItemID: 31, Cost: 80, Quantity: 10, MinHR: 299, ReqStoreLevel: 1, MaxQuantity: 10},
-				{ItemID: 32, Cost: 80, Quantity: 10, MinHR: 299, ReqStoreLevel: 1, MaxQuantity: 10},
-				{ItemID: 33, Cost: 80, Quantity: 10, MinHR: 299, ReqStoreLevel: 1, MaxQuantity: 10},
-				{ItemID: 9, Cost: 100, Quantity: 10, ReqStoreLevel: 2, MaxQuantity: 10},
-				{ItemID: 10, Cost: 100, Quantity: 10, ReqStoreLevel: 2, MaxQuantity: 10},
-				{ItemID: 11, Cost: 100, Quantity: 10, ReqStoreLevel: 2, MaxQuantity: 10},
-				{ItemID: 12, Cost: 100, Quantity: 10, ReqStoreLevel: 2, MaxQuantity: 10},
-				{ItemID: 13, Cost: 100, Quantity: 10, ReqStoreLevel: 2, MaxQuantity: 10},
-				{ItemID: 14, Cost: 200, Quantity: 10, ReqStoreLevel: 2, MaxQuantity: 10},
-				{ItemID: 15, Cost: 500, Quantity: 10, ReqStoreLevel: 3, MaxQuantity: 10},
-				{ItemID: 16, Cost: 1000, Quantity: 10, ReqStoreLevel: 3, MaxQuantity: 10},
-				{ItemID: 27, Cost: 500, Quantity: 10, MinGR: 1, ReqStoreLevel: 3, MaxQuantity: 10},
-				{ItemID: 30, Cost: 100, Quantity: 10, MinHR: 299, ReqStoreLevel: 3, MaxQuantity: 10},
-				{ItemID: 30, Cost: 100, Quantity: 10, MinGR: 1, ReqStoreLevel: 3, MaxQuantity: 10},
-			}
-			writeShopItems(bf, items)
-			doAckBufSucceed(s, pkt.AckHandle, bf.Data())
-		case 7: // Limited exchange
-			bf := byteframe.NewByteFrame()
-			items := []ShopItem{
-				{ItemID: 2209, Cost: 400, Quantity: 1, MinHR: 299, ReqStoreLevel: 2, MaxQuantity: 5},
-				{ItemID: 2208, Cost: 400, Quantity: 1, MinHR: 299, ReqStoreLevel: 2, MaxQuantity: 5},
-				{ItemID: 5113, Cost: 400, Quantity: 1, MinHR: 299, ReqStoreLevel: 2, MaxQuantity: 5},
-				{ItemID: 3571, Cost: 400, Quantity: 1, MinHR: 299, ReqStoreLevel: 2, MaxQuantity: 5},
-				{ItemID: 3572, Cost: 400, Quantity: 1, MinHR: 299, ReqStoreLevel: 2, MaxQuantity: 5},
-				{ItemID: 3738, Cost: 400, Quantity: 1, MinHR: 299, ReqStoreLevel: 2, MaxQuantity: 5},
-				{ItemID: 3737, Cost: 400, Quantity: 1, MinHR: 299, ReqStoreLevel: 2, MaxQuantity: 5},
-				{ItemID: 4399, Cost: 400, Quantity: 1, MinHR: 299, ReqStoreLevel: 2, MaxQuantity: 5},
-			}
-			writeShopItems(bf, items)
-			doAckBufSucceed(s, pkt.AckHandle, bf.Data())
-		}
-	case 9: // Diva song shop
-		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
-	case 10: // Item shop, 0-8
-		shopEntries, err := s.server.db.Queryx(`SELECT id, itemid, cost, quantity, min_hr, min_sr, min_gr, req_store_level, max_quantity,
-       		COALESCE((SELECT usedquantity FROM shop_item_state WHERE itemhash=nsi.id AND char_id=$3), 0) as char_quantity,
-       		road_floors, road_fatalis FROM normal_shop_items nsi WHERE shoptype=$1 AND shopid=$2
-       		`, pkt.ShopType, pkt.ShopID, s.charID)
-		if err != nil {
-			doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
-			return
-		}
 		bf := byteframe.NewByteFrame()
-		var items []ShopItem
-		for shopEntries.Next() {
-			item := ShopItem{}
-			err = shopEntries.StructScan(&item)
-			if err != nil {
-				continue
-			}
-			items = append(items, item)
-		}
+		items := getShopItems(s, pkt.ShopType, pkt.ShopID)
+		writeShopItems(bf, items)
+		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	case 9: // Diva song shop
+		bf := byteframe.NewByteFrame()
+		items := getShopItems(s, pkt.ShopType, pkt.ShopID)
+		writeShopItems(bf, items)
+		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	case 10: // Item shop, 0-8
+		bf := byteframe.NewByteFrame()
+		items := getShopItems(s, pkt.ShopType, pkt.ShopID)
 		writeShopItems(bf, items)
 		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 	}
@@ -302,10 +253,10 @@ func handleMsgMhfAcquireExchangeShop(s *Session, p mhfpacket.MHFPacket) {
 			continue
 		}
 		buyCount := bf.ReadUint32()
-		s.server.db.Exec(`INSERT INTO shop_item_state (char_id, itemhash, usedquantity)
-			VALUES ($1,$2,$3) ON CONFLICT (char_id, itemhash)
-			DO UPDATE SET usedquantity = shop_item_state.usedquantity + $3
-			WHERE EXCLUDED.char_id=$1 AND EXCLUDED.itemhash=$2
+		s.server.db.Exec(`INSERT INTO shop_items_bought (character_id, shop_item_id, bought)
+			VALUES ($1,$2,$3) ON CONFLICT (character_id, shop_item_id)
+			DO UPDATE SET bought = bought + $3
+			WHERE EXCLUDED.character_id=$1 AND EXCLUDED.shop_item_id=$2
 		`, s.charID, itemHash, buyCount)
 	}
 	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})

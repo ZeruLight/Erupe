@@ -79,7 +79,7 @@ func updateRights(s *Session) {
 	rights := []mhfpacket.ClientRight{{1, 0, 0}}
 	var netcafeBitSet bool
 	for _, course := range s.courses {
-		if (course.ID == 9 || course.ID == 26) && !netcafeBitSet {
+		if (course.ID == 9 || course.ID == 25 || course.ID == 26) && !netcafeBitSet {
 			netcafeBitSet = true
 			rightsInt += 0x40000000 // set netcafe bit
 			rights = append(rights, mhfpacket.ClientRight{ID: 30})

@@ -204,37 +204,19 @@ func handleMsgMhfEnumerateShop(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint16(entryCount)
 		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 	case 3: // Hunting Festival Exchange
-		bf := byteframe.NewByteFrame()
-		items := getShopItems(s, pkt.ShopType, pkt.ShopID)
-		writeShopItems(bf, items)
-		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+		fallthrough
 	case 4: // N Points, 0-6
-		bf := byteframe.NewByteFrame()
-		items := getShopItems(s, pkt.ShopType, pkt.ShopID)
-		writeShopItems(bf, items)
-		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+		fallthrough
 	case 5: // GCP->Item, 0-6
-		bf := byteframe.NewByteFrame()
-		items := getShopItems(s, pkt.ShopType, pkt.ShopID)
-		writeShopItems(bf, items)
-		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+		fallthrough
 	case 6: // Gacha coin->Item
-		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
+		fallthrough
 	case 7: // Item->GCP
-		bf := byteframe.NewByteFrame()
-		items := getShopItems(s, pkt.ShopType, pkt.ShopID)
-		writeShopItems(bf, items)
-		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+		fallthrough
 	case 8: // Diva
-		bf := byteframe.NewByteFrame()
-		items := getShopItems(s, pkt.ShopType, pkt.ShopID)
-		writeShopItems(bf, items)
-		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+		fallthrough
 	case 9: // Diva song shop
-		bf := byteframe.NewByteFrame()
-		items := getShopItems(s, pkt.ShopType, pkt.ShopID)
-		writeShopItems(bf, items)
-		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+		fallthrough
 	case 10: // Item shop, 0-8
 		bf := byteframe.NewByteFrame()
 		items := getShopItems(s, pkt.ShopType, pkt.ShopID)

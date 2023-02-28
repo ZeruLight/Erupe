@@ -12,22 +12,25 @@ import (
 
 func handleMsgMhfSaveMezfesData(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSaveMezfesData)
+	s.server.db.Exec(`UPDATE characters SET mezfes=$1 WHERE id=$2`, pkt.RawDataPayload, s.charID)
 	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
 func handleMsgMhfLoadMezfesData(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfLoadMezfesData)
-
-	resp := byteframe.NewByteFrame()
-	resp.WriteUint32(0) // Unk
-
-	resp.WriteUint8(2) // Count of the next 2 uint32s
-	resp.WriteUint32(0)
-	resp.WriteUint32(0)
-
-	resp.WriteUint32(0) // Unk
-
-	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
+	var data []byte
+	s.server.db.QueryRow(`SELECT mezfes FROM characters WHERE id=$1`, s.charID).Scan(&data)
+	bf := byteframe.NewByteFrame()
+	if len(data) > 0 {
+		bf.WriteBytes(data)
+	} else {
+		bf.WriteUint32(0)
+		bf.WriteUint8(2)
+		bf.WriteUint32(0)
+		bf.WriteUint32(0)
+		bf.WriteUint32(0)
+	}
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfEnumerateRanking(s *Session, p mhfpacket.MHFPacket) {

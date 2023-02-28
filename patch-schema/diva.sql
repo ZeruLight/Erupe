@@ -17,4 +17,8 @@ CREATE TABLE IF NOT EXISTS public.diva_prizes (
     repeatable BOOLEAN
 );
 
+CREATE TABLE IF NOT EXISTS public.diva_beads (
+    type INTEGER
+);
+
 END;

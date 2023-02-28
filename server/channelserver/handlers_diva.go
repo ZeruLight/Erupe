@@ -16,7 +16,8 @@ import (
 )
 
 func cleanupDiva(s *Session) {
-	s.server.db.Exec("DELETE FROM events WHERE event_type='diva'")
+	s.server.db.Exec(`DELETE FROM events WHERE event_type='diva'`)
+	s.server.db.Exec(`DELETE FROM diva_beads`)
 }
 
 func generateDivaTimestamps(s *Session, start uint32, debug bool) []uint32 {
@@ -54,6 +55,17 @@ func generateDivaTimestamps(s *Session, start uint32, debug bool) []uint32 {
 		// Generate a new diva defense, starting midnight tomorrow
 		start = uint32(midnight.Add(24 * time.Hour).Unix())
 		s.server.db.Exec("INSERT INTO events (event_type, start_time) VALUES ('diva', to_timestamp($1)::timestamp without time zone)", start)
+		// Generate 4 random beads
+		beads := []uint8{1, 3, 4, 8, 9, 10, 11, 14, 15, 17, 18, 19, 20, 21, 22, 23, 24, 25}
+		for {
+			if len(beads) == 4 {
+				break
+			}
+			result := rand.Intn(len(beads))
+			beads[result] = beads[len(beads)-1]
+			beads = beads[:len(beads)-1]
+		}
+		s.server.db.Exec(`INSERT INTO diva_beads (type) VALUES ($1), ($2), ($3), ($4)`, beads[0], beads[1], beads[2], beads[3])
 	}
 	timestamps[0] = start
 	timestamps[1] = timestamps[0] + 601200
@@ -120,14 +132,25 @@ func handleMsgMhfGetUdInfo(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfGetKijuInfo(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetKijuInfo)
+	beads := []uint8{1, 3, 4, 8}
+	rows, err := s.server.db.Queryx(`SELECT * FROM diva_beads`)
+	if err == nil {
+		var i int
+		for rows.Next() {
+			var bead uint8
+			rows.Scan(&bead)
+			beads[i] = bead
+			i++
+		}
+	}
 	kijuInfo := []struct {
 		Color  uint8
 		Effect uint8
 	}{
-		{1, 1},
-		{2, 3},
-		{3, 4},
-		{4, 8},
+		{1, beads[0]},
+		{2, beads[1]},
+		{3, beads[2]},
+		{4, beads[3]},
 	}
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint8(uint8(len(kijuInfo)))

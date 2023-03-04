@@ -1740,39 +1740,39 @@ type GuildMeal struct {
 
 func handleMsgMhfLoadGuildCooking(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfLoadGuildCooking)
-
 	guild, _ := GetGuildInfoByCharacterId(s, s.charID)
-	data, err := s.server.db.Queryx("SELECT id, meal_id, level, expires FROM guild_meals WHERE guild_id = $1", guild.ID)
+	data, err := s.server.db.Queryx("SELECT id, meal_id, level, created_at FROM guild_meals WHERE guild_id = $1", guild.ID)
 	if err != nil {
 		s.logger.Error("Failed to get guild meals from db", zap.Error(err))
 		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 2))
+		return
 	}
-	temp := byteframe.NewByteFrame()
-	count := 0
+	var meals []GuildMeal
+	var temp GuildMeal
 	for data.Next() {
-		mealData := &GuildMeal{}
-		err = data.StructScan(&mealData)
+		err = data.StructScan(&temp)
 		if err != nil {
 			continue
 		}
-		if mealData.CreatedAt.Add(90 * time.Minute).After(TimeAdjusted()) {
-			count++
-			temp.WriteUint32(mealData.ID)
-			temp.WriteUint32(mealData.MealID)
-			temp.WriteUint32(mealData.Level)
-			temp.WriteUint32(uint32(mealData.CreatedAt.Unix()))
+		if temp.CreatedAt.Add(60 * time.Minute).After(TimeAdjusted()) {
+			meals = append(meals, temp)
 		}
 	}
 	bf := byteframe.NewByteFrame()
-	bf.WriteUint16(uint16(count))
-	bf.WriteBytes(temp.Data())
+	bf.WriteUint16(uint16(len(meals)))
+	for _, meal := range meals {
+		bf.WriteUint32(meal.ID)
+		bf.WriteUint32(meal.MealID)
+		bf.WriteUint32(meal.Level)
+		bf.WriteUint32(uint32(meal.CreatedAt.Unix()))
+	}
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfRegistGuildCooking(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfRegistGuildCooking)
 	guild, _ := GetGuildInfoByCharacterId(s, s.charID)
-	currentTime := TimeAdjusted().Unix()
+	currentTime := TimeAdjusted()
 	if pkt.OverwriteID != 0 {
 		s.server.db.Exec("UPDATE guild_meals SET meal_id = $1, level = $2, created_at = $3 WHERE id = $4", pkt.MealID, pkt.Success, currentTime, pkt.OverwriteID)
 	} else {
@@ -1783,7 +1783,7 @@ func handleMsgMhfRegistGuildCooking(s *Session, p mhfpacket.MHFPacket) {
 	bf.WriteUint32(pkt.OverwriteID)
 	bf.WriteUint32(uint32(pkt.MealID))
 	bf.WriteUint32(uint32(pkt.Success))
-	bf.WriteUint32(uint32(currentTime))
+	bf.WriteUint32(uint32(currentTime.Unix()))
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 

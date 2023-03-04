@@ -73,7 +73,7 @@ func NewSession(server *Server, conn net.Conn) *Session {
 		cryptConn:      network.NewCryptConn(conn),
 		sendPackets:    make(chan packet, 20),
 		clientContext:  &clientctx.ClientContext{}, // Unused
-		sessionStart:   Time_Current_Adjusted().Unix(),
+		sessionStart:   TimeAdjusted().Unix(),
 		stageMoveStack: stringstack.New(),
 	}
 	return s

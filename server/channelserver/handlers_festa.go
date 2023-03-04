@@ -41,7 +41,7 @@ func handleMsgMhfEnumerateRanking(s *Session, p mhfpacket.MHFPacket) {
 	// Unk
 	// Start?
 	// End?
-	midnight := Time_Current_Midnight()
+	midnight := TimeMidnight()
 	switch state {
 	case 1:
 		bf.WriteUint32(uint32(midnight.Unix()))
@@ -60,13 +60,13 @@ func handleMsgMhfEnumerateRanking(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint32(uint32(midnight.Add(7 * 24 * time.Hour).Unix()))
 	default:
 		bf.WriteBytes(make([]byte, 16))
-		bf.WriteUint32(uint32(Time_Current_Adjusted().Unix())) // TS Current Time
+		bf.WriteUint32(uint32(TimeAdjusted().Unix())) // TS Current Time
 		bf.WriteUint8(3)
 		bf.WriteBytes(make([]byte, 4))
 		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 		return
 	}
-	bf.WriteUint32(uint32(Time_Current_Adjusted().Unix())) // TS Current Time
+	bf.WriteUint32(uint32(TimeAdjusted().Unix())) // TS Current Time
 	bf.WriteUint8(3)
 	ps.Uint8(bf, "", false)
 	bf.WriteUint16(0) // numEvents
@@ -101,7 +101,7 @@ func cleanupFesta(s *Session) {
 
 func generateFestaTimestamps(s *Session, start uint32, debug bool) []uint32 {
 	timestamps := make([]uint32, 5)
-	midnight := Time_Current_Midnight()
+	midnight := TimeMidnight()
 	if debug && start <= 3 {
 		midnight := uint32(midnight.Unix())
 		switch start {
@@ -126,7 +126,7 @@ func generateFestaTimestamps(s *Session, start uint32, debug bool) []uint32 {
 		}
 		return timestamps
 	}
-	if start == 0 || Time_Current_Adjusted().Unix() > int64(start)+2977200 {
+	if start == 0 || TimeAdjusted().Unix() > int64(start)+2977200 {
 		cleanupFesta(s)
 		// Generate a new festa, starting midnight tomorrow
 		start = uint32(midnight.Add(24 * time.Hour).Unix())
@@ -170,7 +170,7 @@ func handleMsgMhfInfoFesta(s *Session, p mhfpacket.MHFPacket) {
 		timestamps = generateFestaTimestamps(s, start, false)
 	}
 
-	if timestamps[0] > uint32(Time_Current_Adjusted().Unix()) {
+	if timestamps[0] > uint32(TimeAdjusted().Unix()) {
 		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
@@ -183,7 +183,7 @@ func handleMsgMhfInfoFesta(s *Session, p mhfpacket.MHFPacket) {
 	for _, timestamp := range timestamps {
 		bf.WriteUint32(timestamp)
 	}
-	bf.WriteUint32(uint32(Time_Current_Adjusted().Unix()))
+	bf.WriteUint32(uint32(TimeAdjusted().Unix()))
 	bf.WriteUint8(4)
 	ps.Uint8(bf, "", false)
 	bf.WriteUint32(0)

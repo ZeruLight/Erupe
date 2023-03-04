@@ -1755,7 +1755,7 @@ func handleMsgMhfLoadGuildCooking(s *Session, p mhfpacket.MHFPacket) {
 		if err != nil {
 			continue
 		}
-		if mealData.Expires > uint32(Time_Current_Adjusted().Add(-60*time.Minute).Unix()) {
+		if mealData.Expires > uint32(TimeAdjusted().Unix()) {
 			count++
 			temp.WriteUint32(mealData.ID)
 			temp.WriteUint32(mealData.MealID)
@@ -1778,7 +1778,7 @@ func handleMsgMhfRegistGuildCooking(s *Session, p mhfpacket.MHFPacket) {
 			s.logger.Error("Failed to delete meal in db", zap.Error(err))
 		}
 	}
-	_, err := s.server.db.Exec("INSERT INTO guild_meals (guild_id, meal_id, level, expires) VALUES ($1, $2, $3, $4)", guild.ID, pkt.MealID, pkt.Success, Time_Current_Adjusted().Add(30*time.Minute).Unix())
+	_, err := s.server.db.Exec("INSERT INTO guild_meals (guild_id, meal_id, level, expires) VALUES ($1, $2, $3, $4)", guild.ID, pkt.MealID, pkt.Success, TimeAdjusted().Unix())
 	if err != nil {
 		s.logger.Error("Failed to register meal in db", zap.Error(err))
 	}

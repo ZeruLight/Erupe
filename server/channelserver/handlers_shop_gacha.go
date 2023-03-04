@@ -517,7 +517,7 @@ func handleMsgMhfGetStepupStatus(s *Session, p mhfpacket.MHFPacket) {
 	}
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint8(step)
-	bf.WriteUint32(uint32(Time_Current_Adjusted().Unix()))
+	bf.WriteUint32(uint32(TimeAdjusted().Unix()))
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 

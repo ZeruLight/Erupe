@@ -61,7 +61,7 @@ func handleMsgMhfGetWeeklySchedule(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetWeeklySchedule)
 
 	var features []activeFeature
-	rows, _ := s.server.db.Queryx(`SELECT start_time, featured FROM feature_weapon WHERE start_time=$1 OR start_time=$2`, Time_Current_Midnight().Add(-24*time.Hour), Time_Current_Midnight())
+	rows, _ := s.server.db.Queryx(`SELECT start_time, featured FROM feature_weapon WHERE start_time=$1 OR start_time=$2`, TimeMidnight().Add(-24*time.Hour), TimeMidnight())
 	for rows.Next() {
 		var feature activeFeature
 		rows.StructScan(&feature)
@@ -71,19 +71,19 @@ func handleMsgMhfGetWeeklySchedule(s *Session, p mhfpacket.MHFPacket) {
 	if len(features) < 2 {
 		if len(features) == 0 {
 			feature := generateFeatureWeapons(s.server.erupeConfig.FeaturedWeapons)
-			feature.StartTime = Time_Current_Midnight().Add(-24 * time.Hour)
+			feature.StartTime = TimeMidnight().Add(-24 * time.Hour)
 			features = append(features, feature)
 			s.server.db.Exec(`INSERT INTO feature_weapon VALUES ($1, $2)`, feature.StartTime, feature.ActiveFeatures)
 		}
 		feature := generateFeatureWeapons(s.server.erupeConfig.FeaturedWeapons)
-		feature.StartTime = Time_Current_Midnight()
+		feature.StartTime = TimeMidnight()
 		features = append(features, feature)
 		s.server.db.Exec(`INSERT INTO feature_weapon VALUES ($1, $2)`, feature.StartTime, feature.ActiveFeatures)
 	}
 
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint8(2)
-	bf.WriteUint32(uint32(Time_Current_Adjusted().Add(-5 * time.Minute).Unix()))
+	bf.WriteUint32(uint32(TimeAdjusted().Add(-5 * time.Minute).Unix()))
 	for _, feature := range features {
 		bf.WriteUint32(uint32(feature.StartTime.Unix()))
 		bf.WriteUint32(feature.ActiveFeatures)
@@ -119,129 +119,97 @@ func generateFeatureWeapons(count int) activeFeature {
 }
 
 type loginBoost struct {
-	WeekReq, WeekCount uint8
-	Available          bool
-	Expiration         uint32
+	WeekReq    uint8 `db:"week_req"`
+	WeekCount  uint8
+	Active     bool
+	Expiration time.Time `db:"expiration"`
+	Reset      time.Time `db:"reset"`
 }
 
 func handleMsgMhfGetKeepLoginBoostStatus(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetKeepLoginBoostStatus)
 
-	var loginBoostStatus []loginBoost
-	insert := false
-	boostState, err := s.server.db.Query("SELECT week_req, week_count, available, end_time FROM login_boost_state WHERE char_id=$1 ORDER BY week_req ASC", s.charID)
+	bf := byteframe.NewByteFrame()
+
+	var loginBoosts []loginBoost
+	rows, err := s.server.db.Queryx("SELECT week_req, expiration, reset FROM login_boost WHERE char_id=$1 ORDER BY week_req", s.charID)
 	if err != nil {
-		panic(err)
+		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 35))
+		return
 	}
-	for boostState.Next() {
-		var boost loginBoost
-		err = boostState.Scan(&boost.WeekReq, &boost.WeekCount, &boost.Available, &boost.Expiration)
-		if err != nil {
-			panic(err)
+	for rows.Next() {
+		var temp loginBoost
+		rows.StructScan(&temp)
+		loginBoosts = append(loginBoosts, temp)
+	}
+	if len(loginBoosts) == 0 {
+		temp := TimeWeekStart()
+		loginBoosts = []loginBoost{
+			{WeekReq: 1, Expiration: temp},
+			{WeekReq: 2, Expiration: temp},
+			{WeekReq: 3, Expiration: temp},
+			{WeekReq: 4, Expiration: temp},
+			{WeekReq: 5, Expiration: temp},
 		}
-		loginBoostStatus = append(loginBoostStatus, boost)
-	}
-	if len(loginBoostStatus) == 0 {
-		// create default Entries (should only been week 1 with )
-		insert = true
-		loginBoostStatus = []loginBoost{
-			{
-				WeekReq:    1,    // weeks needed
-				WeekCount:  0,    // weeks passed
-				Available:  true, // available
-				Expiration: 0,    //uint32(t.Add(120 * time.Minute).Unix()), // uncomment to enable permanently
-			},
-			{
-				WeekReq:    2,
-				WeekCount:  0,
-				Available:  true,
-				Expiration: 0,
-			},
-			{
-				WeekReq:    3,
-				WeekCount:  0,
-				Available:  true,
-				Expiration: 0,
-			},
-			{
-				WeekReq:    4,
-				WeekCount:  0,
-				Available:  true,
-				Expiration: 0,
-			},
-			{
-				WeekReq:    5,
-				WeekCount:  0,
-				Available:  true,
-				Expiration: 0,
-			},
+		for _, boost := range loginBoosts {
+			s.server.db.Exec(`INSERT INTO login_boost VALUES ($1, $2, $3, $4)`, s.charID, boost.WeekReq, boost.Expiration, time.Time{})
 		}
 	}
-	resp := byteframe.NewByteFrame()
-	CurrentWeek := Time_Current_Week_uint8()
-	for d := range loginBoostStatus {
-		if CurrentWeek == 1 && loginBoostStatus[d].WeekCount <= 5 {
-			loginBoostStatus[d].WeekCount = 0
+
+	for _, boost := range loginBoosts {
+		// Reset if next week
+		if !boost.Reset.IsZero() && boost.Reset.Before(TimeAdjusted()) {
+			boost.Expiration = TimeWeekStart()
+			boost.Reset = time.Time{}
+			s.server.db.Exec(`UPDATE login_boost SET expiration=$1, reset=$2 WHERE char_id=$3 AND week_req=$4`, boost.Expiration, boost.Reset, s.charID, boost.WeekReq)
 		}
-		if loginBoostStatus[d].WeekReq == CurrentWeek || loginBoostStatus[d].WeekCount != 0 {
-			loginBoostStatus[d].WeekCount = CurrentWeek
+
+		boost.WeekCount = uint8((TimeAdjusted().Unix()-boost.Expiration.Unix())/604800 + 1)
+
+		if boost.WeekCount >= boost.WeekReq {
+			boost.Active = true
+			boost.WeekCount = boost.WeekReq
 		}
-		if !loginBoostStatus[d].Available && loginBoostStatus[d].WeekCount >= loginBoostStatus[d].WeekReq && uint32(time.Now().In(time.FixedZone("UTC+1", 1*60*60)).Unix()) >= loginBoostStatus[d].Expiration {
-			loginBoostStatus[d].Expiration = 1
+
+		// Show reset timer on expired boosts
+		if boost.Reset.After(TimeAdjusted()) {
+			boost.Active = true
+			boost.WeekCount = 0
 		}
-		if !insert {
-			_, err := s.server.db.Exec(`UPDATE login_boost_state SET week_count=$1, end_time=$2 WHERE char_id=$3 AND week_req=$4`, loginBoostStatus[d].WeekCount, loginBoostStatus[d].Expiration, s.charID, loginBoostStatus[d].WeekReq)
-			if err != nil {
-				panic(err)
-			}
+
+		bf.WriteUint8(boost.WeekReq)
+		bf.WriteBool(boost.Active)
+		bf.WriteUint8(boost.WeekCount)
+		if !boost.Reset.IsZero() {
+			bf.WriteUint32(uint32(boost.Expiration.Unix()))
+		} else {
+			bf.WriteUint32(0)
 		}
 	}
-	for _, v := range loginBoostStatus {
-		if insert {
-			_, err := s.server.db.Exec(`INSERT INTO login_boost_state (char_id, week_req, week_count, available, end_time) VALUES ($1,$2,$3,$4,$5)`, s.charID, v.WeekReq, v.WeekCount, v.Available, v.Expiration)
-			if err != nil {
-				panic(err)
-			}
-		}
-		resp.WriteUint8(v.WeekReq)
-		resp.WriteUint8(v.WeekCount)
-		resp.WriteBool(v.Available)
-		resp.WriteUint32(v.Expiration)
-	}
-	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
+
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfUseKeepLoginBoost(s *Session, p mhfpacket.MHFPacket) {
-	// Directly interacts with MhfGetKeepLoginBoostStatus
-	// TODO: make these states persistent on a per character basis
 	pkt := p.(*mhfpacket.MsgMhfUseKeepLoginBoost)
-	var t = time.Now().In(time.FixedZone("UTC+1", 1*60*60))
-	resp := byteframe.NewByteFrame()
-	resp.WriteUint8(0)
-
-	// response is end timestamp based on input
+	var expiration time.Time
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint8(0)
 	switch pkt.BoostWeekUsed {
 	case 1:
-		t = t.Add(120 * time.Minute)
-		resp.WriteUint32(uint32(t.Unix()))
-	case 2:
-		t = t.Add(240 * time.Minute)
-		resp.WriteUint32(uint32(t.Unix()))
+		fallthrough
 	case 3:
-		t = t.Add(120 * time.Minute)
-		resp.WriteUint32(uint32(t.Unix()))
+		expiration = TimeAdjusted().Add(120 * time.Minute)
 	case 4:
-		t = t.Add(180 * time.Minute)
-		resp.WriteUint32(uint32(t.Unix()))
+		expiration = TimeAdjusted().Add(180 * time.Minute)
+	case 2:
+		fallthrough
 	case 5:
-		t = t.Add(240 * time.Minute)
-		resp.WriteUint32(uint32(t.Unix()))
+		expiration = TimeAdjusted().Add(240 * time.Minute)
 	}
-	_, err := s.server.db.Exec(`UPDATE login_boost_state SET available='false', end_time=$1 WHERE char_id=$2 AND week_req=$3`, uint32(t.Unix()), s.charID, pkt.BoostWeekUsed)
-	if err != nil {
-		panic(err)
-	}
-	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
+	bf.WriteUint32(uint32(expiration.Unix()))
+	s.server.db.Exec(`UPDATE login_boost SET expiration=$1, reset=$2 WHERE char_id=$3 AND week_req=$4`, expiration, TimeWeekNext(), s.charID, pkt.BoostWeekUsed)
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfGetRestrictionEvent(s *Session, p mhfpacket.MHFPacket) {}

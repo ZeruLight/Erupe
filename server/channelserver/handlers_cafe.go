@@ -139,7 +139,7 @@ func handleMsgMhfGetCafeDurationBonusInfo(s *Session, p mhfpacket.MHFPacket) {
 		}
 		resp := byteframe.NewByteFrame()
 		resp.WriteUint32(0)
-		resp.WriteUint32(uint32(time.Now().Unix()))
+		resp.WriteUint32(uint32(TimeAdjusted().Unix()))
 		resp.WriteUint32(count)
 		resp.WriteBytes(bf.Data())
 		doAckBufSucceed(s, pkt.AckHandle, resp.Data())

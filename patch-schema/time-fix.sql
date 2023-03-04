@@ -60,4 +60,10 @@ ALTER TABLE IF EXISTS public.users
 ALTER TABLE IF EXISTS public.users
     ALTER COLUMN return_expires TYPE TIMESTAMP WITH TIME ZONE;
 
+ALTER TABLE IF EXISTS public.guild_meals
+    DROP COLUMN expires;
+
+ALTER TABLE IF EXISTS public.guild_meals
+    ADD COLUMN created_at TIMESTAMP WITH TIME ZONE;
+
 END;

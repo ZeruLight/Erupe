@@ -144,7 +144,7 @@ func handleMsgSysLogin(s *Session, p mhfpacket.MHFPacket) {
 
 	updateRights(s)
 	bf := byteframe.NewByteFrame()
-	bf.WriteUint32(uint32(Time_Current_Adjusted().Unix())) // Unix timestamp
+	bf.WriteUint32(uint32(TimeAdjusted().Unix())) // Unix timestamp
 
 	_, err := s.server.db.Exec("UPDATE servers SET current_players=$1 WHERE server_id=$2", len(s.server.sessions), s.server.ID)
 	if err != nil {
@@ -156,7 +156,7 @@ func handleMsgSysLogin(s *Session, p mhfpacket.MHFPacket) {
 		panic(err)
 	}
 
-	_, err = s.server.db.Exec("UPDATE characters SET last_login=$1 WHERE id=$2", Time_Current().Unix(), s.charID)
+	_, err = s.server.db.Exec("UPDATE characters SET last_login=$1 WHERE id=$2", TimeAdjusted().Unix(), s.charID)
 	if err != nil {
 		panic(err)
 	}
@@ -216,7 +216,7 @@ func logoutPlayer(s *Session) {
 	var timePlayed int
 	var sessionTime int
 	_ = s.server.db.QueryRow("SELECT time_played FROM characters WHERE id = $1", s.charID).Scan(&timePlayed)
-	sessionTime = int(Time_Current_Adjusted().Unix()) - int(s.sessionStart)
+	sessionTime = int(TimeAdjusted().Unix()) - int(s.sessionStart)
 	timePlayed += sessionTime
 
 	var rpGained int
@@ -276,7 +276,7 @@ func handleMsgSysTime(s *Session, p mhfpacket.MHFPacket) {
 
 	resp := &mhfpacket.MsgSysTime{
 		GetRemoteTime: false,
-		Timestamp:     uint32(Time_Current_Adjusted().Unix()), // JP timezone
+		Timestamp:     uint32(TimeAdjusted().Unix()), // JP timezone
 	}
 	s.QueueSendMHF(resp)
 }
@@ -1505,7 +1505,7 @@ func handleMsgMhfGetEtcPoints(s *Session, p mhfpacket.MHFPacket) {
 
 	var dailyTime time.Time
 	_ = s.server.db.QueryRow("SELECT COALESCE(daily_time, $2) FROM characters WHERE id = $1", s.charID, time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)).Scan(&dailyTime)
-	if Time_Current_Adjusted().After(dailyTime) {
+	if TimeAdjusted().After(dailyTime) {
 		s.server.db.Exec("UPDATE characters SET bonus_quests = 0, daily_quests = 0 WHERE id=$1", s.charID)
 	}
 

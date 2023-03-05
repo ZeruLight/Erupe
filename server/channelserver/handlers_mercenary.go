@@ -43,9 +43,9 @@ func handleMsgMhfLoadLegendDispatch(s *Session, p mhfpacket.MHFPacket) {
 		Unk       uint32
 		Timestamp uint32
 	}{
-		{0, uint32(Time_Current_Midnight().Add(-12 * time.Hour).Unix())},
-		{0, uint32(Time_Current_Midnight().Add(12 * time.Hour).Unix())},
-		{0, uint32(Time_Current_Midnight().Add(36 * time.Hour).Unix())},
+		{0, uint32(TimeMidnight().Add(-12 * time.Hour).Unix())},
+		{0, uint32(TimeMidnight().Add(12 * time.Hour).Unix())},
+		{0, uint32(TimeMidnight().Add(36 * time.Hour).Unix())},
 	}
 	bf.WriteUint8(uint8(len(legendDispatch)))
 	for _, dispatch := range legendDispatch {
@@ -164,8 +164,8 @@ func handleMsgMhfReadMercenaryW(s *Session, p mhfpacket.MHFPacket) {
 			bf.WriteUint32(pactID)
 			bf.WriteUint32(cid)
 			bf.WriteBool(false) // ?
-			bf.WriteUint32(uint32(Time_Current_Adjusted().Add(time.Hour * 24 * -8).Unix()))
-			bf.WriteUint32(uint32(Time_Current_Adjusted().Add(time.Hour * 24 * -1).Unix()))
+			bf.WriteUint32(uint32(TimeAdjusted().Add(time.Hour * 24 * -8).Unix()))
+			bf.WriteUint32(uint32(TimeAdjusted().Add(time.Hour * 24 * -1).Unix()))
 			bf.WriteBytes(stringsupport.PaddedString(name, 18, true))
 		} else {
 			bf.WriteUint8(0)
@@ -180,8 +180,8 @@ func handleMsgMhfReadMercenaryW(s *Session, p mhfpacket.MHFPacket) {
 				rows.Scan(&name, &cid, &pactID)
 				temp.WriteUint32(pactID)
 				temp.WriteUint32(cid)
-				temp.WriteUint32(uint32(Time_Current_Adjusted().Add(time.Hour * 24 * -8).Unix()))
-				temp.WriteUint32(uint32(Time_Current_Adjusted().Add(time.Hour * 24 * -1).Unix()))
+				temp.WriteUint32(uint32(TimeAdjusted().Add(time.Hour * 24 * -8).Unix()))
+				temp.WriteUint32(uint32(TimeAdjusted().Add(time.Hour * 24 * -1).Unix()))
 				temp.WriteBytes(stringsupport.PaddedString(name, 18, true))
 			}
 			bf.WriteUint8(loans)
@@ -346,7 +346,7 @@ func getGuildAirouList(s *Session) []CatDefinition {
 	FROM guild_hunts gh
 	INNER JOIN characters c
 	ON gh.host_id = c.id
-	WHERE c.id=$1 AND gh.return+$2>$3`, s.charID, tempBanDuration, Time_Current_Adjusted().Unix())
+	WHERE c.id=$1 AND gh.return+$2>$3`, s.charID, tempBanDuration, TimeAdjusted().Unix())
 	if err != nil {
 		s.logger.Warn("Failed to get recently used airous", zap.Error(err))
 	}

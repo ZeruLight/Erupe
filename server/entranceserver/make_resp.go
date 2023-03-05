@@ -66,7 +66,7 @@ func encodeServerInfo(config *config.Config, s *Server, local bool) []byte {
 			bf.WriteUint16(0x3039)
 		}
 	}
-	bf.WriteUint32(uint32(channelserver.Time_Current_Adjusted().Unix()))
+	bf.WriteUint32(uint32(channelserver.TimeAdjusted().Unix()))
 	bf.WriteUint32(0x0000003C)
 	return bf.Data()
 }

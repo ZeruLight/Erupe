@@ -15,7 +15,7 @@ func cleanupDiva(s *Session) {
 
 func generateDivaTimestamps(s *Session, start uint32, debug bool) []uint32 {
 	timestamps := make([]uint32, 6)
-	midnight := Time_Current_Midnight()
+	midnight := TimeMidnight()
 	if debug && start <= 3 {
 		midnight := uint32(midnight.Unix())
 		switch start {
@@ -43,7 +43,7 @@ func generateDivaTimestamps(s *Session, start uint32, debug bool) []uint32 {
 		}
 		return timestamps
 	}
-	if start == 0 || Time_Current_Adjusted().Unix() > int64(start)+2977200 {
+	if start == 0 || TimeAdjusted().Unix() > int64(start)+2977200 {
 		cleanupDiva(s)
 		// Generate a new diva defense, starting midnight tomorrow
 		start = uint32(midnight.Add(24 * time.Hour).Unix())

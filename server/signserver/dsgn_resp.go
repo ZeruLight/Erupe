@@ -8,6 +8,7 @@ import (
 	"erupe-ce/server/channelserver"
 	"fmt"
 	"math/rand"
+	"strings"
 	"time"
 
 	"go.uber.org/zap"
@@ -51,7 +52,11 @@ func (s *Session) makeSignInResp(uid int) []byte {
 			ps.Uint8(bf, s.server.erupeConfig.PatchServerFile, false)
 		}
 	}
-	ps.Uint8(bf, fmt.Sprintf("%s:%d", s.server.erupeConfig.Host, s.server.erupeConfig.Entrance.Port), false)
+	if strings.Split(s.rawConn.RemoteAddr().String(), ":")[0] == "127.0.0.1" {
+		ps.Uint8(bf, fmt.Sprintf("127.0.0.1:%d", s.server.erupeConfig.Entrance.Port), false)
+	} else {
+		ps.Uint8(bf, fmt.Sprintf("%s:%d", s.server.erupeConfig.Host, s.server.erupeConfig.Entrance.Port), false)
+	}
 
 	lastPlayed := uint32(0)
 	for _, char := range chars {
@@ -122,12 +127,7 @@ func (s *Session) makeSignInResp(uid int) []byte {
 	bf.WriteUint16(0x0001)
 	bf.WriteUint16(0x4E20)
 	ps.Uint16(bf, "", false) // unk ipv4
-	if returnExpiry.Before(time.Now()) {
-		// Hack to make Return work while having a non-adjusted expiry
-		bf.WriteUint32(0)
-	} else {
-		bf.WriteUint32(uint32(returnExpiry.Unix()))
-	}
+	bf.WriteUint32(uint32(returnExpiry.Unix()))
 	bf.WriteUint32(0x00000000)
 	bf.WriteUint32(0x0A5197DF) // unk id
 
@@ -135,9 +135,9 @@ func (s *Session) makeSignInResp(uid int) []byte {
 	alt := s.server.erupeConfig.DevModeOptions.MezFesAlt
 	if mezfes {
 		// Start time
-		bf.WriteUint32(uint32(channelserver.Time_Current_Adjusted().Add(-5 * time.Minute).Unix()))
+		bf.WriteUint32(uint32(channelserver.TimeWeekStart().Unix()))
 		// End time
-		bf.WriteUint32(uint32(channelserver.Time_Current_Adjusted().Add(24 * time.Hour * 7).Unix()))
+		bf.WriteUint32(uint32(channelserver.TimeWeekNext().Unix()))
 		bf.WriteUint8(2)   // Unk
 		bf.WriteUint32(20) // Single tickets
 		bf.WriteUint32(10) // Group tickets

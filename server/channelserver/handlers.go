@@ -79,7 +79,7 @@ func updateRights(s *Session) {
 	rights := []mhfpacket.ClientRight{{1, 0, 0}}
 	var netcafeBitSet bool
 	for _, course := range s.courses {
-		if (course.ID == 9 || course.ID == 26) && !netcafeBitSet {
+		if (course.ID == 9 || course.ID == 25 || course.ID == 26) && !netcafeBitSet {
 			netcafeBitSet = true
 			rightsInt += 0x40000000 // set netcafe bit
 			rights = append(rights, mhfpacket.ClientRight{ID: 30})
@@ -144,7 +144,7 @@ func handleMsgSysLogin(s *Session, p mhfpacket.MHFPacket) {
 
 	updateRights(s)
 	bf := byteframe.NewByteFrame()
-	bf.WriteUint32(uint32(Time_Current_Adjusted().Unix())) // Unix timestamp
+	bf.WriteUint32(uint32(TimeAdjusted().Unix())) // Unix timestamp
 
 	_, err := s.server.db.Exec("UPDATE servers SET current_players=$1 WHERE server_id=$2", len(s.server.sessions), s.server.ID)
 	if err != nil {
@@ -156,7 +156,7 @@ func handleMsgSysLogin(s *Session, p mhfpacket.MHFPacket) {
 		panic(err)
 	}
 
-	_, err = s.server.db.Exec("UPDATE characters SET last_login=$1 WHERE id=$2", Time_Current().Unix(), s.charID)
+	_, err = s.server.db.Exec("UPDATE characters SET last_login=$1 WHERE id=$2", TimeAdjusted().Unix(), s.charID)
 	if err != nil {
 		panic(err)
 	}
@@ -216,7 +216,7 @@ func logoutPlayer(s *Session) {
 	var timePlayed int
 	var sessionTime int
 	_ = s.server.db.QueryRow("SELECT time_played FROM characters WHERE id = $1", s.charID).Scan(&timePlayed)
-	sessionTime = int(Time_Current_Adjusted().Unix()) - int(s.sessionStart)
+	sessionTime = int(TimeAdjusted().Unix()) - int(s.sessionStart)
 	timePlayed += sessionTime
 
 	var rpGained int
@@ -276,7 +276,7 @@ func handleMsgSysTime(s *Session, p mhfpacket.MHFPacket) {
 
 	resp := &mhfpacket.MsgSysTime{
 		GetRemoteTime: false,
-		Timestamp:     uint32(Time_Current_Adjusted().Unix()), // JP timezone
+		Timestamp:     uint32(TimeAdjusted().Unix()), // JP timezone
 	}
 	s.QueueSendMHF(resp)
 }
@@ -527,8 +527,6 @@ func handleMsgMhfTransitMessage(s *Session, p mhfpacket.MHFPacket) {
 }
 
 func handleMsgCaExchangeItem(s *Session, p mhfpacket.MHFPacket) {}
-
-func handleMsgMhfPresentBox(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfServerCommand(s *Session, p mhfpacket.MHFPacket) {}
 
@@ -1507,7 +1505,7 @@ func handleMsgMhfGetEtcPoints(s *Session, p mhfpacket.MHFPacket) {
 
 	var dailyTime time.Time
 	_ = s.server.db.QueryRow("SELECT COALESCE(daily_time, $2) FROM characters WHERE id = $1", s.charID, time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)).Scan(&dailyTime)
-	if Time_Current_Adjusted().After(dailyTime) {
+	if TimeAdjusted().After(dailyTime) {
 		s.server.db.Exec("UPDATE characters SET bonus_quests = 0, daily_quests = 0 WHERE id=$1", s.charID)
 	}
 
@@ -1706,14 +1704,6 @@ func handleMsgMhfPostNotice(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfGetRandFromTable(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfGetTinyBin(s *Session, p mhfpacket.MHFPacket) {
-	pkt := p.(*mhfpacket.MsgMhfGetTinyBin)
-	// requested after conquest quests
-	doAckBufSucceed(s, pkt.AckHandle, []byte{})
-}
-
-func handleMsgMhfPostTinyBin(s *Session, p mhfpacket.MHFPacket) {}
-
 func handleMsgMhfGetSenyuDailyCount(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfGetSeibattle(s *Session, p mhfpacket.MHFPacket) {
@@ -1722,45 +1712,6 @@ func handleMsgMhfGetSeibattle(s *Session, p mhfpacket.MHFPacket) {
 }
 
 func handleMsgMhfPostSeibattle(s *Session, p mhfpacket.MHFPacket) {}
-
-func handleMsgMhfGetRyoudama(s *Session, p mhfpacket.MHFPacket) {
-	pkt := p.(*mhfpacket.MsgMhfGetRyoudama)
-	// likely guild related
-	// REQ: 00 04 13 53 8F 18 00
-	// RSP: 0A 21 8E AD 00 00 00 00 00 00 00 00 00 00 00 01 00 01 FE 4E
-	// REQ: 00 06 13 53 8F 18 00
-	// RSP: 0A 21 8E AD 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 00
-	// REQ: 00 05 13 53 8F 18 00
-	// RSP: 0A 21 8E AD 00 00 00 00 00 00 00 00 00 00 00 0E 2A 15 9E CC 00 00 00 01 82 79 83 4E 83 8A 81 5B 83 69 00 00 00 00 1E 55 B0 2F 00 00 00 01 8D F7 00 00 00 00 00 00 00 00 00 00 00 00 2A 15 9E CC 00 00 00 02 82 79 83 4E 83 8A 81 5B 83 69 00 00 00 00 03 D5 30 56 00 00 00 02 95 BD 91 F2 97 42 00 00 00 00 00 00 00 00 3F 57 76 9F 00 00 00 03 93 56 92 6E 96 B3 97 70 00 00 00 00 00 00 38 D9 0E C4 00 00 00 03 87 64 83 78 83 42 00 00 00 00 00 00 00 00 23 F3 B9 77 00 00 00 04 82 B3 82 CC 82 DC 82 E9 81 99 00 00 00 00 3F 1B 17 9C 00 00 00 04 82 B1 82 A4 82 BD 00 00 00 00 00 00 00 00 00 B9 F9 C0 00 00 00 05 82 CD 82 E9 82 A9 00 00 00 00 00 00 00 00 23 9F 9A EA 00 00 00 05 83 70 83 62 83 4C 83 83 83 49 00 00 00 00 38 D9 0E C4 00 00 00 06 87 64 83 78 83 42 00 00 00 00 00 00 00 00 1E 55 B0 2F 00 00 00 06 8D F7 00 00 00 00 00 00 00 00 00 00 00 00 03 D5 30 56 00 00 00 07 95 BD 91 F2 97 42 00 00 00 00 00 00 00 00 02 D3 B8 77 00 00 00 07 6F 77 6C 32 35 32 35 00 00 00 00 00 00 00
-	data, _ := hex.DecodeString("0A218EAD0000000000000000000000010000000000000000")
-	doAckBufSucceed(s, pkt.AckHandle, data)
-}
-
-func handleMsgMhfPostRyoudama(s *Session, p mhfpacket.MHFPacket) {}
-
-func handleMsgMhfGetTenrouirai(s *Session, p mhfpacket.MHFPacket) {
-	// if the game gets bad responses for this it breaks the ability to save
-	pkt := p.(*mhfpacket.MsgMhfGetTenrouirai)
-	var data []byte
-	var err error
-	if pkt.Unk0 == 1 {
-		data, err = hex.DecodeString("0A218EAD000000000000000000000001010000000000060010")
-	} else if pkt.Unk2 == 4 {
-		data, err = hex.DecodeString("0A218EAD0000000000000000000000210101005000000202010102020104001000000202010102020106003200000202010002020104000C003202020101020201030032000002020101020202059C4000000202010002020105C35000320202010102020201003C00000202010102020203003200000201010001020203002800320201010101020204000C00000201010101020206002800000201010001020101003C00320201020101020105C35000000301020101020106003200000301020001020104001000320301020101020105C350000003010201010202030028000003010200010201030032003203010201010202059C4000000301020101010206002800000301020001010201003C00320301020101010206003200000301020101010204000C000003010200010101010050003203010201010101059C40000003010201010101030032000003010200010101040010003203010001010101060032000003010001010102030028000003010001010101010050003203010000010102059C4000000301000001010206002800000301000001010010")
-	} else {
-		data = []byte{0x00, 0x00, 0x00, 0x00}
-		s.logger.Info("GET_TENROUIRAI request for unknown type")
-	}
-	if err != nil {
-		panic(err)
-	}
-	doAckBufSucceed(s, pkt.AckHandle, data)
-}
-
-func handleMsgMhfPostTenrouirai(s *Session, p mhfpacket.MHFPacket) {
-	pkt := p.(*mhfpacket.MsgMhfPostTenrouirai)
-	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
-}
 
 func handleMsgMhfGetDailyMissionMaster(s *Session, p mhfpacket.MHFPacket) {}
 

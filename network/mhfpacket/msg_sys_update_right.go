@@ -89,8 +89,10 @@ func Courses() []Course {
 		{Aliases: []string{"Hiden", "Secret"}, ID: 10},                                       // Secret
 		{Aliases: []string{"HunterSupport", "HunterAid", "Support", "Aid", "Royal"}, ID: 11}, // Royal
 		{Aliases: []string{"NBoost", "NetCafeBoost", "Boost"}, ID: 12},
-		// 13-25 do nothing
-		{Aliases: []string{"NetCafe", "Cafe", "InternetCafe"}, ID: 26},
+		// 13-19 = (unknown), 20 = DEBUG, 21 = COG_LINK_EXPIRED, 22 = 360_GOLD, 23 = PS3_TROP
+		{Aliases: []string{"COG"}, ID: 24},
+		{Aliases: []string{"NetCafe", "Cafe", "InternetCafe"}, ID: 25},
+		{Aliases: []string{"OfficialCafe", "Official"}, ID: 26},
 		{Aliases: []string{"HLRenewing", "HLR", "HLRenewal", "HLRenew"}, ID: 27},
 		{Aliases: []string{"EXRenewing", "EXR", "EXRenewal", "EXRenew"}, ID: 28},
 		{Aliases: []string{"Free"}, ID: 29},

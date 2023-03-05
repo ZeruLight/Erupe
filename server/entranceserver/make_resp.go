@@ -17,7 +17,7 @@ var season uint8
 // Server Channels
 var currentplayers uint16
 
-func encodeServerInfo(config *config.Config, s *Server) []byte {
+func encodeServerInfo(config *config.Config, s *Server, local bool) []byte {
 	serverInfos := config.Entrance.Entries
 	bf := byteframe.NewByteFrame()
 
@@ -30,7 +30,11 @@ func encodeServerInfo(config *config.Config, s *Server) []byte {
 		if si.IP == "" {
 			si.IP = config.Host
 		}
-		bf.WriteUint32(binary.LittleEndian.Uint32(net.ParseIP(si.IP).To4()))
+		if local {
+			bf.WriteUint32(0x0100007F) // 127.0.0.1
+		} else {
+			bf.WriteUint32(binary.LittleEndian.Uint32(net.ParseIP(si.IP).To4()))
+		}
 		bf.WriteUint16(16 + uint16(serverIdx))
 		bf.WriteUint16(0x0000)
 		bf.WriteUint16(uint16(len(si.Channels)))
@@ -62,7 +66,7 @@ func encodeServerInfo(config *config.Config, s *Server) []byte {
 			bf.WriteUint16(0x3039)
 		}
 	}
-	bf.WriteUint32(uint32(channelserver.Time_Current_Adjusted().Unix()))
+	bf.WriteUint32(uint32(channelserver.TimeAdjusted().Unix()))
 	bf.WriteUint32(0x0000003C)
 	return bf.Data()
 }
@@ -85,9 +89,9 @@ func makeHeader(data []byte, respType string, entryCount uint16, key byte) []byt
 	return bf.Data()
 }
 
-func makeSv2Resp(config *config.Config, s *Server) []byte {
+func makeSv2Resp(config *config.Config, s *Server, local bool) []byte {
 	serverInfos := config.Entrance.Entries
-	rawServerData := encodeServerInfo(config, s)
+	rawServerData := encodeServerInfo(config, s, local)
 	bf := byteframe.NewByteFrame()
 	bf.WriteBytes(makeHeader(rawServerData, "SV2", uint16(len(serverInfos)), 0x00))
 	return bf.Data()

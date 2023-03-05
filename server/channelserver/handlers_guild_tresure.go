@@ -27,7 +27,7 @@ func handleMsgMhfEnumerateGuildTresure(s *Session, p mhfpacket.MHFPacket) {
 	}
 	bf := byteframe.NewByteFrame()
 	hunts := 0
-	rows, _ := s.server.db.Queryx("SELECT id, host_id, destination, level, return, acquired, claimed, hunters, treasure, hunt_data FROM guild_hunts WHERE guild_id=$1 AND $2 < return+604800", guild.ID, Time_Current_Adjusted().Unix())
+	rows, _ := s.server.db.Queryx("SELECT id, host_id, destination, level, return, acquired, claimed, hunters, treasure, hunt_data FROM guild_hunts WHERE guild_id=$1 AND $2 < return+604800", guild.ID, TimeAdjusted().Unix())
 	for rows.Next() {
 		hunt := &TreasureHunt{}
 		err = rows.StructScan(&hunt)
@@ -101,7 +101,7 @@ func handleMsgMhfRegistGuildTresure(s *Session, p mhfpacket.MHFPacket) {
 		}
 	}
 	_, err = s.server.db.Exec("INSERT INTO guild_hunts (guild_id, host_id, destination, level, return, hunt_data, cats_used) VALUES ($1, $2, $3, $4, $5, $6, $7)",
-		guild.ID, s.charID, destination, level, Time_Current_Adjusted().Unix(), huntData.Data(), catsUsed)
+		guild.ID, s.charID, destination, level, TimeAdjusted().Unix(), huntData.Data(), catsUsed)
 	if err != nil {
 		panic(err)
 	}
@@ -124,7 +124,10 @@ func treasureHuntUnregister(s *Session) {
 	}
 	var huntID int
 	var hunters string
-	rows, _ := s.server.db.Queryx("SELECT id, hunters FROM guild_hunts WHERE guild_id=$1", guild.ID)
+	rows, err := s.server.db.Queryx("SELECT id, hunters FROM guild_hunts WHERE guild_id=$1", guild.ID)
+	if err != nil {
+		return
+	}
 	for rows.Next() {
 		rows.Scan(&huntID, &hunters)
 		hunters = stringsupport.CSVRemove(hunters, int(s.charID))

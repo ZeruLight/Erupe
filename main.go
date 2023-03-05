@@ -5,6 +5,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"runtime/debug"
 	"syscall"
 	"time"
 
@@ -29,13 +30,24 @@ func cleanDB(db *sqlx.DB) {
 	_ = db.MustExec("DELETE FROM users")
 }
 
+var Commit = func() string {
+	if info, ok := debug.ReadBuildInfo(); ok {
+		for _, setting := range info.Settings {
+			if setting.Key == "vcs.revision" {
+				return setting.Value[:7]
+			}
+		}
+	}
+	return "unknown"
+}
+
 func main() {
 	var err error
 	zapLogger, _ := zap.NewDevelopment()
 	defer zapLogger.Sync()
 	logger := zapLogger.Named("main")
 
-	logger.Info("Starting Erupe (9.2b)")
+	logger.Info(fmt.Sprintf("Starting Erupe (9.2b-%s)", Commit()))
 
 	if config.ErupeConfig.Database.Password == "" {
 		preventClose("Database password is blank")
@@ -112,6 +124,8 @@ func main() {
 		cleanDB(db)
 		logger.Info("Done cleaning DB")
 	}
+
+	logger.Info(fmt.Sprintf("Server Time: %s", channelserver.TimeAdjusted().String()))
 
 	// Now start our server(s).
 
@@ -211,12 +225,14 @@ func main() {
 		}
 	}
 
+	logger.Info("Finished starting Erupe")
+
 	// Wait for exit or interrupt with ctrl+C.
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	<-c
 
-	logger.Info("Trying to shutdown gracefully")
+	logger.Info("Shutting down...")
 
 	if config.ErupeConfig.Channel.Enabled {
 		for _, c := range channels {

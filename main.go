@@ -2,11 +2,11 @@ package main
 
 import (
 	"fmt"
+	"github.com/rivo/tview"
 	"net"
 	"os"
-	"os/signal"
 	"runtime/debug"
-	"syscall"
+	"strconv"
 	"time"
 
 	"erupe-ce/config"
@@ -227,10 +227,45 @@ func main() {
 
 	logger.Info("Finished starting Erupe")
 
-	// Wait for exit or interrupt with ctrl+C.
-	c := make(chan os.Signal, 1)
-	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
-	<-c
+	app := tview.NewApplication()
+
+	channelNode := tview.NewTreeNode("Channel")
+
+	browser := tview.NewTreeView().SetRoot(channelNode).SetCurrentNode(channelNode)
+	browser.SetTitle("Channel Browser").SetBorder(true)
+
+	erupeNode := tview.NewTreeNode("Erupe")
+
+	channelsList := tview.NewTreeView().SetRoot(erupeNode).SetCurrentNode(erupeNode)
+	channelsList.SetTitle("Channels").SetBorder(true)
+
+	for _, channel := range channels {
+		temp := tview.NewTreeNode(strconv.Itoa(int(channel.Port))).SetReference(channel)
+		erupeNode.AddChild(temp)
+	}
+
+	channelsList.SetSelectedFunc(func(node *tview.TreeNode) {
+		channelNode.ClearChildren()
+		ref := node.GetReference()
+		for id, stage := range ref.(*channelserver.Server).Stages() {
+			stageNode := tview.NewTreeNode(id).SetExpanded(true)
+			for i, j := range stage.Clients() {
+				charNode := tview.NewTreeNode(i.Name + " (" + strconv.Itoa(int(j)) + ")")
+				stageNode.AddChild(charNode)
+			}
+			channelNode.AddChild(stageNode)
+		}
+	})
+
+	flex := tview.NewFlex().
+		AddItem(channelsList, 0, 1, true).
+		AddItem(browser, 0, 3, false)
+
+	app.SetRoot(flex, true).EnableMouse(true)
+
+	if err = app.Run(); err != nil {
+		logger.Error("Error in TUI")
+	}
 
 	logger.Info("Shutting down...")
 
@@ -251,8 +286,6 @@ func main() {
 	if config.ErupeConfig.Entrance.Enabled {
 		entranceServer.Shutdown()
 	}
-
-	time.Sleep(1 * time.Second)
 }
 
 func wait() {

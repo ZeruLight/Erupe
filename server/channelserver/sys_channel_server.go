@@ -266,6 +266,10 @@ func (s *Server) manageSessions() {
 	}
 }
 
+func (s *Server) Stages() map[string]*Stage {
+	return s.stages
+}
+
 // BroadcastMHF queues a MHFPacket to be sent to all sessions.
 func (s *Server) BroadcastMHF(pkt mhfpacket.MHFPacket, ignoredSession *Session) {
 	// Broadcast the data.

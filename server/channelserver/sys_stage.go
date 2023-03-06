@@ -67,6 +67,10 @@ func NewStage(ID string) *Stage {
 	return s
 }
 
+func (s *Stage) Clients() map[*Session]uint32 {
+	return s.clients
+}
+
 // BroadcastMHF queues a MHFPacket to be sent to all sessions in the stage.
 func (s *Stage) BroadcastMHF(pkt mhfpacket.MHFPacket, ignoredSession *Session) {
 	s.Lock()

@@ -135,7 +135,6 @@ func destructEmptyStages(s *Session) {
 
 func removeSessionFromStage(s *Session) {
 	// Remove client from old stage.
-	s.stage.Lock()
 	delete(s.stage.clients, s)
 
 	// Delete old stage objects owned by the client.
@@ -146,7 +145,6 @@ func removeSessionFromStage(s *Session) {
 			delete(s.stage.objects, object.ownerCharID)
 		}
 	}
-	s.stage.Unlock()
 	destructEmptyStages(s)
 	destructEmptySemaphores(s)
 }

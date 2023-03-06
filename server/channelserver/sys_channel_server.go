@@ -269,6 +269,8 @@ func (s *Server) manageSessions() {
 // BroadcastMHF queues a MHFPacket to be sent to all sessions.
 func (s *Server) BroadcastMHF(pkt mhfpacket.MHFPacket, ignoredSession *Session) {
 	// Broadcast the data.
+	s.Lock()
+	defer s.Unlock()
 	for _, session := range s.sessions {
 		if session == ignoredSession {
 			continue
@@ -291,16 +293,7 @@ func (s *Server) WorldcastMHF(pkt mhfpacket.MHFPacket, ignoredSession *Session, 
 		if c == ignoredChannel {
 			continue
 		}
-		for _, session := range c.sessions {
-			if session == ignoredSession {
-				continue
-			}
-			bf := byteframe.NewByteFrame()
-			bf.WriteUint16(uint16(pkt.Opcode()))
-			pkt.Build(bf, session.clientContext)
-			bf.WriteUint16(0x0010)
-			session.QueueSendNonBlocking(bf.Data())
-		}
+		c.BroadcastMHF(pkt, ignoredSession)
 	}
 }
 

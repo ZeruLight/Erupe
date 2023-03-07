@@ -61,28 +61,25 @@ func handleMsgMhfGetWeeklySchedule(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetWeeklySchedule)
 
 	var features []activeFeature
-	rows, _ := s.server.db.Queryx(`SELECT start_time, featured FROM feature_weapon WHERE start_time=$1 OR start_time=$2`, TimeMidnight(), TimeMidnight().Add(24*time.Hour))
-	for rows.Next() {
-		var feature activeFeature
-		rows.StructScan(&feature)
-		features = append(features, feature)
+	times := []time.Time{
+		TimeMidnight().Add(-24 * time.Hour),
+		TimeMidnight(),
+		TimeMidnight().Add(24 * time.Hour),
 	}
 
-	if len(features) < 2 {
-		if len(features) == 0 {
-			feature := generateFeatureWeapons(s.server.erupeConfig.FeaturedWeapons)
-			feature.StartTime = TimeMidnight()
-			features = append(features, feature)
-			s.server.db.Exec(`INSERT INTO feature_weapon VALUES ($1, $2)`, feature.StartTime, feature.ActiveFeatures)
+	for _, t := range times {
+		var temp activeFeature
+		err := s.server.db.QueryRowx(`SELECT start_time, featured FROM feature_weapon WHERE start_time=$1`, t).StructScan(&temp)
+		if err != nil || temp.StartTime.IsZero() {
+			temp = generateFeatureWeapons(s.server.erupeConfig.FeaturedWeapons)
+			temp.StartTime = t
+			s.server.db.Exec(`INSERT INTO feature_weapon VALUES ($1, $2)`, temp.StartTime, temp.ActiveFeatures)
 		}
-		feature := generateFeatureWeapons(s.server.erupeConfig.FeaturedWeapons)
-		feature.StartTime = TimeMidnight().Add(24 * time.Hour)
-		features = append(features, feature)
-		s.server.db.Exec(`INSERT INTO feature_weapon VALUES ($1, $2)`, feature.StartTime, feature.ActiveFeatures)
+		features = append(features, temp)
 	}
 
 	bf := byteframe.NewByteFrame()
-	bf.WriteUint8(2)
+	bf.WriteUint8(uint8(len(features)))
 	bf.WriteUint32(uint32(TimeAdjusted().Add(-5 * time.Minute).Unix()))
 	for _, feature := range features {
 		bf.WriteUint32(uint32(feature.StartTime.Unix()))

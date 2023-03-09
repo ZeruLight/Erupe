@@ -1772,7 +1772,7 @@ func handleMsgMhfLoadGuildCooking(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfRegistGuildCooking(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfRegistGuildCooking)
 	guild, _ := GetGuildInfoByCharacterId(s, s.charID)
-	currentTime := TimeAdjusted()
+	currentTime := TimeAdjusted().Add(time.Duration(s.server.erupeConfig.GameplayOptions.GuildMealDuration-60) * time.Minute)
 	if pkt.OverwriteID != 0 {
 		s.server.db.Exec("UPDATE guild_meals SET meal_id = $1, level = $2, created_at = $3 WHERE id = $4", pkt.MealID, pkt.Success, currentTime, pkt.OverwriteID)
 	} else {

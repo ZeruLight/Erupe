@@ -31,6 +31,10 @@
       "OutputDir": "savedata"
     }
   },
+  "GameplayOptions": {
+    "DisableLoginBoost": false,
+    "GuildMealDuration": 60
+  },
   "Discord": {
     "Enabled": false,
     "BotToken": "",

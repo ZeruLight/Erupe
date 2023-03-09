@@ -25,15 +25,16 @@ type Config struct {
 	DeleteOnSaveCorruption bool   // Attempts to save corrupted data will flag the save for deletion
 	DevMode                bool
 
-	DevModeOptions DevModeOptions
-	Discord        Discord
-	Commands       []Command
-	Courses        []Course
-	Database       Database
-	Sign           Sign
-	SignV2         SignV2
-	Channel        Channel
-	Entrance       Entrance
+	DevModeOptions  DevModeOptions
+	GameplayOptions GameplayOptions
+	Discord         Discord
+	Commands        []Command
+	Courses         []Course
+	Database        Database
+	Sign            Sign
+	SignV2          SignV2
+	Channel         Channel
+	Entrance        Entrance
 }
 
 // DevModeOptions holds various debug/temporary options for use while developing Erupe.
@@ -58,6 +59,12 @@ type DevModeOptions struct {
 type SaveDumpOptions struct {
 	Enabled   bool
 	OutputDir string
+}
+
+// GameplayOptions has various gameplay modifiers
+type GameplayOptions struct {
+	DisableLoginBoost bool // Disables the Login Boost system
+	GuildMealDuration int  // The number of minutes a Guild Meal can be activated for after cooking
 }
 
 // Discord holds the discord integration config.

@@ -246,13 +246,15 @@ func main() {
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	<-c
 
-	for i := 0; i < 10; i++ {
-		message := fmt.Sprintf("Shutting down in %d...", 10-i)
-		for _, c := range channels {
-			c.BroadcastChatMessage(message)
+	if !config.ErupeConfig.DisableSoftCrash {
+		for i := 0; i < 10; i++ {
+			message := fmt.Sprintf("Shutting down in %d...", 10-i)
+			for _, c := range channels {
+				c.BroadcastChatMessage(message)
+			}
+			logger.Info(message)
+			time.Sleep(time.Second)
 		}
-		logger.Info(message)
-		time.Sleep(time.Second)
 	}
 
 	if config.ErupeConfig.Channel.Enabled {

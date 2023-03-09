@@ -1871,13 +1871,13 @@ func handleMsgMhfEnumerateGuildMessageBoard(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfUpdateGuildMessageBoard(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfUpdateGuildMessageBoard)
 	bf := byteframe.NewByteFrameFromBytes(pkt.Request)
-	guild, _ := GetGuildInfoByCharacterId(s, s.charID)
-	if guild == nil {
-		if pkt.MessageOp == 5 {
-			doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
-			return
-		}
-		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+	guild, err := GetGuildInfoByCharacterId(s, s.charID)
+	applicant := false
+	if guild != nil {
+		applicant, _ = guild.HasApplicationForCharID(s, s.charID)
+	}
+	if err != nil || guild == nil || applicant {
+		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
 	switch pkt.MessageOp {

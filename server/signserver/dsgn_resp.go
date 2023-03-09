@@ -111,9 +111,10 @@ func (s *Session) makeSignInResp(uid int) []byte {
 	if s.server.erupeConfig.HideLoginNotice {
 		bf.WriteUint8(0)
 	} else {
-		bf.WriteUint8(1) // Notice count
-		noticeText := s.server.erupeConfig.LoginNotice
-		ps.Uint32(bf, noticeText, true)
+		bf.WriteUint8(uint8(len(s.server.erupeConfig.LoginNotices)))
+		for _, notice := range s.server.erupeConfig.LoginNotices {
+			ps.Uint32(bf, notice, true)
+		}
 	}
 
 	bf.WriteUint32(s.server.getLastCID(uid))

@@ -15,13 +15,13 @@ type Config struct {
 	Host                   string `mapstructure:"Host"`
 	BinPath                string `mapstructure:"BinPath"`
 	Language               string
-	DisableSoftCrash       bool   // Disables the 'Press Return to exit' dialog allowing scripts to reboot the server automatically
-	HideLoginNotice        bool   // Hide the Erupe notice on login
-	LoginNotice            string // MHFML string of the login notice displayed
-	PatchServerManifest    string // Manifest patch server override
-	PatchServerFile        string // File patch server override
-	ScreenshotAPIURL       string // Destination for screenshots uploaded to BBS
-	DeleteOnSaveCorruption bool   // Attempts to save corrupted data will flag the save for deletion
+	DisableSoftCrash       bool     // Disables the 'Press Return to exit' dialog allowing scripts to reboot the server automatically
+	HideLoginNotice        bool     // Hide the Erupe notice on login
+	LoginNotices           []string // MHFML string of the login notices displayed
+	PatchServerManifest    string   // Manifest patch server override
+	PatchServerFile        string   // File patch server override
+	ScreenshotAPIURL       string   // Destination for screenshots uploaded to BBS
+	DeleteOnSaveCorruption bool     // Attempts to save corrupted data will flag the save for deletion
 	DevMode                bool
 
 	DevModeOptions  DevModeOptions

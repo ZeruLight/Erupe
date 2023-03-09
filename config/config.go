@@ -15,25 +15,25 @@ type Config struct {
 	Host                   string `mapstructure:"Host"`
 	BinPath                string `mapstructure:"BinPath"`
 	Language               string
-	DisableSoftCrash       bool   // Disables the 'Press Return to exit' dialog allowing scripts to reboot the server automatically
-	FeaturedWeapons        int    // Number of Active Feature weapons to generate daily
-	HideLoginNotice        bool   // Hide the Erupe notice on login
-	LoginNotice            string // MHFML string of the login notice displayed
-	PatchServerManifest    string // Manifest patch server override
-	PatchServerFile        string // File patch server override
-	ScreenshotAPIURL       string // Destination for screenshots uploaded to BBS
-	DeleteOnSaveCorruption bool   // Attempts to save corrupted data will flag the save for deletion
+	DisableSoftCrash       bool     // Disables the 'Press Return to exit' dialog allowing scripts to reboot the server automatically
+	HideLoginNotice        bool     // Hide the Erupe notice on login
+	LoginNotices           []string // MHFML string of the login notices displayed
+	PatchServerManifest    string   // Manifest patch server override
+	PatchServerFile        string   // File patch server override
+	ScreenshotAPIURL       string   // Destination for screenshots uploaded to BBS
+	DeleteOnSaveCorruption bool     // Attempts to save corrupted data will flag the save for deletion
 	DevMode                bool
 
-	DevModeOptions DevModeOptions
-	Discord        Discord
-	Commands       []Command
-	Courses        []Course
-	Database       Database
-	Sign           Sign
-	SignV2         SignV2
-	Channel        Channel
-	Entrance       Entrance
+	DevModeOptions  DevModeOptions
+	GameplayOptions GameplayOptions
+	Discord         Discord
+	Commands        []Command
+	Courses         []Course
+	Database        Database
+	Sign            Sign
+	SignV2          SignV2
+	Channel         Channel
+	Entrance        Entrance
 }
 
 // DevModeOptions holds various debug/temporary options for use while developing Erupe.
@@ -58,6 +58,19 @@ type DevModeOptions struct {
 type SaveDumpOptions struct {
 	Enabled   bool
 	OutputDir string
+}
+
+// GameplayOptions has various gameplay modifiers
+type GameplayOptions struct {
+	FeaturedWeapons     int    // Number of Active Feature weapons to generate daily
+	MaximumNP           int    // Maximum number of NP held by a player
+	MaximumRP           uint16 // Maximum number of RP held by a player
+	DisableLoginBoost   bool   // Disables the Login Boost system
+	DisableBoostTime    bool   // Disables the daily NetCafe Boost Time
+	BoostTimeDuration   int    // The number of minutes NetCafe Boost Time lasts for
+	GuildMealDuration   int    // The number of minutes a Guild Meal can be activated for after cooking
+	BonusQuestAllowance uint32 // Number of Bonus Point Quests to allow daily
+	DailyQuestAllowance uint32 // Number of Daily Quests to allow daily
 }
 
 // Discord holds the discord integration config.

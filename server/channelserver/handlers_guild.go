@@ -1724,57 +1724,59 @@ func handleMsgMhfCancelGuildMissionTarget(s *Session, p mhfpacket.MHFPacket) {
 }
 
 type GuildMeal struct {
-	ID      uint32 `db:"id"`
-	MealID  uint32 `db:"meal_id"`
-	Level   uint32 `db:"level"`
-	Expires uint32 `db:"expires"`
+	ID        uint32    `db:"id"`
+	MealID    uint32    `db:"meal_id"`
+	Level     uint32    `db:"level"`
+	CreatedAt time.Time `db:"created_at"`
 }
 
 func handleMsgMhfLoadGuildCooking(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfLoadGuildCooking)
-
 	guild, _ := GetGuildInfoByCharacterId(s, s.charID)
-	data, err := s.server.db.Queryx("SELECT id, meal_id, level, expires FROM guild_meals WHERE guild_id = $1", guild.ID)
+	data, err := s.server.db.Queryx("SELECT id, meal_id, level, created_at FROM guild_meals WHERE guild_id = $1", guild.ID)
 	if err != nil {
 		s.logger.Error("Failed to get guild meals from db", zap.Error(err))
 		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 2))
+		return
 	}
-	temp := byteframe.NewByteFrame()
-	count := 0
+	var meals []GuildMeal
+	var temp GuildMeal
 	for data.Next() {
-		mealData := &GuildMeal{}
-		err = data.StructScan(&mealData)
+		err = data.StructScan(&temp)
 		if err != nil {
 			continue
 		}
-		if mealData.Expires > uint32(Time_Current_Adjusted().Add(-60*time.Minute).Unix()) {
-			count++
-			temp.WriteUint32(mealData.ID)
-			temp.WriteUint32(mealData.MealID)
-			temp.WriteUint32(mealData.Level)
-			temp.WriteUint32(mealData.Expires)
+		if temp.CreatedAt.Add(60 * time.Minute).After(TimeAdjusted()) {
+			meals = append(meals, temp)
 		}
 	}
 	bf := byteframe.NewByteFrame()
-	bf.WriteUint16(uint16(count))
-	bf.WriteBytes(temp.Data())
+	bf.WriteUint16(uint16(len(meals)))
+	for _, meal := range meals {
+		bf.WriteUint32(meal.ID)
+		bf.WriteUint32(meal.MealID)
+		bf.WriteUint32(meal.Level)
+		bf.WriteUint32(uint32(meal.CreatedAt.Unix()))
+	}
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfRegistGuildCooking(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfRegistGuildCooking)
 	guild, _ := GetGuildInfoByCharacterId(s, s.charID)
+	currentTime := TimeAdjusted().Add(time.Duration(s.server.erupeConfig.GameplayOptions.GuildMealDuration-60) * time.Minute)
 	if pkt.OverwriteID != 0 {
-		_, err := s.server.db.Exec("DELETE FROM guild_meals WHERE id = $1", pkt.OverwriteID)
-		if err != nil {
-			s.logger.Error("Failed to delete meal in db", zap.Error(err))
-		}
+		s.server.db.Exec("UPDATE guild_meals SET meal_id = $1, level = $2, created_at = $3 WHERE id = $4", pkt.MealID, pkt.Success, currentTime, pkt.OverwriteID)
+	} else {
+		s.server.db.QueryRow("INSERT INTO guild_meals (guild_id, meal_id, level, created_at) VALUES ($1, $2, $3, $4) RETURNING id", guild.ID, pkt.MealID, pkt.Success, currentTime).Scan(&pkt.OverwriteID)
 	}
-	_, err := s.server.db.Exec("INSERT INTO guild_meals (guild_id, meal_id, level, expires) VALUES ($1, $2, $3, $4)", guild.ID, pkt.MealID, pkt.Success, Time_Current_Adjusted().Add(30*time.Minute).Unix())
-	if err != nil {
-		s.logger.Error("Failed to register meal in db", zap.Error(err))
-	}
-	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x01, 0x00})
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint16(1)
+	bf.WriteUint32(pkt.OverwriteID)
+	bf.WriteUint32(uint32(pkt.MealID))
+	bf.WriteUint32(uint32(pkt.Success))
+	bf.WriteUint32(uint32(currentTime.Unix()))
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfGetGuildWeeklyBonusMaster(s *Session, p mhfpacket.MHFPacket) {
@@ -1832,7 +1834,7 @@ func handleMsgMhfEnumerateGuildMessageBoard(s *Session, p mhfpacket.MHFPacket) {
 		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
-	s.server.db.Exec("UPDATE characters SET guild_post_checked = $1 WHERE id = $2", time.Now(), s.charID)
+	s.server.db.Exec("UPDATE characters SET guild_post_checked = now() WHERE id = $1", s.charID)
 	bf := byteframe.NewByteFrame()
 	var postCount uint32
 	for msgs.Next() {
@@ -1861,13 +1863,13 @@ func handleMsgMhfEnumerateGuildMessageBoard(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfUpdateGuildMessageBoard(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfUpdateGuildMessageBoard)
 	bf := byteframe.NewByteFrameFromBytes(pkt.Request)
-	guild, _ := GetGuildInfoByCharacterId(s, s.charID)
-	if guild == nil {
-		if pkt.MessageOp == 5 {
-			doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
-			return
-		}
-		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+	guild, err := GetGuildInfoByCharacterId(s, s.charID)
+	applicant := false
+	if guild != nil {
+		applicant, _ = guild.HasApplicationForCharID(s, s.charID)
+	}
+	if err != nil || guild == nil || applicant {
+		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
 	switch pkt.MessageOp {

@@ -5,6 +5,7 @@ import (
 	"net"
 	"os"
 	"os/signal"
+	"runtime/debug"
 	"syscall"
 	"time"
 
@@ -29,13 +30,31 @@ func cleanDB(db *sqlx.DB) {
 	_ = db.MustExec("DELETE FROM users")
 }
 
+var Commit = func() string {
+	if info, ok := debug.ReadBuildInfo(); ok {
+		for _, setting := range info.Settings {
+			if setting.Key == "vcs.revision" {
+				return setting.Value[:7]
+			}
+		}
+	}
+	return "unknown"
+}
+
 func main() {
 	var err error
-	zapLogger, _ := zap.NewDevelopment()
+
+	var zapLogger *zap.Logger
+	if config.ErupeConfig.DevMode {
+		zapLogger, _ = zap.NewDevelopment()
+	} else {
+		zapLogger, _ = zap.NewProduction()
+	}
+
 	defer zapLogger.Sync()
 	logger := zapLogger.Named("main")
 
-	logger.Info("Starting Erupe (9.2b)")
+	logger.Info(fmt.Sprintf("Starting Erupe (9.2b-%s)", Commit()))
 
 	if config.ErupeConfig.Database.Password == "" {
 		preventClose("Database password is blank")
@@ -64,20 +83,20 @@ func main() {
 		})
 
 		if err != nil {
-			preventClose(fmt.Sprintf("Failed to create Discord bot: %s", err.Error()))
+			preventClose(fmt.Sprintf("Discord: Failed to start, %s", err.Error()))
 		}
 
 		// Discord bot
 		err = bot.Start()
 
 		if err != nil {
-			preventClose(fmt.Sprintf("Failed to start Discord bot: %s", err.Error()))
+			preventClose(fmt.Sprintf("Discord: Failed to start, %s", err.Error()))
 		}
 
 		discordBot = bot
-		logger.Info("Discord bot is enabled")
+		logger.Info("Discord: Started successfully")
 	} else {
-		logger.Info("Discord bot is disabled")
+		logger.Info("Discord: Disabled")
 	}
 
 	// Create the postgres DB pool.
@@ -92,15 +111,15 @@ func main() {
 
 	db, err := sqlx.Open("postgres", connectString)
 	if err != nil {
-		preventClose(fmt.Sprintf("Failed to open SQL database: %s", err.Error()))
+		preventClose(fmt.Sprintf("Database: Failed to open, %s", err.Error()))
 	}
 
 	// Test the DB connection.
 	err = db.Ping()
 	if err != nil {
-		preventClose(fmt.Sprintf("Failed to ping database: %s", err.Error()))
+		preventClose(fmt.Sprintf("Database: Failed to ping, %s", err.Error()))
 	}
-	logger.Info("Connected to database")
+	logger.Info("Database: Started successfully")
 
 	// Clear stale data
 	_ = db.MustExec("DELETE FROM sign_sessions")
@@ -108,10 +127,12 @@ func main() {
 
 	// Clean the DB if the option is on.
 	if config.ErupeConfig.DevMode && config.ErupeConfig.DevModeOptions.CleanDB {
-		logger.Info("Cleaning DB")
+		logger.Info("Database: Started clearing...")
 		cleanDB(db)
-		logger.Info("Done cleaning DB")
+		logger.Info("Database: Finished clearing")
 	}
+
+	logger.Info(fmt.Sprintf("Server Time: %s", channelserver.TimeAdjusted().String()))
 
 	// Now start our server(s).
 
@@ -127,9 +148,11 @@ func main() {
 			})
 		err = entranceServer.Start()
 		if err != nil {
-			preventClose(fmt.Sprintf("Failed to start entrance server: %s", err.Error()))
+			preventClose(fmt.Sprintf("Entrance: Failed to start, %s", err.Error()))
 		}
-		logger.Info("Started entrance server")
+		logger.Info("Entrance: Started successfully")
+	} else {
+		logger.Info("Entrance: Disabled")
 	}
 
 	// Sign server.
@@ -144,9 +167,11 @@ func main() {
 			})
 		err = signServer.Start()
 		if err != nil {
-			preventClose(fmt.Sprintf("Failed to start sign server: %s", err.Error()))
+			preventClose(fmt.Sprintf("Sign: Failed to start, %s", err.Error()))
 		}
-		logger.Info("Started sign server")
+		logger.Info("Sign: Started successfully")
+	} else {
+		logger.Info("Sign: Disabled")
 	}
 
 	// New Sign server
@@ -160,9 +185,11 @@ func main() {
 			})
 		err = newSignServer.Start()
 		if err != nil {
-			preventClose(fmt.Sprintf("Failed to start sign-v2 server: %s", err.Error()))
+			preventClose(fmt.Sprintf("SignV2: Failed to start, %s", err.Error()))
 		}
-		logger.Info("Started new sign server")
+		logger.Info("SignV2: Started successfully")
+	} else {
+		logger.Info("SignV2: Disabled")
 	}
 
 	var channels []*channelserver.Server
@@ -172,7 +199,7 @@ func main() {
 		si := 0
 		ci := 0
 		count := 1
-		for _, ee := range config.ErupeConfig.Entrance.Entries {
+		for j, ee := range config.ErupeConfig.Entrance.Entries {
 			for i, ce := range ee.Channels {
 				sid := (4096 + si*256) + (16 + ci)
 				c := *channelserver.NewServer(&channelserver.Config{
@@ -188,13 +215,14 @@ func main() {
 					c.IP = ee.IP
 				}
 				c.Port = ce.Port
+				c.GlobalID = fmt.Sprintf("%02d%02d", j+1, i+1)
 				err = c.Start()
 				if err != nil {
-					preventClose(fmt.Sprintf("Failed to start channel server: %s", err.Error()))
+					preventClose(fmt.Sprintf("Channel: Failed to start, %s", err.Error()))
 				} else {
 					channelQuery += fmt.Sprintf(`INSERT INTO servers (server_id, season, current_players, world_name, world_description, land) VALUES (%d, %d, 0, '%s', '%s', %d);`, sid, si%3, ee.Name, ee.Description, i+1)
 					channels = append(channels, &c)
-					logger.Info(fmt.Sprintf("Started channel server %d on port %d", count, ce.Port))
+					logger.Info(fmt.Sprintf("Channel %d (%d): Started successfully", count, ce.Port))
 					ci++
 					count++
 				}
@@ -211,12 +239,23 @@ func main() {
 		}
 	}
 
+	logger.Info("Finished starting Erupe")
+
 	// Wait for exit or interrupt with ctrl+C.
 	c := make(chan os.Signal, 1)
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	<-c
 
-	logger.Info("Trying to shutdown gracefully")
+	if !config.ErupeConfig.DisableSoftCrash {
+		for i := 0; i < 10; i++ {
+			message := fmt.Sprintf("Shutting down in %d...", 10-i)
+			for _, c := range channels {
+				c.BroadcastChatMessage(message)
+			}
+			logger.Info(message)
+			time.Sleep(time.Second)
+		}
+	}
 
 	if config.ErupeConfig.Channel.Enabled {
 		for _, c := range channels {

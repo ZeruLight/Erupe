@@ -38,6 +38,7 @@ type Server struct {
 	sync.Mutex
 	Channels       []*Server
 	ID             uint16
+	GlobalID       string
 	IP             string
 	Port           uint16
 	logger         *zap.Logger
@@ -124,19 +125,19 @@ func NewRaviente() *Raviente {
 	return raviente
 }
 
-func (r *Raviente) GetRaviMultiplier(s *Server) uint32 {
+func (r *Raviente) GetRaviMultiplier(s *Server) float64 {
 	raviSema := getRaviSemaphore(s)
 	if raviSema != nil {
-		var minPlayers uint32
+		var minPlayers int
 		if r.register.maxPlayers > 8 {
 			minPlayers = 24
 		} else {
 			minPlayers = 4
 		}
-		if uint32(len(raviSema.clients)) > minPlayers {
+		if len(raviSema.clients) > minPlayers {
 			return 1
 		}
-		return minPlayers / uint32(len(raviSema.clients))
+		return float64(minPlayers / len(raviSema.clients))
 	}
 	return 0
 }
@@ -269,6 +270,8 @@ func (s *Server) manageSessions() {
 // BroadcastMHF queues a MHFPacket to be sent to all sessions.
 func (s *Server) BroadcastMHF(pkt mhfpacket.MHFPacket, ignoredSession *Session) {
 	// Broadcast the data.
+	s.Lock()
+	defer s.Unlock()
 	for _, session := range s.sessions {
 		if session == ignoredSession {
 			continue
@@ -291,16 +294,7 @@ func (s *Server) WorldcastMHF(pkt mhfpacket.MHFPacket, ignoredSession *Session, 
 		if c == ignoredChannel {
 			continue
 		}
-		for _, session := range c.sessions {
-			if session == ignoredSession {
-				continue
-			}
-			bf := byteframe.NewByteFrame()
-			bf.WriteUint16(uint16(pkt.Opcode()))
-			pkt.Build(bf, session.clientContext)
-			bf.WriteUint16(0x0010)
-			session.QueueSendNonBlocking(bf.Data())
-		}
+		c.BroadcastMHF(pkt, ignoredSession)
 	}
 }
 

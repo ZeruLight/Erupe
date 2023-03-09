@@ -13,7 +13,7 @@ func handleMsgMhfInfoTournament(s *Session, p mhfpacket.MHFPacket) {
 
 	switch pkt.Unk0 {
 	case 0:
-		bf.WriteUint32(uint32(Time_Current_Adjusted().Unix()))
+		bf.WriteUint32(uint32(TimeAdjusted().Unix()))
 		bf.WriteUint32(0) // Tied to schedule ID?
 	case 1:
 

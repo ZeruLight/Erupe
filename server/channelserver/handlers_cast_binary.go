@@ -38,16 +38,18 @@ var commands map[string]config.Command
 
 func init() {
 	commands = make(map[string]config.Command)
-	zapLogger, _ := zap.NewDevelopment()
+	zapConfig := zap.NewDevelopmentConfig()
+	zapConfig.DisableCaller = true
+	zapLogger, _ := zapConfig.Build()
 	defer zapLogger.Sync()
 	logger := zapLogger.Named("commands")
 	cmds := config.ErupeConfig.Commands
 	for _, cmd := range cmds {
 		commands[cmd.Name] = cmd
 		if cmd.Enabled {
-			logger.Info(fmt.Sprintf("%s command is enabled, prefix: %s", cmd.Name, cmd.Prefix))
+			logger.Info(fmt.Sprintf("Command %s: Enabled, prefix: %s", cmd.Name, cmd.Prefix))
 		} else {
-			logger.Info(fmt.Sprintf("%s command is disabled", cmd.Name))
+			logger.Info(fmt.Sprintf("Command %s: Disabled", cmd.Name))
 		}
 	}
 }

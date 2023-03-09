@@ -207,8 +207,8 @@ func addPointNetcafe(s *Session, p int) error {
 	if err != nil {
 		return err
 	}
-	if points+p > 100000 {
-		points = 100000
+	if points+p > s.server.erupeConfig.GameplayOptions.MaximumNP {
+		points = s.server.erupeConfig.GameplayOptions.MaximumNP
 	} else {
 		points += p
 	}
@@ -219,7 +219,10 @@ func addPointNetcafe(s *Session, p int) error {
 func handleMsgMhfStartBoostTime(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfStartBoostTime)
 	bf := byteframe.NewByteFrame()
-	boostLimit := TimeAdjusted().Add(120 * time.Minute)
+	boostLimit := TimeAdjusted().Add(time.Duration(s.server.erupeConfig.GameplayOptions.BoostTimeDuration) * time.Minute)
+	if s.server.erupeConfig.GameplayOptions.DisableBoostTime {
+		boostLimit = time.Time{}
+	}
 	s.server.db.Exec("UPDATE characters SET boost_time=$1 WHERE id=$2", boostLimit, s.charID)
 	bf.WriteUint32(uint32(boostLimit.Unix()))
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())

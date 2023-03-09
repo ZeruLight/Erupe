@@ -259,8 +259,8 @@ func logoutPlayer(s *Session) {
 		return
 	}
 	saveData.RP += uint16(rpGained)
-	if saveData.RP >= 50000 {
-		saveData.RP = 50000
+	if saveData.RP >= s.server.erupeConfig.GameplayOptions.MaximumRP {
+		saveData.RP = s.server.erupeConfig.GameplayOptions.MaximumRP
 	}
 	saveData.Save(s)
 }

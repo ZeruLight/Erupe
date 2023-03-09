@@ -58,7 +58,7 @@ func (s *Server) Start() error {
 
 // Shutdown exits the server gracefully.
 func (s *Server) Shutdown() {
-	s.logger.Debug("Shutting down")
+	s.logger.Debug("Shutting down...")
 
 	s.Lock()
 	s.isShuttingDown = true

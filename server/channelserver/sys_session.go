@@ -82,7 +82,7 @@ func NewSession(server *Server, conn net.Conn) *Session {
 // Start starts the session packet send and recv loop(s).
 func (s *Session) Start() {
 	go func() {
-		s.logger.Info("Channel server got connection!", zap.String("remoteaddr", s.rawConn.RemoteAddr().String()))
+		s.logger.Debug("New connection", zap.String("RemoteAddr", s.rawConn.RemoteAddr().String()))
 		// Unlike the sign and entrance server,
 		// the client DOES NOT initalize the channel connection with 8 NULL bytes.
 		go s.sendLoop()

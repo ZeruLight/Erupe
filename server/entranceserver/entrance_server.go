@@ -111,7 +111,9 @@ func (s *Server) handleEntranceServerConnection(conn net.Conn) {
 		return
 	}
 
-	s.logger.Debug("Got entrance server command:\n", zap.String("raw", hex.Dump(pkt)))
+	if s.erupeConfig.DevMode && s.erupeConfig.DevModeOptions.LogInboundMessages {
+		fmt.Printf("[Client] -> [Server]\nData [%d bytes]:\n%s\n", len(pkt), hex.Dump(pkt))
+	}
 
 	local := false
 	if strings.Split(conn.RemoteAddr().String(), ":")[0] == "127.0.0.1" {

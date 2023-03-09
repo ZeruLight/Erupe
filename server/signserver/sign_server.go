@@ -55,7 +55,7 @@ func (s *Server) Start() error {
 
 // Shutdown exits the server gracefully.
 func (s *Server) Shutdown() {
-	s.logger.Debug("Shutting down")
+	s.logger.Debug("Shutting down...")
 
 	s.Lock()
 	s.isShuttingDown = true
@@ -86,14 +86,14 @@ func (s *Server) acceptClients() {
 }
 
 func (s *Server) handleConnection(conn net.Conn) {
-	s.logger.Info("Got connection to sign server", zap.String("remoteaddr", conn.RemoteAddr().String()))
+	s.logger.Debug("New connection", zap.String("RemoteAddr", conn.RemoteAddr().String()))
 	defer conn.Close()
 
 	// Client initalizes the connection with a one-time buffer of 8 NULL bytes.
 	nullInit := make([]byte, 8)
 	_, err := io.ReadFull(conn, nullInit)
 	if err != nil {
-		s.logger.Error("Error initialising sign server connection", zap.Error(err))
+		s.logger.Error("Error initializing connection", zap.Error(err))
 		return
 	}
 

@@ -3,6 +3,7 @@ package signserver
 import (
 	"database/sql"
 	"encoding/hex"
+	"fmt"
 	"net"
 	"sync"
 
@@ -23,6 +24,11 @@ type Session struct {
 
 func (s *Session) work() {
 	pkt, err := s.cryptConn.ReadPacket()
+
+	if s.server.erupeConfig.DevMode && s.server.erupeConfig.DevModeOptions.LogInboundMessages {
+		fmt.Printf("\n[Client] -> [Server]\nData [%d bytes]:\n%s\n", len(pkt), hex.Dump(pkt))
+	}
+
 	if err != nil {
 		return
 	}
@@ -33,8 +39,6 @@ func (s *Session) work() {
 }
 
 func (s *Session) handlePacket(pkt []byte) error {
-	sugar := s.logger.Sugar()
-
 	bf := byteframe.NewByteFrameFromBytes(pkt)
 	reqType := string(bf.ReadNullTerminatedBytes())
 	switch reqType {
@@ -50,13 +54,16 @@ func (s *Session) handlePacket(pkt []byte) error {
 		characterID := int(bf.ReadUint32())
 		_ = int(bf.ReadUint32()) // login_token_number
 		s.server.deleteCharacter(characterID, loginTokenString)
-		sugar.Infof("Deleted character ID: %v\n", characterID)
+		s.logger.Info("Deleted character", zap.Int("CharacterID", characterID))
 		err := s.cryptConn.SendPacket([]byte{0x01}) // DEL_SUCCESS
 		if err != nil {
 			return nil
 		}
 	default:
-		sugar.Infof("Got unknown request type %s, data:\n%s\n", reqType, hex.Dump(bf.DataFromCurrent()))
+		s.logger.Warn("Unknown sign request", zap.String("reqType", reqType))
+		if s.server.erupeConfig.DevMode && s.server.erupeConfig.DevModeOptions.LogInboundMessages {
+			fmt.Printf("\n[Client] -> [Server]\nData [%d bytes]:\n%s\n", len(pkt), hex.Dump(pkt))
+		}
 	}
 
 	return nil
@@ -66,14 +73,7 @@ func (s *Session) handleDSGNRequest(bf *byteframe.ByteFrame) error {
 
 	reqUsername := string(bf.ReadNullTerminatedBytes())
 	reqPassword := string(bf.ReadNullTerminatedBytes())
-	reqSkey := string(bf.ReadNullTerminatedBytes())
-
-	s.server.logger.Info(
-		"Got sign in request",
-		zap.String("reqUsername", reqUsername),
-		zap.String("reqPassword", reqPassword),
-		zap.String("reqSkey", reqSkey),
-	)
+	_ = string(bf.ReadNullTerminatedBytes()) // Unk
 
 	newCharaReq := false
 
@@ -90,14 +90,14 @@ func (s *Session) handleDSGNRequest(bf *byteframe.ByteFrame) error {
 	var serverRespBytes []byte
 	switch {
 	case err == sql.ErrNoRows:
-		s.logger.Info("Account not found", zap.String("reqUsername", reqUsername))
+		s.logger.Info("User not found", zap.String("Username", reqUsername))
 		serverRespBytes = makeSignInFailureResp(SIGN_EAUTH)
 
 		if s.server.erupeConfig.DevMode && s.server.erupeConfig.DevModeOptions.AutoCreateAccount {
-			s.logger.Info("Creating account", zap.String("reqUsername", reqUsername), zap.String("reqPassword", reqPassword))
+			s.logger.Info("Creating user", zap.String("Username", reqUsername))
 			err = s.server.registerDBAccount(reqUsername, reqPassword)
 			if err != nil {
-				s.logger.Info("Error on creating new account", zap.Error(err))
+				s.logger.Error("Error registering new user", zap.Error(err))
 				serverRespBytes = makeSignInFailureResp(SIGN_EABORT)
 				break
 			}
@@ -108,7 +108,7 @@ func (s *Session) handleDSGNRequest(bf *byteframe.ByteFrame) error {
 		var id int
 		err = s.server.db.QueryRow("SELECT id FROM users WHERE username = $1", reqUsername).Scan(&id)
 		if err != nil {
-			s.logger.Info("Error on querying account id", zap.Error(err))
+			s.logger.Error("Error getting new user ID", zap.Error(err))
 			serverRespBytes = makeSignInFailureResp(SIGN_EABORT)
 			break
 		}
@@ -117,15 +117,15 @@ func (s *Session) handleDSGNRequest(bf *byteframe.ByteFrame) error {
 		break
 	case err != nil:
 		serverRespBytes = makeSignInFailureResp(SIGN_EABORT)
-		s.logger.Warn("Got error on SQL query", zap.Error(err))
+		s.logger.Error("Error getting user details", zap.Error(err))
 		break
 	default:
 		if bcrypt.CompareHashAndPassword([]byte(password), []byte(reqPassword)) == nil {
-			s.logger.Info("Passwords match!")
+			s.logger.Debug("Passwords match!")
 			if newCharaReq {
 				err = s.server.newUserChara(reqUsername)
 				if err != nil {
-					s.logger.Info("Error on adding new character to account", zap.Error(err))
+					s.logger.Error("Error adding new character to user", zap.Error(err))
 					serverRespBytes = makeSignInFailureResp(SIGN_EABORT)
 					break
 				}
@@ -139,10 +139,14 @@ func (s *Session) handleDSGNRequest(bf *byteframe.ByteFrame) error {
 			// }
 			serverRespBytes = s.makeSignInResp(id)
 		} else {
-			s.logger.Info("Passwords don't match!")
+			s.logger.Warn("Incorrect password")
 			serverRespBytes = makeSignInFailureResp(SIGN_EPASS)
 		}
 
+	}
+
+	if s.server.erupeConfig.DevMode && s.server.erupeConfig.DevModeOptions.LogOutboundMessages {
+		fmt.Printf("\n[Server] -> [Client]\nData [%d bytes]:\n%s\n", len(serverRespBytes), hex.Dump(serverRespBytes))
 	}
 
 	err = s.cryptConn.SendPacket(serverRespBytes)

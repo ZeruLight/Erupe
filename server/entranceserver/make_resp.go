@@ -2,6 +2,8 @@ package entranceserver
 
 import (
 	"encoding/binary"
+	"encoding/hex"
+	"fmt"
 	"net"
 
 	"erupe-ce/common/stringsupport"
@@ -92,6 +94,11 @@ func makeHeader(data []byte, respType string, entryCount uint16, key byte) []byt
 func makeSv2Resp(config *config.Config, s *Server, local bool) []byte {
 	serverInfos := config.Entrance.Entries
 	rawServerData := encodeServerInfo(config, s, local)
+
+	if s.erupeConfig.DevMode && s.erupeConfig.DevModeOptions.LogOutboundMessages {
+		fmt.Printf("[Server] -> [Client]\nData [%d bytes]:\n%s\n", len(rawServerData), hex.Dump(rawServerData))
+	}
+
 	bf := byteframe.NewByteFrame()
 	bf.WriteBytes(makeHeader(rawServerData, "SV2", uint16(len(serverInfos)), 0x00))
 	return bf.Data()
@@ -109,11 +116,15 @@ func makeUsrResp(pkt []byte, s *Server) []byte {
 		err := s.db.QueryRow("SELECT(SELECT server_id FROM sign_sessions WHERE char_id=$1) AS _", cid).Scan(&sid)
 		if err != nil {
 			resp.WriteBytes(make([]byte, 4))
-			continue
 		} else {
 			resp.WriteUint16(sid)
 			resp.WriteUint16(0)
 		}
 	}
+
+	if s.erupeConfig.DevMode && s.erupeConfig.DevModeOptions.LogOutboundMessages {
+		fmt.Printf("[Server] -> [Client]\nData [%d bytes]:\n%s\n", len(resp.Data()), hex.Dump(resp.Data()))
+	}
+
 	return makeHeader(resp.Data(), "USR", userEntries, 0x00)
 }

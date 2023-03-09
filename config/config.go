@@ -16,7 +16,6 @@ type Config struct {
 	BinPath                string `mapstructure:"BinPath"`
 	Language               string
 	DisableSoftCrash       bool   // Disables the 'Press Return to exit' dialog allowing scripts to reboot the server automatically
-	FeaturedWeapons        int    // Number of Active Feature weapons to generate daily
 	HideLoginNotice        bool   // Hide the Erupe notice on login
 	LoginNotice            string // MHFML string of the login notice displayed
 	PatchServerManifest    string // Manifest patch server override
@@ -63,6 +62,7 @@ type SaveDumpOptions struct {
 
 // GameplayOptions has various gameplay modifiers
 type GameplayOptions struct {
+	FeaturedWeapons   int  // Number of Active Feature weapons to generate daily
 	DisableLoginBoost bool // Disables the Login Boost system
 	GuildMealDuration int  // The number of minutes a Guild Meal can be activated for after cooking
 }

@@ -71,7 +71,7 @@ func handleMsgMhfGetWeeklySchedule(s *Session, p mhfpacket.MHFPacket) {
 		var temp activeFeature
 		err := s.server.db.QueryRowx(`SELECT start_time, featured FROM feature_weapon WHERE start_time=$1`, t).StructScan(&temp)
 		if err != nil || temp.StartTime.IsZero() {
-			temp = generateFeatureWeapons(s.server.erupeConfig.FeaturedWeapons)
+			temp = generateFeatureWeapons(s.server.erupeConfig.GameplayOptions.FeaturedWeapons)
 			temp.StartTime = t
 			s.server.db.Exec(`INSERT INTO feature_weapon VALUES ($1, $2)`, temp.StartTime, temp.ActiveFeatures)
 		}

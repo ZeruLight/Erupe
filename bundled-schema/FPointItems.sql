@@ -1,3 +1,5 @@
+BEGIN;
+
 INSERT INTO fpoint_items (item_type, item_id, quantity, fpoints, trade_type) VALUES
 (7,8895,1,500,0),
 (7,8891,1,300,0),
@@ -384,4 +386,6 @@ INSERT INTO fpoint_items (item_type, item_id, quantity, fpoints, trade_type) VAL
 (7,16448,1,3,0),
 (7,16449,1,3,0),
 (7,16348,1,3,0),
-(7,16349,1,3,0)
+(7,16349,1,3,0);
+
+END;

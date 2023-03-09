@@ -3,6 +3,7 @@ package channelserver
 import (
 	"encoding/binary"
 	"encoding/hex"
+	ps "erupe-ce/common/pascalstring"
 	"erupe-ce/common/stringsupport"
 	"fmt"
 	"io"
@@ -314,25 +315,30 @@ func handleMsgSysEcho(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgSysLockGlobalSema(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysLockGlobalSema)
-
+	var sgid string
+	for _, channel := range s.server.Channels {
+		for id := range channel.stages {
+			if strings.HasSuffix(id, pkt.UserIDString) {
+				sgid = channel.GlobalID
+			}
+		}
+	}
 	bf := byteframe.NewByteFrame()
-	// Unk
-	// 0x00 when no ID sent
-	// 0x02 when ID sent
-	if pkt.ServerChannelIDLength == 1 {
-		bf.WriteBytes([]byte{0x00, 0x00, 0x00, 0x01, 0x00})
+	if len(sgid) > 0 && sgid != s.server.GlobalID {
+		bf.WriteUint8(0)
+		bf.WriteUint8(0)
+		ps.Uint16(bf, sgid, false)
 	} else {
-		bf.WriteUint8(0x02)
-		bf.WriteUint8(0x00) // Unk
-		bf.WriteUint16(uint16(pkt.ServerChannelIDLength))
-		bf.WriteBytes([]byte(pkt.ServerChannelIDString))
+		bf.WriteUint8(2)
+		bf.WriteUint8(0)
+		ps.Uint16(bf, pkt.ServerChannelIDString, false)
 	}
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgSysUnlockGlobalSema(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysUnlockGlobalSema)
-	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 8))
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgSysUpdateRight(s *Session, p mhfpacket.MHFPacket) {}

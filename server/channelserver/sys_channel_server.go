@@ -38,6 +38,7 @@ type Server struct {
 	sync.Mutex
 	Channels       []*Server
 	ID             uint16
+	GlobalID       string
 	IP             string
 	Port           uint16
 	logger         *zap.Logger

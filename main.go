@@ -186,7 +186,7 @@ func main() {
 		si := 0
 		ci := 0
 		count := 1
-		for _, ee := range config.ErupeConfig.Entrance.Entries {
+		for j, ee := range config.ErupeConfig.Entrance.Entries {
 			for i, ce := range ee.Channels {
 				sid := (4096 + si*256) + (16 + ci)
 				c := *channelserver.NewServer(&channelserver.Config{
@@ -202,6 +202,7 @@ func main() {
 					c.IP = ee.IP
 				}
 				c.Port = ce.Port
+				c.GlobalID = fmt.Sprintf("%02d%02d", j+1, i+1)
 				err = c.Start()
 				if err != nil {
 					preventClose(fmt.Sprintf("Failed to start channel server: %s", err.Error()))

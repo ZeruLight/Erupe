@@ -36,8 +36,9 @@ func handleMsgSysOperateRegister(s *Session, p mhfpacket.MHFPacket) {
 						resp.WriteUint32(*ref)
 					}
 				} else {
-					resp.WriteUint32(*ref + data*damageMultiplier)
-					*ref += data * damageMultiplier
+					data = uint32(float64(data) * damageMultiplier)
+					resp.WriteUint32(*ref + data)
+					*ref += data
 				}
 			case 13:
 				fallthrough

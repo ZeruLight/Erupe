@@ -125,19 +125,19 @@ func NewRaviente() *Raviente {
 	return raviente
 }
 
-func (r *Raviente) GetRaviMultiplier(s *Server) uint32 {
+func (r *Raviente) GetRaviMultiplier(s *Server) float64 {
 	raviSema := getRaviSemaphore(s)
 	if raviSema != nil {
-		var minPlayers uint32
+		var minPlayers int
 		if r.register.maxPlayers > 8 {
 			minPlayers = 24
 		} else {
 			minPlayers = 4
 		}
-		if uint32(len(raviSema.clients)) > minPlayers {
+		if len(raviSema.clients) > minPlayers {
 			return 1
 		}
-		return minPlayers / uint32(len(raviSema.clients))
+		return float64(minPlayers / len(raviSema.clients))
 	}
 	return 0
 }

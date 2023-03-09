@@ -221,7 +221,9 @@ func handleMsgMhfStartBoostTime(s *Session, p mhfpacket.MHFPacket) {
 	bf := byteframe.NewByteFrame()
 	boostLimit := TimeAdjusted().Add(time.Duration(s.server.erupeConfig.GameplayOptions.BoostTimeDuration) * time.Minute)
 	if s.server.erupeConfig.GameplayOptions.DisableBoostTime {
-		boostLimit = time.Time{}
+		bf.WriteUint32(0)
+		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+		return
 	}
 	s.server.db.Exec("UPDATE characters SET boost_time=$1 WHERE id=$2", boostLimit, s.charID)
 	bf.WriteUint32(uint32(boostLimit.Unix()))

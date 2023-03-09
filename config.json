@@ -39,7 +39,9 @@
     "DisableLoginBoost": false,
     "DisableBoostTime": false,
     "BoostTimeDuration": 120,
-    "GuildMealDuration": 60
+    "GuildMealDuration": 60,
+    "BonusQuestAllowance": 3,
+    "DailyQuestAllowance": 1
   },
   "Discord": {
     "Enabled": false,

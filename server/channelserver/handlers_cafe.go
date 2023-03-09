@@ -53,9 +53,9 @@ func handleMsgMhfCheckDailyCafepoint(s *Session, p mhfpacket.MHFPacket) {
 	bf := byteframe.NewByteFrame()
 	if midday.After(dailyTime) {
 		addPointNetcafe(s, 5)
-		bondBonus = 5   // Bond point bonus quests
-		bonusQuests = 3 // HRP bonus quests?
-		dailyQuests = 1 // Daily quests
+		bondBonus = 5 // Bond point bonus quests
+		bonusQuests = s.server.erupeConfig.GameplayOptions.BonusQuestAllowance
+		dailyQuests = s.server.erupeConfig.GameplayOptions.DailyQuestAllowance
 		s.server.db.Exec("UPDATE characters SET daily_time=$1, bonus_quests = $2, daily_quests = $3 WHERE id=$4", midday, bonusQuests, dailyQuests, s.charID)
 		bf.WriteBool(true) // Success?
 	} else {

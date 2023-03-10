@@ -228,7 +228,6 @@ func ignored(opcode network.PacketID) bool {
 		network.MSG_SYS_TIME,
 		network.MSG_SYS_EXTEND_THRESHOLD,
 		network.MSG_SYS_POSITION_OBJECT,
-		network.MSG_MHF_ENUMERATE_QUEST,
 		network.MSG_MHF_SAVEDATA,
 	}
 	set := make(map[network.PacketID]struct{}, len(ignoreList))

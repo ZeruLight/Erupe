@@ -44,7 +44,6 @@ func Courses() []Course {
 	courses := make([]Course, 32)
 	for i := range courses {
 		courses[i].ID = uint16(i)
-		courses[i].Expiry = time.Time{}
 	}
 	return courses
 }
@@ -65,7 +64,7 @@ func CourseExists(ID uint16, c []Course) bool {
 
 // GetCourseStruct returns a slice of Course(s) from a rights integer
 func GetCourseStruct(rights uint32) ([]Course, uint32) {
-	resp := []Course{{ID: 1, Expiry: time.Time{}}}
+	resp := []Course{{ID: 1}}
 	s := Courses()
 	slices.SortStableFunc(s, func(i, j Course) bool {
 		return i.ID > j.ID
@@ -79,14 +78,14 @@ func GetCourseStruct(rights uint32) ([]Course, uint32) {
 					break
 				}
 				normalCafeCourseSet = true
-				resp = append(resp, Course{ID: 25, Expiry: time.Time{}})
+				resp = append(resp, Course{ID: 25})
 				fallthrough
 			case 9:
 				if netcafeCourseSet {
 					break
 				}
 				netcafeCourseSet = true
-				resp = append(resp, Course{ID: 30, Expiry: time.Time{}})
+				resp = append(resp, Course{ID: 30})
 			}
 			course.Expiry = time.Date(2030, 1, 1, 0, 0, 0, 0, time.FixedZone("UTC+9", 9*60*60))
 			resp = append(resp, course)

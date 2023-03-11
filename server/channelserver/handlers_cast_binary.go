@@ -223,9 +223,11 @@ func parseChatCommand(s *Session, command string) {
 							} else {
 								sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandCourseLocked"], course.Aliases()[0]))
 							}
+							return
 						}
 					}
 				}
+				sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandCourseError"], commands["Course"].Prefix))
 			}
 		} else {
 			sendDisabledCommandMessage(s, commands["Course"])

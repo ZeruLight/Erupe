@@ -11,30 +11,32 @@ type Course struct {
 	Expiry time.Time
 }
 
+var aliases = map[uint16][]string{
+	1:  {"Trial", "TL"},
+	2:  {"HunterLife", "HL"},
+	3:  {"Extra", "ExtraA", "EX"},
+	4:  {"ExtraB"},
+	5:  {"Mobile"},
+	6:  {"Premium"},
+	7:  {"Pallone", "ExtraC"},
+	8:  {"Assist", "***ist", "Legend", "Rasta"},
+	9:  {"N"},
+	10: {"Hiden", "Secret"},
+	11: {"HunterSupport", "HunterAid", "Support", "Aid", "Royal"},
+	12: {"NBoost", "NetCafeBoost", "Boost"},
+	20: {"DEBUG"},
+	21: {"COG_LINK_EXPIRED"},
+	22: {"360_GOLD"},
+	23: {"PS3_TROP"},
+	24: {"COG"},
+	25: {"CAFE_SP"},
+	26: {"NetCafe", "Cafe", "OfficialCafe", "Official"},
+	27: {"HLRenewing", "HLR", "HLRenewal", "HLRenew", "CardHL"},
+	28: {"EXRenewing", "EXR", "EXRenewal", "EXRenew", "CardEX"},
+	29: {"Free"},
+}
+
 func (c Course) Aliases() []string {
-	aliases := make(map[uint16][]string)
-	aliases[1] = []string{"Trial", "TL"}
-	aliases[2] = []string{"HunterLife", "HL"}
-	aliases[3] = []string{"Extra", "ExtraA", "EX"}
-	aliases[4] = []string{"ExtraB"}
-	aliases[5] = []string{"Mobile"}
-	aliases[6] = []string{"Premium"}
-	aliases[7] = []string{"Pallone", "ExtraC"}
-	aliases[8] = []string{"Assist", "***ist", "Legend", "Rasta"}
-	aliases[9] = []string{"N"}
-	aliases[10] = []string{"Hiden", "Secret"}
-	aliases[11] = []string{"HunterSupport", "HunterAid", "Support", "Aid", "Royal"}
-	aliases[12] = []string{"NBoost", "NetCafeBoost", "Boost"}
-	aliases[20] = []string{"DEBUG"}
-	aliases[21] = []string{"COG_LINK_EXPIRED"}
-	aliases[22] = []string{"360_GOLD"}
-	aliases[23] = []string{"PS3_TROP"}
-	aliases[24] = []string{"COG"}
-	aliases[25] = []string{"CAFE_SP"}
-	aliases[26] = []string{"NetCafe", "Cafe", "OfficialCafe", "Official"}
-	aliases[27] = []string{"HLRenewing", "HLR", "HLRenewal", "HLRenew", "CardHL"}
-	aliases[28] = []string{"EXRenewing", "EXR", "EXRenewal", "EXRenew", "CardEX"}
-	aliases[29] = []string{"Free"}
 	return aliases[c.ID]
 }
 

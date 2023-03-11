@@ -3,10 +3,10 @@ package channelserver
 import (
 	"encoding/binary"
 	"encoding/hex"
+	"erupe-ce/common/mhfcourse"
 	"fmt"
 	"io"
 	"net"
-	"strings"
 	"sync"
 	"time"
 
@@ -43,7 +43,7 @@ type Session struct {
 	charID           uint32
 	logKey           []byte
 	sessionStart     int64
-	courses          []mhfpacket.Course
+	courses          []mhfcourse.Course
 	token            string
 	kqf              []byte
 	kqfOverride      bool
@@ -267,15 +267,4 @@ func (s *Session) logMessage(opcode uint16, data []byte, sender string, recipien
 	} else {
 		fmt.Printf("Data [%d bytes]:\n(Too long!)\n\n", len(data))
 	}
-}
-
-func (s *Session) FindCourse(name string) mhfpacket.Course {
-	for _, course := range s.courses {
-		for _, alias := range course.Aliases {
-			if strings.ToLower(name) == strings.ToLower(alias) {
-				return course
-			}
-		}
-	}
-	return mhfpacket.Course{}
 }

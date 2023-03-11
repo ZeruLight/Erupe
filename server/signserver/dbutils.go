@@ -1,6 +1,7 @@
 package signserver
 
 import (
+	"erupe-ce/common/mhfcourse"
 	"strings"
 	"time"
 
@@ -119,8 +120,9 @@ func (s *Server) getLastCID(uid int) uint32 {
 }
 
 func (s *Server) getUserRights(uid int) uint32 {
-	var rights uint32
+	rights := uint32(2)
 	_ = s.db.QueryRow("SELECT rights FROM users WHERE id=$1", uid).Scan(&rights)
+	_, rights = mhfcourse.GetCourseStruct(rights)
 	return rights
 }
 

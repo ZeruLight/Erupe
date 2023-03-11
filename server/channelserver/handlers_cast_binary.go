@@ -3,6 +3,7 @@ package channelserver
 import (
 	"encoding/hex"
 	"erupe-ce/common/byteframe"
+	"erupe-ce/common/mhfcourse"
 	"erupe-ce/config"
 	"erupe-ce/network/binpacket"
 	"erupe-ce/network/mhfpacket"
@@ -192,13 +193,14 @@ func parseChatCommand(s *Session, command string) {
 				sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandCourseError"], commands["Course"].Prefix))
 			} else {
 				name = strings.ToLower(name)
-				for _, course := range mhfpacket.Courses() {
-					for _, alias := range course.Aliases {
+				for _, course := range mhfcourse.Courses() {
+					for _, alias := range course.Aliases() {
 						if strings.ToLower(name) == strings.ToLower(alias) {
-							if slices.Contains(s.server.erupeConfig.Courses, config.Course{Name: course.Aliases[0], Enabled: true}) {
-								if s.FindCourse(name).ID != 0 {
-									ei := slices.IndexFunc(s.courses, func(c mhfpacket.Course) bool {
-										for _, alias := range c.Aliases {
+							if slices.Contains(s.server.erupeConfig.Courses, config.Course{Name: course.Aliases()[0], Enabled: true}) {
+								var delta, rightsInt uint32
+								if mhfcourse.CourseExists(course.ID, s.courses) {
+									ei := slices.IndexFunc(s.courses, func(c mhfcourse.Course) bool {
+										for _, alias := range c.Aliases() {
 											if strings.ToLower(name) == strings.ToLower(alias) {
 												return true
 											}
@@ -206,21 +208,22 @@ func parseChatCommand(s *Session, command string) {
 										return false
 									})
 									if ei != -1 {
+										delta = uint32(-1 * math.Pow(2, float64(course.ID)))
 										s.courses = append(s.courses[:ei], s.courses[ei+1:]...)
-										sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandCourseDisabled"], course.Aliases[0]))
+										sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandCourseDisabled"], course.Aliases()[0]))
 									}
 								} else {
+									delta = uint32(math.Pow(2, float64(course.ID)))
 									s.courses = append(s.courses, course)
-									sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandCourseEnabled"], course.Aliases[0]))
+									sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandCourseEnabled"], course.Aliases()[0]))
 								}
-								var newInt uint32
-								for _, course := range s.courses {
-									newInt += uint32(math.Pow(2, float64(course.ID)))
+								s.server.db.QueryRow("SELECT rights FROM users u INNER JOIN characters c ON u.id = c.user_id WHERE c.id = $1", s.charID).Scan(&rightsInt)
+								if rightsInt > 0 {
+									s.server.db.Exec("UPDATE users u SET rights=$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)", rightsInt+delta, s.charID)
 								}
-								s.server.db.Exec("UPDATE users u SET rights=$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)", newInt, s.charID)
 								updateRights(s)
 							} else {
-								sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandCourseLocked"], course.Aliases[0]))
+								sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandCourseLocked"], course.Aliases()[0]))
 							}
 						}
 					}

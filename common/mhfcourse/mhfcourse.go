@@ -24,6 +24,7 @@ var aliases = map[uint16][]string{
 	10: {"Hiden", "Secret"},
 	11: {"HunterSupport", "HunterAid", "Support", "Aid", "Royal"},
 	12: {"NBoost", "NetCafeBoost", "Boost"},
+	// 13-19 show up as (unknown)
 	20: {"DEBUG"},
 	21: {"COG_LINK_EXPIRED"},
 	22: {"360_GOLD"},
@@ -34,6 +35,7 @@ var aliases = map[uint16][]string{
 	27: {"HLRenewing", "HLR", "HLRenewal", "HLRenew", "CardHL"},
 	28: {"EXRenewing", "EXR", "EXRenewal", "EXRenew", "CardEX"},
 	29: {"Free"},
+	// 30 = Real NetCafe course
 }
 
 func (c Course) Aliases() []string {

@@ -209,16 +209,14 @@ func parseChatCommand(s *Session, command string) {
 									})
 									if ei != -1 {
 										delta = uint32(-1 * math.Pow(2, float64(course.ID)))
-										s.courses = append(s.courses[:ei], s.courses[ei+1:]...)
 										sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandCourseDisabled"], course.Aliases()[0]))
 									}
 								} else {
 									delta = uint32(math.Pow(2, float64(course.ID)))
-									s.courses = append(s.courses, course)
 									sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandCourseEnabled"], course.Aliases()[0]))
 								}
 								err = s.server.db.QueryRow("SELECT rights FROM users u INNER JOIN characters c ON u.id = c.user_id WHERE c.id = $1", s.charID).Scan(&rightsInt)
-								if err != nil {
+								if err == nil {
 									s.server.db.Exec("UPDATE users u SET rights=$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)", rightsInt+delta, s.charID)
 								}
 								updateRights(s)

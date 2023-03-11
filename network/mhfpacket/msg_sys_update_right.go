@@ -78,25 +78,25 @@ func (m *MsgSysUpdateRight) Build(bf *byteframe.ByteFrame, ctx *clientctx.Client
 func Courses() []Course {
 	var courses = []Course{
 		{Aliases: []string{"Trial", "TL"}, ID: 1},
-		{Aliases: []string{"HunterLife", "HL"}, ID: 2},
+		{Aliases: []string{"HunterLife", "HL"}, ID: 2}, // BASIC
 		{Aliases: []string{"Extra", "ExtraA", "EX"}, ID: 3},
 		{Aliases: []string{"ExtraB"}, ID: 4},
 		{Aliases: []string{"Mobile"}, ID: 5},
 		{Aliases: []string{"Premium"}, ID: 6},
 		{Aliases: []string{"Pallone", "ExtraC"}, ID: 7},
-		{Aliases: []string{"Assist", "Legend", "Rasta"}, ID: 8}, // Legend
+		{Aliases: []string{"Assist", "Legend", "Rasta"}, ID: 8}, // LEGEND
 		{Aliases: []string{"N"}, ID: 9},
-		{Aliases: []string{"Hiden", "Secret"}, ID: 10},                                       // Secret
-		{Aliases: []string{"HunterSupport", "HunterAid", "Support", "Aid", "Royal"}, ID: 11}, // Royal
+		{Aliases: []string{"Hiden", "Secret"}, ID: 10},                                       // SECRET
+		{Aliases: []string{"HunterSupport", "HunterAid", "Support", "Aid", "Royal"}, ID: 11}, // ROYAL
 		{Aliases: []string{"NBoost", "NetCafeBoost", "Boost"}, ID: 12},
 		// 13-19 = (unknown), 20 = DEBUG, 21 = COG_LINK_EXPIRED, 22 = 360_GOLD, 23 = PS3_TROP
 		{Aliases: []string{"COG"}, ID: 24},
-		{Aliases: []string{"NetCafe", "Cafe", "InternetCafe"}, ID: 25},
-		{Aliases: []string{"OfficialCafe", "Official"}, ID: 26},
-		{Aliases: []string{"HLRenewing", "HLR", "HLRenewal", "HLRenew"}, ID: 27},
-		{Aliases: []string{"EXRenewing", "EXR", "EXRenewal", "EXRenew"}, ID: 28},
+		// 25 = CAFE_SP, active with 26 but useless on it's own? Just use OFFICIAL and set bit
+		{Aliases: []string{"NetCafe", "Cafe", "OfficialCafe", "Official"}, ID: 26},
+		{Aliases: []string{"HLRenewing", "HLR", "HLRenewal", "HLRenew"}, ID: 27}, // CARD
+		{Aliases: []string{"EXRenewing", "EXR", "EXRenewal", "EXRenew"}, ID: 28}, // CARD_EX
 		{Aliases: []string{"Free"}, ID: 29},
-		// 30 = real netcafe bit
+		// 30 = NETCAFE, what actually gives you any NetCafe gameplay benefits
 	}
 	for i := range courses {
 		courses[i].Value = uint32(math.Pow(2, float64(courses[i].ID)))

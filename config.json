@@ -85,7 +85,6 @@
     {"Name": "HunterSupport", "Enabled": false},
     {"Name": "NBoost", "Enabled": false},
     {"Name": "NetCafe", "Enabled": true},
-    {"Name": "OfficialCafe", "Enabled": true},
     {"Name": "HLRenewing", "Enabled": true},
     {"Name": "EXRenewing", "Enabled": true}
   ],

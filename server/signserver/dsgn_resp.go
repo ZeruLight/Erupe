@@ -9,7 +9,6 @@ import (
 	"fmt"
 	"go.uber.org/zap"
 	"strings"
-	"time"
 )
 
 func makeSignInFailureResp(respID RespID) []byte {
@@ -38,11 +37,11 @@ func (s *Session) makeSignInResp(uid int) []byte {
 	} else {
 		bf.WriteUint8(0)
 	}
-	bf.WriteUint8(1)                          // entrance server count
-	bf.WriteUint8(uint8(len(chars)))          // character count
-	bf.WriteUint32(0xFFFFFFFF)                // login_token_number
-	bf.WriteBytes([]byte(sessToken))          // login_token
-	bf.WriteUint32(uint32(time.Now().Unix())) // current time
+	bf.WriteUint8(1) // entrance server count
+	bf.WriteUint8(uint8(len(chars)))
+	bf.WriteUint32(0xFFFFFFFF) // login_token_number
+	bf.WriteBytes([]byte(sessToken))
+	bf.WriteUint32(uint32(channelserver.TimeAdjusted().Unix()))
 	if s.server.erupeConfig.DevMode {
 		if s.server.erupeConfig.PatchServerManifest != "" && s.server.erupeConfig.PatchServerFile != "" {
 			ps.Uint8(bf, s.server.erupeConfig.PatchServerManifest, false)

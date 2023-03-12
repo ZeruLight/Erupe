@@ -1,14 +1,12 @@
 package channelserver
 
 import (
-	"fmt"
-	"io"
-	"time"
-
 	"erupe-ce/common/byteframe"
 	"erupe-ce/common/stringsupport"
 	"erupe-ce/network/mhfpacket"
+	"fmt"
 	"go.uber.org/zap"
+	"io"
 )
 
 func handleMsgMhfPostGuildScout(s *Session, p mhfpacket.MHFPacket) {
@@ -247,7 +245,7 @@ func handleMsgMhfGetGuildScoutList(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint32(charID)
 		bf.WriteUint32(actorID)
 		bf.WriteUint32(charID)
-		bf.WriteUint32(uint32(time.Now().Unix()))
+		bf.WriteUint32(uint32(TimeAdjusted().Unix()))
 		bf.WriteUint16(0x00) // HR?
 		bf.WriteUint16(0x00) // GR?
 

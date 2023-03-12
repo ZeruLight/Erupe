@@ -1060,7 +1060,7 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 			uint32 guild id
 			uint32 guild leader id (for mail)
 			uint32 unk (always null in pcap)
-			uint16 unk (always 0001 in pcap)
+			uint16 member count
 			uint16 len guild name
 			string nullterm guild name
 			uint16 len guild leader name

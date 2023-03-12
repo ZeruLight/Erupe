@@ -7,11 +7,9 @@ import (
 	"erupe-ce/common/token"
 	"erupe-ce/server/channelserver"
 	"fmt"
-	"math/rand"
+	"go.uber.org/zap"
 	"strings"
 	"time"
-
-	"go.uber.org/zap"
 )
 
 func makeSignInFailureResp(respID RespID) []byte {
@@ -29,7 +27,6 @@ func (s *Session) makeSignInResp(uid int) []byte {
 		s.logger.Warn("Error getting characters from DB", zap.Error(err))
 	}
 
-	rand.Seed(time.Now().UnixNano())
 	sessToken := token.Generate(16)
 	s.server.registerToken(uid, sessToken)
 

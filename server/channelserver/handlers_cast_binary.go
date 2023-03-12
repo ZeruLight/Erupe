@@ -4,13 +4,13 @@ import (
 	"encoding/hex"
 	"erupe-ce/common/byteframe"
 	"erupe-ce/common/mhfcourse"
+	"erupe-ce/common/token"
 	"erupe-ce/config"
 	"erupe-ce/network/binpacket"
 	"erupe-ce/network/mhfpacket"
 	"fmt"
 	"golang.org/x/exp/slices"
 	"math"
-	"math/rand"
 	"strings"
 	"time"
 
@@ -370,8 +370,7 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 			roll.SetLE()
 			roll.WriteUint16(4) // Unk
 			roll.WriteUint16(authorLen)
-			rand.Seed(time.Now().UnixNano())
-			dice := fmt.Sprintf("%d", rand.Intn(100)+1)
+			dice := fmt.Sprintf("%d", token.RNG().Intn(100)+1)
 			roll.WriteUint16(uint16(len(dice) + 1))
 			roll.WriteNullTerminatedBytes([]byte(dice))
 			roll.WriteNullTerminatedBytes(tmp.ReadNullTerminatedBytes())

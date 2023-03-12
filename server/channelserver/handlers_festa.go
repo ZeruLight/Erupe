@@ -4,8 +4,8 @@ import (
 	"encoding/hex"
 	"erupe-ce/common/byteframe"
 	ps "erupe-ce/common/pascalstring"
+	"erupe-ce/common/token"
 	"erupe-ce/network/mhfpacket"
-	"math/rand"
 	"sort"
 	"time"
 )
@@ -336,8 +336,7 @@ func handleMsgMhfEntryFesta(s *Session, p mhfpacket.MHFPacket) {
 		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
-	rand.Seed(time.Now().UnixNano())
-	team := uint32(rand.Intn(2))
+	team := uint32(token.RNG().Intn(2))
 	switch team {
 	case 0:
 		s.server.db.Exec("INSERT INTO festa_registrations VALUES ($1, 'blue')", guild.ID)

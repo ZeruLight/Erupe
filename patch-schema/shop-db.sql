@@ -37,7 +37,7 @@ ALTER TABLE IF EXISTS public.shop_items
     RENAME COLUMN rankreqg TO min_gr;
 
 ALTER TABLE IF EXISTS public.shop_items
-    RENAME COLUMN storelevelreq TO req_store_level;
+    RENAME COLUMN storelevelreq TO store_level;
 
 ALTER TABLE IF EXISTS public.shop_items
     RENAME COLUMN maximumquantity TO max_quantity;

@@ -13,6 +13,9 @@ ALTER TABLE IF EXISTS public.shop_items
     RENAME COLUMN itemhash TO id;
 
 ALTER TABLE IF EXISTS public.shop_items
+    ADD PRIMARY KEY (id);
+
+ALTER TABLE IF EXISTS public.shop_items
     RENAME COLUMN itemid TO item_id;
 
 ALTER TABLE IF EXISTS public.shop_items

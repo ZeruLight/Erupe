@@ -248,11 +248,7 @@ func handleMsgMhfGetGuildScoutList(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint32(uint32(TimeAdjusted().Unix()))
 		bf.WriteUint16(0x00) // HR?
 		bf.WriteUint16(0x00) // GR?
-
-		charNameBytes, _ := stringsupport.ConvertUTF8ToShiftJIS(charName)
-
-		bf.WriteBytes(charNameBytes)
-		bf.WriteBytes(make([]byte, 32-len(charNameBytes))) // Fixed length string
+		bf.WriteBytes(stringsupport.PaddedString(charName, 32, true))
 		count++
 	}
 

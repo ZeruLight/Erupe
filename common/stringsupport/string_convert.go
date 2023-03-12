@@ -58,31 +58,6 @@ func (sc *StringConverter) MustEncode(data string) []byte {
 	return encoded
 }
 
-/*
-func MustConvertShiftJISToUTF8(text string) string {
-	result, err := ConvertShiftJISToUTF8(text)
-	if err != nil {
-		panic(err)
-	}
-	return result
-}
-func MustConvertUTF8ToShiftJIS(text string) string {
-	result, err := ConvertUTF8ToShiftJIS(text)
-	if err != nil {
-		panic(err)
-	}
-	return result
-}
-func ConvertShiftJISToUTF8(text string) (string, error) {
-	r := bytes.NewBuffer([]byte(text))
-	decoded, err := ioutil.ReadAll(transform.NewReader(r, japanese.ShiftJIS.NewDecoder()))
-	if err != nil {
-		return "", err
-	}
-	return string(decoded), nil
-}
-*/
-
 func UTF8ToSJIS(x string) []byte {
 	e := japanese.ShiftJIS.NewEncoder()
 	xt, _, err := transform.String(e, x)
@@ -168,23 +143,4 @@ func CSVElems(csv string) []int {
 		r = append(r, int(j))
 	}
 	return r
-}
-
-// ConvertUTF8ToShiftJIS converts a UTF8 string to a Shift-JIS []byte.
-func ConvertUTF8ToShiftJIS(text string) ([]byte, error) {
-	r := bytes.NewBuffer([]byte(text))
-	encoded, err := ioutil.ReadAll(transform.NewReader(r, japanese.ShiftJIS.NewEncoder()))
-	if err != nil {
-		return nil, err
-	}
-
-	return encoded, nil
-}
-
-func ConvertUTF8ToSJIS(text string) (string, error) {
-	r, _, err := transform.String(japanese.ShiftJIS.NewEncoder(), text)
-	if err != nil {
-		return "", err
-	}
-	return r, nil
 }

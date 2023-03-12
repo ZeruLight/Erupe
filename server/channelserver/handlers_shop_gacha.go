@@ -1,7 +1,6 @@
 package channelserver
 
 import (
-	"encoding/hex"
 	"erupe-ce/common/byteframe"
 	ps "erupe-ce/common/pascalstring"
 	"erupe-ce/network/mhfpacket"
@@ -9,18 +8,18 @@ import (
 )
 
 type ShopItem struct {
-	ID            uint32 `db:"id"`
-	ItemID        uint16 `db:"itemid"`
-	Cost          uint32 `db:"cost"`
-	Quantity      uint16 `db:"quantity"`
-	MinHR         uint16 `db:"min_hr"`
-	MinSR         uint16 `db:"min_sr"`
-	MinGR         uint16 `db:"min_gr"`
-	ReqStoreLevel uint16 `db:"req_store_level"`
-	MaxQuantity   uint16 `db:"max_quantity"`
-	CharQuantity  uint16 `db:"char_quantity"`
-	RoadFloors    uint16 `db:"road_floors"`
-	RoadFatalis   uint16 `db:"road_fatalis"`
+	ID           uint32 `db:"id"`
+	ItemID       uint16 `db:"item_id"`
+	Cost         uint32 `db:"cost"`
+	Quantity     uint16 `db:"quantity"`
+	MinHR        uint16 `db:"min_hr"`
+	MinSR        uint16 `db:"min_sr"`
+	MinGR        uint16 `db:"min_gr"`
+	StoreLevel   uint16 `db:"store_level"`
+	MaxQuantity  uint16 `db:"max_quantity"`
+	UsedQuantity uint16 `db:"used_quantity"`
+	RoadFloors   uint16 `db:"road_floors"`
+	RoadFatalis  uint16 `db:"road_fatalis"`
 }
 
 type Gacha struct {
@@ -54,6 +53,45 @@ type GachaItem struct {
 	ItemType uint8  `db:"item_type"`
 	ItemID   uint16 `db:"item_id"`
 	Quantity uint16 `db:"quantity"`
+}
+
+func writeShopItems(bf *byteframe.ByteFrame, items []ShopItem) {
+	bf.WriteUint16(uint16(len(items)))
+	bf.WriteUint16(uint16(len(items)))
+	for _, item := range items {
+		bf.WriteUint32(item.ID)
+		bf.WriteUint16(0)
+		bf.WriteUint16(item.ItemID)
+		bf.WriteUint32(item.Cost)
+		bf.WriteUint16(item.Quantity)
+		bf.WriteUint16(item.MinHR)
+		bf.WriteUint16(item.MinSR)
+		bf.WriteUint16(item.MinGR)
+		bf.WriteUint16(item.StoreLevel)
+		bf.WriteUint16(item.MaxQuantity)
+		bf.WriteUint16(item.UsedQuantity)
+		bf.WriteUint16(item.RoadFloors)
+		bf.WriteUint16(item.RoadFatalis)
+	}
+}
+
+func getShopItems(s *Session, shopType uint8, shopID uint32) []ShopItem {
+	var items []ShopItem
+	var temp ShopItem
+	rows, err := s.server.db.Queryx(`SELECT id, item_id, cost, quantity, min_hr, min_sr, min_gr, store_level, max_quantity,
+       		COALESCE((SELECT bought FROM shop_items_bought WHERE shop_item_id=si.id AND character_id=$3), 0) as used_quantity,
+       		road_floors, road_fatalis FROM shop_items si WHERE shop_type=$1 AND shop_id=$2
+       		`, shopType, shopID, s.charID)
+	if err == nil {
+		for rows.Next() {
+			err = rows.StructScan(&temp)
+			if err != nil {
+				continue
+			}
+			items = append(items, temp)
+		}
+	}
+	return items
 }
 
 func handleMsgMhfEnumerateShop(s *Session, p mhfpacket.MHFPacket) {
@@ -165,62 +203,25 @@ func handleMsgMhfEnumerateShop(s *Session, p mhfpacket.MHFPacket) {
 		bf.Seek(4, 0)
 		bf.WriteUint16(entryCount)
 		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	case 3: // Hunting Festival Exchange
+		fallthrough
 	case 4: // N Points, 0-6
-		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
+		fallthrough
 	case 5: // GCP->Item, 0-6
-		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
+		fallthrough
 	case 6: // Gacha coin->Item
-		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
+		fallthrough
 	case 7: // Item->GCP
-		data, _ := hex.DecodeString("000300033a9186fb000033860000000a000100000000000000000000000000000000097fdb1c0000067e0000000a0001000000000000000000000000000000001374db29000027c300000064000100000000000000000000000000000000")
-		doAckBufSucceed(s, pkt.AckHandle, data)
+		fallthrough
 	case 8: // Diva
-		switch pkt.ShopID {
-		case 0: // Normal exchange
-			doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
-		case 5: // GCP skills
-			data, _ := hex.DecodeString("001f001f2c9365c1000000010000001e000a0000000000000000000a0000000000001979f1c2000000020000003c000a0000000000000000000a0000000000003e5197df000000030000003c000a0000000000000000000a000000000000219337c0000000040000001e000a0000000000000000000a00000000000009b24c9d000000140000001e000a0000000000000000000a0000000000001f1d496e000000150000001e000a0000000000000000000a0000000000003b918fcb000000160000003c000a0000000000000000000a0000000000000b7fd81c000000170000003c000a0000000000000000000a0000000000001374f239000000180000003c000a0000000000000000000a00000000000026950cba0000001c0000003c000a0000000000000000000a0000000000003797eae70000001d0000003c000a012b000000000000000a00000000000015758ad8000000050000003c00000000000000000000000a0000000000003c7035050000000600000050000a0000000000000001000a00000000000024f3b5560000000700000050000a0000000000000001000a00000000000000b600330000000800000050000a0000000000000001000a0000000000002efdce840000001900000050000a0000000000000001000a0000000000002d9365f10000001a00000050000a0000000000000001000a0000000000001979f3420000001f00000050000a012b000000000001000a0000000000003f5397cf0000002000000050000a012b000000000001000a000000000000319337c00000002100000050000a012b000000000001000a00000000000008b04cbd0000000900000064000a0000000000000002000a0000000000000b1d4b6e0000000a00000064000a0000000000000002000a0000000000003b918feb0000000b00000064000a0000000000000002000a0000000000001b7fd81c0000000c00000064000a0000000000000002000a0000000000001276f2290000000d00000064000a0000000000000002000a00000000000022950cba0000000e000000c8000a0000000000000002000a0000000000003697ead70000000f000001f4000a0000000000000003000a00000000000005758a5800000010000003e8000a0000000000000003000a0000000000003c7035250000001b000001f4000a0000000000010003000a00000000000034f3b5d60000001e00000064000a012b000000000003000a00000000000000b600030000002200000064000a0000000000010003000a000000000000")
-			doAckBufSucceed(s, pkt.AckHandle, data)
-		case 7: // Note exchange
-			doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
-		}
+		fallthrough
+	case 9: // Diva song shop
+		fallthrough
 	case 10: // Item shop, 0-8
-		shopEntries, err := s.server.db.Queryx(`SELECT id, itemid, cost, quantity, min_hr, min_sr, min_gr, req_store_level, max_quantity,
-       		COALESCE((SELECT usedquantity FROM shop_item_state WHERE itemhash=nsi.id AND char_id=$3), 0) as char_quantity,
-       		road_floors, road_fatalis FROM normal_shop_items nsi WHERE shoptype=$1 AND shopid=$2
-       		`, pkt.ShopType, pkt.ShopID, s.charID)
-		if err != nil {
-			doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
-			return
-		}
-		var count uint16
-		resp := byteframe.NewByteFrame()
-		resp.WriteBytes(make([]byte, 4))
-		var shopItem ShopItem
-		for shopEntries.Next() {
-			err = shopEntries.StructScan(&shopItem)
-			if err != nil {
-				continue
-			}
-			resp.WriteUint32(shopItem.ID)
-			resp.WriteUint16(0)
-			resp.WriteUint16(shopItem.ItemID)
-			resp.WriteUint32(shopItem.Cost)
-			resp.WriteUint16(shopItem.Quantity)
-			resp.WriteUint16(shopItem.MinHR)
-			resp.WriteUint16(shopItem.MinSR)
-			resp.WriteUint16(shopItem.MinGR)
-			resp.WriteUint16(shopItem.ReqStoreLevel)
-			resp.WriteUint16(shopItem.MaxQuantity)
-			resp.WriteUint16(shopItem.CharQuantity)
-			resp.WriteUint16(shopItem.RoadFloors)
-			resp.WriteUint16(shopItem.RoadFatalis)
-			count++
-		}
-		resp.Seek(0, 0)
-		resp.WriteUint16(count)
-		resp.WriteUint16(count)
-		doAckBufSucceed(s, pkt.AckHandle, resp.Data())
+		bf := byteframe.NewByteFrame()
+		items := getShopItems(s, pkt.ShopType, pkt.ShopID)
+		writeShopItems(bf, items)
+		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 	}
 }
 
@@ -230,11 +231,14 @@ func handleMsgMhfAcquireExchangeShop(s *Session, p mhfpacket.MHFPacket) {
 	exchanges := int(bf.ReadUint16())
 	for i := 0; i < exchanges; i++ {
 		itemHash := bf.ReadUint32()
+		if itemHash == 0 {
+			continue
+		}
 		buyCount := bf.ReadUint32()
-		s.server.db.Exec(`INSERT INTO shop_item_state (char_id, itemhash, usedquantity)
-			VALUES ($1,$2,$3) ON CONFLICT (char_id, itemhash)
-			DO UPDATE SET usedquantity = shop_item_state.usedquantity + $3
-			WHERE EXCLUDED.char_id=$1 AND EXCLUDED.itemhash=$2
+		s.server.db.Exec(`INSERT INTO shop_items_bought (character_id, shop_item_id, bought)
+			VALUES ($1,$2,$3) ON CONFLICT (character_id, shop_item_id)
+			DO UPDATE SET bought = bought + $3
+			WHERE EXCLUDED.character_id=$1 AND EXCLUDED.shop_item_id=$2
 		`, s.charID, itemHash, buyCount)
 	}
 	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})

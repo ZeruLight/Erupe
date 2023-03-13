@@ -13,9 +13,6 @@ ALTER TABLE IF EXISTS public.shop_items
     RENAME COLUMN itemhash TO id;
 
 ALTER TABLE IF EXISTS public.shop_items
-    ADD PRIMARY KEY (id);
-
-ALTER TABLE IF EXISTS public.shop_items
     RENAME COLUMN itemid TO item_id;
 
 ALTER TABLE IF EXISTS public.shop_items
@@ -50,6 +47,20 @@ ALTER TABLE IF EXISTS public.shop_items
 
 ALTER TABLE IF EXISTS public.shop_items
     RENAME COLUMN weeklyfataliskills TO road_fatalis;
+
+ALTER TABLE public.shop_items
+    RENAME CONSTRAINT normal_shop_items_pkey TO shop_items_pkey;
+
+ALTER TABLE IF EXISTS public.shop_items
+    DROP CONSTRAINT IF EXISTS normal_shop_items_itemhash_key;
+
+CREATE SEQUENCE public.shop_items_id_seq;
+
+ALTER SEQUENCE public.shop_items_id_seq
+    OWNER TO postgres;
+
+ALTER TABLE IF EXISTS public.shop_items
+    ALTER COLUMN id SET DEFAULT nextval('shop_items_id_seq'::regclass);
 
 DROP TABLE IF EXISTS public.shop_item_state;
 

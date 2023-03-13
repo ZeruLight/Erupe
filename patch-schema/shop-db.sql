@@ -62,6 +62,11 @@ ALTER SEQUENCE public.shop_items_id_seq
 ALTER TABLE IF EXISTS public.shop_items
     ALTER COLUMN id SET DEFAULT nextval('shop_items_id_seq'::regclass);
 
+ALTER SEQUENCE IF EXISTS public.shop_items_id_seq
+    OWNED BY shop_items.id;
+
+SELECT setval('shop_items_id_seq', (SELECT MAX(id) FROM public.shop_items));
+
 DROP TABLE IF EXISTS public.shop_item_state;
 
 CREATE TABLE IF NOT EXISTS public.shop_items_bought (

@@ -2,6 +2,7 @@ package channelserver
 
 import (
 	"encoding/hex"
+	"erupe-ce/common/byteframe"
 	"erupe-ce/network/mhfpacket"
 )
 
@@ -45,7 +46,12 @@ func handleMsgMhfGetUdTacticsFirstQuestBonus(s *Session, p mhfpacket.MHFPacket) 
 	doAckBufSucceed(s, pkt.AckHandle, data)
 }
 
-func handleMsgMhfGetUdTacticsRemainingPoint(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfGetUdTacticsRemainingPoint(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfGetUdTacticsRemainingPoint)
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint32(0) // Points until Special Guild Hall earned
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+}
 
 func handleMsgMhfGetUdTacticsRanking(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetUdTacticsRanking)

@@ -95,8 +95,8 @@ func generateFeatureWeapons(count int) activeFeature {
 	}
 	nums := make([]int, 0)
 	var result int
-	rng := token.RNG()
 	for len(nums) < count {
+		rng := token.RNG()
 		num := rng.Intn(14)
 		exist := false
 		for _, v := range nums {

@@ -358,6 +358,9 @@ func getRandomEntries(entries []GachaEntry, rolls int, isBox bool) ([]GachaEntry
 		totalWeight += entries[i].Weight
 	}
 	for {
+		if rolls == len(chosen) {
+			break
+		}
 		if !isBox {
 			result := rand.Float64() * totalWeight
 			for _, entry := range entries {
@@ -372,9 +375,6 @@ func getRandomEntries(entries []GachaEntry, rolls int, isBox bool) ([]GachaEntry
 			chosen = append(chosen, entries[result])
 			entries[result] = entries[len(entries)-1]
 			entries = entries[:len(entries)-1]
-		}
-		if rolls == len(chosen) {
-			break
 		}
 	}
 	return chosen, nil

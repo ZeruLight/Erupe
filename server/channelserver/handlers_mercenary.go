@@ -8,7 +8,6 @@ import (
 	"erupe-ce/server/channelserver/compression/nullcomp"
 	"go.uber.org/zap"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
@@ -292,7 +291,7 @@ func handleMsgMhfEnumerateAiroulist(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateAiroulist)
 	resp := byteframe.NewByteFrame()
 	if _, err := os.Stat(filepath.Join(s.server.erupeConfig.BinPath, "airoulist.bin")); err == nil {
-		data, _ := ioutil.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, "airoulist.bin"))
+		data, _ := os.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, "airoulist.bin"))
 		resp.WriteBytes(data)
 		doAckBufSucceed(s, pkt.AckHandle, resp.Data())
 		return

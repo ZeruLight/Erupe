@@ -4,7 +4,7 @@ import (
 	ps "erupe-ce/common/pascalstring"
 	"fmt"
 	"github.com/jmoiron/sqlx"
-	"io/ioutil"
+	"os"
 	"path/filepath"
 
 	"erupe-ce/common/byteframe"
@@ -92,7 +92,7 @@ func handleMsgMhfLoadRengokuData(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfGetRengokuBinary(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetRengokuBinary)
 	// a (massively out of date) version resides in the game's /dat/ folder or up to date can be pulled from packets
-	data, err := ioutil.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, "rengoku_data.bin"))
+	data, err := os.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, "rengoku_data.bin"))
 	if err != nil {
 		panic(err)
 	}

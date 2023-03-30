@@ -5,7 +5,6 @@ import (
 	"erupe-ce/common/stringsupport"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -260,7 +259,7 @@ func dumpSaveData(s *Session, data []byte, suffix string) {
 func handleMsgMhfLoaddata(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfLoaddata)
 	if _, err := os.Stat(filepath.Join(s.server.erupeConfig.BinPath, "save_override.bin")); err == nil {
-		data, _ := ioutil.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, "save_override.bin"))
+		data, _ := os.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, "save_override.bin"))
 		doAckBufSucceed(s, pkt.AckHandle, data)
 		return
 	}

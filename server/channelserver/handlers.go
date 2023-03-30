@@ -12,11 +12,11 @@ import (
 	"strings"
 	"time"
 
+	"crypto/rand"
 	"erupe-ce/common/byteframe"
 	"erupe-ce/network/mhfpacket"
 	"go.uber.org/zap"
 	"math/bits"
-	"math/rand"
 )
 
 // Temporary function to just return no results for a MSG_MHF_ENUMERATE* packet

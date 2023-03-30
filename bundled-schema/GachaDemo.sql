@@ -2,7 +2,11 @@ BEGIN;
 
 -- Start Normal Demo
 INSERT INTO gacha_shop (min_gr, min_hr, name, url_banner, url_feature, url_thumbnail, wide, recommended, gacha_type, hidden)
-VALUES (0, 0, 'Normal Demo', '', '', '', false, false, 0, false);
+    VALUES (0, 0, 'Normal Demo',
+    'http://img4.imagetitan.com/img4/QeRWNAviFD8UoTx/26/26_template_innerbanner.png',
+    'http://img4.imagetitan.com/img4/QeRWNAviFD8UoTx/26/26_template_feature.png',
+    'http://img4.imagetitan.com/img4/small/26/26_template_outerbanner.png',
+    false, false, 0, false);
 
 -- Create two different 'rolls', the first rolls once for 1z, the second rolls eleven times for 10z
 INSERT INTO gacha_entries (gacha_id, entry_type, item_type, item_number, item_quantity, weight, rarity, rolls, daily_limit, frontier_points)

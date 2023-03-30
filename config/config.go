@@ -50,7 +50,6 @@ type DevModeOptions struct {
 	MezFesEvent         bool // MezFes status
 	MezFesAlt           bool // Swaps out Volpakkun for Tokotoko
 	DisableTokenCheck   bool // Disables checking login token exists in the DB (security risk!)
-	DisableMailItems    bool // Hack to prevent english versions of MHF from crashing
 	QuestDebugTools     bool // Enable various quest debug logs
 	SaveDumps           SaveDumpOptions
 }

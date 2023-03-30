@@ -24,7 +24,6 @@
     "TournamentEvent": 0,
     "MezFesEvent": true,
     "MezFesAlt": false,
-    "DisableMailItems": true,
     "DisableTokenCheck": false,
     "QuestDebugTools": false,
     "SaveDumps": {

@@ -6,8 +6,6 @@ CREATE TABLE IF NOT EXISTS public.feature_weapon
     featured INTEGER NOT NULL
 );
 
-ALTER TABLE IF EXISTS public.characters DROP COLUMN IF EXISTS cafe_time;
-
 ALTER TABLE IF EXISTS public.characters ADD COLUMN IF NOT EXISTS cafe_reset TIMESTAMP WITH TIME ZONE;
 
 DROP TABLE IF EXISTS public.user_binaries;

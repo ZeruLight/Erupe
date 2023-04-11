@@ -51,6 +51,8 @@ func getLangStrings(s *Server) map[string]string {
 
 		strings["guildInviteDeclinedName"] = "辞退しました"
 		strings["guildInviteDeclined"] = "招待した狩人が「%s」への招待を辞退しました。"
+
+		strings["returnGuild"] = "復帰猟団%d"
 	default:
 		strings["language"] = "English"
 		strings["cafeReset"] = "Resets on %d/%d"
@@ -99,6 +101,8 @@ func getLangStrings(s *Server) map[string]string {
 
 		strings["guildInviteDeclinedName"] = "Declined"
 		strings["guildInviteDeclined"] = "The recipient declined your invitation to join\n「%s」."
+
+		strings["returnGuild"] = "Return Clan %d"
 	}
 	return strings
 }

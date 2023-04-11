@@ -52,6 +52,7 @@ type Guild struct {
 	RankRP         uint32         `db:"rank_rp"`
 	EventRP        uint32         `db:"event_rp"`
 	Comment        string         `db:"comment"`
+	ReturnType     uint8          `db:"return_type"`
 	PugiName1      string         `db:"pugi_name_1"`
 	PugiName2      string         `db:"pugi_name_2"`
 	PugiName3      string         `db:"pugi_name_3"`
@@ -127,6 +128,7 @@ SELECT
 	leader_id,
 	lc.name as leader_name,
 	comment,
+	return_type,
 	COALESCE(pugi_name_1, '') AS pugi_name_1,
 	COALESCE(pugi_name_2, '') AS pugi_name_2,
 	COALESCE(pugi_name_3, '') AS pugi_name_3,
@@ -445,7 +447,7 @@ func (guild *Guild) HasApplicationForCharID(s *Session, charID uint32) (bool, er
 	return true, nil
 }
 
-func CreateGuild(s *Session, guildName string) (int32, error) {
+func CreateGuild(s *Session, guildName string) (uint32, error) {
 	transaction, err := s.server.db.Begin()
 
 	if err != nil {
@@ -468,7 +470,7 @@ func CreateGuild(s *Session, guildName string) (int32, error) {
 		return 0, err
 	}
 
-	var guildId int32
+	var guildId uint32
 
 	guildResult.Next()
 
@@ -606,7 +608,7 @@ func handleMsgMhfCreateGuild(s *Session, p mhfpacket.MHFPacket) {
 
 	bf := byteframe.NewByteFrame()
 
-	bf.WriteUint32(uint32(guildId))
+	bf.WriteUint32(guildId)
 
 	doAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
 }
@@ -933,12 +935,16 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 
 		bf.WriteBool(!guild.Recruiting)
 
-		if characterGuildData == nil || characterGuildData.IsApplicant {
-			bf.WriteUint16(0x00)
-		} else if guild.LeaderCharID == s.charID {
-			bf.WriteUint16(0x01)
+		if guild.ReturnType > 0 {
+			bf.WriteUint16(0x0F)
 		} else {
-			bf.WriteUint16(0x02)
+			if characterGuildData == nil || characterGuildData.IsApplicant {
+				bf.WriteUint16(0x00)
+			} else if guild.LeaderCharID == s.charID {
+				bf.WriteUint16(0x01)
+			} else {
+				bf.WriteUint16(0x02)
+			}
 		}
 
 		bf.WriteUint32(uint32(guild.CreatedAt.Unix()))
@@ -953,9 +959,9 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint32(guild.RankRP)
 		bf.WriteBytes(guildLeaderName)
 		bf.WriteBytes([]byte{0x00, 0x00, 0x00, 0x00}) // Unk
-		bf.WriteBool(false)                           // isReturnGuild
-		bf.WriteBool(false)                           // earnedSpecialHall
-		bf.WriteBytes([]byte{0x02, 0x02})             // Unk
+		bf.WriteUint8(guild.ReturnType)
+		bf.WriteBool(false)               // earnedSpecialHall
+		bf.WriteBytes([]byte{0x02, 0x02}) // Unk
 		bf.WriteUint32(guild.EventRP)
 		ps.Uint8(bf, guild.PugiName1, true)
 		ps.Uint8(bf, guild.PugiName2, true)
@@ -1917,7 +1923,33 @@ func handleMsgMhfUpdateGuildMessageBoard(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfEntryRookieGuild(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEntryRookieGuild)
-	doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+	var guilds []*Guild
+	var guildID uint32
+	rows, err := s.server.db.Queryx(fmt.Sprintf(`%s WHERE return_type = 2`, guildInfoSelectQuery))
+	if err == nil {
+		for rows.Next() {
+			guild, _ := buildGuildObjectFromDbResult(rows, err, s)
+			guilds = append(guilds, guild)
+		}
+	}
+	for i := range guilds {
+		if guilds[i].MemberCount < 60 {
+			guildID = guilds[i].ID
+			break
+		}
+	}
+	if guildID == 0 {
+		guildID, _ = CreateGuild(s, fmt.Sprintf(s.server.dict["returnGuild"], len(guilds)+1))
+		s.server.db.Exec(`UPDATE guilds SET is_return = 2, rank_rp = 1200 WHERE id = $1`, guildID)
+	} else {
+		s.server.db.Exec(`
+			INSERT INTO guild_characters (guild_id, character_id, order_index)
+			VALUES ($1, $2, (SELECT MAX(order_index) + 1 FROM guild_characters WHERE guild_id = $1))
+		`, guildID, s.charID)
+	}
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint32(guildID)
+	doAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfUpdateForceGuildRank(s *Session, p mhfpacket.MHFPacket) {}

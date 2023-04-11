@@ -1,0 +1,5 @@
+BEGIN;
+
+ALTER TABLE public.guilds ADD COLUMN IF NOT EXISTS return_type INTEGER DEFAULT 0;
+
+END;

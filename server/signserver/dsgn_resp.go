@@ -11,15 +11,7 @@ import (
 	"strings"
 )
 
-func makeSignInFailureResp(respID RespID) []byte {
-	bf := byteframe.NewByteFrame()
-	bf.WriteUint8(uint8(respID))
-	return bf.Data()
-}
-
-func (s *Session) makeSignInResp(uid int) []byte {
-	returnExpiry := s.server.getReturnExpiry(uid)
-
+func (s *Session) makeSignResponse(uid int) []byte {
 	// Get the characters from the DB.
 	chars, err := s.server.getCharactersForUser(uid)
 	if err != nil {
@@ -27,7 +19,7 @@ func (s *Session) makeSignInResp(uid int) []byte {
 	}
 
 	sessToken := token.Generate(16)
-	s.server.registerToken(uid, sessToken)
+	_ = s.server.registerToken(uid, sessToken)
 
 	bf := byteframe.NewByteFrame()
 
@@ -116,6 +108,11 @@ func (s *Session) makeSignInResp(uid int) []byte {
 	bf.WriteUint32(s.server.getLastCID(uid))
 	bf.WriteUint32(s.server.getUserRights(uid))
 	ps.Uint16(bf, "", false) // filters
+	if s.client == VITA {
+		var psnUser string
+		s.server.db.QueryRow("SELECT username FROM users WHERE id = $1", uid).Scan(&psnUser)
+		stringsupport.PaddedString(psnUser, 20, true)
+	}
 	bf.WriteUint16(0xCA10)
 	bf.WriteUint16(0x4E20)
 	ps.Uint16(bf, "", false) // unk key
@@ -124,7 +121,7 @@ func (s *Session) makeSignInResp(uid int) []byte {
 	bf.WriteUint16(0x0001)
 	bf.WriteUint16(0x4E20)
 	ps.Uint16(bf, "", false) // unk ipv4
-	bf.WriteUint32(uint32(returnExpiry.Unix()))
+	bf.WriteUint32(uint32(s.server.getReturnExpiry(uid).Unix()))
 	bf.WriteUint32(0x00000000)
 	bf.WriteUint32(0x0A5197DF) // unk id
 

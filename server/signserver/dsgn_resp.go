@@ -108,7 +108,7 @@ func (s *Session) makeSignResponse(uid int) []byte {
 	bf.WriteUint32(s.server.getLastCID(uid))
 	bf.WriteUint32(s.server.getUserRights(uid))
 	ps.Uint16(bf, "", false) // filters
-	if s.client == VITA {
+	if s.client == VITA || s.client == PS3 {
 		var psnUser string
 		s.server.db.QueryRow("SELECT psn_id FROM users WHERE id = $1", uid).Scan(&psnUser)
 		bf.WriteBytes(stringsupport.PaddedString(psnUser, 20, true))

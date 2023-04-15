@@ -18,6 +18,7 @@ type Client int
 const (
 	PC100 Client = iota
 	VITA
+	PS3
 )
 
 // Session holds state for the sign server connection.
@@ -52,9 +53,12 @@ func (s *Session) handlePacket(pkt []byte) error {
 	switch reqType {
 	case "DLTSKEYSIGN:100", "DSGN:100":
 		s.handleDSGN(bf)
+	case "PS3SGN:100":
+		s.client = PS3
+		s.handlePSSGN(bf)
 	case "VITASGN:100":
 		s.client = VITA
-		s.handleVITASGN(bf)
+		s.handlePSSGN(bf)
 	case "DELETE:100":
 		loginTokenString := string(bf.ReadNullTerminatedBytes())
 		characterID := int(bf.ReadUint32())
@@ -102,7 +106,7 @@ func (s *Session) authenticate(username string, password string) {
 		bf.WriteUint8(uint8(SIGN_EABORT))
 		s.logger.Error("Error getting user details", zap.Error(err))
 	default:
-		if bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)) == nil || s.client == VITA {
+		if bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)) == nil || s.client == VITA || s.client == PS3 {
 			s.logger.Debug("Passwords match!")
 			if newCharaReq {
 				err = s.server.newUserChara(username)
@@ -133,7 +137,7 @@ func (s *Session) authenticate(username string, password string) {
 	err = s.cryptConn.SendPacket(bf.Data())
 }
 
-func (s *Session) handleVITASGN(bf *byteframe.ByteFrame) {
+func (s *Session) handlePSSGN(bf *byteframe.ByteFrame) {
 	_ = bf.ReadNullTerminatedBytes() // 0000000256
 	_ = bf.ReadNullTerminatedBytes() // 1
 	_ = bf.ReadBytes(82)

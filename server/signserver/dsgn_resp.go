@@ -110,8 +110,8 @@ func (s *Session) makeSignResponse(uid int) []byte {
 	ps.Uint16(bf, "", false) // filters
 	if s.client == VITA {
 		var psnUser string
-		s.server.db.QueryRow("SELECT username FROM users WHERE id = $1", uid).Scan(&psnUser)
-		stringsupport.PaddedString(psnUser, 20, true)
+		s.server.db.QueryRow("SELECT psn_id FROM users WHERE id = $1", uid).Scan(&psnUser)
+		bf.WriteBytes(stringsupport.PaddedString(psnUser, 20, true))
 	}
 	bf.WriteUint16(0xCA10)
 	bf.WriteUint16(0x4E20)

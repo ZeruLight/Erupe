@@ -72,6 +72,10 @@
       "Name": "Course",
       "Enabled": true,
       "Prefix": "!course"
+    }, {
+      "Name": "LinkPSN",
+      "Enabled": true,
+      "Prefix": "!linkpsn"
     }
   ],
   "Courses": [

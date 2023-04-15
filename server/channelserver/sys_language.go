@@ -20,6 +20,8 @@ func getLangStrings(s *Server) map[string]string {
 		strings["commandCourseLocked"] = "%sコースはロックされています"
 		strings["commandTeleportError"] = "テレポートコマンドエラー　構文：%s x y"
 		strings["commandTeleportSuccess"] = "%d %dにテレポート"
+		strings["commandLinkPSNError"] = "PSN連携コマンドエラー　例：%s <psn id>"
+		strings["commandLinkPSNSuccess"] = "PSN「%s」が連携されています"
 
 		strings["commandRaviNoCommand"] = "ラヴィコマンドが指定されていません"
 		strings["commandRaviStartSuccess"] = "大討伐を開始します"
@@ -68,6 +70,8 @@ func getLangStrings(s *Server) map[string]string {
 		strings["commandCourseLocked"] = "%s Course is locked"
 		strings["commandTeleportError"] = "Error in command. Format: %s x y"
 		strings["commandTeleportSuccess"] = "Teleporting to %d %d"
+		strings["commandLinkPSNError"] = "Error in command. Format: %s <psn id>"
+		strings["commandLinkPSNSuccess"] = "Connected PSN ID: %s"
 
 		strings["commandRaviNoCommand"] = "No Raviente command specified!"
 		strings["commandRaviStartSuccess"] = "The Great Slaying will begin in a moment"

@@ -102,7 +102,7 @@ func (s *Session) authenticate(username string, password string) {
 		bf.WriteUint8(uint8(SIGN_EABORT))
 		s.logger.Error("Error getting user details", zap.Error(err))
 	default:
-		if bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)) == nil {
+		if bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)) == nil || s.client == VITA {
 			s.logger.Debug("Passwords match!")
 			if newCharaReq {
 				err = s.server.newUserChara(username)
@@ -138,7 +138,15 @@ func (s *Session) handleVITASGN(bf *byteframe.ByteFrame) {
 	_ = bf.ReadNullTerminatedBytes() // 1
 	_ = bf.ReadBytes(82)
 	psnUser := string(bf.ReadNullTerminatedBytes())
-	s.authenticate(psnUser, "")
+	var reqUsername string
+	err := s.server.db.QueryRow(`SELECT username FROM users WHERE psn_id = $1`, psnUser).Scan(&reqUsername)
+	if err == sql.ErrNoRows {
+		resp := byteframe.NewByteFrame()
+		resp.WriteUint8(uint8(SIGN_ECOGLINK))
+		s.cryptConn.SendPacket(resp.Data())
+		return
+	}
+	s.authenticate(reqUsername, "")
 }
 
 func (s *Session) handleDSGN(bf *byteframe.ByteFrame) {

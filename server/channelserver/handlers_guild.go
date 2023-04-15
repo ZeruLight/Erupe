@@ -1060,7 +1060,7 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 			uint32 guild id
 			uint32 guild leader id (for mail)
 			uint32 unk (always null in pcap)
-			uint16 unk (always 0001 in pcap)
+			uint16 member count
 			uint16 len guild name
 			string nullterm guild name
 			uint16 len guild leader name
@@ -1862,7 +1862,6 @@ func handleMsgMhfEnumerateGuildMessageBoard(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfUpdateGuildMessageBoard(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfUpdateGuildMessageBoard)
-	bf := byteframe.NewByteFrameFromBytes(pkt.Request)
 	guild, err := GetGuildInfoByCharacterId(s, s.charID)
 	applicant := false
 	if guild != nil {
@@ -1874,45 +1873,26 @@ func handleMsgMhfUpdateGuildMessageBoard(s *Session, p mhfpacket.MHFPacket) {
 	}
 	switch pkt.MessageOp {
 	case 0: // Create message
-		postType := bf.ReadUint32() // 0 = message, 1 = news
-		stampID := bf.ReadUint32()
-		titleLength := bf.ReadUint32()
-		bodyLength := bf.ReadUint32()
-		title := stringsupport.SJISToUTF8(bf.ReadBytes(uint(titleLength)))
-		body := stringsupport.SJISToUTF8(bf.ReadBytes(uint(bodyLength)))
-		s.server.db.Exec("INSERT INTO guild_posts (guild_id, author_id, stamp_id, post_type, title, body) VALUES ($1, $2, $3, $4, $5, $6)", guild.ID, s.charID, stampID, postType, title, body)
+		s.server.db.Exec("INSERT INTO guild_posts (guild_id, author_id, stamp_id, post_type, title, body) VALUES ($1, $2, $3, $4, $5, $6)", guild.ID, s.charID, pkt.StampID, pkt.PostType, pkt.Title, pkt.Body)
 		// TODO: if there are too many messages, purge excess
 	case 1: // Delete message
-		postID := bf.ReadUint32()
-		s.server.db.Exec("DELETE FROM guild_posts WHERE id = $1", postID)
+		s.server.db.Exec("DELETE FROM guild_posts WHERE id = $1", pkt.PostID)
 	case 2: // Update message
-		postID := bf.ReadUint32()
-		bf.ReadBytes(8)
-		titleLength := bf.ReadUint32()
-		bodyLength := bf.ReadUint32()
-		title := stringsupport.SJISToUTF8(bf.ReadBytes(uint(titleLength)))
-		body := stringsupport.SJISToUTF8(bf.ReadBytes(uint(bodyLength)))
-		s.server.db.Exec("UPDATE guild_posts SET title = $1, body = $2 WHERE id = $3", title, body, postID)
+		s.server.db.Exec("UPDATE guild_posts SET title = $1, body = $2 WHERE id = $3", pkt.Title, pkt.Body, pkt.PostID)
 	case 3: // Update stamp
-		postID := bf.ReadUint32()
-		bf.ReadBytes(8)
-		stampID := bf.ReadUint32()
-		s.server.db.Exec("UPDATE guild_posts SET stamp_id = $1 WHERE id = $2", stampID, postID)
+		s.server.db.Exec("UPDATE guild_posts SET stamp_id = $1 WHERE id = $2", pkt.StampID, pkt.PostID)
 	case 4: // Like message
-		postID := bf.ReadUint32()
-		bf.ReadBytes(8)
-		likeState := bf.ReadBool()
 		var likedBy string
-		err := s.server.db.QueryRow("SELECT liked_by FROM guild_posts WHERE id = $1", postID).Scan(&likedBy)
+		err := s.server.db.QueryRow("SELECT liked_by FROM guild_posts WHERE id = $1", pkt.PostID).Scan(&likedBy)
 		if err != nil {
 			s.logger.Error("Failed to get guild message like data from db", zap.Error(err))
 		} else {
-			if likeState {
+			if pkt.LikeState {
 				likedBy = stringsupport.CSVAdd(likedBy, int(s.charID))
-				s.server.db.Exec("UPDATE guild_posts SET liked_by = $1 WHERE id = $2", likedBy, postID)
+				s.server.db.Exec("UPDATE guild_posts SET liked_by = $1 WHERE id = $2", likedBy, pkt.PostID)
 			} else {
 				likedBy = stringsupport.CSVRemove(likedBy, int(s.charID))
-				s.server.db.Exec("UPDATE guild_posts SET liked_by = $1 WHERE id = $2", likedBy, postID)
+				s.server.db.Exec("UPDATE guild_posts SET liked_by = $1 WHERE id = $2", likedBy, pkt.PostID)
 			}
 		}
 	case 5: // Check for new messages

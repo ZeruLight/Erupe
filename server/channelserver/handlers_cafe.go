@@ -2,6 +2,7 @@ package channelserver
 
 import (
 	"erupe-ce/common/byteframe"
+	"erupe-ce/common/mhfcourse"
 	ps "erupe-ce/common/pascalstring"
 	"erupe-ce/network/mhfpacket"
 	"fmt"
@@ -88,7 +89,7 @@ func handleMsgMhfGetCafeDuration(s *Session, p mhfpacket.MHFPacket) {
 	if err != nil {
 		panic(err)
 	}
-	if s.FindCourse("NetCafe").ID != 0 || s.FindCourse("N").ID != 0 {
+	if mhfcourse.CourseExists(30, s.courses) {
 		cafeTime = uint32(TimeAdjusted().Unix()) - uint32(s.sessionStart) + cafeTime
 	}
 	bf.WriteUint32(cafeTime) // Total cafe time

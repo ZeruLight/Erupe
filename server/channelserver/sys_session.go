@@ -3,10 +3,10 @@ package channelserver
 import (
 	"encoding/binary"
 	"encoding/hex"
+	"erupe-ce/common/mhfcourse"
 	"fmt"
 	"io"
 	"net"
-	"strings"
 	"sync"
 	"time"
 
@@ -32,6 +32,7 @@ type Session struct {
 	cryptConn     *network.CryptConn
 	sendPackets   chan packet
 	clientContext *clientctx.ClientContext
+	lastPacket    time.Time
 
 	userEnteredStage bool // If the user has entered a stage before
 	stageID          string
@@ -42,7 +43,7 @@ type Session struct {
 	charID           uint32
 	logKey           []byte
 	sessionStart     int64
-	courses          []mhfpacket.Course
+	courses          []mhfcourse.Course
 	token            string
 	kqf              []byte
 	kqfOverride      bool
@@ -73,6 +74,7 @@ func NewSession(server *Server, conn net.Conn) *Session {
 		cryptConn:      network.NewCryptConn(conn),
 		sendPackets:    make(chan packet, 20),
 		clientContext:  &clientctx.ClientContext{}, // Unused
+		lastPacket:     time.Now(),
 		sessionStart:   TimeAdjusted().Unix(),
 		stageMoveStack: stringstack.New(),
 	}
@@ -160,6 +162,10 @@ func (s *Session) sendLoop() {
 
 func (s *Session) recvLoop() {
 	for {
+		if time.Now().Add(-30 * time.Second).After(s.lastPacket) {
+			logoutPlayer(s)
+			return
+		}
 		if s.closed {
 			logoutPlayer(s)
 			return
@@ -181,6 +187,7 @@ func (s *Session) recvLoop() {
 }
 
 func (s *Session) handlePacketGroup(pktGroup []byte) {
+	s.lastPacket = time.Now()
 	bf := byteframe.NewByteFrameFromBytes(pktGroup)
 	opcodeUint16 := bf.ReadUint16()
 	opcode := network.PacketID(opcodeUint16)
@@ -228,7 +235,6 @@ func ignored(opcode network.PacketID) bool {
 		network.MSG_SYS_TIME,
 		network.MSG_SYS_EXTEND_THRESHOLD,
 		network.MSG_SYS_POSITION_OBJECT,
-		network.MSG_MHF_ENUMERATE_QUEST,
 		network.MSG_MHF_SAVEDATA,
 	}
 	set := make(map[network.PacketID]struct{}, len(ignoreList))
@@ -261,15 +267,4 @@ func (s *Session) logMessage(opcode uint16, data []byte, sender string, recipien
 	} else {
 		fmt.Printf("Data [%d bytes]:\n(Too long!)\n\n", len(data))
 	}
-}
-
-func (s *Session) FindCourse(name string) mhfpacket.Course {
-	for _, course := range s.courses {
-		for _, alias := range course.Aliases {
-			if strings.ToLower(name) == strings.ToLower(alias) {
-				return course
-			}
-		}
-	}
-	return mhfpacket.Course{}
 }

@@ -3,13 +3,14 @@ package channelserver
 import (
 	"encoding/hex"
 	"erupe-ce/common/byteframe"
+	"erupe-ce/common/mhfcourse"
+	"erupe-ce/common/token"
 	"erupe-ce/config"
 	"erupe-ce/network/binpacket"
 	"erupe-ce/network/mhfpacket"
 	"fmt"
 	"golang.org/x/exp/slices"
 	"math"
-	"math/rand"
 	"strings"
 	"time"
 
@@ -81,6 +82,21 @@ func sendServerChatMessage(s *Session, message string) {
 }
 
 func parseChatCommand(s *Session, command string) {
+	if strings.HasPrefix(command, commands["PSN"].Prefix) {
+		if commands["PSN"].Enabled {
+			var id string
+			n, err := fmt.Sscanf(command, fmt.Sprintf("%s %%s", commands["PSN"].Prefix), &id)
+			if err != nil || n != 1 {
+				sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandPSNError"], commands["PSN"].Prefix))
+			} else {
+				_, err = s.server.db.Exec(`UPDATE users u SET psn_id=$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)`, id, s.charID)
+				if err == nil {
+					sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandPSNSuccess"], id))
+				}
+			}
+		}
+	}
+
 	if strings.HasPrefix(command, commands["Reload"].Prefix) {
 		// Flush all objects and users and reload
 		if commands["Reload"].Enabled {
@@ -192,13 +208,14 @@ func parseChatCommand(s *Session, command string) {
 				sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandCourseError"], commands["Course"].Prefix))
 			} else {
 				name = strings.ToLower(name)
-				for _, course := range mhfpacket.Courses() {
-					for _, alias := range course.Aliases {
+				for _, course := range mhfcourse.Courses() {
+					for _, alias := range course.Aliases() {
 						if strings.ToLower(name) == strings.ToLower(alias) {
-							if slices.Contains(s.server.erupeConfig.Courses, config.Course{Name: course.Aliases[0], Enabled: true}) {
-								if s.FindCourse(name).ID != 0 {
-									ei := slices.IndexFunc(s.courses, func(c mhfpacket.Course) bool {
-										for _, alias := range c.Aliases {
+							if slices.Contains(s.server.erupeConfig.Courses, config.Course{Name: course.Aliases()[0], Enabled: true}) {
+								var delta, rightsInt uint32
+								if mhfcourse.CourseExists(course.ID, s.courses) {
+									ei := slices.IndexFunc(s.courses, func(c mhfcourse.Course) bool {
+										for _, alias := range c.Aliases() {
 											if strings.ToLower(name) == strings.ToLower(alias) {
 												return true
 											}
@@ -206,25 +223,26 @@ func parseChatCommand(s *Session, command string) {
 										return false
 									})
 									if ei != -1 {
-										s.courses = append(s.courses[:ei], s.courses[ei+1:]...)
-										sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandCourseDisabled"], course.Aliases[0]))
+										delta = uint32(-1 * math.Pow(2, float64(course.ID)))
+										sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandCourseDisabled"], course.Aliases()[0]))
 									}
 								} else {
-									s.courses = append(s.courses, course)
-									sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandCourseEnabled"], course.Aliases[0]))
+									delta = uint32(math.Pow(2, float64(course.ID)))
+									sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandCourseEnabled"], course.Aliases()[0]))
 								}
-								var newInt uint32
-								for _, course := range s.courses {
-									newInt += uint32(math.Pow(2, float64(course.ID)))
+								err = s.server.db.QueryRow("SELECT rights FROM users u INNER JOIN characters c ON u.id = c.user_id WHERE c.id = $1", s.charID).Scan(&rightsInt)
+								if err == nil {
+									s.server.db.Exec("UPDATE users u SET rights=$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)", rightsInt+delta, s.charID)
 								}
-								s.server.db.Exec("UPDATE users u SET rights=$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)", newInt, s.charID)
 								updateRights(s)
 							} else {
-								sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandCourseLocked"], course.Aliases[0]))
+								sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandCourseLocked"], course.Aliases()[0]))
 							}
+							return
 						}
 					}
 				}
+				sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandCourseError"], commands["Course"].Prefix))
 			}
 		} else {
 			sendDisabledCommandMessage(s, commands["Course"])
@@ -367,8 +385,7 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 			roll.SetLE()
 			roll.WriteUint16(4) // Unk
 			roll.WriteUint16(authorLen)
-			rand.Seed(time.Now().UnixNano())
-			dice := fmt.Sprintf("%d", rand.Intn(100)+1)
+			dice := fmt.Sprintf("%d", token.RNG().Intn(100)+1)
 			roll.WriteUint16(uint16(len(dice) + 1))
 			roll.WriteNullTerminatedBytes([]byte(dice))
 			roll.WriteNullTerminatedBytes(tmp.ReadNullTerminatedBytes())

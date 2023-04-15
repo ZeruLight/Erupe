@@ -1,8 +1,8 @@
 package channelserver
 
 import (
+	"erupe-ce/common/token"
 	"math"
-	"math/rand"
 	"time"
 
 	"erupe-ce/common/byteframe"
@@ -95,9 +95,9 @@ func generateFeatureWeapons(count int) activeFeature {
 	}
 	nums := make([]int, 0)
 	var result int
-	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	for len(nums) < count {
-		num := r.Intn(14)
+		rng := token.RNG()
+		num := rng.Intn(14)
 		exist := false
 		for _, v := range nums {
 			if v == num {
@@ -131,6 +131,7 @@ func handleMsgMhfGetKeepLoginBoostStatus(s *Session, p mhfpacket.MHFPacket) {
 	var loginBoosts []loginBoost
 	rows, err := s.server.db.Queryx("SELECT week_req, expiration, reset FROM login_boost WHERE char_id=$1 ORDER BY week_req", s.charID)
 	if err != nil || s.server.erupeConfig.GameplayOptions.DisableLoginBoost {
+		rows.Close()
 		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 35))
 		return
 	}

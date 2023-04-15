@@ -82,6 +82,21 @@ func sendServerChatMessage(s *Session, message string) {
 }
 
 func parseChatCommand(s *Session, command string) {
+	if strings.HasPrefix(command, commands["PSN"].Prefix) {
+		if commands["PSN"].Enabled {
+			var id string
+			n, err := fmt.Sscanf(command, fmt.Sprintf("%s %%s", commands["PSN"].Prefix), &id)
+			if err != nil || n != 1 {
+				sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandPSNError"], commands["PSN"].Prefix))
+			} else {
+				_, err = s.server.db.Exec(`UPDATE users u SET psn_id=$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)`, id, s.charID)
+				if err == nil {
+					sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandPSNSuccess"], id))
+				}
+			}
+		}
+	}
+
 	if strings.HasPrefix(command, commands["Reload"].Prefix) {
 		// Flush all objects and users and reload
 		if commands["Reload"].Enabled {

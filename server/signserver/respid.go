@@ -1,10 +1,7 @@
 package signserver
 
-//revive:disable
+type RespID uint8
 
-type RespID uint16
-
-//go:generate stringer -type=RespID
 const (
 	SIGN_UNKNOWN RespID = iota
 	SIGN_SUCCESS

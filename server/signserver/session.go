@@ -19,6 +19,7 @@ const (
 	PC100 Client = iota
 	VITA
 	PS3
+	WIIU
 )
 
 // Session holds state for the sign server connection.
@@ -59,6 +60,9 @@ func (s *Session) handlePacket(pkt []byte) error {
 	case "VITASGN:100":
 		s.client = VITA
 		s.handlePSSGN(bf)
+	case "WIIUSGN:100":
+		s.client = WIIU
+		s.handleWIIUSGN(bf)
 	case "DELETE:100":
 		loginTokenString := string(bf.ReadNullTerminatedBytes())
 		characterID := int(bf.ReadUint32())
@@ -106,7 +110,7 @@ func (s *Session) authenticate(username string, password string) {
 		bf.WriteUint8(uint8(SIGN_EABORT))
 		s.logger.Error("Error getting user details", zap.Error(err))
 	default:
-		if bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)) == nil || s.client == VITA || s.client == PS3 {
+		if bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)) == nil || s.client == VITA || s.client == PS3 || s.client == WIIU {
 			s.logger.Debug("Passwords match!")
 			if newCharaReq {
 				err = s.server.newUserChara(username)
@@ -135,6 +139,20 @@ func (s *Session) authenticate(username string, password string) {
 	}
 
 	err = s.cryptConn.SendPacket(bf.Data())
+}
+
+func (s *Session) handleWIIUSGN(bf *byteframe.ByteFrame) {
+	_ = bf.ReadBytes(1)
+	wiiuKey := string(bf.ReadNullTerminatedBytes())
+	var reqUsername string
+	err := s.server.db.QueryRow(`SELECT username FROM users WHERE wiiu_key = $1`, wiiuKey).Scan(&reqUsername)
+	if err == sql.ErrNoRows {
+		resp := byteframe.NewByteFrame()
+		resp.WriteUint8(uint8(SIGN_ECOGLINK))
+		s.cryptConn.SendPacket(resp.Data())
+		return
+	}
+	s.authenticate(reqUsername, "")
 }
 
 func (s *Session) handlePSSGN(bf *byteframe.ByteFrame) {

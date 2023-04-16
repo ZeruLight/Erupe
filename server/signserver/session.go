@@ -143,7 +143,7 @@ func (s *Session) authenticate(username string, password string) {
 
 func (s *Session) handleWIIUSGN(bf *byteframe.ByteFrame) {
 	_ = bf.ReadBytes(1)
-	wiiuKey := string(bf.ReadNullTerminatedBytes())
+	wiiuKey := string(bf.ReadBytes(64))
 	var reqUsername string
 	err := s.server.db.QueryRow(`SELECT username FROM users WHERE wiiu_key = $1`, wiiuKey).Scan(&reqUsername)
 	if err == sql.ErrNoRows {

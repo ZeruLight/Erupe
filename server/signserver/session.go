@@ -55,10 +55,10 @@ func (s *Session) handlePacket(pkt []byte) error {
 		s.handleDSGN(bf)
 	case "PS3SGN:100":
 		s.client = PS3
-		s.handlePSSGN(bf)
+		s.handlePS3SGN(bf)
 	case "VITASGN:100":
 		s.client = VITA
-		s.handlePSSGN(bf)
+		s.handleVITASGN(bf)
 	case "DELETE:100":
 		loginTokenString := string(bf.ReadNullTerminatedBytes())
 		characterID := int(bf.ReadUint32())
@@ -137,7 +137,21 @@ func (s *Session) authenticate(username string, password string) {
 	err = s.cryptConn.SendPacket(bf.Data())
 }
 
-func (s *Session) handlePSSGN(bf *byteframe.ByteFrame) {
+func (s *Session) handlePS3SGN(bf *byteframe.ByteFrame) {
+	_ = bf.ReadBytes(95)
+	psnUser := string(bf.ReadNullTerminatedBytes())
+	var reqUsername string
+	err := s.server.db.QueryRow(`SELECT username FROM users WHERE psn_id = $1`, psnUser).Scan(&reqUsername)
+	if err == sql.ErrNoRows {
+		resp := byteframe.NewByteFrame()
+		resp.WriteUint8(uint8(SIGN_ECOGLINK))
+		s.cryptConn.SendPacket(resp.Data())
+		return
+	}
+	s.authenticate(reqUsername, "")
+}
+
+func (s *Session) handleVITASGN(bf *byteframe.ByteFrame) {
 	_ = bf.ReadNullTerminatedBytes() // 0000000256
 	_ = bf.ReadNullTerminatedBytes() // 1
 	_ = bf.ReadBytes(82)

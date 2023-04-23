@@ -17,7 +17,7 @@ type GuildMember struct {
 	RPYesterday     uint16     `db:"rp_yesterday"`
 	Name            string     `db:"name"`
 	IsApplicant     bool       `db:"is_applicant"`
-	OrderIndex      uint8      `db:"order_index"`
+	OrderIndex      uint16     `db:"order_index"`
 	LastLogin       uint32     `db:"last_login"`
 	Recruiter       bool       `db:"recruiter"`
 	AvoidLeadership bool       `db:"avoid_leadership"`
@@ -25,7 +25,7 @@ type GuildMember struct {
 	HRP             uint16     `db:"hrp"`
 	GR              uint16     `db:"gr"`
 	WeaponID        uint16     `db:"weapon_id"`
-	WeaponType      uint16     `db:"weapon_type"`
+	WeaponType      uint8      `db:"weapon_type"`
 }
 
 func (gm *GuildMember) CanRecruit() bool {

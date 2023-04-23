@@ -2,9 +2,9 @@ package mhfpacket
 
 import (
 	"errors"
-	"io"
-
+	"erupe-ce/common/bfutil"
 	"erupe-ce/common/byteframe"
+	"erupe-ce/common/stringsupport"
 	"erupe-ce/network"
 	"erupe-ce/network/clientctx"
 )
@@ -12,28 +12,30 @@ import (
 type EnumerateGuildType uint8
 
 const (
-	ENUMERATE_GUILD_TYPE_GUILD_NAME            = 0x01
-	ENUMERATE_GUILD_TYPE_LEADER_NAME           = 0x02
-	ENUMERATE_GUILD_TYPE_LEADER_ID             = 0x03
-	ENUMERATE_GUILD_TYPE_ORDER_MEMBERS         = 0x04
-	ENUMERATE_GUILD_TYPE_ORDER_REGISTRATION    = 0x05
-	ENUMERATE_GUILD_TYPE_ORDER_RANK            = 0x06
-	ENUMERATE_GUILD_TYPE_MOTTO                 = 0x07
-	ENUMERATE_GUILD_TYPE_RECRUITING            = 0x08
-	ENUMERATE_ALLIANCE_TYPE_ALLIANCE_NAME      = 0x09
-	ENUMERATE_ALLIANCE_TYPE_LEADER_NAME        = 0x0A
-	ENUMERATE_ALLIANCE_TYPE_LEADER_ID          = 0x0B
-	ENUMERATE_ALLIANCE_TYPE_ORDER_MEMBERS      = 0x0C
-	ENUMERATE_ALLIANCE_TYPE_ORDER_REGISTRATION = 0x0D
+	ENUMERATE_GUILD_UNKNOWN = iota
+	ENUMERATE_GUILD_TYPE_GUILD_NAME
+	ENUMERATE_GUILD_TYPE_LEADER_NAME
+	ENUMERATE_GUILD_TYPE_LEADER_ID
+	ENUMERATE_GUILD_TYPE_ORDER_MEMBERS
+	ENUMERATE_GUILD_TYPE_ORDER_REGISTRATION
+	ENUMERATE_GUILD_TYPE_ORDER_RANK
+	ENUMERATE_GUILD_TYPE_MOTTO
+	ENUMERATE_GUILD_TYPE_RECRUITING
+	ENUMERATE_ALLIANCE_TYPE_ALLIANCE_NAME
+	ENUMERATE_ALLIANCE_TYPE_LEADER_NAME
+	ENUMERATE_ALLIANCE_TYPE_LEADER_ID
+	ENUMERATE_ALLIANCE_TYPE_ORDER_MEMBERS
+	ENUMERATE_ALLIANCE_TYPE_ORDER_REGISTRATION
 )
 
 // MsgMhfEnumerateGuild represents the MSG_MHF_ENUMERATE_GUILD
 type MsgMhfEnumerateGuild struct {
-	AckHandle      uint32
-	Type           EnumerateGuildType
-	Page           uint8
-	Sorting        bool
-	RawDataPayload []byte
+	AckHandle uint32
+	Type      EnumerateGuildType
+	Page      uint8
+	Sorting   bool
+	Data1     []byte
+	Data2     string
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -47,9 +49,12 @@ func (m *MsgMhfEnumerateGuild) Parse(bf *byteframe.ByteFrame, ctx *clientctx.Cli
 	m.Type = EnumerateGuildType(bf.ReadUint8())
 	m.Page = bf.ReadUint8()
 	m.Sorting = bf.ReadBool()
-	_ = bf.ReadUint8()
-	m.RawDataPayload = bf.DataFromCurrent()
-	bf.Seek(-2, io.SeekEnd)
+	_ = bf.ReadBytes(1)
+	m.Data1 = bf.ReadBytes(4)
+	_ = bf.ReadBytes(2)
+	lenData2 := uint(bf.ReadUint8())
+	_ = bf.ReadBytes(1)
+	m.Data2 = stringsupport.SJISToUTF8(bfutil.UpToNull(bf.ReadBytes(lenData2)))
 	return nil
 }
 

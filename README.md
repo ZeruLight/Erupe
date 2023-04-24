@@ -26,4 +26,4 @@ If you want to modify or compile Erupe yourself, please read on.
 
 - [Quest and Scenario Binary Files](https://files.catbox.moe/xf0l7w.7z)
 - [PewPewDojo Discord](https://discord.gg/CFnzbhQ)
-- [Community FAQ Pastebin](https://pastebin.com/QqAwZSTC)ter
+- [Community FAQ Pastebin](https://pastebin.com/QqAwZSTC)

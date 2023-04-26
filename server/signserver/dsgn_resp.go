@@ -35,8 +35,8 @@ func (s *Session) makeSignResponse(uid int) []byte {
 	bf.WriteBytes([]byte(sessToken))
 	bf.WriteUint32(uint32(channelserver.TimeAdjusted().Unix()))
 	if s.client == PS3 {
-		ps.Uint8(bf, "ps3.zerulight.cc", false)
-		ps.Uint8(bf, "ps3.zerulight.cc", false)
+		ps.Uint8(bf, fmt.Sprintf(`ps3-%s.zerulight.cc`, s.server.erupeConfig.Language), false)
+		ps.Uint8(bf, fmt.Sprintf(`ps3-%s.zerulight.cc`, s.server.erupeConfig.Language), false)
 	} else {
 		if s.server.erupeConfig.PatchServerManifest != "" && s.server.erupeConfig.PatchServerFile != "" {
 			ps.Uint8(bf, s.server.erupeConfig.PatchServerManifest, false)

@@ -100,12 +100,10 @@ func (s *Session) makeSignResponse(uid int) []byte {
 	}
 
 	if s.server.erupeConfig.HideLoginNotice {
-		bf.WriteUint8(0)
+		bf.WriteBool(false)
 	} else {
-		bf.WriteUint8(uint8(len(s.server.erupeConfig.LoginNotices)))
-		for _, notice := range s.server.erupeConfig.LoginNotices {
-			ps.Uint32(bf, notice, true)
-		}
+		bf.WriteBool(true)
+		ps.Uint32(bf, strings.Join(s.server.erupeConfig.LoginNotices[:], "<PAGE>"), true)
 	}
 
 	bf.WriteUint32(s.server.getLastCID(uid))

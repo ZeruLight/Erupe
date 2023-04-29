@@ -11,17 +11,20 @@ import (
 	"strings"
 )
 
-func (s *Session) makeSignResponse(uid int) []byte {
+func (s *Session) makeSignResponse(uid uint32) []byte {
 	// Get the characters from the DB.
 	chars, err := s.server.getCharactersForUser(uid)
 	if err != nil {
 		s.logger.Warn("Error getting characters from DB", zap.Error(err))
 	}
 
-	sessToken := token.Generate(16)
-	_ = s.server.registerToken(uid, sessToken)
-
 	bf := byteframe.NewByteFrame()
+	sessToken := token.Generate(16)
+	tokenID, err := s.server.registerToken(uid, sessToken)
+	if err != nil {
+		bf.WriteUint8(uint8(SIGN_EABORT))
+		return bf.Data()
+	}
 
 	bf.WriteUint8(1) // resp_code
 	if (s.server.erupeConfig.PatchServerManifest != "" && s.server.erupeConfig.PatchServerFile != "") || s.client == PS3 {
@@ -31,7 +34,7 @@ func (s *Session) makeSignResponse(uid int) []byte {
 	}
 	bf.WriteUint8(1) // entrance server count
 	bf.WriteUint8(uint8(len(chars)))
-	bf.WriteUint32(0xFFFFFFFF) // login_token_number
+	bf.WriteUint32(tokenID)
 	bf.WriteBytes([]byte(sessToken))
 	bf.WriteUint32(uint32(channelserver.TimeAdjusted().Unix()))
 	if s.client == PS3 {

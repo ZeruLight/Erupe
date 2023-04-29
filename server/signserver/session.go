@@ -3,20 +3,21 @@ package signserver
 import (
 	"database/sql"
 	"encoding/hex"
+	"erupe-ce/common/stringsupport"
 	"fmt"
 	"net"
+	"strings"
 	"sync"
 
 	"erupe-ce/common/byteframe"
 	"erupe-ce/network"
 	"go.uber.org/zap"
-	"golang.org/x/crypto/bcrypt"
 )
 
-type Client int
+type client int
 
 const (
-	PC100 Client = iota
+	PC100 client = iota
 	VITA
 	PS3
 	WIIU
@@ -29,7 +30,7 @@ type Session struct {
 	server    *Server
 	rawConn   net.Conn
 	cryptConn *network.CryptConn
-	client    Client
+	client    client
 }
 
 func (s *Session) work() {
@@ -63,11 +64,14 @@ func (s *Session) handlePacket(pkt []byte) error {
 	case "WIIUSGN:100":
 		s.client = WIIU
 		s.handleWIIUSGN(bf)
+	case "VITACOGLNK:100":
+		s.client = VITA
+		s.handlePSNLink(bf)
 	case "DELETE:100":
-		loginTokenString := string(bf.ReadNullTerminatedBytes())
+		token := string(bf.ReadNullTerminatedBytes())
 		characterID := int(bf.ReadUint32())
-		_ = int(bf.ReadUint32()) // login_token_number
-		err := s.server.deleteCharacter(characterID, loginTokenString)
+		tokenID := bf.ReadUint32()
+		err := s.server.deleteCharacter(characterID, token, tokenID)
 		if err == nil {
 			s.logger.Info("Deleted character", zap.Int("CharacterID", characterID))
 			s.cryptConn.SendPacket([]byte{0x01}) // DEL_SUCCESS
@@ -89,45 +93,30 @@ func (s *Session) authenticate(username string, password string) {
 		newCharaReq = true
 	}
 
-	var id int
-	var hash string
 	bf := byteframe.NewByteFrame()
 
-	err := s.server.db.QueryRow("SELECT id, password FROM users WHERE username = $1", username).Scan(&id, &hash)
+	uid, err := s.server.validateLogin(username, password)
 	switch {
 	case err == sql.ErrNoRows:
 		s.logger.Info("User not found", zap.String("Username", username))
 		if s.server.erupeConfig.DevMode && s.server.erupeConfig.DevModeOptions.AutoCreateAccount {
-			s.logger.Info("Creating user", zap.String("Username", username))
-			err = s.server.registerDBAccount(username, password)
-			if err == nil {
-				bf.WriteBytes(s.makeSignResponse(id))
+			uid, err = s.server.registerDBAccount(username, password)
+			if err == nil && uid > 0 {
+				bf.WriteBytes(s.makeSignResponse(uid))
 			}
 		} else {
 			bf.WriteUint8(uint8(SIGN_EAUTH))
 		}
 	case err != nil:
-		bf.WriteUint8(uint8(SIGN_EABORT))
 		s.logger.Error("Error getting user details", zap.Error(err))
+		bf.WriteUint8(uint8(SIGN_EABORT))
 	default:
-		if bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)) == nil || s.client == VITA || s.client == PS3 || s.client == WIIU {
+		if uid > 0 {
 			s.logger.Debug("Passwords match!")
 			if newCharaReq {
-				err = s.server.newUserChara(username)
-				if err != nil {
-					s.logger.Error("Error adding new character to user", zap.Error(err))
-					bf.WriteUint8(uint8(SIGN_EABORT))
-					break
-				}
+				_ = s.server.newUserChara(username)
 			}
-			// TODO: Need to auto delete user tokens after inactivity
-			// exists, err := s.server.checkToken(id)
-			// if err != nil {
-			// 	s.logger.Info("Error checking for live tokens", zap.Error(err))
-			// 	serverRespBytes = makeSignInFailureResp(SIGN_EABORT)
-			// 	break
-			// }
-			bf.WriteBytes(s.makeSignResponse(id))
+			bf.WriteBytes(s.makeSignResponse(uid))
 		} else {
 			s.logger.Warn("Incorrect password")
 			bf.WriteUint8(uint8(SIGN_EPASS))
@@ -138,7 +127,7 @@ func (s *Session) authenticate(username string, password string) {
 		fmt.Printf("\n[Server] -> [Client]\nData [%d bytes]:\n%s\n", len(bf.Data()), hex.Dump(bf.Data()))
 	}
 
-	err = s.cryptConn.SendPacket(bf.Data())
+	_ = s.cryptConn.SendPacket(bf.Data())
 }
 
 func (s *Session) handleWIIUSGN(bf *byteframe.ByteFrame) {
@@ -160,20 +149,71 @@ func (s *Session) handlePSSGN(bf *byteframe.ByteFrame) {
 	_ = bf.ReadBytes(2)              // VITA = 1, PS3 = !
 	_ = bf.ReadBytes(82)
 	psnUser := string(bf.ReadNullTerminatedBytes())
-	var reqUsername string
-	err := s.server.db.QueryRow(`SELECT username FROM users WHERE psn_id = $1`, psnUser).Scan(&reqUsername)
-	if err == sql.ErrNoRows {
-		resp := byteframe.NewByteFrame()
-		resp.WriteUint8(uint8(SIGN_ECOGLINK))
-		s.cryptConn.SendPacket(resp.Data())
+	var uid uint32
+	err := s.server.db.QueryRow(`SELECT id FROM users WHERE psn_id = $1`, psnUser).Scan(&uid)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			s.cryptConn.SendPacket(s.makeSignResponse(0))
+			return
+		}
+		s.sendCode(SIGN_EABORT)
 		return
 	}
-	s.authenticate(reqUsername, "")
+	s.cryptConn.SendPacket(s.makeSignResponse(uid))
+}
+
+func (s *Session) handlePSNLink(bf *byteframe.ByteFrame) {
+	_ = bf.ReadNullTerminatedBytes() // Client ID
+	credentials := strings.Split(stringsupport.SJISToUTF8(bf.ReadNullTerminatedBytes()), "\n")
+	token := string(bf.ReadNullTerminatedBytes())
+	if s.server.erupeConfig.DevModeOptions.DisableTokenCheck || !s.server.validateToken(token, 0) {
+		uid, err := s.server.validateLogin(credentials[0], credentials[1])
+		if err == nil && uid > 0 {
+			var psn string
+			err = s.server.db.QueryRow(`SELECT psn_id FROM sign_sessions WHERE token = $1`, token).Scan(&psn)
+			if err != nil {
+				s.sendCode(SIGN_ECOGLINK)
+				return
+			}
+
+			var exists int
+			err = s.server.db.QueryRow(`SELECT count(*) FROM users WHERE psn_id = $1`, psn).Scan(&exists)
+			if err != nil {
+				s.sendCode(SIGN_ECOGLINK)
+				return
+			} else if exists > 0 {
+				s.sendCode(SIGN_EPSI)
+				return
+			}
+
+			var currentPSN string
+			err = s.server.db.QueryRow(`SELECT psn_id FROM users WHERE username = $1`, credentials[0]).Scan(&currentPSN)
+			if err != nil {
+				s.sendCode(SIGN_ECOGLINK)
+				return
+			} else if psn != currentPSN {
+				s.sendCode(SIGN_EMBID)
+				return
+			}
+
+			_, err = s.server.db.Exec(`UPDATE users SET psn_id = $1 WHERE username = $2`, psn, credentials[0])
+			if err == nil {
+				s.sendCode(SIGN_SUCCESS)
+			}
+		} else {
+			s.sendCode(SIGN_ECOGLINK)
+		}
+
+	}
 }
 
 func (s *Session) handleDSGN(bf *byteframe.ByteFrame) {
-	reqUsername := string(bf.ReadNullTerminatedBytes())
-	reqPassword := string(bf.ReadNullTerminatedBytes())
+	user := stringsupport.SJISToUTF8(bf.ReadNullTerminatedBytes())
+	pass := stringsupport.SJISToUTF8(bf.ReadNullTerminatedBytes())
 	_ = string(bf.ReadNullTerminatedBytes()) // Unk
-	s.authenticate(reqUsername, reqPassword)
+	s.authenticate(user, pass)
+}
+
+func (s *Session) sendCode(id RespID) {
+	s.cryptConn.SendPacket([]byte{byte(id)})
 }

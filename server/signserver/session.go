@@ -31,6 +31,7 @@ type Session struct {
 	rawConn   net.Conn
 	cryptConn *network.CryptConn
 	client    client
+	psn       string
 }
 
 func (s *Session) work() {
@@ -87,46 +88,24 @@ func (s *Session) handlePacket(pkt []byte) error {
 
 func (s *Session) authenticate(username string, password string) {
 	newCharaReq := false
-
 	if username[len(username)-1] == 43 { // '+'
 		username = username[:len(username)-1]
 		newCharaReq = true
 	}
-
 	bf := byteframe.NewByteFrame()
-
-	uid, err := s.server.validateLogin(username, password)
-	switch {
-	case err == sql.ErrNoRows:
-		s.logger.Info("User not found", zap.String("Username", username))
-		if s.server.erupeConfig.DevMode && s.server.erupeConfig.DevModeOptions.AutoCreateAccount {
-			uid, err = s.server.registerDBAccount(username, password)
-			if err == nil && uid > 0 {
-				bf.WriteBytes(s.makeSignResponse(uid))
-			}
-		} else {
-			bf.WriteUint8(uint8(SIGN_EAUTH))
+	uid, resp := s.server.validateLogin(username, password)
+	switch resp {
+	case SIGN_SUCCESS:
+		if newCharaReq {
+			_ = s.server.newUserChara(username)
 		}
-	case err != nil:
-		s.logger.Error("Error getting user details", zap.Error(err))
-		bf.WriteUint8(uint8(SIGN_EABORT))
+		bf.WriteBytes(s.makeSignResponse(uid))
 	default:
-		if uid > 0 {
-			s.logger.Debug("Passwords match!")
-			if newCharaReq {
-				_ = s.server.newUserChara(username)
-			}
-			bf.WriteBytes(s.makeSignResponse(uid))
-		} else {
-			s.logger.Warn("Incorrect password")
-			bf.WriteUint8(uint8(SIGN_EPASS))
-		}
+		bf.WriteUint8(uint8(resp))
 	}
-
 	if s.server.erupeConfig.DevMode && s.server.erupeConfig.DevModeOptions.LogOutboundMessages {
 		fmt.Printf("\n[Server] -> [Client]\nData [%d bytes]:\n%s\n", len(bf.Data()), hex.Dump(bf.Data()))
 	}
-
 	_ = s.cryptConn.SendPacket(bf.Data())
 }
 
@@ -148,9 +127,9 @@ func (s *Session) handlePSSGN(bf *byteframe.ByteFrame) {
 	_ = bf.ReadNullTerminatedBytes() // VITA = 0000000256, PS3 = 0000000255
 	_ = bf.ReadBytes(2)              // VITA = 1, PS3 = !
 	_ = bf.ReadBytes(82)
-	psnUser := string(bf.ReadNullTerminatedBytes())
+	s.psn = string(bf.ReadNullTerminatedBytes())
 	var uid uint32
-	err := s.server.db.QueryRow(`SELECT id FROM users WHERE psn_id = $1`, psnUser).Scan(&uid)
+	err := s.server.db.QueryRow(`SELECT id FROM users WHERE psn_id = $1`, s.psn).Scan(&uid)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			s.cryptConn.SendPacket(s.makeSignResponse(0))
@@ -166,45 +145,43 @@ func (s *Session) handlePSNLink(bf *byteframe.ByteFrame) {
 	_ = bf.ReadNullTerminatedBytes() // Client ID
 	credentials := strings.Split(stringsupport.SJISToUTF8(bf.ReadNullTerminatedBytes()), "\n")
 	token := string(bf.ReadNullTerminatedBytes())
-	if s.server.erupeConfig.DevModeOptions.DisableTokenCheck || !s.server.validateToken(token, 0) {
-		uid, err := s.server.validateLogin(credentials[0], credentials[1])
-		if err == nil && uid > 0 {
-			var psn string
-			err = s.server.db.QueryRow(`SELECT psn_id FROM sign_sessions WHERE token = $1`, token).Scan(&psn)
-			if err != nil {
-				s.sendCode(SIGN_ECOGLINK)
-				return
-			}
-
-			var exists int
-			err = s.server.db.QueryRow(`SELECT count(*) FROM users WHERE psn_id = $1`, psn).Scan(&exists)
-			if err != nil {
-				s.sendCode(SIGN_ECOGLINK)
-				return
-			} else if exists > 0 {
-				s.sendCode(SIGN_EPSI)
-				return
-			}
-
-			var currentPSN string
-			err = s.server.db.QueryRow(`SELECT psn_id FROM users WHERE username = $1`, credentials[0]).Scan(&currentPSN)
-			if err != nil {
-				s.sendCode(SIGN_ECOGLINK)
-				return
-			} else if psn != currentPSN {
-				s.sendCode(SIGN_EMBID)
-				return
-			}
-
-			_, err = s.server.db.Exec(`UPDATE users SET psn_id = $1 WHERE username = $2`, psn, credentials[0])
-			if err == nil {
-				s.sendCode(SIGN_SUCCESS)
-			}
-		} else {
+	uid, resp := s.server.validateLogin(credentials[0], credentials[1])
+	if resp == SIGN_SUCCESS && uid > 0 {
+		var psn string
+		err := s.server.db.QueryRow(`SELECT psn_id FROM sign_sessions WHERE token = $1`, token).Scan(&psn)
+		if err != nil {
 			s.sendCode(SIGN_ECOGLINK)
+			return
 		}
 
+		// Since we check for the psn_id, this will never run
+		var exists int
+		err = s.server.db.QueryRow(`SELECT count(*) FROM users WHERE psn_id = $1`, psn).Scan(&exists)
+		if err != nil {
+			s.sendCode(SIGN_ECOGLINK)
+			return
+		} else if exists > 0 {
+			s.sendCode(SIGN_EPSI)
+			return
+		}
+
+		var currentPSN string
+		err = s.server.db.QueryRow(`SELECT COALESCE(psn_id, '') FROM users WHERE username = $1`, credentials[0]).Scan(&currentPSN)
+		if err != nil {
+			s.sendCode(SIGN_ECOGLINK)
+			return
+		} else if currentPSN != "" {
+			s.sendCode(SIGN_EMBID)
+			return
+		}
+
+		_, err = s.server.db.Exec(`UPDATE users SET psn_id = $1 WHERE username = $2`, psn, credentials[0])
+		if err == nil {
+			s.sendCode(SIGN_SUCCESS)
+			return
+		}
 	}
+	s.sendCode(SIGN_ECOGLINK)
 }
 
 func (s *Session) handleDSGN(bf *byteframe.ByteFrame) {

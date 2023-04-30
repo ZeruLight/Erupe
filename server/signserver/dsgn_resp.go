@@ -4,7 +4,6 @@ import (
 	"erupe-ce/common/byteframe"
 	ps "erupe-ce/common/pascalstring"
 	"erupe-ce/common/stringsupport"
-	"erupe-ce/common/token"
 	"erupe-ce/server/channelserver"
 	"fmt"
 	"go.uber.org/zap"
@@ -19,8 +18,13 @@ func (s *Session) makeSignResponse(uid uint32) []byte {
 	}
 
 	bf := byteframe.NewByteFrame()
-	sessToken := token.Generate(16)
-	tokenID, err := s.server.registerToken(uid, sessToken)
+	var tokenID uint32
+	var sessToken string
+	if uid == 0 && s.psn != "" {
+		tokenID, sessToken, err = s.server.registerPsnToken(s.psn)
+	} else {
+		tokenID, sessToken, err = s.server.registerUidToken(uid)
+	}
 	if err != nil {
 		bf.WriteUint8(uint8(SIGN_EABORT))
 		return bf.Data()

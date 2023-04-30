@@ -1,8 +1,10 @@
 package signserver
 
 import (
+	"database/sql"
 	"errors"
 	"erupe-ce/common/mhfcourse"
+	"erupe-ce/common/token"
 	"strings"
 	"time"
 
@@ -220,11 +222,18 @@ func (s *Server) checkToken(uid uint32) (bool, error) {
 	return false, nil
 }
 
-func (s *Server) registerToken(uid uint32, token string) (uint32, error) {
-	var id uint32
-	var err error
-	err = s.db.QueryRow("INSERT INTO sign_sessions (user_id, token) VALUES ($1, $2) RETURNING id", uid, token).Scan(&id)
-	return id, err
+func (s *Server) registerUidToken(uid uint32) (uint32, string, error) {
+	token := token.Generate(16)
+	var tid uint32
+	err := s.db.QueryRow(`INSERT INTO sign_sessions (user_id, token) VALUES ($1, $2) RETURNING id`, uid, token).Scan(&tid)
+	return tid, token, err
+}
+
+func (s *Server) registerPsnToken(psn string) (uint32, string, error) {
+	token := token.Generate(16)
+	var tid uint32
+	err := s.db.QueryRow(`INSERT INTO sign_sessions (psn_id, token) VALUES ($1, $2) RETURNING id`, psn, token).Scan(&tid)
+	return tid, token, err
 }
 
 func (s *Server) validateToken(token string, tokenID uint32) bool {
@@ -240,16 +249,28 @@ func (s *Server) validateToken(token string, tokenID uint32) bool {
 	return true
 }
 
-func (s *Server) validateLogin(user string, pass string) (uint32, error) {
+func (s *Server) validateLogin(user string, pass string) (uint32, RespID) {
 	var uid uint32
 	var passDB string
 	err := s.db.QueryRow(`SELECT id, password FROM users WHERE username = $1`, user).Scan(&uid, &passDB)
 	if err != nil {
-		return 0, err
+		if err == sql.ErrNoRows {
+			s.logger.Info("User not found", zap.String("User", user))
+			if s.erupeConfig.DevMode && s.erupeConfig.DevModeOptions.AutoCreateAccount {
+				uid, err = s.registerDBAccount(user, pass)
+				if err == nil {
+					return uid, SIGN_SUCCESS
+				} else {
+					return 0, SIGN_EABORT
+				}
+			}
+			return 0, SIGN_EAUTH
+		}
+		return 0, SIGN_EABORT
 	} else {
 		if bcrypt.CompareHashAndPassword([]byte(passDB), []byte(pass)) == nil {
-			return uid, nil
+			return uid, SIGN_SUCCESS
 		}
-		return 0, nil
+		return 0, SIGN_EPASS
 	}
 }

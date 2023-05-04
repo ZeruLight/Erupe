@@ -133,9 +133,9 @@ func (s *Session) makeSignResponse(uid int) []byte {
 		bf.WriteUint32(uint32(channelserver.TimeWeekStart().Unix()))
 		// End time
 		bf.WriteUint32(uint32(channelserver.TimeWeekNext().Unix()))
-		bf.WriteUint8(2)   // Unk
-		bf.WriteUint32(20) // Single tickets
-		bf.WriteUint32(10) // Group tickets
+		bf.WriteUint8(2) // Unk
+		bf.WriteUint32(s.server.erupeConfig.GameplayOptions.MezfesSoloTickets)
+		bf.WriteUint32(s.server.erupeConfig.GameplayOptions.MezfesGroupTickets)
 		bf.WriteUint8(8)   // Stalls open
 		bf.WriteUint8(0xA) // Unk
 		bf.WriteUint8(0x3) // Pachinko

@@ -40,7 +40,9 @@
     "BoostTimeDuration": 120,
     "GuildMealDuration": 60,
     "BonusQuestAllowance": 3,
-    "DailyQuestAllowance": 1
+    "DailyQuestAllowance": 1,
+    "MezfesSoloTickets": 10,
+    "MezfesGroupTickets": 4
   },
   "Discord": {
     "Enabled": false,

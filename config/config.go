@@ -70,6 +70,8 @@ type GameplayOptions struct {
 	GuildMealDuration   int    // The number of minutes a Guild Meal can be activated for after cooking
 	BonusQuestAllowance uint32 // Number of Bonus Point Quests to allow daily
 	DailyQuestAllowance uint32 // Number of Daily Quests to allow daily
+	MezfesSoloTickets   uint32 // Number of solo tickets given weekly
+	MezfesGroupTickets  uint32 // Number of group tickets given weekly
 }
 
 // Discord holds the discord integration config.

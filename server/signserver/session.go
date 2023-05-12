@@ -99,7 +99,7 @@ func (s *Session) authenticate(username string, password string) {
 		s.logger.Info("User not found", zap.String("Username", username))
 		if s.server.erupeConfig.DevMode && s.server.erupeConfig.DevModeOptions.AutoCreateAccount {
 			s.logger.Info("Creating user", zap.String("Username", username))
-			err = s.server.registerDBAccount(username, password)
+			id, err = s.server.registerDBAccount(username, password)
 			if err == nil {
 				bf.WriteBytes(s.makeSignResponse(id))
 			}
@@ -113,7 +113,7 @@ func (s *Session) authenticate(username string, password string) {
 		if bcrypt.CompareHashAndPassword([]byte(hash), []byte(password)) == nil || s.client == VITA || s.client == PS3 || s.client == WIIU {
 			s.logger.Debug("Passwords match!")
 			if newCharaReq {
-				err = s.server.newUserChara(username)
+				err = s.server.newUserChara(id)
 				if err != nil {
 					s.logger.Error("Error adding new character to user", zap.Error(err))
 					bf.WriteUint8(uint8(SIGN_EABORT))

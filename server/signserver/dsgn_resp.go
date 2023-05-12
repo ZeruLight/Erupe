@@ -14,6 +14,12 @@ import (
 func (s *Session) makeSignResponse(uid int) []byte {
 	// Get the characters from the DB.
 	chars, err := s.server.getCharactersForUser(uid)
+	if len(chars) == 0 {
+		err = s.server.newUserChara(uid)
+		if err == nil {
+			chars, err = s.server.getCharactersForUser(uid)
+		}
+	}
 	if err != nil {
 		s.logger.Warn("Error getting characters from DB", zap.Error(err))
 	}
@@ -23,7 +29,7 @@ func (s *Session) makeSignResponse(uid int) []byte {
 
 	bf := byteframe.NewByteFrame()
 
-	bf.WriteUint8(1) // resp_code
+	bf.WriteUint8(uint8(SIGN_SUCCESS)) // resp_code
 	if (s.server.erupeConfig.PatchServerManifest != "" && s.server.erupeConfig.PatchServerFile != "") || s.client == PS3 {
 		bf.WriteUint8(2)
 	} else {

@@ -8,15 +8,9 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func (s *Server) newUserChara(username string) error {
-	var id int
-	err := s.db.QueryRow("SELECT id FROM users WHERE username = $1", username).Scan(&id)
-	if err != nil {
-		return err
-	}
-
+func (s *Server) newUserChara(uid int) error {
 	var numNewChars int
-	err = s.db.QueryRow("SELECT COUNT(*) FROM characters WHERE user_id = $1 AND is_new_character = true", id).Scan(&numNewChars)
+	err := s.db.QueryRow("SELECT COUNT(*) FROM characters WHERE user_id = $1 AND is_new_character = true", uid).Scan(&numNewChars)
 	if err != nil {
 		return err
 	}
@@ -31,7 +25,7 @@ func (s *Server) newUserChara(username string) error {
 			user_id, is_female, is_new_character, name, unk_desc_string,
 			hrp, gr, weapon_type, last_login)
 		VALUES($1, False, True, '', '', 0, 0, 0, $2)`,
-		id,
+		uid,
 		uint32(time.Now().Unix()),
 	)
 	if err != nil {
@@ -41,38 +35,20 @@ func (s *Server) newUserChara(username string) error {
 	return nil
 }
 
-func (s *Server) registerDBAccount(username string, password string) error {
+func (s *Server) registerDBAccount(username string, password string) (int, error) {
 	// Create salted hash of user password
 	passwordHash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return err
-	}
-
-	_, err = s.db.Exec("INSERT INTO users (username, password, return_expires) VALUES ($1, $2, $3)", username, string(passwordHash), time.Now().Add(time.Hour*24*30))
-	if err != nil {
-		return err
+		return 0, err
 	}
 
 	var id int
-	err = s.db.QueryRow("SELECT id FROM users WHERE username = $1", username).Scan(&id)
+	err = s.db.QueryRow("INSERT INTO users (username, password, return_expires) VALUES ($1, $2, $3) RETURNING id", username, string(passwordHash), time.Now().Add(time.Hour*24*30)).Scan(&id)
 	if err != nil {
-		return err
+		return 0, err
 	}
 
-	// Create a base new character.
-	_, err = s.db.Exec(`
-		INSERT INTO characters (
-			user_id, is_female, is_new_character, name, unk_desc_string,
-			hrp, gr, weapon_type, last_login)
-		VALUES($1, False, True, '', '', 0, 0, 0, $2)`,
-		id,
-		uint32(time.Now().Unix()),
-	)
-	if err != nil {
-		return err
-	}
-
-	return nil
+	return id, nil
 }
 
 type character struct {
@@ -89,7 +65,7 @@ type character struct {
 
 func (s *Server) getCharactersForUser(uid int) ([]character, error) {
 	characters := make([]character, 0)
-	err := s.db.Select(&characters, "SELECT id, is_female, is_new_character, name, unk_desc_string, hrp, gr, weapon_type, last_login FROM characters WHERE user_id = $1 AND deleted = false ORDER BY id ASC", uid)
+	err := s.db.Select(&characters, "SELECT id, is_female, is_new_character, name, unk_desc_string, hrp, gr, weapon_type, last_login FROM characters WHERE user_id = $1 AND deleted = false ORDER BY id", uid)
 	if err != nil {
 		return nil, err
 	}

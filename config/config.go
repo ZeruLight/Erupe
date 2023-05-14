@@ -73,7 +73,8 @@ type GameplayOptions struct {
 	MezfesSoloTickets    uint32 // Number of solo tickets given weekly
 	MezfesGroupTickets   uint32 // Number of group tickets given weekly
 	GUrgentRate          uint16 // Adjusts the rate of G Urgent quests spawning
-	EnableHiganjimaEvent bool   // Enables the Higanjima event
+	EnableHiganjimaEvent bool   // Enables the Higanjima event in the Rasta Bar
+	EnableNierEvent      bool   // Enables the Nier event in the Rasta Bar
 }
 
 // Discord holds the discord integration config.

@@ -191,7 +191,6 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 		{ID: 1147, Value: 0},
 		{ID: 1149, Value: 20},
 		{ID: 1152, Value: 1130},
-		{ID: 1153, Value: 0},
 		{ID: 1154, Value: 0},
 		{ID: 1155, Value: 0},
 		{ID: 1158, Value: 1},
@@ -587,6 +586,12 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 		tuneValues = append(tuneValues, tuneValue{1144, 1})
 	} else {
 		tuneValues = append(tuneValues, tuneValue{1144, 0})
+	}
+
+	if s.server.erupeConfig.GameplayOptions.EnableNierEvent {
+		tuneValues = append(tuneValues, tuneValue{1153, 1})
+	} else {
+		tuneValues = append(tuneValues, tuneValue{1153, 0})
 	}
 
 	offset := uint16(time.Now().Unix())

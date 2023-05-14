@@ -44,7 +44,8 @@
     "MezfesSoloTickets": 10,
     "MezfesGroupTickets": 4,
     "GUrgentRate": 10,
-    "EnableHiganjimaEvent": false
+    "EnableHiganjimaEvent": false,
+    "EnableNierEvent": false
   },
   "Discord": {
     "Enabled": false,

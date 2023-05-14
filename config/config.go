@@ -61,17 +61,19 @@ type SaveDumpOptions struct {
 
 // GameplayOptions has various gameplay modifiers
 type GameplayOptions struct {
-	FeaturedWeapons     int    // Number of Active Feature weapons to generate daily
-	MaximumNP           int    // Maximum number of NP held by a player
-	MaximumRP           uint16 // Maximum number of RP held by a player
-	DisableLoginBoost   bool   // Disables the Login Boost system
-	DisableBoostTime    bool   // Disables the daily NetCafe Boost Time
-	BoostTimeDuration   int    // The number of minutes NetCafe Boost Time lasts for
-	GuildMealDuration   int    // The number of minutes a Guild Meal can be activated for after cooking
-	BonusQuestAllowance uint32 // Number of Bonus Point Quests to allow daily
-	DailyQuestAllowance uint32 // Number of Daily Quests to allow daily
-	MezfesSoloTickets   uint32 // Number of solo tickets given weekly
-	MezfesGroupTickets  uint32 // Number of group tickets given weekly
+	FeaturedWeapons      int    // Number of Active Feature weapons to generate daily
+	MaximumNP            int    // Maximum number of NP held by a player
+	MaximumRP            uint16 // Maximum number of RP held by a player
+	DisableLoginBoost    bool   // Disables the Login Boost system
+	DisableBoostTime     bool   // Disables the daily NetCafe Boost Time
+	BoostTimeDuration    int    // The number of minutes NetCafe Boost Time lasts for
+	GuildMealDuration    int    // The number of minutes a Guild Meal can be activated for after cooking
+	BonusQuestAllowance  uint32 // Number of Bonus Point Quests to allow daily
+	DailyQuestAllowance  uint32 // Number of Daily Quests to allow daily
+	MezfesSoloTickets    uint32 // Number of solo tickets given weekly
+	MezfesGroupTickets   uint32 // Number of group tickets given weekly
+	GUrgentRate          uint16 // Adjusts the rate of G Urgent quests spawning
+	EnableHiganjimaEvent bool   // Enables the Higanjima event
 }
 
 // Discord holds the discord integration config.

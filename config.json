@@ -42,7 +42,9 @@
     "BonusQuestAllowance": 3,
     "DailyQuestAllowance": 1,
     "MezfesSoloTickets": 10,
-    "MezfesGroupTickets": 4
+    "MezfesGroupTickets": 4,
+    "GUrgentRate": 10,
+    "EnableHiganjimaEvent": false
   },
   "Discord": {
     "Enabled": false,

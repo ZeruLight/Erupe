@@ -107,15 +107,17 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 		}
 		return nil
 	})
-	if err != nil || totalCount == 0 {
+	if err != nil {
 		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 18))
 		return
 	}
 
-	tuneValues := []struct {
+	type tuneValue struct {
 		ID    uint16
 		Value uint16
-	}{
+	}
+
+	tuneValues := []tuneValue{
 		{ID: 20, Value: 1},
 		{ID: 26, Value: 1},
 		{ID: 27, Value: 1},
@@ -141,7 +143,6 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 		{ID: 1026, Value: 999},
 		{ID: 1027, Value: 100},
 		{ID: 1028, Value: 100},
-		{ID: 1029, Value: 30},
 		{ID: 1030, Value: 8},
 		{ID: 1031, Value: 100},
 		{ID: 1046, Value: 99},
@@ -185,7 +186,6 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 		{ID: 1103, Value: 2},
 		{ID: 1104, Value: 10},
 		{ID: 1106, Value: 0},
-		{ID: 1144, Value: 0},
 		{ID: 1145, Value: 200},
 		{ID: 1146, Value: 0},
 		{ID: 1147, Value: 0},
@@ -580,6 +580,15 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 		{ID: 3583, Value: 0},
 		{ID: 3584, Value: 0},
 	}
+
+	tuneValues = append(tuneValues, tuneValue{1029, s.server.erupeConfig.GameplayOptions.GUrgentRate})
+
+	if s.server.erupeConfig.GameplayOptions.EnableHiganjimaEvent {
+		tuneValues = append(tuneValues, tuneValue{1144, 1})
+	} else {
+		tuneValues = append(tuneValues, tuneValue{1144, 0})
+	}
+
 	offset := uint16(time.Now().Unix())
 	bf.WriteUint16(offset)
 	bf.WriteUint16(uint16(len(tuneValues)))

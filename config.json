@@ -47,6 +47,7 @@
     "GRPMultiplier": 1.00,
     "GSRPMultiplier": 1.00,
     "GZennyMultiplier": 1.00,
+    "MaterialMultiplier": 1.00,
     "EnableHiganjimaEvent": false,
     "EnableNierEvent": false
   },

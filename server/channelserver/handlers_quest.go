@@ -240,32 +240,6 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 		{ID: 3023, Value: 100},
 		{ID: 3024, Value: 100},
 		{ID: 3025, Value: 100},
-		{ID: 3104, Value: 100},
-		{ID: 3105, Value: 100},
-		{ID: 3106, Value: 100},
-		{ID: 3107, Value: 100},
-		{ID: 3108, Value: 100},
-		{ID: 3109, Value: 100},
-		{ID: 3110, Value: 100},
-		{ID: 3111, Value: 100},
-		{ID: 3112, Value: 100},
-		{ID: 3113, Value: 100},
-		{ID: 3114, Value: 100},
-		{ID: 3115, Value: 100},
-		{ID: 3116, Value: 100},
-		{ID: 3130, Value: 100},
-		{ID: 3131, Value: 100},
-		{ID: 3132, Value: 100},
-		{ID: 3133, Value: 100},
-		{ID: 3134, Value: 100},
-		{ID: 3135, Value: 100},
-		{ID: 3136, Value: 100},
-		{ID: 3137, Value: 100},
-		{ID: 3138, Value: 100},
-		{ID: 3139, Value: 100},
-		{ID: 3140, Value: 100},
-		{ID: 3141, Value: 100},
-		{ID: 3142, Value: 100},
 		{ID: 3156, Value: 0},
 		{ID: 3157, Value: 0},
 		{ID: 3158, Value: 0},
@@ -555,6 +529,13 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 	}
 	for i := uint16(0); i < 13; i++ {
 		tuneValues = append(tuneValues, tuneValue{i + 3078, uint16(s.server.erupeConfig.GameplayOptions.GZennyMultiplier * 100)})
+	}
+
+	for i := uint16(0); i < 13; i++ {
+		tuneValues = append(tuneValues, tuneValue{i + 3104, uint16(s.server.erupeConfig.GameplayOptions.MaterialMultiplier * 100)})
+	}
+	for i := uint16(0); i < 13; i++ {
+		tuneValues = append(tuneValues, tuneValue{i + 3130, uint16(s.server.erupeConfig.GameplayOptions.MaterialMultiplier * 100)})
 	}
 
 	offset := uint16(time.Now().Unix())

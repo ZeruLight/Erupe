@@ -76,6 +76,7 @@ type GameplayOptions struct {
 	GRPMultiplier        float32 // Adjusts the multiplier of G Rank Points rewarded for quest completion
 	GSRPMultiplier       float32 // Adjusts the multiplier of G Skill Rank Points rewarded for quest completion
 	GZennyMultiplier     float32 // Adjusts the multiplier of G Zenny rewarded for quest completion
+	MaterialMultiplier   float32 // Adjusts the multiplier of Monster Materials rewarded for quest completion
 	EnableHiganjimaEvent bool    // Enables the Higanjima event in the Rasta Bar
 	EnableNierEvent      bool    // Enables the Nier event in the Rasta Bar
 }

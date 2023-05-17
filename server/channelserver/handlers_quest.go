@@ -240,58 +240,6 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 		{ID: 3023, Value: 100},
 		{ID: 3024, Value: 100},
 		{ID: 3025, Value: 100},
-		{ID: 3026, Value: 100},
-		{ID: 3027, Value: 100},
-		{ID: 3028, Value: 100},
-		{ID: 3029, Value: 100},
-		{ID: 3030, Value: 100},
-		{ID: 3031, Value: 100},
-		{ID: 3032, Value: 100},
-		{ID: 3033, Value: 100},
-		{ID: 3034, Value: 100},
-		{ID: 3035, Value: 100},
-		{ID: 3036, Value: 100},
-		{ID: 3037, Value: 100},
-		{ID: 3038, Value: 100},
-		{ID: 3039, Value: 100},
-		{ID: 3040, Value: 100},
-		{ID: 3041, Value: 100},
-		{ID: 3042, Value: 100},
-		{ID: 3043, Value: 100},
-		{ID: 3044, Value: 100},
-		{ID: 3045, Value: 100},
-		{ID: 3046, Value: 100},
-		{ID: 3047, Value: 100},
-		{ID: 3048, Value: 100},
-		{ID: 3049, Value: 100},
-		{ID: 3050, Value: 100},
-		{ID: 3051, Value: 100},
-		{ID: 3052, Value: 100},
-		{ID: 3053, Value: 100},
-		{ID: 3054, Value: 100},
-		{ID: 3055, Value: 100},
-		{ID: 3056, Value: 100},
-		{ID: 3057, Value: 100},
-		{ID: 3058, Value: 100},
-		{ID: 3059, Value: 100},
-		{ID: 3060, Value: 100},
-		{ID: 3061, Value: 100},
-		{ID: 3062, Value: 100},
-		{ID: 3063, Value: 100},
-		{ID: 3064, Value: 100},
-		{ID: 3078, Value: 100},
-		{ID: 3079, Value: 100},
-		{ID: 3080, Value: 100},
-		{ID: 3081, Value: 100},
-		{ID: 3082, Value: 100},
-		{ID: 3083, Value: 100},
-		{ID: 3084, Value: 100},
-		{ID: 3085, Value: 100},
-		{ID: 3086, Value: 100},
-		{ID: 3087, Value: 100},
-		{ID: 3088, Value: 100},
-		{ID: 3089, Value: 100},
-		{ID: 3090, Value: 100},
 		{ID: 3104, Value: 100},
 		{ID: 3105, Value: 100},
 		{ID: 3106, Value: 100},
@@ -594,13 +542,28 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 		tuneValues = append(tuneValues, tuneValue{1153, 0})
 	}
 
+	for i := uint16(0); i < 13; i++ {
+		tuneValues = append(tuneValues, tuneValue{i + 3026, uint16(s.server.erupeConfig.GameplayOptions.GRPMultiplier * 100)})
+	}
+
+	for i := uint16(0); i < 13; i++ {
+		tuneValues = append(tuneValues, tuneValue{i + 3039, uint16(s.server.erupeConfig.GameplayOptions.GSRPMultiplier * 100)})
+	}
+
+	for i := uint16(0); i < 13; i++ {
+		tuneValues = append(tuneValues, tuneValue{i + 3052, uint16(s.server.erupeConfig.GameplayOptions.GZennyMultiplier * 100)})
+	}
+	for i := uint16(0); i < 13; i++ {
+		tuneValues = append(tuneValues, tuneValue{i + 3078, uint16(s.server.erupeConfig.GameplayOptions.GZennyMultiplier * 100)})
+	}
+
 	offset := uint16(time.Now().Unix())
 	bf.WriteUint16(offset)
 	bf.WriteUint16(uint16(len(tuneValues)))
 	for i := range tuneValues {
 		bf.WriteUint16(tuneValues[i].ID ^ offset)
 		bf.WriteUint16(offset)
-		bf.WriteUint32(0xD4D4D400)
+		bf.WriteBytes(make([]byte, 4))
 		bf.WriteUint16(tuneValues[i].Value ^ offset)
 	}
 

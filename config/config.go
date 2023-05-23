@@ -51,6 +51,7 @@ type DevModeOptions struct {
 	MezFesAlt           bool // Swaps out Volpakkun for Tokotoko
 	DisableTokenCheck   bool // Disables checking login token exists in the DB (security risk!)
 	QuestDebugTools     bool // Enable various quest debug logs
+	EarthStatusOverride int32
 	SaveDumps           SaveDumpOptions
 }
 

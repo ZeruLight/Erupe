@@ -1608,18 +1608,16 @@ func handleMsgMhfKickExportForce(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfGetEarthStatus(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetEarthStatus)
-
-	// TODO(Andoryuuta): Track down format for this data,
-	//	it can somehow be parsed as 8*uint32 chunks if the header is right.
-	/*
-		BEFORE ack-refactor:
-			resp := byteframe.NewByteFrame()
-			resp.WriteUint32(0)
-			resp.WriteUint32(0)
-
-			s.QueueAck(pkt.AckHandle, resp.Data())
-	*/
-	doAckBufSucceed(s, pkt.AckHandle, []byte{})
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint32(uint32(TimeWeekStart().Unix())) // Start
+	bf.WriteUint32(uint32(TimeWeekNext().Unix()))  // End
+	bf.WriteInt32(s.server.erupeConfig.DevModeOptions.EarthStatusOverride)
+	bf.WriteInt32(21)
+	bf.WriteInt32(0)
+	bf.WriteInt32(0)
+	bf.WriteInt32(0)
+	bf.WriteInt32(0)
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfRegistSpabiTime(s *Session, p mhfpacket.MHFPacket) {}

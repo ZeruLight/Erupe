@@ -1612,7 +1612,7 @@ func handleMsgMhfGetEarthStatus(s *Session, p mhfpacket.MHFPacket) {
 	bf.WriteUint32(uint32(TimeWeekStart().Unix())) // Start
 	bf.WriteUint32(uint32(TimeWeekNext().Unix()))  // End
 	bf.WriteInt32(s.server.erupeConfig.DevModeOptions.EarthStatusOverride)
-	bf.WriteInt32(21)
+	bf.WriteInt32(0)
 	bf.WriteInt32(0)
 	bf.WriteInt32(0)
 	bf.WriteInt32(0)

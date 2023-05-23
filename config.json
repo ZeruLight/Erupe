@@ -26,6 +26,7 @@
     "MezFesAlt": false,
     "DisableTokenCheck": false,
     "QuestDebugTools": false,
+    "EarthStatusOverride": 0,
     "SaveDumps": {
       "Enabled": true,
       "OutputDir": "savedata"

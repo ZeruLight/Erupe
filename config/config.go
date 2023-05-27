@@ -80,6 +80,7 @@ type GameplayOptions struct {
 	MaterialMultiplier   float32 // Adjusts the multiplier of Monster Materials rewarded for quest completion
 	EnableHiganjimaEvent bool    // Enables the Higanjima event in the Rasta Bar
 	EnableNierEvent      bool    // Enables the Nier event in the Rasta Bar
+	DisableRoad          bool    // Disables the Hunting Road
 }
 
 // Discord holds the discord integration config.

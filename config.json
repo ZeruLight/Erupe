@@ -50,7 +50,8 @@
     "GZennyMultiplier": 1.00,
     "MaterialMultiplier": 1.00,
     "EnableHiganjimaEvent": false,
-    "EnableNierEvent": false
+    "EnableNierEvent": false,
+    "DisableRoad": false
   },
   "Discord": {
     "Enabled": false,

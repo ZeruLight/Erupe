@@ -192,7 +192,6 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 		{ID: 1149, Value: 20},
 		{ID: 1152, Value: 1130},
 		{ID: 1154, Value: 0},
-		{ID: 1155, Value: 0},
 		{ID: 1158, Value: 1},
 		{ID: 1160, Value: 300},
 		{ID: 1162, Value: 1},
@@ -514,6 +513,12 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 		tuneValues = append(tuneValues, tuneValue{1153, 1})
 	} else {
 		tuneValues = append(tuneValues, tuneValue{1153, 0})
+	}
+
+	if s.server.erupeConfig.GameplayOptions.DisableRoad {
+		tuneValues = append(tuneValues, tuneValue{1155, 1})
+	} else {
+		tuneValues = append(tuneValues, tuneValue{1155, 0})
 	}
 
 	for i := uint16(0); i < 13; i++ {

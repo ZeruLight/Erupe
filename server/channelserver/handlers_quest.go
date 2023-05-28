@@ -492,16 +492,16 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 	}
 
 	for i := uint16(0); i < 13; i++ {
-		tuneValues = append(tuneValues, tuneValue{i + 3156, uint16(s.server.erupeConfig.GameplayOptions.ExtraCarves)})
+		tuneValues = append(tuneValues, tuneValue{i + 3156, s.server.erupeConfig.GameplayOptions.ExtraCarves})
 	}
 	for i := uint16(0); i < 13; i++ {
-		tuneValues = append(tuneValues, tuneValue{i + 3182, uint16(s.server.erupeConfig.GameplayOptions.ExtraCarves)})
+		tuneValues = append(tuneValues, tuneValue{i + 3182, s.server.erupeConfig.GameplayOptions.ExtraCarves})
 	}
 	for i := uint16(0); i < 13; i++ {
-		tuneValues = append(tuneValues, tuneValue{i + 3208, uint16(s.server.erupeConfig.GameplayOptions.ExtraCarves)})
+		tuneValues = append(tuneValues, tuneValue{i + 3208, s.server.erupeConfig.GameplayOptions.ExtraCarves})
 	}
 	for i := uint16(0); i < 13; i++ {
-		tuneValues = append(tuneValues, tuneValue{i + 3234, uint16(s.server.erupeConfig.GameplayOptions.ExtraCarves)})
+		tuneValues = append(tuneValues, tuneValue{i + 3234, s.server.erupeConfig.GameplayOptions.ExtraCarves})
 	}
 
 	offset := uint16(time.Now().Unix())

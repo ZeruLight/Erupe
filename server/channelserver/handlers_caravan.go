@@ -43,8 +43,6 @@ func handleMsgMhfCaravanMyScore(s *Session, p mhfpacket.MHFPacket) {
 	/*
 		bf.WriteInt32(0)
 		bf.WriteInt32(0)
-		bf.WriteUint32(0)
-		bf.WriteInt32(0)
 		bf.WriteInt32(0)
 		bf.WriteInt32(0)
 	*/

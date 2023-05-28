@@ -91,16 +91,14 @@ func handleMsgMhfGetWeeklySeibatuRankingReward(s *Session, p mhfpacket.MHFPacket
 	bf.WriteUint32(0)
 	bf.WriteUint32(0)
 	bf.WriteUint32(0)
-	bf.WriteUint32(0) // Entries
+	bf.WriteUint32(1) // Entries
 
-	/*
-		bf.WriteInt32(0)
-		bf.WriteInt32(0)
-		bf.WriteUint32(0)
-		bf.WriteInt32(0)
-		bf.WriteInt32(0)
-		bf.WriteInt32(0)
-	*/
+	bf.WriteInt32(0)
+	bf.WriteInt32(0)
+	bf.WriteUint32(0)
+	bf.WriteInt32(0)
+	bf.WriteInt32(0)
+	bf.WriteInt32(0)
 
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }

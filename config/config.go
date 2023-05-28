@@ -78,6 +78,7 @@ type GameplayOptions struct {
 	GSRPMultiplier       float32 // Adjusts the multiplier of G Skill Rank Points rewarded for quest completion
 	GZennyMultiplier     float32 // Adjusts the multiplier of G Zenny rewarded for quest completion
 	MaterialMultiplier   float32 // Adjusts the multiplier of Monster Materials rewarded for quest completion
+	ExtraCarves          uint16  // Grant n extra chances to carve ALL carcasses
 	EnableHiganjimaEvent bool    // Enables the Higanjima event in the Rasta Bar
 	EnableNierEvent      bool    // Enables the Nier event in the Rasta Bar
 	DisableRoad          bool    // Disables the Hunting Road

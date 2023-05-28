@@ -239,58 +239,6 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 		{ID: 3023, Value: 100},
 		{ID: 3024, Value: 100},
 		{ID: 3025, Value: 100},
-		{ID: 3156, Value: 0},
-		{ID: 3157, Value: 0},
-		{ID: 3158, Value: 0},
-		{ID: 3159, Value: 0},
-		{ID: 3160, Value: 0},
-		{ID: 3161, Value: 0},
-		{ID: 3162, Value: 0},
-		{ID: 3163, Value: 0},
-		{ID: 3164, Value: 0},
-		{ID: 3165, Value: 0},
-		{ID: 3166, Value: 0},
-		{ID: 3167, Value: 0},
-		{ID: 3168, Value: 0},
-		{ID: 3182, Value: 0},
-		{ID: 3183, Value: 0},
-		{ID: 3184, Value: 0},
-		{ID: 3185, Value: 0},
-		{ID: 3186, Value: 0},
-		{ID: 3187, Value: 0},
-		{ID: 3188, Value: 0},
-		{ID: 3189, Value: 0},
-		{ID: 3190, Value: 0},
-		{ID: 3191, Value: 0},
-		{ID: 3192, Value: 0},
-		{ID: 3193, Value: 0},
-		{ID: 3194, Value: 0},
-		{ID: 3208, Value: 0},
-		{ID: 3209, Value: 0},
-		{ID: 3210, Value: 0},
-		{ID: 3211, Value: 0},
-		{ID: 3212, Value: 0},
-		{ID: 3213, Value: 0},
-		{ID: 3214, Value: 0},
-		{ID: 3215, Value: 0},
-		{ID: 3216, Value: 0},
-		{ID: 3217, Value: 0},
-		{ID: 3218, Value: 0},
-		{ID: 3219, Value: 0},
-		{ID: 3220, Value: 0},
-		{ID: 3234, Value: 0},
-		{ID: 3235, Value: 0},
-		{ID: 3236, Value: 0},
-		{ID: 3237, Value: 0},
-		{ID: 3238, Value: 0},
-		{ID: 3239, Value: 0},
-		{ID: 3240, Value: 0},
-		{ID: 3241, Value: 0},
-		{ID: 3242, Value: 0},
-		{ID: 3243, Value: 0},
-		{ID: 3244, Value: 0},
-		{ID: 3245, Value: 0},
-		{ID: 3246, Value: 0},
 		{ID: 3286, Value: 200},
 		{ID: 3287, Value: 200},
 		{ID: 3288, Value: 200},
@@ -541,6 +489,19 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 	}
 	for i := uint16(0); i < 13; i++ {
 		tuneValues = append(tuneValues, tuneValue{i + 3130, uint16(s.server.erupeConfig.GameplayOptions.MaterialMultiplier * 100)})
+	}
+
+	for i := uint16(0); i < 13; i++ {
+		tuneValues = append(tuneValues, tuneValue{i + 3156, uint16(s.server.erupeConfig.GameplayOptions.ExtraCarves)})
+	}
+	for i := uint16(0); i < 13; i++ {
+		tuneValues = append(tuneValues, tuneValue{i + 3182, uint16(s.server.erupeConfig.GameplayOptions.ExtraCarves)})
+	}
+	for i := uint16(0); i < 13; i++ {
+		tuneValues = append(tuneValues, tuneValue{i + 3208, uint16(s.server.erupeConfig.GameplayOptions.ExtraCarves)})
+	}
+	for i := uint16(0); i < 13; i++ {
+		tuneValues = append(tuneValues, tuneValue{i + 3234, uint16(s.server.erupeConfig.GameplayOptions.ExtraCarves)})
 	}
 
 	offset := uint16(time.Now().Unix())

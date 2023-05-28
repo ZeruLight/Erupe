@@ -27,6 +27,8 @@
     "DisableTokenCheck": false,
     "QuestDebugTools": false,
     "EarthStatusOverride": 0,
+    "EarthIDOverride": 0,
+    "EarthMonsterOverride": 0,
     "SaveDumps": {
       "Enabled": true,
       "OutputDir": "savedata"

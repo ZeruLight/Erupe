@@ -38,21 +38,23 @@ type Config struct {
 
 // DevModeOptions holds various debug/temporary options for use while developing Erupe.
 type DevModeOptions struct {
-	AutoCreateAccount   bool // Automatically create accounts if they don't exist
-	CleanDB             bool // Automatically wipes the DB on server reset.
-	MaxLauncherHR       bool // Sets the HR returned in the launcher to HR7 so that you can join non-beginner worlds.
-	LogInboundMessages  bool // Log all messages sent to the server
-	LogOutboundMessages bool // Log all messages sent to the clients
-	MaxHexdumpLength    int  // Maximum number of bytes printed when logs are enabled
-	DivaEvent           int  // Diva Defense event status
-	FestaEvent          int  // Hunter's Festa event status
-	TournamentEvent     int  // VS Tournament event status
-	MezFesEvent         bool // MezFes status
-	MezFesAlt           bool // Swaps out Volpakkun for Tokotoko
-	DisableTokenCheck   bool // Disables checking login token exists in the DB (security risk!)
-	QuestDebugTools     bool // Enable various quest debug logs
-	EarthStatusOverride int32
-	SaveDumps           SaveDumpOptions
+	AutoCreateAccount    bool // Automatically create accounts if they don't exist
+	CleanDB              bool // Automatically wipes the DB on server reset.
+	MaxLauncherHR        bool // Sets the HR returned in the launcher to HR7 so that you can join non-beginner worlds.
+	LogInboundMessages   bool // Log all messages sent to the server
+	LogOutboundMessages  bool // Log all messages sent to the clients
+	MaxHexdumpLength     int  // Maximum number of bytes printed when logs are enabled
+	DivaEvent            int  // Diva Defense event status
+	FestaEvent           int  // Hunter's Festa event status
+	TournamentEvent      int  // VS Tournament event status
+	MezFesEvent          bool // MezFes status
+	MezFesAlt            bool // Swaps out Volpakkun for Tokotoko
+	DisableTokenCheck    bool // Disables checking login token exists in the DB (security risk!)
+	QuestDebugTools      bool // Enable various quest debug logs
+	EarthStatusOverride  int32
+	EarthIDOverride      int32
+	EarthMonsterOverride int32
+	SaveDumps            SaveDumpOptions
 }
 
 type SaveDumpOptions struct {

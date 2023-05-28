@@ -4,6 +4,7 @@ import (
 	"erupe-ce/common/byteframe"
 	"erupe-ce/common/stringsupport"
 	"erupe-ce/network/mhfpacket"
+	"time"
 )
 
 type RyoudamaReward struct {
@@ -27,8 +28,8 @@ type RyoudamaCharInfo struct {
 }
 
 type RyoudamaBoostInfo struct {
-	Unk0 uint32
-	Unk1 uint32
+	Start time.Time
+	End   time.Time
 }
 
 type Ryoudama struct {
@@ -47,9 +48,7 @@ func handleMsgMhfGetRyoudama(s *Session, p mhfpacket.MHFPacket) {
 	bf.WriteUint32(0)
 	bf.WriteUint32(0)
 
-	ryoudama := Ryoudama{
-		Score: []int32{0},
-	}
+	ryoudama := Ryoudama{Score: []int32{0}}
 	switch pkt.Request2 {
 	case 4:
 		bf.WriteUint32(uint32(len(ryoudama.Score)))
@@ -66,8 +65,8 @@ func handleMsgMhfGetRyoudama(s *Session, p mhfpacket.MHFPacket) {
 	case 6:
 		bf.WriteUint32(uint32(len(ryoudama.BoostInfo)))
 		for _, info := range ryoudama.BoostInfo {
-			bf.WriteUint32(info.Unk0)
-			bf.WriteUint32(info.Unk1)
+			bf.WriteUint32(uint32(info.Start.Unix()))
+			bf.WriteUint32(uint32(info.End.Unix()))
 		}
 	default:
 		bf.WriteUint32(0)

@@ -140,7 +140,7 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 		{ID: 1023, Value: 8},
 		{ID: 1024, Value: 150},
 		{ID: 1025, Value: 1},
-		{ID: 1026, Value: 999},
+		{ID: 1026, Value: 999}, // get_grank_cap
 		{ID: 1027, Value: 100},
 		{ID: 1028, Value: 100},
 		{ID: 1030, Value: 8},
@@ -152,12 +152,12 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 		{ID: 1064, Value: 50000},
 		{ID: 1065, Value: 25000},
 		{ID: 1066, Value: 25000},
-		{ID: 1067, Value: 90},
-		{ID: 1068, Value: 80},
-		{ID: 1069, Value: 70},
-		{ID: 1072, Value: 300},
-		{ID: 1073, Value: 300},
-		{ID: 1074, Value: 300},
+		{ID: 1067, Value: 90},  // get_lobby_member_upper_for_making_room Lv1?
+		{ID: 1068, Value: 80},  // get_lobby_member_upper_for_making_room Lv2?
+		{ID: 1069, Value: 70},  // get_lobby_member_upper_for_making_room Lv3?
+		{ID: 1072, Value: 300}, // get_rate_premium_ravi_tama
+		{ID: 1073, Value: 300}, // get_rate_premium_ravi_ax_tama
+		{ID: 1074, Value: 300}, // get_rate_premium_ravi_g_tama
 		{ID: 1078, Value: 0},
 		{ID: 1079, Value: 1},
 		{ID: 1080, Value: 1},

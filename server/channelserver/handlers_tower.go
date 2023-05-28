@@ -2,6 +2,7 @@ package channelserver
 
 import (
 	"encoding/hex"
+	"erupe-ce/common/byteframe"
 	"erupe-ce/network/mhfpacket"
 )
 
@@ -86,12 +87,47 @@ func handleMsgMhfGetBreakSeibatuLevelReward(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfGetWeeklySeibatuRankingReward(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetWeeklySeibatuRankingReward)
-	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint32(0)
+	bf.WriteUint32(0)
+	bf.WriteUint32(0)
+	bf.WriteUint32(0) // Entries
+
+	/*
+		bf.WriteInt32(0)
+		bf.WriteInt32(0)
+		bf.WriteUint32(0)
+		bf.WriteInt32(0)
+		bf.WriteInt32(0)
+		bf.WriteInt32(0)
+	*/
+
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfPresentBox(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfPresentBox)
-	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint32(0)
+	bf.WriteUint32(0)
+	bf.WriteUint32(0)
+	bf.WriteUint32(0) // Entries
+
+	/*
+		bf.WriteUint32(0)
+		bf.WriteInt32(0)
+		bf.WriteInt32(0)
+		bf.WriteInt32(0)
+		bf.WriteInt32(0)
+		bf.WriteInt32(0)
+		bf.WriteInt32(0)
+		bf.WriteInt32(0)
+		bf.WriteInt32(0)
+		bf.WriteInt32(0)
+		bf.WriteInt32(0)
+	*/
+
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfGetGemInfo(s *Session, p mhfpacket.MHFPacket) {

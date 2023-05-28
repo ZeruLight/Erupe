@@ -2,6 +2,7 @@ package channelserver
 
 import (
 	"encoding/hex"
+	"erupe-ce/common/byteframe"
 	"erupe-ce/network/mhfpacket"
 )
 
@@ -31,8 +32,60 @@ func handleMsgMhfPostTinyBin(s *Session, p mhfpacket.MHFPacket) {
 	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
-func handleMsgMhfCaravanMyScore(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfCaravanMyScore(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfCaravanMyScore)
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint32(0)
+	bf.WriteUint32(0)
+	bf.WriteUint32(0)
+	bf.WriteUint32(0) // Entries
 
-func handleMsgMhfCaravanRanking(s *Session, p mhfpacket.MHFPacket) {}
+	/*
+		bf.WriteInt32(0)
+		bf.WriteInt32(0)
+		bf.WriteUint32(0)
+		bf.WriteInt32(0)
+		bf.WriteInt32(0)
+		bf.WriteInt32(0)
+	*/
 
-func handleMsgMhfCaravanMyRank(s *Session, p mhfpacket.MHFPacket) {}
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+}
+
+func handleMsgMhfCaravanRanking(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfCaravanRanking)
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint32(0)
+	bf.WriteUint32(0)
+	bf.WriteUint32(0)
+	bf.WriteUint32(0) // Entries
+
+	/* RYOUDAN
+	bf.WriteInt32(1)
+	bf.WriteUint32(2)
+	bf.WriteBytes(stringsupport.PaddedString("Test", 26, true))
+	*/
+
+	/* PERSONAL
+	bf.WriteInt32(1)
+	bf.WriteBytes(stringsupport.PaddedString("Test", 14, true))
+	*/
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+}
+
+func handleMsgMhfCaravanMyRank(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfCaravanMyRank)
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint32(0)
+	bf.WriteUint32(0)
+	bf.WriteUint32(0)
+	bf.WriteUint32(0) // Entries
+
+	/*
+		bf.WriteInt32(0)
+		bf.WriteInt32(0)
+		bf.WriteInt32(0)
+	*/
+
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+}

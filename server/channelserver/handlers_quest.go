@@ -187,8 +187,8 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 		{ID: 1104, Value: 10},
 		{ID: 1106, Value: 0},
 		{ID: 1145, Value: 200},
-		{ID: 1146, Value: 0},
-		{ID: 1147, Value: 0},
+		{ID: 1146, Value: 0}, // isTower_invisible
+		{ID: 1147, Value: 0}, // isVenom_playable
 		{ID: 1149, Value: 20},
 		{ID: 1152, Value: 1130},
 		{ID: 1154, Value: 0}, // isDisabled_object_season

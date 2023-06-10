@@ -144,6 +144,7 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 		{ID: 1028, Value: 100},
 		{ID: 1030, Value: 8},
 		{ID: 1031, Value: 100},
+		{ID: 1032, Value: 0}, // isValid_partner
 		{ID: 1046, Value: 99},
 		{ID: 1051, Value: 200},
 		{ID: 1052, Value: 200},
@@ -190,7 +191,7 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 		{ID: 1147, Value: 0},
 		{ID: 1149, Value: 20},
 		{ID: 1152, Value: 1130},
-		{ID: 1154, Value: 0},
+		{ID: 1154, Value: 0}, // isDisabled_object_season
 		{ID: 1158, Value: 1},
 		{ID: 1160, Value: 300},
 		{ID: 1162, Value: 1},

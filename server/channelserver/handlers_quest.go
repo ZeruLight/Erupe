@@ -452,6 +452,10 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 
 	tuneValues = append(tuneValues, tuneValue{1029, s.server.erupeConfig.GameplayOptions.GUrgentRate})
 
+	if s.server.erupeConfig.GameplayOptions.DisableHunterNavi {
+		tuneValues = append(tuneValues, tuneValue{1037, 1})
+	}
+
 	if s.server.erupeConfig.GameplayOptions.EnableHiganjimaEvent {
 		tuneValues = append(tuneValues, tuneValue{1144, 1})
 	} else {

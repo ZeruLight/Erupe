@@ -53,6 +53,7 @@
     "GZennyMultiplier": 1.00,
     "MaterialMultiplier": 1.00,
     "ExtraCarves": 0,
+    "DisableHunterNavi": false,
     "EnableHiganjimaEvent": false,
     "EnableNierEvent": false,
     "DisableRoad": false

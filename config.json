@@ -47,6 +47,7 @@
     "MezfesSoloTickets": 10,
     "MezfesGroupTickets": 4,
     "GUrgentRate": 10,
+    "GCPMultiplier": 1.00,
     "GRPMultiplier": 1.00,
     "GSRPMultiplier": 1.00,
     "GZennyMultiplier": 1.00,

@@ -76,6 +76,7 @@ type GameplayOptions struct {
 	MezfesSoloTickets    uint32  // Number of solo tickets given weekly
 	MezfesGroupTickets   uint32  // Number of group tickets given weekly
 	GUrgentRate          uint16  // Adjusts the rate of G Urgent quests spawning
+	GCPMultiplier        float32 // Adjusts the multiplier of GCP rewarded for quest completion
 	GRPMultiplier        float32 // Adjusts the multiplier of G Rank Points rewarded for quest completion
 	GSRPMultiplier       float32 // Adjusts the multiplier of G Skill Rank Points rewarded for quest completion
 	GZennyMultiplier     float32 // Adjusts the multiplier of G Zenny rewarded for quest completion

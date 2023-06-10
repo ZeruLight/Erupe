@@ -135,7 +135,6 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 		{ID: 1013, Value: 300},
 		{ID: 1014, Value: 200},
 		{ID: 1015, Value: 200},
-		{ID: 1020, Value: 100},
 		{ID: 1021, Value: 400},
 		{ID: 1023, Value: 8},
 		{ID: 1024, Value: 150},
@@ -448,6 +447,8 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 		{ID: 3583, Value: 0},
 		{ID: 3584, Value: 0},
 	}
+
+	tuneValues = append(tuneValues, tuneValue{1020, uint16(s.server.erupeConfig.GameplayOptions.GCPMultiplier * 100)})
 
 	tuneValues = append(tuneValues, tuneValue{1029, s.server.erupeConfig.GameplayOptions.GUrgentRate})
 

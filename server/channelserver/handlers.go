@@ -1609,8 +1609,8 @@ func handleMsgMhfKickExportForce(s *Session, p mhfpacket.MHFPacket) {}
 func handleMsgMhfGetEarthStatus(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetEarthStatus)
 	bf := byteframe.NewByteFrame()
-	bf.WriteUint32(uint32(TimeWeekStart().Unix())) // Start
-	bf.WriteUint32(uint32(TimeWeekNext().Unix()))  // End
+	bf.WriteUint32(uint32(TimeWeekStart().Add(time.Hour * -24).Unix())) // Start
+	bf.WriteUint32(uint32(TimeWeekNext().Add(time.Hour * 24).Unix()))   // End
 	bf.WriteInt32(s.server.erupeConfig.DevModeOptions.EarthStatusOverride)
 	bf.WriteInt32(s.server.erupeConfig.DevModeOptions.EarthIDOverride)
 	bf.WriteInt32(s.server.erupeConfig.DevModeOptions.EarthMonsterOverride)
@@ -1624,71 +1624,42 @@ func handleMsgMhfRegistSpabiTime(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfGetEarthValue(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetEarthValue)
-	var earthValues []struct{ Unk0, Unk1, Unk2, Unk3, Unk4, Unk5 uint32 }
-	if pkt.ReqType == 3 {
-		earthValues = []struct {
-			Unk0, Unk1, Unk2, Unk3, Unk4, Unk5 uint32
-		}{
-			// TW identical to JP
-			{
-				Unk0: 0x03E9,
-				Unk1: 0x24,
-			},
-			{
-				Unk0: 0x2329,
-				Unk1: 0x03,
-			},
-			{
-				Unk0: 0x232A,
-				Unk1: 0x0A,
-				Unk2: 0x012C,
-			},
+	type EarthValues struct {
+		Value []uint32
+	}
+
+	var earthValues []EarthValues
+	switch pkt.ReqType {
+	case 1:
+		earthValues = []EarthValues{
+			{[]uint32{1, 312, 0, 0, 0, 0}},
+			{[]uint32{2, 99, 0, 0, 0, 0}},
 		}
-	} else if pkt.ReqType == 2 {
-		earthValues = []struct {
-			Unk0, Unk1, Unk2, Unk3, Unk4, Unk5 uint32
-		}{
-			// JP response was empty
-			{
-				Unk0: 0x01,
-				Unk1: 0x168B,
-			},
-			{
-				Unk0: 0x02,
-				Unk1: 0x0737,
-			},
+	case 2:
+		earthValues = []EarthValues{
+			{[]uint32{1, 5771, 0, 0, 0, 0}},
+			{[]uint32{2, 1847, 0, 0, 0, 0}},
 		}
-	} else if pkt.ReqType == 1 {
-		earthValues = []struct {
-			Unk0, Unk1, Unk2, Unk3, Unk4, Unk5 uint32
-		}{
-			// JP simply sent 01 and 02 respectively
-			{
-				Unk0: 0x01,
-				Unk1: 0x0138,
-			},
-			{
-				Unk0: 0x02,
-				Unk1: 0x63,
-			},
+	case 3:
+		earthValues = []EarthValues{
+			{[]uint32{1001, 36, 0, 0, 0, 0}},
+			{[]uint32{9001, 3, 0, 0, 0, 0}},
+			{[]uint32{9002, 10, 300, 0, 0, 0}},
 		}
 	}
 
-	resp := byteframe.NewByteFrame()
-	resp.WriteUint32(0x0A218EAD)               // Unk shared ID. Sent in response of MSG_MHF_GET_TOWER_INFO, MSG_MHF_GET_PAPER_DATA etc.
-	resp.WriteUint32(0)                        // Unk
-	resp.WriteUint32(0)                        // Unk
-	resp.WriteUint32(uint32(len(earthValues))) // value count
-	for _, v := range earthValues {
-		resp.WriteUint32(v.Unk0)
-		resp.WriteUint32(v.Unk1)
-		resp.WriteUint32(v.Unk2)
-		resp.WriteUint32(v.Unk3)
-		resp.WriteUint32(v.Unk4)
-		resp.WriteUint32(v.Unk5)
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint32(uint32(s.server.erupeConfig.DevModeOptions.EarthIDOverride))
+	bf.WriteUint32(0)
+	bf.WriteUint32(0)
+	bf.WriteUint32(uint32(len(earthValues)))
+	for _, i := range earthValues {
+		for _, j := range i.Value {
+			bf.WriteUint32(j)
+		}
 	}
 
-	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfDebugPostValue(s *Session, p mhfpacket.MHFPacket) {}
@@ -1703,7 +1674,54 @@ func handleMsgMhfGetSenyuDailyCount(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfGetSeibattle(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetSeibattle)
-	stubGetNoResults(s, pkt.AckHandle)
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint32(0) // Unk
+	bf.WriteUint32(0) // Unk
+	bf.WriteUint32(0) // Unk
+	bf.WriteUint32(1) // Entries
+
+	switch pkt.Type {
+	case 1: // Timetable
+		bf.Seek(-4, 1)
+		bf.WriteUint32(3)
+
+		bf.WriteUint32(uint32(TimeMidnight().Unix()))
+		bf.WriteUint32(uint32(TimeMidnight().Add(time.Hour * 8).Unix()))
+
+		bf.WriteUint32(uint32(TimeMidnight().Add(time.Hour * 8).Unix()))
+		bf.WriteUint32(uint32(TimeMidnight().Add(time.Hour * 16).Unix()))
+
+		bf.WriteUint32(uint32(TimeMidnight().Add(time.Hour * 16).Unix()))
+		bf.WriteUint32(uint32(TimeMidnight().Add(time.Hour * 24).Unix()))
+	case 2: // Reward
+		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 16))
+		return
+	case 3: // Key score?
+		bf.WriteUint8(0)
+		bf.WriteInt32(0)
+	case 4: // Career?
+		bf.WriteUint16(0)
+		bf.WriteUint16(0)
+		bf.WriteUint16(0)
+	case 5: // Opponent?
+		bf.WriteInt32(1)
+		bf.WriteInt8(1)
+	case 6: // Convention result?
+		bf.WriteUint32(0)
+		bf.WriteUint16(0)
+		bf.WriteUint16(0)
+		bf.WriteUint16(0)
+		bf.WriteUint16(0)
+	case 7: // Char score?
+		bf.WriteUint32(0)
+	case 8: // Cur result?
+		bf.WriteUint32(0)
+		bf.WriteUint16(0)
+		bf.WriteUint16(0)
+		bf.WriteUint16(0)
+	}
+
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfPostSeibattle(s *Session, p mhfpacket.MHFPacket) {}

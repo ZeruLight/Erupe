@@ -38,6 +38,18 @@ func stubGetNoResults(s *Session, ackHandle uint32) {
 	doAckBufSucceed(s, ackHandle, resp.Data())
 }
 
+func doAckEarthSucceed(s *Session, ackHandle uint32, data []*byteframe.ByteFrame) {
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint32(uint32(s.server.erupeConfig.DevModeOptions.EarthIDOverride))
+	bf.WriteUint32(0)
+	bf.WriteUint32(0)
+	bf.WriteUint32(uint32(len(data)))
+	for i := range data {
+		bf.WriteBytes(data[i].Data())
+	}
+	doAckBufSucceed(s, ackHandle, bf.Data())
+}
+
 func doAckBufSucceed(s *Session, ackHandle uint32, data []byte) {
 	s.QueueSendMHF(&mhfpacket.MsgSysAck{
 		AckHandle:        ackHandle,
@@ -1648,18 +1660,15 @@ func handleMsgMhfGetEarthValue(s *Session, p mhfpacket.MHFPacket) {
 		}
 	}
 
-	bf := byteframe.NewByteFrame()
-	bf.WriteUint32(uint32(s.server.erupeConfig.DevModeOptions.EarthIDOverride))
-	bf.WriteUint32(0)
-	bf.WriteUint32(0)
-	bf.WriteUint32(uint32(len(earthValues)))
+	var data []*byteframe.ByteFrame
 	for _, i := range earthValues {
+		bf := byteframe.NewByteFrame()
 		for _, j := range i.Value {
 			bf.WriteUint32(j)
 		}
+		data = append(data, bf)
 	}
-
-	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	doAckEarthSucceed(s, pkt.AckHandle, data)
 }
 
 func handleMsgMhfDebugPostValue(s *Session, p mhfpacket.MHFPacket) {}
@@ -1672,56 +1681,142 @@ func handleMsgMhfGetRandFromTable(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfGetSenyuDailyCount(s *Session, p mhfpacket.MHFPacket) {}
 
+type SeibattleTimetable struct {
+	Start time.Time
+	End   time.Time
+}
+
+type SeibattleKeyScore struct {
+	Unk0 uint8
+	Unk1 int32
+}
+
+type SeibattleCareer struct {
+	Unk0 uint16
+	Unk1 uint16
+	Unk2 uint16
+}
+
+type SeibattleOpponent struct {
+	Unk0 int32
+	Unk1 int8
+}
+
+type SeibattleConventionResult struct {
+	Unk0 uint32
+	Unk1 uint16
+	Unk2 uint16
+	Unk3 uint16
+	Unk4 uint16
+}
+
+type SeibattleCharScore struct {
+	Unk0 uint32
+}
+
+type SeibattleCurResult struct {
+	Unk0 uint32
+	Unk1 uint16
+	Unk2 uint16
+	Unk3 uint16
+}
+
+type Seibattle struct {
+	Timetable        []SeibattleTimetable
+	KeyScore         []SeibattleKeyScore
+	Career           []SeibattleCareer
+	Opponent         []SeibattleOpponent
+	ConventionResult []SeibattleConventionResult
+	CharScore        []SeibattleCharScore
+	CurResult        []SeibattleCurResult
+}
+
 func handleMsgMhfGetSeibattle(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetSeibattle)
-	bf := byteframe.NewByteFrame()
-	bf.WriteUint32(0) // Unk
-	bf.WriteUint32(0) // Unk
-	bf.WriteUint32(0) // Unk
-	bf.WriteUint32(1) // Entries
-
-	switch pkt.Type {
-	case 1: // Timetable
-		bf.Seek(-4, 1)
-		bf.WriteUint32(3)
-
-		bf.WriteUint32(uint32(TimeMidnight().Unix()))
-		bf.WriteUint32(uint32(TimeMidnight().Add(time.Hour * 8).Unix()))
-
-		bf.WriteUint32(uint32(TimeMidnight().Add(time.Hour * 8).Unix()))
-		bf.WriteUint32(uint32(TimeMidnight().Add(time.Hour * 16).Unix()))
-
-		bf.WriteUint32(uint32(TimeMidnight().Add(time.Hour * 16).Unix()))
-		bf.WriteUint32(uint32(TimeMidnight().Add(time.Hour * 24).Unix()))
-	case 2: // Reward
-		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 16))
-		return
-	case 3: // Key score?
-		bf.WriteUint8(0)
-		bf.WriteInt32(0)
-	case 4: // Career?
-		bf.WriteUint16(0)
-		bf.WriteUint16(0)
-		bf.WriteUint16(0)
-	case 5: // Opponent?
-		bf.WriteInt32(1)
-		bf.WriteInt8(1)
-	case 6: // Convention result?
-		bf.WriteUint32(0)
-		bf.WriteUint16(0)
-		bf.WriteUint16(0)
-		bf.WriteUint16(0)
-		bf.WriteUint16(0)
-	case 7: // Char score?
-		bf.WriteUint32(0)
-	case 8: // Cur result?
-		bf.WriteUint32(0)
-		bf.WriteUint16(0)
-		bf.WriteUint16(0)
-		bf.WriteUint16(0)
+	var data []*byteframe.ByteFrame
+	seibattle := Seibattle{
+		Timetable: []SeibattleTimetable{
+			{TimeMidnight(), TimeMidnight().Add(time.Hour * 8)},
+			{TimeMidnight().Add(time.Hour * 8), TimeMidnight().Add(time.Hour * 16)},
+			{TimeMidnight().Add(time.Hour * 16), TimeMidnight().Add(time.Hour * 24)},
+		},
+		KeyScore: []SeibattleKeyScore{
+			{0, 0},
+		},
+		Career: []SeibattleCareer{
+			{0, 0, 0},
+		},
+		Opponent: []SeibattleOpponent{
+			{1, 1},
+		},
+		ConventionResult: []SeibattleConventionResult{
+			{0, 0, 0, 0, 0},
+		},
+		CharScore: []SeibattleCharScore{
+			{0},
+		},
+		CurResult: []SeibattleCurResult{
+			{0, 0, 0, 0},
+		},
 	}
 
-	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	switch pkt.Type {
+	case 1:
+		for _, timetable := range seibattle.Timetable {
+			bf := byteframe.NewByteFrame()
+			bf.WriteUint32(uint32(timetable.Start.Unix()))
+			bf.WriteUint32(uint32(timetable.End.Unix()))
+			data = append(data, bf)
+		}
+	case 3: // Key score?
+		for _, keyScore := range seibattle.KeyScore {
+			bf := byteframe.NewByteFrame()
+			bf.WriteUint8(keyScore.Unk0)
+			bf.WriteInt32(keyScore.Unk1)
+			data = append(data, bf)
+		}
+	case 4: // Career?
+		for _, career := range seibattle.Career {
+			bf := byteframe.NewByteFrame()
+			bf.WriteUint16(career.Unk0)
+			bf.WriteUint16(career.Unk1)
+			bf.WriteUint16(career.Unk2)
+			data = append(data, bf)
+		}
+	case 5: // Opponent?
+		for _, opponent := range seibattle.Opponent {
+			bf := byteframe.NewByteFrame()
+			bf.WriteInt32(opponent.Unk0)
+			bf.WriteInt8(opponent.Unk1)
+			data = append(data, bf)
+		}
+	case 6: // Convention result?
+		for _, conventionResult := range seibattle.ConventionResult {
+			bf := byteframe.NewByteFrame()
+			bf.WriteUint32(conventionResult.Unk0)
+			bf.WriteUint16(conventionResult.Unk1)
+			bf.WriteUint16(conventionResult.Unk2)
+			bf.WriteUint16(conventionResult.Unk3)
+			bf.WriteUint16(conventionResult.Unk4)
+			data = append(data, bf)
+		}
+	case 7: // Char score?
+		for _, charScore := range seibattle.CharScore {
+			bf := byteframe.NewByteFrame()
+			bf.WriteUint32(charScore.Unk0)
+			data = append(data, bf)
+		}
+	case 8: // Cur result?
+		for _, curResult := range seibattle.CurResult {
+			bf := byteframe.NewByteFrame()
+			bf.WriteUint32(curResult.Unk0)
+			bf.WriteUint16(curResult.Unk1)
+			bf.WriteUint16(curResult.Unk2)
+			bf.WriteUint16(curResult.Unk3)
+			data = append(data, bf)
+		}
+	}
+	doAckEarthSucceed(s, pkt.AckHandle, data)
 }
 
 func handleMsgMhfPostSeibattle(s *Session, p mhfpacket.MHFPacket) {}

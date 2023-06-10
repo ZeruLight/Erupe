@@ -8,50 +8,43 @@ import (
 
 func handleMsgMhfGetTowerInfo(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetTowerInfo)
-	var data []byte
-	var err error
-	/*
-		type:
-		1 == TOWER_RANK_POINT,
-		2 == GET_OWN_TOWER_SKILL
-		3 == GET_OWN_TOWER_LEVEL_V3
-		4 == TOWER_TOUHA_HISTORY
-		5 = ?
+	var data []*byteframe.ByteFrame
+	type TowerInfo struct {
+		TRP          []uint64
+		TowerSkill   [][]byte // 132 bytes
+		TowerHistory [][]byte // 20 bytes
+	}
 
-		[] = type
-		req
-		resp
+	towerInfo := TowerInfo{
+		TRP:          []uint64{0},
+		TowerSkill:   [][]byte{make([]byte, 132)},
+		TowerHistory: [][]byte{make([]byte, 20)},
+	}
 
-		01 1d 01 fc 00 09 [00 00 00 01] 00 00 00 02 00 00 00 00
-		00 12 01 fc 00 09 01 00 00 18 0a 21 8e ad 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 00
+	// Example data
+	// towerInfo.TowerSkill[0], _ = hex.DecodeString("0000001C0000000500050000000000020000000000000000000000000000000000030003000000000003000500050000000300030003000300030003000200030001000300020002000300010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
 
-		01 1d 01 fc 00 0a [00 00 00 02] 00 00 00 00 00 00 00 00
-		00 12 01 fc 00 0a 01 00 00 94 0a 21 8e ad 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-
-		01 1d 01 ff 00 0f [00 00 00 04] 00 00 00 00 00 00 00 00
-		00 12 01 ff 00 0f 01 00 00 24 0a 21 8e ad 00 00 00 00 00 00 00 00 00 00 00 01 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-
-		01 1d 01 fc 00 0b [00 00 00 05] 00 00 00 00 00 00 00 00
-		00 12 01 fc 00 0b 01 00 00 10 0a 21 8e ad 00 00 00 00 00 00 00 00 00 00 00 00
-	*/
 	switch pkt.InfoType {
-	case mhfpacket.TowerInfoTypeTowerRankPoint:
-		data, err = hex.DecodeString("0A218EAD0000000000000000000000010000000000000000")
-	case mhfpacket.TowerInfoTypeGetOwnTowerSkill:
-		//data, err = hex.DecodeString("0A218EAD000000000000000000000001000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
-		data, err = hex.DecodeString("0A218EAD0000000000000000000000010000001C0000000500050000000000020000000000000000000000000000000000030003000000000003000500050000000300030003000300030003000200030001000300020002000300010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
-	case mhfpacket.TowerInfoTypeGetOwnTowerLevelV3:
-		panic("No known response values for GetOwnTowerLevelV3")
-	case mhfpacket.TowerInfoTypeTowerTouhaHistory:
-		data, err = hex.DecodeString("0A218EAD0000000000000000000000010000000000000000000000000000000000000000")
-	case mhfpacket.TowerInfoTypeUnk5:
-		data, err = hex.DecodeString("0A218EAD000000000000000000000000")
+	case 1:
+		for _, trp := range towerInfo.TRP {
+			bf := byteframe.NewByteFrame()
+			bf.WriteUint64(trp)
+			data = append(data, bf)
+		}
+	case 2:
+		for _, skills := range towerInfo.TowerSkill {
+			bf := byteframe.NewByteFrame()
+			bf.WriteBytes(skills)
+			data = append(data, bf)
+		}
+	case 4:
+		for _, history := range towerInfo.TowerHistory {
+			bf := byteframe.NewByteFrame()
+			bf.WriteBytes(history)
+			data = append(data, bf)
+		}
 	}
-
-	if err != nil {
-		stubGetNoResults(s, pkt.AckHandle)
-	}
-	doAckBufSucceed(s, pkt.AckHandle, data)
+	doAckEarthSucceed(s, pkt.AckHandle, data)
 }
 
 func handleMsgMhfPostTowerInfo(s *Session, p mhfpacket.MHFPacket) {
@@ -85,32 +78,37 @@ func handleMsgMhfPostTenrouirai(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfGetBreakSeibatuLevelReward(s *Session, p mhfpacket.MHFPacket) {}
 
+type WeeklySeibatuRankingReward struct {
+	Unk0 int32
+	Unk1 int32
+	Unk2 uint32
+	Unk3 int32
+	Unk4 int32
+	Unk5 int32
+}
+
 func handleMsgMhfGetWeeklySeibatuRankingReward(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetWeeklySeibatuRankingReward)
-	bf := byteframe.NewByteFrame()
-	bf.WriteUint32(0)
-	bf.WriteUint32(0)
-	bf.WriteUint32(0)
-	bf.WriteUint32(1) // Entries
-
-	bf.WriteInt32(0)
-	bf.WriteInt32(0)
-	bf.WriteUint32(0)
-	bf.WriteInt32(0)
-	bf.WriteInt32(0)
-	bf.WriteInt32(0)
-
-	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	var data []*byteframe.ByteFrame
+	weeklySeibatuRankingRewards := []WeeklySeibatuRankingReward{
+		{0, 0, 0, 0, 0, 0},
+	}
+	for _, reward := range weeklySeibatuRankingRewards {
+		bf := byteframe.NewByteFrame()
+		bf.WriteInt32(reward.Unk0)
+		bf.WriteInt32(reward.Unk1)
+		bf.WriteUint32(reward.Unk2)
+		bf.WriteInt32(reward.Unk3)
+		bf.WriteInt32(reward.Unk4)
+		bf.WriteInt32(reward.Unk5)
+		data = append(data, bf)
+	}
+	doAckEarthSucceed(s, pkt.AckHandle, data)
 }
 
 func handleMsgMhfPresentBox(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfPresentBox)
-	bf := byteframe.NewByteFrame()
-	bf.WriteUint32(0)
-	bf.WriteUint32(0)
-	bf.WriteUint32(0)
-	bf.WriteUint32(0) // Entries
-
+	var data []*byteframe.ByteFrame
 	/*
 		bf.WriteUint32(0)
 		bf.WriteInt32(0)
@@ -124,13 +122,17 @@ func handleMsgMhfPresentBox(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteInt32(0)
 		bf.WriteInt32(0)
 	*/
-
-	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	doAckEarthSucceed(s, pkt.AckHandle, data)
 }
 
 func handleMsgMhfGetGemInfo(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetGemInfo)
-	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	var data []*byteframe.ByteFrame
+	/*
+		bf.WriteUint16(0)
+		bf.WriteUint16(0)
+	*/
+	doAckEarthSucceed(s, pkt.AckHandle, data)
 }
 
 func handleMsgMhfPostGemInfo(s *Session, p mhfpacket.MHFPacket) {}

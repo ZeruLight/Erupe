@@ -42,37 +42,32 @@ type Ryoudama struct {
 
 func handleMsgMhfGetRyoudama(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetRyoudama)
-
-	bf := byteframe.NewByteFrame()
-	bf.WriteUint32(uint32(s.server.erupeConfig.DevModeOptions.EarthIDOverride))
-	bf.WriteUint32(0)
-	bf.WriteUint32(0)
-
+	var data []*byteframe.ByteFrame
 	ryoudama := Ryoudama{Score: []int32{0}}
 	switch pkt.Request2 {
 	case 4:
-		bf.WriteUint32(uint32(len(ryoudama.Score)))
 		for _, score := range ryoudama.Score {
+			bf := byteframe.NewByteFrame()
 			bf.WriteInt32(score)
+			data = append(data, bf)
 		}
 	case 5:
-		bf.WriteUint32(uint32(len(ryoudama.CharInfo)))
 		for _, info := range ryoudama.CharInfo {
+			bf := byteframe.NewByteFrame()
 			bf.WriteUint32(info.CID)
 			bf.WriteInt32(info.Unk0)
 			bf.WriteBytes(stringsupport.PaddedString(info.Name, 14, true))
+			data = append(data, bf)
 		}
 	case 6:
-		bf.WriteUint32(uint32(len(ryoudama.BoostInfo)))
 		for _, info := range ryoudama.BoostInfo {
+			bf := byteframe.NewByteFrame()
 			bf.WriteUint32(uint32(info.Start.Unix()))
 			bf.WriteUint32(uint32(info.End.Unix()))
+			data = append(data, bf)
 		}
-	default:
-		bf.WriteUint32(0)
 	}
-
-	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	doAckEarthSucceed(s, pkt.AckHandle, data)
 }
 
 func handleMsgMhfPostRyoudama(s *Session, p mhfpacket.MHFPacket) {}
@@ -90,30 +85,19 @@ func handleMsgMhfPostTinyBin(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfCaravanMyScore(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfCaravanMyScore)
-	bf := byteframe.NewByteFrame()
-	bf.WriteUint32(0)
-	bf.WriteUint32(0)
-	bf.WriteUint32(0)
-	bf.WriteUint32(0) // Entries
-
+	var data []*byteframe.ByteFrame
 	/*
 		bf.WriteInt32(0)
 		bf.WriteInt32(0)
 		bf.WriteInt32(0)
 		bf.WriteInt32(0)
 	*/
-
-	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	doAckEarthSucceed(s, pkt.AckHandle, data)
 }
 
 func handleMsgMhfCaravanRanking(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfCaravanRanking)
-	bf := byteframe.NewByteFrame()
-	bf.WriteUint32(0)
-	bf.WriteUint32(0)
-	bf.WriteUint32(0)
-	bf.WriteUint32(0) // Entries
-
+	var data []*byteframe.ByteFrame
 	/* RYOUDAN
 	bf.WriteInt32(1)
 	bf.WriteUint32(2)
@@ -124,22 +108,16 @@ func handleMsgMhfCaravanRanking(s *Session, p mhfpacket.MHFPacket) {
 	bf.WriteInt32(1)
 	bf.WriteBytes(stringsupport.PaddedString("Test", 14, true))
 	*/
-	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	doAckEarthSucceed(s, pkt.AckHandle, data)
 }
 
 func handleMsgMhfCaravanMyRank(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfCaravanMyRank)
-	bf := byteframe.NewByteFrame()
-	bf.WriteUint32(0)
-	bf.WriteUint32(0)
-	bf.WriteUint32(0)
-	bf.WriteUint32(0) // Entries
-
+	var data []*byteframe.ByteFrame
 	/*
 		bf.WriteInt32(0)
 		bf.WriteInt32(0)
 		bf.WriteInt32(0)
 	*/
-
-	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	doAckEarthSucceed(s, pkt.AckHandle, data)
 }

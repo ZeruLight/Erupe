@@ -27,17 +27,6 @@ func stubEnumerateNoResults(s *Session, ackHandle uint32) {
 	doAckBufSucceed(s, ackHandle, enumBf.Data())
 }
 
-// Temporary function to just return no results for many MSG_MHF_GET* packets.
-func stubGetNoResults(s *Session, ackHandle uint32) {
-	resp := byteframe.NewByteFrame()
-	resp.WriteUint32(0x0A218EAD) // Unk shared ID. Sent in response of MSG_MHF_GET_TOWER_INFO, MSG_MHF_GET_PAPER_DATA etc. (World ID?)
-	resp.WriteUint32(0)          // Unk
-	resp.WriteUint32(0)          // Unk
-	resp.WriteUint32(0)          // Entry count
-
-	doAckBufSucceed(s, ackHandle, resp.Data())
-}
-
 func doAckEarthSucceed(s *Session, ackHandle uint32, data []*byteframe.ByteFrame) {
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint32(uint32(s.server.erupeConfig.DevModeOptions.EarthIDOverride))

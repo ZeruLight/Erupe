@@ -1,46 +1,97 @@
 package channelserver
 
 import (
-	"encoding/hex"
 	"erupe-ce/common/byteframe"
+	"erupe-ce/common/stringsupport"
 	"erupe-ce/network/mhfpacket"
 )
+
+type TowerInfoTRP struct {
+	TR  int32
+	TRP int32
+}
+
+type TowerInfoSkill struct {
+	TSP  int32
+	Unk1 []int16 // 40
+}
+
+type TowerInfoHistory struct {
+	Unk0 []int16 // 5
+	Unk1 []int16 // 5
+}
+
+type TowerInfoLevel struct {
+	Zone1 int32
+	Unk1  int32
+	Unk2  int32
+	Unk3  int32
+}
 
 func handleMsgMhfGetTowerInfo(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetTowerInfo)
 	var data []*byteframe.ByteFrame
 	type TowerInfo struct {
-		TRP          []uint64
-		TowerSkill   [][]byte // 132 bytes
-		TowerHistory [][]byte // 20 bytes
+		TRP     []TowerInfoTRP
+		Skill   []TowerInfoSkill
+		History []TowerInfoHistory
+		Level   []TowerInfoLevel
 	}
 
 	towerInfo := TowerInfo{
-		TRP:          []uint64{0},
-		TowerSkill:   [][]byte{make([]byte, 132)},
-		TowerHistory: [][]byte{make([]byte, 20)},
+		TRP:     []TowerInfoTRP{{0, 0}},
+		Skill:   []TowerInfoSkill{{0, make([]int16, 40)}},
+		History: []TowerInfoHistory{{make([]int16, 5), make([]int16, 5)}},
+		Level:   []TowerInfoLevel{{0, 0, 0, 0}},
 	}
 
-	// Example data
-	// towerInfo.TowerSkill[0], _ = hex.DecodeString("0000001C0000000500050000000000020000000000000000000000000000000000030003000000000003000500050000000300030003000300030003000200030001000300020002000300010000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000")
+	tempSkills := "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0"
+
+	err := s.server.db.QueryRow(`SELECT COALESCE(tr, 0),  COALESCE(trp, 0),  COALESCE(tsp, 0), COALESCE(zone1, 0), skills FROM tower WHERE char_id=$1
+		`, s.charID).Scan(&towerInfo.TRP[0].TR, &towerInfo.TRP[0].TRP, &towerInfo.Skill[0].TSP, &towerInfo.Level[0].Zone1, &tempSkills)
+	if err != nil {
+		s.server.db.Exec(`INSERT INTO tower (char_id) VALUES ($1)`, s.charID)
+	}
+
+	for i, skill := range stringsupport.CSVElems(tempSkills) {
+		towerInfo.Skill[0].Unk1[i] = int16(skill)
+	}
 
 	switch pkt.InfoType {
 	case 1:
 		for _, trp := range towerInfo.TRP {
 			bf := byteframe.NewByteFrame()
-			bf.WriteUint64(trp)
+			bf.WriteInt32(trp.TR)
+			bf.WriteInt32(trp.TRP)
 			data = append(data, bf)
 		}
 	case 2:
-		for _, skills := range towerInfo.TowerSkill {
+		for _, skills := range towerInfo.Skill {
 			bf := byteframe.NewByteFrame()
-			bf.WriteBytes(skills)
+			bf.WriteInt32(skills.TSP)
+			for i := range skills.Unk1 {
+				bf.WriteInt16(skills.Unk1[i])
+			}
 			data = append(data, bf)
 		}
 	case 4:
-		for _, history := range towerInfo.TowerHistory {
+		for _, history := range towerInfo.History {
 			bf := byteframe.NewByteFrame()
-			bf.WriteBytes(history)
+			for i := range history.Unk0 {
+				bf.WriteInt16(history.Unk0[i])
+			}
+			for i := range history.Unk1 {
+				bf.WriteInt16(history.Unk1[i])
+			}
+			data = append(data, bf)
+		}
+	case 5:
+		for _, level := range towerInfo.Level {
+			bf := byteframe.NewByteFrame()
+			bf.WriteInt32(level.Zone1)
+			bf.WriteInt32(level.Unk1)
+			bf.WriteInt32(level.Unk2)
+			bf.WriteInt32(level.Unk3)
 			data = append(data, bf)
 		}
 	}
@@ -49,7 +100,53 @@ func handleMsgMhfGetTowerInfo(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfPostTowerInfo(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfPostTowerInfo)
+	switch pkt.InfoType {
+	case 2:
+		skills := "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0"
+		s.server.db.QueryRow(`SELECT skills FROM tower WHERE char_id=$1`, s.charID).Scan(&skills)
+		s.server.db.Exec(`UPDATE tower SET skills=$1, tsp=tsp-$2 WHERE char_id=$3`, stringsupport.CSVSetIndex(skills, int(pkt.Unk2), stringsupport.CSVGetIndex(skills, int(pkt.Unk2))+1), pkt.Unk5, s.charID)
+	case 7:
+		s.server.db.Exec(`UPDATE tower SET tr=$1, trp=$2, zone1=zone1+$3 WHERE char_id=$4`, pkt.Unk3, pkt.Unk4, pkt.Unk8, s.charID)
+	}
 	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+}
+
+type TenrouiraiCharScore struct {
+	Score int32
+	Name  string
+}
+
+type TenrouiraiProgress struct {
+	Unk0 uint8
+	Unk1 uint16
+	Unk2 uint16
+	Unk3 uint16
+}
+
+type TenrouiraiTicket struct {
+	Unk0 uint8
+	Unk1 uint32
+	Unk2 uint32
+}
+
+type TenrouiraiData struct {
+	Unk0 uint8
+	Unk1 uint8
+	Unk2 uint16
+	Unk3 uint16
+	Unk4 uint8
+	Unk5 uint8
+	Unk6 uint8
+	Unk7 uint8
+	Unk8 uint8
+	Unk9 uint8
+}
+
+type Tenrouirai struct {
+	CharScore []TenrouiraiCharScore
+	Progress  []TenrouiraiProgress
+	Ticket    []TenrouiraiTicket
+	Data      []TenrouiraiData
 }
 
 func handleMsgMhfGetTenrouirai(s *Session, p mhfpacket.MHFPacket) {
@@ -125,14 +222,45 @@ func handleMsgMhfPresentBox(s *Session, p mhfpacket.MHFPacket) {
 	doAckEarthSucceed(s, pkt.AckHandle, data)
 }
 
+type GemInfo struct {
+	Unk0 uint16
+	Unk1 uint16
+}
+
+type GemHistory struct {
+	Unk0 uint16
+	Unk1 uint16
+	Unk2 uint32
+	Unk3 string
+}
+
 func handleMsgMhfGetGemInfo(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetGemInfo)
 	var data []*byteframe.ByteFrame
-	/*
-		bf.WriteUint16(0)
-		bf.WriteUint16(0)
-	*/
+	gemInfo := []GemInfo{}
+	gemHistory := []GemHistory{}
+	switch pkt.Unk0 {
+	case 1:
+		for _, history := range gemHistory {
+			bf := byteframe.NewByteFrame()
+			bf.WriteUint16(history.Unk0)
+			bf.WriteUint16(history.Unk1)
+			bf.WriteUint32(history.Unk2)
+			bf.WriteBytes(stringsupport.PaddedString(history.Unk3, 14, true))
+			data = append(data, bf)
+		}
+	default:
+		for _, info := range gemInfo {
+			bf := byteframe.NewByteFrame()
+			bf.WriteUint16(info.Unk0)
+			bf.WriteUint16(info.Unk1)
+			data = append(data, bf)
+		}
+	}
 	doAckEarthSucceed(s, pkt.AckHandle, data)
 }
 
-func handleMsgMhfPostGemInfo(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfPostGemInfo(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfPostGemInfo)
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+}

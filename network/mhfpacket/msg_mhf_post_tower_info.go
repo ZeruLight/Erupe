@@ -13,13 +13,13 @@ type MsgMhfPostTowerInfo struct {
 	AckHandle uint32
 	InfoType  uint32
 	Unk1      uint32
-	Unk2      int32
-	Unk3      int32
-	Unk4      int32
-	Unk5      int32
+	Skill     int32
+	TR        int32
+	TRP       int32
+	Cost      int32
 	Unk6      int32
 	Unk7      int32
-	Unk8      int32
+	Zone1     int32
 	Unk9      int64
 }
 
@@ -33,13 +33,13 @@ func (m *MsgMhfPostTowerInfo) Parse(bf *byteframe.ByteFrame, ctx *clientctx.Clie
 	m.AckHandle = bf.ReadUint32()
 	m.InfoType = bf.ReadUint32()
 	m.Unk1 = bf.ReadUint32()
-	m.Unk2 = bf.ReadInt32()
-	m.Unk3 = bf.ReadInt32()
-	m.Unk4 = bf.ReadInt32()
-	m.Unk5 = bf.ReadInt32()
+	m.Skill = bf.ReadInt32()
+	m.TR = bf.ReadInt32()
+	m.TRP = bf.ReadInt32()
+	m.Cost = bf.ReadInt32()
 	m.Unk6 = bf.ReadInt32()
 	m.Unk7 = bf.ReadInt32()
-	m.Unk8 = bf.ReadInt32()
+	m.Zone1 = bf.ReadInt32()
 	m.Unk9 = bf.ReadInt64()
 	return nil
 }

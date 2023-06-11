@@ -6,7 +6,8 @@ CREATE TABLE IF NOT EXISTS tower (
     trp INT,
     tsp INT,
     zone1 INT,
-    skills TEXT DEFAULT '0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0'
+    skills TEXT DEFAULT '0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0',
+    gems TEXT DEFAULT '0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0'
 );
 
 END;

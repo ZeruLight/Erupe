@@ -84,7 +84,7 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 	var totalCount, returnedCount uint16
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint16(0)
-	err := filepath.Walk(fmt.Sprintf("%s/events/", s.server.erupeConfig.BinPath), func(path string, info os.FileInfo, err error) error {
+	filepath.Walk(fmt.Sprintf("%s/events/", s.server.erupeConfig.BinPath), func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		} else if info.IsDir() {
@@ -107,10 +107,6 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 		}
 		return nil
 	})
-	if err != nil {
-		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 18))
-		return
-	}
 
 	type tuneValue struct {
 		ID    uint16
@@ -144,8 +140,13 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 		{ID: 1028, Value: 100},
 		{ID: 1030, Value: 8},
 		{ID: 1031, Value: 100},
-		{ID: 1032, Value: 0}, // isValid_partner
+		{ID: 1032, Value: 0},   // isValid_partner
+		{ID: 1044, Value: 200}, // get_rate_tload_time_out
+		{ID: 1045, Value: 0},   // get_rate_tower_treasure_preset
 		{ID: 1046, Value: 99},
+		{ID: 1048, Value: 0},  // get_rate_tower_log_disable
+		{ID: 1049, Value: 10}, // get_rate_tower_gem_max
+		{ID: 1050, Value: 1},  // get_rate_tower_gem_set
 		{ID: 1051, Value: 200},
 		{ID: 1052, Value: 200},
 		{ID: 1063, Value: 50000},

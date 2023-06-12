@@ -15,12 +15,12 @@ type MsgMhfPostTenrouirai struct {
 	Unk1      uint8
 	GuildID   uint32
 	Unk3      uint8
-	Unk4      uint16
-	Unk5      uint16
-	Unk6      uint16
-	Unk7      uint16
-	Unk8      uint16
-	Unk9      uint16
+	Floors    uint16
+	Antiques  uint16
+	Chests    uint16
+	Cats      uint16
+	TRP       uint16
+	Slays     uint16
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -35,12 +35,12 @@ func (m *MsgMhfPostTenrouirai) Parse(bf *byteframe.ByteFrame, ctx *clientctx.Cli
 	m.Unk1 = bf.ReadUint8()
 	m.GuildID = bf.ReadUint32()
 	m.Unk3 = bf.ReadUint8()
-	m.Unk4 = bf.ReadUint16()
-	m.Unk5 = bf.ReadUint16()
-	m.Unk6 = bf.ReadUint16()
-	m.Unk7 = bf.ReadUint16()
-	m.Unk8 = bf.ReadUint16()
-	m.Unk9 = bf.ReadUint16()
+	m.Floors = bf.ReadUint16()
+	m.Antiques = bf.ReadUint16()
+	m.Chests = bf.ReadUint16()
+	m.Cats = bf.ReadUint16()
+	m.TRP = bf.ReadUint16()
+	m.Slays = bf.ReadUint16()
 	return nil
 }
 

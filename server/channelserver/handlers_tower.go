@@ -136,10 +136,10 @@ type TenrouiraiCharScore struct {
 }
 
 type TenrouiraiProgress struct {
-	Unk0 uint8
-	Unk1 uint16
-	Unk2 uint16
-	Unk3 uint16
+	Completed uint8
+	Mission1  uint16
+	Mission2  uint16
+	Mission3  uint16
 }
 
 type TenrouiraiTicket struct {
@@ -149,9 +149,15 @@ type TenrouiraiTicket struct {
 }
 
 type TenrouiraiData struct {
-	Unk0 uint8
-	Unk1 uint8
-	Unk2 uint16
+	Zone    uint8
+	Mission uint8
+	// 1 = Floors climbed
+	// 2 = Collect antiques
+	// 3 = Open chests
+	// 4 = Cats saved
+	// 5 = TRP acquisition
+	// 6 = Monster slays
+	Goal uint16
 	Unk3 uint16
 	Unk4 uint8
 	Unk5 uint8
@@ -173,6 +179,9 @@ func handleMsgMhfGetTenrouirai(s *Session, p mhfpacket.MHFPacket) {
 	var data []*byteframe.ByteFrame
 
 	tenrouirai := Tenrouirai{
+		Progress: []TenrouiraiProgress{
+			{1, 0, 0, 0},
+		},
 		Data: []TenrouiraiData{
 			{1, 1, 80, 0, 2, 2, 1, 1, 2, 2},
 			{1, 4, 16, 0, 2, 2, 1, 1, 2, 2},
@@ -211,12 +220,12 @@ func handleMsgMhfGetTenrouirai(s *Session, p mhfpacket.MHFPacket) {
 	}
 
 	switch pkt.Unk1 {
-	case 4:
+	case 1:
 		for _, tdata := range tenrouirai.Data {
 			bf := byteframe.NewByteFrame()
-			bf.WriteUint8(tdata.Unk0)
-			bf.WriteUint8(tdata.Unk1)
-			bf.WriteUint16(tdata.Unk2)
+			bf.WriteUint8(tdata.Zone)
+			bf.WriteUint8(tdata.Mission)
+			bf.WriteUint16(tdata.Goal)
 			bf.WriteUint16(tdata.Unk3)
 			bf.WriteUint8(tdata.Unk4)
 			bf.WriteUint8(tdata.Unk5)
@@ -224,6 +233,15 @@ func handleMsgMhfGetTenrouirai(s *Session, p mhfpacket.MHFPacket) {
 			bf.WriteUint8(tdata.Unk7)
 			bf.WriteUint8(tdata.Unk8)
 			bf.WriteUint8(tdata.Unk9)
+			data = append(data, bf)
+		}
+	case 4:
+		for _, progress := range tenrouirai.Progress {
+			bf := byteframe.NewByteFrame()
+			bf.WriteUint8(progress.Completed)
+			bf.WriteUint16(progress.Mission1)
+			bf.WriteUint16(progress.Mission2)
+			bf.WriteUint16(progress.Mission3)
 			data = append(data, bf)
 		}
 	}
@@ -241,12 +259,12 @@ func handleMsgMhfPostTenrouirai(s *Session, p mhfpacket.MHFPacket) {
 			zap.Uint8("Unk1", pkt.Unk1),
 			zap.Uint32("GuildID", pkt.GuildID),
 			zap.Uint8("Unk3", pkt.Unk3),
-			zap.Uint16("Unk4", pkt.Unk4),
-			zap.Uint16("Unk5", pkt.Unk5),
-			zap.Uint16("Unk6", pkt.Unk6),
-			zap.Uint16("Unk7", pkt.Unk7),
-			zap.Uint16("Unk8", pkt.Unk8),
-			zap.Uint16("Unk9", pkt.Unk9),
+			zap.Uint16("Floors", pkt.Floors),
+			zap.Uint16("Antiques", pkt.Antiques),
+			zap.Uint16("Chests", pkt.Chests),
+			zap.Uint16("Cats", pkt.Cats),
+			zap.Uint16("TRP", pkt.TRP),
+			zap.Uint16("Slays", pkt.Slays),
 		)
 	}
 

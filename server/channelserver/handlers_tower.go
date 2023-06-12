@@ -271,36 +271,6 @@ func handleMsgMhfPostTenrouirai(s *Session, p mhfpacket.MHFPacket) {
 	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
-func handleMsgMhfGetBreakSeibatuLevelReward(s *Session, p mhfpacket.MHFPacket) {}
-
-type WeeklySeibatuRankingReward struct {
-	Unk0 int32
-	Unk1 int32
-	Unk2 uint32
-	Unk3 int32
-	Unk4 int32
-	Unk5 int32
-}
-
-func handleMsgMhfGetWeeklySeibatuRankingReward(s *Session, p mhfpacket.MHFPacket) {
-	pkt := p.(*mhfpacket.MsgMhfGetWeeklySeibatuRankingReward)
-	var data []*byteframe.ByteFrame
-	weeklySeibatuRankingRewards := []WeeklySeibatuRankingReward{
-		{0, 0, 0, 0, 0, 0},
-	}
-	for _, reward := range weeklySeibatuRankingRewards {
-		bf := byteframe.NewByteFrame()
-		bf.WriteInt32(reward.Unk0)
-		bf.WriteInt32(reward.Unk1)
-		bf.WriteUint32(reward.Unk2)
-		bf.WriteInt32(reward.Unk3)
-		bf.WriteInt32(reward.Unk4)
-		bf.WriteInt32(reward.Unk5)
-		data = append(data, bf)
-	}
-	doAckEarthSucceed(s, pkt.AckHandle, data)
-}
-
 func handleMsgMhfPresentBox(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfPresentBox)
 	var data []*byteframe.ByteFrame

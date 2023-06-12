@@ -1575,36 +1575,6 @@ func handleMsgMhfStampcardPrize(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfUnreserveSrg(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfReadBeatLevel(s *Session, p mhfpacket.MHFPacket) {
-	pkt := p.(*mhfpacket.MsgMhfReadBeatLevel)
-
-	// This response is fixed and will never change on JP,
-	// but I've left it dynamic for possible other client differences.
-	resp := byteframe.NewByteFrame()
-	for i := 0; i < int(pkt.ValidIDCount); i++ {
-		resp.WriteUint32(pkt.IDs[i])
-		resp.WriteUint32(1)
-		resp.WriteUint32(1)
-		resp.WriteUint32(1)
-	}
-
-	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
-}
-
-func handleMsgMhfUpdateBeatLevel(s *Session, p mhfpacket.MHFPacket) {
-	pkt := p.(*mhfpacket.MsgMhfUpdateBeatLevel)
-
-	doAckBufSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
-}
-
-func handleMsgMhfReadBeatLevelAllRanking(s *Session, p mhfpacket.MHFPacket) {}
-
-func handleMsgMhfReadBeatLevelMyRanking(s *Session, p mhfpacket.MHFPacket) {}
-
-func handleMsgMhfReadLastWeekBeatRanking(s *Session, p mhfpacket.MHFPacket) {}
-
-func handleMsgMhfGetFixedSeibatuRankingTable(s *Session, p mhfpacket.MHFPacket) {}
-
 func handleMsgMhfKickExportForce(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfGetEarthStatus(s *Session, p mhfpacket.MHFPacket) {

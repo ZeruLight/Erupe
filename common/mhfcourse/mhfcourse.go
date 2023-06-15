@@ -28,7 +28,7 @@ var aliases = map[uint16][]string{
 	20: {"DEBUG"},
 	21: {"COG_LINK_EXPIRED"},
 	22: {"360_GOLD"},
-	23: {"PS3_TROP"},
+	23: {"PS3_TROP", "Trophy"},
 	24: {"COG"},
 	25: {"CAFE_SP"},
 	26: {"NetCafe", "Cafe", "OfficialCafe", "Official"},

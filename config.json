@@ -92,7 +92,8 @@
     {"Name": "NBoost", "Enabled": false},
     {"Name": "NetCafe", "Enabled": true},
     {"Name": "HLRenewing", "Enabled": true},
-    {"Name": "EXRenewing", "Enabled": true}
+    {"Name": "EXRenewing", "Enabled": true},
+    {"Name": "PS3_TROP", "Enabled": true}
   ],
   "Database": {
     "Host": "localhost",

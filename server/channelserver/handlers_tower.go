@@ -24,10 +24,10 @@ type TowerInfoHistory struct {
 }
 
 type TowerInfoLevel struct {
-	Zone1 int32
-	Unk1  int32
-	Unk2  int32
-	Unk3  int32
+	Floors int32
+	Unk1   int32
+	Unk2   int32
+	Unk3   int32
 }
 
 func handleMsgMhfGetTowerInfo(s *Session, p mhfpacket.MHFPacket) {
@@ -44,13 +44,13 @@ func handleMsgMhfGetTowerInfo(s *Session, p mhfpacket.MHFPacket) {
 		TRP:     []TowerInfoTRP{{0, 0}},
 		Skill:   []TowerInfoSkill{{0, make([]int16, 40)}},
 		History: []TowerInfoHistory{{make([]int16, 5), make([]int16, 5)}},
-		Level:   []TowerInfoLevel{{0, 0, 0, 0}},
+		Level:   []TowerInfoLevel{{0, 0, 0, 0}, {0, 0, 0, 0}},
 	}
 
 	tempSkills := "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0"
 
-	err := s.server.db.QueryRow(`SELECT COALESCE(tr, 0),  COALESCE(trp, 0),  COALESCE(tsp, 0), COALESCE(zone1, 0), skills FROM tower WHERE char_id=$1
-		`, s.charID).Scan(&towerInfo.TRP[0].TR, &towerInfo.TRP[0].TRP, &towerInfo.Skill[0].TSP, &towerInfo.Level[0].Zone1, &tempSkills)
+	err := s.server.db.QueryRow(`SELECT COALESCE(tr, 0),  COALESCE(trp, 0),  COALESCE(tsp, 0), COALESCE(block1, 0), COALESCE(block2, 0), skills FROM tower WHERE char_id=$1
+		`, s.charID).Scan(&towerInfo.TRP[0].TR, &towerInfo.TRP[0].TRP, &towerInfo.Skill[0].TSP, &towerInfo.Level[0].Floors, &towerInfo.Level[1].Floors, &tempSkills)
 	if err != nil {
 		s.server.db.Exec(`INSERT INTO tower (char_id) VALUES ($1)`, s.charID)
 	}
@@ -90,7 +90,7 @@ func handleMsgMhfGetTowerInfo(s *Session, p mhfpacket.MHFPacket) {
 	case 5:
 		for _, level := range towerInfo.Level {
 			bf := byteframe.NewByteFrame()
-			bf.WriteInt32(level.Zone1)
+			bf.WriteInt32(level.Floors)
 			bf.WriteInt32(level.Unk1)
 			bf.WriteInt32(level.Unk2)
 			bf.WriteInt32(level.Unk3)
@@ -114,7 +114,7 @@ func handleMsgMhfPostTowerInfo(s *Session, p mhfpacket.MHFPacket) {
 			zap.Int32("Cost", pkt.Cost),
 			zap.Int32("Unk6", pkt.Unk6),
 			zap.Int32("Unk7", pkt.Unk7),
-			zap.Int32("Zone1", pkt.Zone1),
+			zap.Int32("Block1", pkt.Block1),
 			zap.Int64("Unk9", pkt.Unk9),
 		)
 	}
@@ -125,7 +125,7 @@ func handleMsgMhfPostTowerInfo(s *Session, p mhfpacket.MHFPacket) {
 		s.server.db.QueryRow(`SELECT skills FROM tower WHERE char_id=$1`, s.charID).Scan(&skills)
 		s.server.db.Exec(`UPDATE tower SET skills=$1, tsp=tsp-$2 WHERE char_id=$3`, stringsupport.CSVSetIndex(skills, int(pkt.Skill), stringsupport.CSVGetIndex(skills, int(pkt.Skill))+1), pkt.Cost, s.charID)
 	case 7:
-		s.server.db.Exec(`UPDATE tower SET tr=$1, trp=trp+$2, zone1=zone1+$3 WHERE char_id=$4`, pkt.TR, pkt.TRP, pkt.Zone1, s.charID)
+		s.server.db.Exec(`UPDATE tower SET tr=$1, trp=trp+$2, block1=block1+$3 WHERE char_id=$4`, pkt.TR, pkt.TRP, pkt.Block1, s.charID)
 	}
 	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }

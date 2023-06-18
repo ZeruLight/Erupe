@@ -19,7 +19,7 @@ type MsgMhfPostTowerInfo struct {
 	Cost      int32
 	Unk6      int32
 	Unk7      int32
-	Zone1     int32
+	Block1    int32
 	Unk9      int64
 }
 
@@ -39,7 +39,7 @@ func (m *MsgMhfPostTowerInfo) Parse(bf *byteframe.ByteFrame, ctx *clientctx.Clie
 	m.Cost = bf.ReadInt32()
 	m.Unk6 = bf.ReadInt32()
 	m.Unk7 = bf.ReadInt32()
-	m.Zone1 = bf.ReadInt32()
+	m.Block1 = bf.ReadInt32()
 	m.Unk9 = bf.ReadInt64()
 	return nil
 }

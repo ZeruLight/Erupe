@@ -5,7 +5,8 @@ CREATE TABLE IF NOT EXISTS tower (
     tr INT,
     trp INT,
     tsp INT,
-    zone1 INT,
+    block1 INT,
+    block2 INT,
     skills TEXT DEFAULT '0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0',
     gems TEXT DEFAULT '0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0'
 );

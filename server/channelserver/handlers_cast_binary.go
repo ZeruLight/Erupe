@@ -211,7 +211,7 @@ func parseChatCommand(s *Session, command string) {
 				for _, course := range mhfcourse.Courses() {
 					for _, alias := range course.Aliases() {
 						if strings.ToLower(name) == strings.ToLower(alias) {
-							if slices.Contains(s.server.erupeConfig.Courses, config.Course{Name: course.Aliases()[0], Enabled: true}) {
+							if slices.Contains(s.server.erupeConfig.Courses, _config.Course{Name: course.Aliases()[0], Enabled: true}) {
 								var delta, rightsInt uint32
 								if mhfcourse.CourseExists(course.ID, s.courses) {
 									ei := slices.IndexFunc(s.courses, func(c mhfcourse.Course) bool {

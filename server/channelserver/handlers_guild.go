@@ -7,6 +7,7 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"errors"
+	_config "erupe-ce/config"
 	"fmt"
 	"math"
 	"sort"
@@ -1390,7 +1391,12 @@ func handleMsgMhfEnumerateGuildMember(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint32(member.CharID)
 		bf.WriteUint16(member.HRP)
 		bf.WriteUint16(member.GR)
-		bf.WriteUint16(member.WeaponID)
+		if s.server.erupeConfig.ClientMode != _config.ZZ {
+			// Magnet Spike crash workaround
+			bf.WriteUint16(0)
+		} else {
+			bf.WriteUint16(member.WeaponID)
+		}
 		if member.WeaponType == 1 || member.WeaponType == 5 || member.WeaponType == 10 { // If weapon is ranged
 			bf.WriteUint8(7)
 		} else {

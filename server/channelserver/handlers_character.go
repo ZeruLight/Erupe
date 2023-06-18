@@ -5,6 +5,7 @@ import (
 	"errors"
 	"erupe-ce/common/bfutil"
 	"erupe-ce/common/stringsupport"
+	_config "erupe-ce/config"
 
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/server/channelserver/compression/nullcomp"
@@ -12,7 +13,8 @@ import (
 )
 
 const (
-	pointerGender        = 0x51    // +1
+	pointerGender = 0x51 // +1
+
 	pointerRP            = 0x22D16 // +2
 	pointerHouseTier     = 0x1FB6C // +5
 	pointerHouseData     = 0x1FE01 // +195
@@ -26,6 +28,19 @@ const (
 	pointerHRP         = 0x1FDF6 // +2
 	pointerGRP         = 0x1FDFC // +4
 	pointerKQF         = 0x23D20 // +8
+
+	pointerRPZ            = 0x1A076
+	pointerHouseTierZ     = 0x16ECC
+	pointerHouseDataZ     = 0x17161
+	pointerBookshelfDataZ = 0x195F8
+	pointerGalleryDataZ   = 0x19680
+	pointerToreDataZ      = 0x17014
+	pointerGardenDataZ    = 0x19FB8
+	pointerWeaponTypeZ    = 0x16A75
+	pointerWeaponIDZ      = 0x1696A
+	pointerHRPZ           = 0x17156
+	pointerGRPZ           = 0x1715C
+	pointerKQFZ           = 0x1B080
 )
 
 type CharacterSaveData struct {
@@ -81,10 +96,6 @@ func GetCharacterSaveData(s *Session, charID uint32) (*CharacterSaveData, error)
 		return nil, err
 	}
 
-	if len(saveData.decompSave) < pointerKQF {
-		return nil, err
-	}
-
 	saveData.updateStructWithSaveData()
 
 	return saveData, nil
@@ -137,8 +148,13 @@ func (save *CharacterSaveData) Decompress() error {
 func (save *CharacterSaveData) updateSaveDataWithStruct() {
 	rpBytes := make([]byte, 2)
 	binary.LittleEndian.PutUint16(rpBytes, save.RP)
-	copy(save.decompSave[pointerRP:pointerRP+2], rpBytes)
-	copy(save.decompSave[pointerKQF:pointerKQF+8], save.KQF)
+	if _config.ErupeConfig.ClientMode == _config.ZZ {
+		copy(save.decompSave[pointerRP:pointerRP+2], rpBytes)
+		copy(save.decompSave[pointerKQF:pointerKQF+8], save.KQF)
+	} else {
+		copy(save.decompSave[pointerRPZ:pointerRPZ+2], rpBytes)
+		copy(save.decompSave[pointerKQFZ:pointerKQFZ+8], save.KQF)
+	}
 }
 
 // This will update the save struct with the values stored in the character save
@@ -150,20 +166,37 @@ func (save *CharacterSaveData) updateStructWithSaveData() {
 		save.Gender = false
 	}
 	if !save.IsNewCharacter {
-		save.RP = binary.LittleEndian.Uint16(save.decompSave[pointerRP : pointerRP+2])
-		save.HouseTier = save.decompSave[pointerHouseTier : pointerHouseTier+5]
-		save.HouseData = save.decompSave[pointerHouseData : pointerHouseData+195]
-		save.BookshelfData = save.decompSave[pointerBookshelfData : pointerBookshelfData+5576]
-		save.GalleryData = save.decompSave[pointerGalleryData : pointerGalleryData+1748]
-		save.ToreData = save.decompSave[pointerToreData : pointerToreData+240]
-		save.GardenData = save.decompSave[pointerGardenData : pointerGardenData+68]
-		save.WeaponType = save.decompSave[pointerWeaponType]
-		save.WeaponID = binary.LittleEndian.Uint16(save.decompSave[pointerWeaponID : pointerWeaponID+2])
-		save.HRP = binary.LittleEndian.Uint16(save.decompSave[pointerHRP : pointerHRP+2])
-		if save.HRP == uint16(999) {
-			save.GR = grpToGR(binary.LittleEndian.Uint32(save.decompSave[pointerGRP : pointerGRP+4]))
+		if _config.ErupeConfig.ClientMode == _config.ZZ {
+			save.RP = binary.LittleEndian.Uint16(save.decompSave[pointerRP : pointerRP+2])
+			save.HouseTier = save.decompSave[pointerHouseTier : pointerHouseTier+5]
+			save.HouseData = save.decompSave[pointerHouseData : pointerHouseData+195]
+			save.BookshelfData = save.decompSave[pointerBookshelfData : pointerBookshelfData+5576]
+			save.GalleryData = save.decompSave[pointerGalleryData : pointerGalleryData+1748]
+			save.ToreData = save.decompSave[pointerToreData : pointerToreData+240]
+			save.GardenData = save.decompSave[pointerGardenData : pointerGardenData+68]
+			save.WeaponType = save.decompSave[pointerWeaponType]
+			save.WeaponID = binary.LittleEndian.Uint16(save.decompSave[pointerWeaponID : pointerWeaponID+2])
+			save.HRP = binary.LittleEndian.Uint16(save.decompSave[pointerHRP : pointerHRP+2])
+			if save.HRP == uint16(999) {
+				save.GR = grpToGR(binary.LittleEndian.Uint32(save.decompSave[pointerGRP : pointerGRP+4]))
+			}
+			save.KQF = save.decompSave[pointerKQF : pointerKQF+8]
+		} else {
+			save.RP = binary.LittleEndian.Uint16(save.decompSave[pointerRPZ : pointerRPZ+2])
+			save.HouseTier = save.decompSave[pointerHouseTierZ : pointerHouseTierZ+5]
+			save.HouseData = save.decompSave[pointerHouseDataZ : pointerHouseDataZ+195]
+			save.BookshelfData = save.decompSave[pointerBookshelfDataZ : pointerBookshelfDataZ+5576]
+			save.GalleryData = save.decompSave[pointerGalleryDataZ : pointerGalleryDataZ+1748]
+			save.ToreData = save.decompSave[pointerToreDataZ : pointerToreDataZ+240]
+			save.GardenData = save.decompSave[pointerGardenDataZ : pointerGardenDataZ+68]
+			save.WeaponType = save.decompSave[pointerWeaponTypeZ]
+			save.WeaponID = binary.LittleEndian.Uint16(save.decompSave[pointerWeaponIDZ : pointerWeaponIDZ+2])
+			save.HRP = binary.LittleEndian.Uint16(save.decompSave[pointerHRPZ : pointerHRPZ+2])
+			if save.HRP == uint16(999) {
+				save.GR = grpToGR(binary.LittleEndian.Uint32(save.decompSave[pointerGRPZ : pointerGRPZ+4]))
+			}
+			save.KQF = save.decompSave[pointerKQFZ : pointerKQFZ+8]
 		}
-		save.KQF = save.decompSave[pointerKQF : pointerKQF+8]
 	}
 	return
 }

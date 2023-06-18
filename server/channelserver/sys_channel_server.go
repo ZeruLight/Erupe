@@ -22,7 +22,7 @@ type Config struct {
 	Logger      *zap.Logger
 	DB          *sqlx.DB
 	DiscordBot  *discordbot.DiscordBot
-	ErupeConfig *config.Config
+	ErupeConfig *_config.Config
 	Name        string
 	Enable      bool
 }
@@ -43,7 +43,7 @@ type Server struct {
 	Port           uint16
 	logger         *zap.Logger
 	db             *sqlx.DB
-	erupeConfig    *config.Config
+	erupeConfig    *_config.Config
 	acceptConns    chan net.Conn
 	deleteConns    chan net.Conn
 	sessions       map[net.Conn]*Session

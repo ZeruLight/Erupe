@@ -11,6 +11,7 @@
   "PatchServerFile": "",
   "ScreenshotAPIURL": "",
   "DeleteOnSaveCorruption": false,
+  "ClientMode": "ZZ",
   "DevMode": true,
   "DevModeOptions": {
     "AutoCreateAccount": true,

@@ -1,14 +1,27 @@
-package config
+package _config
 
 import (
 	"fmt"
 	"log"
 	"net"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/spf13/viper"
 )
+
+type Mode string
+
+const (
+	ZZ Mode = "ZZ"
+	Z2 Mode = "Z2"
+	Z1 Mode = "Z1"
+)
+
+func (m Mode) String() string {
+	return string(m)
+}
 
 // Config holds the global server-wide config.
 type Config struct {
@@ -22,6 +35,7 @@ type Config struct {
 	PatchServerFile        string   // File patch server override
 	ScreenshotAPIURL       string   // Destination for screenshots uploaded to BBS
 	DeleteOnSaveCorruption bool     // Attempts to save corrupted data will flag the save for deletion
+	ClientMode             Mode
 	DevMode                bool
 
 	DevModeOptions  DevModeOptions
@@ -170,7 +184,6 @@ func init() {
 	if err != nil {
 		preventClose(fmt.Sprintf("Failed to load config: %s", err.Error()))
 	}
-
 }
 
 // getOutboundIP4 gets the preferred outbound ip4 of this machine
@@ -210,6 +223,15 @@ func LoadConfig() (*Config, error) {
 
 	if c.Host == "" {
 		c.Host = getOutboundIP4().To4().String()
+	}
+
+	switch strings.ToUpper(c.ClientMode.String()) {
+	case "Z1":
+		c.ClientMode = Z1
+	case "Z2":
+		c.ClientMode = Z2
+	default:
+		c.ClientMode = ZZ
 	}
 
 	return c, nil

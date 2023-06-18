@@ -18,14 +18,14 @@ import (
 type Config struct {
 	Logger      *zap.Logger
 	DB          *sqlx.DB
-	ErupeConfig *config.Config
+	ErupeConfig *_config.Config
 }
 
 // Server is the MHF custom launcher sign server.
 type Server struct {
 	sync.Mutex
 	logger         *zap.Logger
-	erupeConfig    *config.Config
+	erupeConfig    *_config.Config
 	db             *sqlx.DB
 	httpServer     *http.Server
 	isShuttingDown bool

@@ -18,7 +18,7 @@ import (
 type Server struct {
 	sync.Mutex
 	logger         *zap.Logger
-	erupeConfig    *config.Config
+	erupeConfig    *_config.Config
 	db             *sqlx.DB
 	listener       net.Listener
 	isShuttingDown bool
@@ -28,7 +28,7 @@ type Server struct {
 type Config struct {
 	Logger      *zap.Logger
 	DB          *sqlx.DB
-	ErupeConfig *config.Config
+	ErupeConfig *_config.Config
 }
 
 // NewServer creates a new Server type.
@@ -68,7 +68,7 @@ func (s *Server) Shutdown() {
 	s.listener.Close()
 }
 
-//acceptClients handles accepting new clients in a loop.
+// acceptClients handles accepting new clients in a loop.
 func (s *Server) acceptClients() {
 	for {
 		conn, err := s.listener.Accept()

@@ -3,6 +3,7 @@ package channelserver
 import (
 	"encoding/hex"
 	"erupe-ce/common/stringsupport"
+	_config "erupe-ce/config"
 	"time"
 
 	"erupe-ce/common/byteframe"
@@ -80,7 +81,10 @@ func handleMsgMhfGetUdSchedule(s *Session, p mhfpacket.MHFPacket) {
 	}
 
 	bf.WriteUint32(id)
-	for _, timestamp := range timestamps {
+	for i, timestamp := range timestamps {
+		if s.server.erupeConfig.ClientMode == _config.Z1 && i == 4 {
+			continue
+		}
 		bf.WriteUint32(timestamp)
 	}
 

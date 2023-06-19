@@ -149,7 +149,7 @@ type TenrouiraiTicket struct {
 }
 
 type TenrouiraiData struct {
-	Zone    uint8
+	Block   uint8
 	Mission uint8
 	// 1 = Floors climbed
 	// 2 = Collect antiques
@@ -223,7 +223,7 @@ func handleMsgMhfGetTenrouirai(s *Session, p mhfpacket.MHFPacket) {
 	case 1:
 		for _, tdata := range tenrouirai.Data {
 			bf := byteframe.NewByteFrame()
-			bf.WriteUint8(tdata.Zone)
+			bf.WriteUint8(tdata.Block)
 			bf.WriteUint8(tdata.Mission)
 			bf.WriteUint16(tdata.Goal)
 			bf.WriteUint16(tdata.Unk3)

@@ -66,7 +66,7 @@ func CourseExists(ID uint16, c []Course) bool {
 
 // GetCourseStruct returns a slice of Course(s) from a rights integer
 func GetCourseStruct(rights uint32) ([]Course, uint32) {
-	resp := []Course{{ID: 1}, {ID: 24}}
+	resp := []Course{{ID: 1}, {ID: 23}, {ID: 24}}
 	s := Courses()
 	slices.SortStableFunc(s, func(i, j Course) bool {
 		return i.ID > j.ID

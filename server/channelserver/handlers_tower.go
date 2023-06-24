@@ -278,8 +278,8 @@ func handleMsgMhfGetTenrouirai(s *Session, p mhfpacket.MHFPacket) {
 		if tenrouirai.Progress[0].Mission2 > tenrouiraiData[(tenrouirai.Progress[0].Page*3)-2].Goal {
 			tenrouirai.Progress[0].Mission2 = tenrouiraiData[(tenrouirai.Progress[0].Page*3)-2].Goal
 		}
-		if tenrouirai.Progress[0].Mission1 > tenrouiraiData[(tenrouirai.Progress[0].Page*3)-1].Goal {
-			tenrouirai.Progress[0].Mission1 = tenrouiraiData[(tenrouirai.Progress[0].Page*3)-1].Goal
+		if tenrouirai.Progress[0].Mission3 > tenrouiraiData[(tenrouirai.Progress[0].Page*3)-1].Goal {
+			tenrouirai.Progress[0].Mission3 = tenrouiraiData[(tenrouirai.Progress[0].Page*3)-1].Goal
 		}
 
 		for _, progress := range tenrouirai.Progress {

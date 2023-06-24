@@ -291,7 +291,7 @@ func handleMsgMhfGetTenrouirai(s *Session, p mhfpacket.MHFPacket) {
 			data = append(data, bf)
 		}
 	case 5:
-		rows, _ := s.server.db.Query(fmt.Sprintf(`SELECT name, tower_mission_%d FROM guild_characters gc INNER JOIN characters c on gc.character_id = c.id WHERE guild_id=$1 AND tower_mission_%d IS NOT NULL`, pkt.Unk3, pkt.Unk3), pkt.GuildID)
+		rows, _ := s.server.db.Query(fmt.Sprintf(`SELECT name, tower_mission_%d FROM guild_characters gc INNER JOIN characters c ON gc.character_id = c.id WHERE guild_id=$1 AND tower_mission_%d IS NOT NULL ORDER BY tower_mission_%d DESC`, pkt.Unk3, pkt.Unk3, pkt.Unk3), pkt.GuildID)
 		for rows.Next() {
 			temp := TenrouiraiCharScore{}
 			rows.Scan(&temp.Name, &temp.Score)

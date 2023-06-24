@@ -291,6 +291,12 @@ func handleMsgMhfGetTenrouirai(s *Session, p mhfpacket.MHFPacket) {
 			data = append(data, bf)
 		}
 	case 5:
+		if pkt.Unk3 > 3 {
+			pkt.Unk3 %= 3
+			if pkt.Unk3 == 0 {
+				pkt.Unk3 = 3
+			}
+		}
 		rows, _ := s.server.db.Query(fmt.Sprintf(`SELECT name, tower_mission_%d FROM guild_characters gc INNER JOIN characters c ON gc.character_id = c.id WHERE guild_id=$1 AND tower_mission_%d IS NOT NULL ORDER BY tower_mission_%d DESC`, pkt.Unk3, pkt.Unk3, pkt.Unk3), pkt.GuildID)
 		for rows.Next() {
 			temp := TenrouiraiCharScore{}
@@ -304,6 +310,7 @@ func handleMsgMhfGetTenrouirai(s *Session, p mhfpacket.MHFPacket) {
 			data = append(data, bf)
 		}
 	case 6:
+		s.server.db.QueryRow(`SELECT tower_rp FROM guilds WHERE id=$1`, pkt.GuildID).Scan(&tenrouirai.Ticket[0].RP)
 		for _, ticket := range tenrouirai.Ticket {
 			bf := byteframe.NewByteFrame()
 			bf.WriteUint8(ticket.Unk0)
@@ -335,7 +342,35 @@ func handleMsgMhfPostTenrouirai(s *Session, p mhfpacket.MHFPacket) {
 		)
 	}
 
-	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	if pkt.Op == 2 {
+		var page, requirement, donated int
+		s.server.db.QueryRow(`SELECT tower_mission_page, tower_rp FROM guilds WHERE id=$1`, pkt.GuildID).Scan(&page, &donated)
+
+		for i := 0; i < (page*3)+1; i++ {
+			requirement += int(tenrouiraiData[i].Cost)
+		}
+
+		bf := byteframe.NewByteFrame()
+
+		sd, err := GetCharacterSaveData(s, s.charID)
+		if err == nil && sd != nil {
+			sd.RP -= pkt.DonatedRP
+			sd.Save(s)
+			if donated+int(pkt.DonatedRP) >= requirement {
+				s.server.db.Exec(`UPDATE guilds SET tower_mission_page=tower_mission_page+1 WHERE id=$1`, pkt.GuildID)
+				s.server.db.Exec(`UPDATE guild_characters SET tower_mission_1=NULL, tower_mission_2=NULL, tower_mission_3=NULL WHERE guild_id=$1`, pkt.GuildID)
+				pkt.DonatedRP = uint16(requirement - donated)
+			}
+			bf.WriteUint32(uint32(pkt.DonatedRP))
+			s.server.db.Exec(`UPDATE guilds SET tower_rp=tower_rp+$1 WHERE id=$2`, pkt.DonatedRP, pkt.GuildID)
+		} else {
+			bf.WriteUint32(0)
+		}
+
+		doAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
+	} else {
+		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	}
 }
 
 func handleMsgMhfPresentBox(s *Session, p mhfpacket.MHFPacket) {

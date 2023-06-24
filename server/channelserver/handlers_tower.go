@@ -1,6 +1,7 @@
 package channelserver
 
 import (
+	"fmt"
 	"go.uber.org/zap"
 
 	"erupe-ce/common/byteframe"
@@ -130,22 +131,59 @@ func handleMsgMhfPostTowerInfo(s *Session, p mhfpacket.MHFPacket) {
 	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
-type TenrouiraiCharScore struct {
-	Score int32
-	Name  string
+// Default missions
+var tenrouiraiData = []TenrouiraiData{
+	{1, 1, 80, 0, 2, 2, 1, 1, 2, 2},
+	{1, 4, 16, 0, 2, 2, 1, 1, 2, 2},
+	{1, 6, 50, 0, 2, 2, 1, 0, 2, 2},
+	{1, 4, 12, 50, 2, 2, 1, 1, 2, 2},
+	{1, 3, 50, 0, 2, 2, 1, 1, 2, 2},
+	{2, 5, 40000, 0, 2, 2, 1, 0, 2, 2},
+	{1, 5, 50000, 50, 2, 2, 1, 1, 2, 2},
+	{2, 1, 60, 0, 2, 2, 1, 1, 2, 2},
+	{2, 3, 50, 0, 2, 1, 1, 0, 1, 2},
+	{2, 3, 40, 50, 2, 1, 1, 1, 1, 2},
+	{2, 4, 12, 0, 2, 1, 1, 1, 1, 2},
+	{2, 6, 40, 0, 2, 1, 1, 0, 1, 2},
+	{1, 1, 60, 50, 2, 1, 2, 1, 1, 2},
+	{1, 5, 50000, 0, 3, 1, 2, 1, 1, 2},
+	{1, 6, 50, 0, 3, 1, 2, 0, 1, 2},
+	{1, 4, 16, 50, 3, 1, 2, 1, 1, 2},
+	{1, 5, 50000, 0, 3, 1, 2, 1, 1, 2},
+	{2, 3, 40, 0, 3, 1, 2, 0, 1, 2},
+	{1, 3, 50, 50, 3, 1, 2, 1, 1, 2},
+	{2, 5, 40000, 0, 3, 1, 2, 1, 1, 1},
+	{2, 6, 40, 0, 3, 1, 2, 0, 1, 1},
+	{2, 1, 60, 50, 3, 1, 2, 1, 1, 1},
+	{2, 6, 50, 0, 3, 1, 2, 1, 1, 1},
+	{2, 4, 12, 0, 3, 1, 2, 0, 1, 1},
+	{1, 1, 80, 50, 3, 1, 2, 1, 1, 1},
+	{1, 5, 40000, 0, 3, 1, 2, 1, 1, 1},
+	{1, 3, 50, 0, 3, 1, 2, 0, 1, 1},
+	{1, 4, 16, 50, 3, 1, 0, 1, 1, 1},
+	{1, 6, 50, 0, 3, 1, 0, 1, 1, 1},
+	{2, 3, 40, 0, 3, 1, 0, 1, 1, 1},
+	{1, 1, 80, 50, 3, 1, 0, 0, 1, 1},
+	{2, 5, 40000, 0, 3, 1, 0, 0, 1, 1},
+	{2, 6, 40, 0, 3, 1, 0, 0, 1, 1},
 }
 
 type TenrouiraiProgress struct {
-	Completed uint8
-	Mission1  uint16
-	Mission2  uint16
-	Mission3  uint16
+	Page     uint8
+	Mission1 uint16
+	Mission2 uint16
+	Mission3 uint16
 }
 
-type TenrouiraiTicket struct {
+type TenrouiraiReward struct {
+	Index    uint8
+	Item     []uint16 // 5
+	Quantity []uint8  // 5
+}
+
+type TenrouiraiKeyScore struct {
 	Unk0 uint8
-	Unk1 uint32
-	Unk2 uint32
+	Unk1 int32
 }
 
 type TenrouiraiData struct {
@@ -157,21 +195,34 @@ type TenrouiraiData struct {
 	// 4 = Cats saved
 	// 5 = TRP acquisition
 	// 6 = Monster slays
-	Goal uint16
-	Unk3 uint16
-	Unk4 uint8
-	Unk5 uint8
-	Unk6 uint8
-	Unk7 uint8
-	Unk8 uint8
-	Unk9 uint8
+	Goal   uint16
+	Cost   uint16
+	Skill1 uint8 // 80
+	Skill2 uint8 // 40
+	Skill3 uint8 // 40
+	Skill4 uint8 // 20
+	Skill5 uint8 // 40
+	Skill6 uint8 // 50
+}
+
+type TenrouiraiCharScore struct {
+	Score int32
+	Name  string
+}
+
+type TenrouiraiTicket struct {
+	Unk0 uint8
+	RP   uint32
+	Unk2 uint32
 }
 
 type Tenrouirai struct {
-	CharScore []TenrouiraiCharScore
 	Progress  []TenrouiraiProgress
-	Ticket    []TenrouiraiTicket
+	Reward    []TenrouiraiReward
+	KeyScore  []TenrouiraiKeyScore
 	Data      []TenrouiraiData
+	CharScore []TenrouiraiCharScore
+	Ticket    []TenrouiraiTicket
 }
 
 func handleMsgMhfGetTenrouirai(s *Session, p mhfpacket.MHFPacket) {
@@ -179,44 +230,9 @@ func handleMsgMhfGetTenrouirai(s *Session, p mhfpacket.MHFPacket) {
 	var data []*byteframe.ByteFrame
 
 	tenrouirai := Tenrouirai{
-		Progress: []TenrouiraiProgress{
-			{1, 0, 0, 0},
-		},
-		Data: []TenrouiraiData{
-			{1, 1, 80, 0, 2, 2, 1, 1, 2, 2},
-			{1, 4, 16, 0, 2, 2, 1, 1, 2, 2},
-			{1, 6, 50, 0, 2, 2, 1, 0, 2, 2},
-			{1, 4, 12, 50, 2, 2, 1, 1, 2, 2},
-			{1, 3, 50, 0, 2, 2, 1, 1, 2, 2},
-			{2, 5, 40000, 0, 2, 2, 1, 0, 2, 2},
-			{1, 5, 50000, 50, 2, 2, 1, 1, 2, 2},
-			{2, 1, 60, 0, 2, 2, 1, 1, 2, 2},
-			{2, 3, 50, 0, 2, 1, 1, 0, 1, 2},
-			{2, 3, 40, 50, 2, 1, 1, 1, 1, 2},
-			{2, 4, 12, 0, 2, 1, 1, 1, 1, 2},
-			{2, 6, 40, 0, 2, 1, 1, 0, 1, 2},
-			{1, 1, 60, 50, 2, 1, 2, 1, 1, 2},
-			{1, 5, 50000, 0, 3, 1, 2, 1, 1, 2},
-			{1, 6, 50, 0, 3, 1, 2, 0, 1, 2},
-			{1, 4, 16, 50, 3, 1, 2, 1, 1, 2},
-			{1, 5, 50000, 0, 3, 1, 2, 1, 1, 2},
-			{2, 3, 40, 0, 3, 1, 2, 0, 1, 2},
-			{1, 3, 50, 50, 3, 1, 2, 1, 1, 2},
-			{2, 5, 40000, 0, 3, 1, 2, 1, 1, 1},
-			{2, 6, 40, 0, 3, 1, 2, 0, 1, 1},
-			{2, 1, 60, 50, 3, 1, 2, 1, 1, 1},
-			{2, 6, 50, 0, 3, 1, 2, 1, 1, 1},
-			{2, 4, 12, 0, 3, 1, 2, 0, 1, 1},
-			{1, 1, 80, 50, 3, 1, 2, 1, 1, 1},
-			{1, 5, 40000, 0, 3, 1, 2, 1, 1, 1},
-			{1, 3, 50, 0, 3, 1, 2, 0, 1, 1},
-			{1, 4, 16, 50, 3, 1, 0, 1, 1, 1},
-			{1, 6, 50, 0, 3, 1, 0, 1, 1, 1},
-			{2, 3, 40, 0, 3, 1, 0, 1, 1, 1},
-			{1, 1, 80, 50, 3, 1, 0, 0, 1, 1},
-			{2, 5, 40000, 0, 3, 1, 0, 0, 1, 1},
-			{2, 6, 40, 0, 3, 1, 0, 0, 1, 1},
-		},
+		Progress: []TenrouiraiProgress{{1, 0, 0, 0}},
+		Data:     tenrouiraiData,
+		Ticket:   []TenrouiraiTicket{{0, 0, 0}},
 	}
 
 	switch pkt.Unk1 {
@@ -226,22 +242,73 @@ func handleMsgMhfGetTenrouirai(s *Session, p mhfpacket.MHFPacket) {
 			bf.WriteUint8(tdata.Block)
 			bf.WriteUint8(tdata.Mission)
 			bf.WriteUint16(tdata.Goal)
-			bf.WriteUint16(tdata.Unk3)
-			bf.WriteUint8(tdata.Unk4)
-			bf.WriteUint8(tdata.Unk5)
-			bf.WriteUint8(tdata.Unk6)
-			bf.WriteUint8(tdata.Unk7)
-			bf.WriteUint8(tdata.Unk8)
-			bf.WriteUint8(tdata.Unk9)
+			bf.WriteUint16(tdata.Cost)
+			bf.WriteUint8(tdata.Skill1)
+			bf.WriteUint8(tdata.Skill2)
+			bf.WriteUint8(tdata.Skill3)
+			bf.WriteUint8(tdata.Skill4)
+			bf.WriteUint8(tdata.Skill5)
+			bf.WriteUint8(tdata.Skill6)
+			data = append(data, bf)
+		}
+	case 2:
+		for _, reward := range tenrouirai.Reward {
+			bf := byteframe.NewByteFrame()
+			bf.WriteUint8(reward.Index)
+			bf.WriteUint16(reward.Item[0])
+			bf.WriteUint16(reward.Item[1])
+			bf.WriteUint16(reward.Item[2])
+			bf.WriteUint16(reward.Item[3])
+			bf.WriteUint16(reward.Item[4])
+			bf.WriteUint8(reward.Quantity[0])
+			bf.WriteUint8(reward.Quantity[1])
+			bf.WriteUint8(reward.Quantity[2])
+			bf.WriteUint8(reward.Quantity[3])
+			bf.WriteUint8(reward.Quantity[4])
 			data = append(data, bf)
 		}
 	case 4:
+		s.server.db.QueryRow(`SELECT tower_mission_page FROM guilds WHERE id=$1`, pkt.GuildID).Scan(&tenrouirai.Progress[0].Page)
+		s.server.db.QueryRow(`SELECT SUM(tower_mission_1) AS _, SUM(tower_mission_2) AS _, SUM(tower_mission_3) AS _ FROM guild_characters WHERE guild_id=$1
+				`, pkt.GuildID).Scan(&tenrouirai.Progress[0].Mission1, &tenrouirai.Progress[0].Mission2, &tenrouirai.Progress[0].Mission3)
+
+		if tenrouirai.Progress[0].Mission1 > tenrouiraiData[(tenrouirai.Progress[0].Page*3)-3].Goal {
+			tenrouirai.Progress[0].Mission1 = tenrouiraiData[(tenrouirai.Progress[0].Page*3)-3].Goal
+		}
+		if tenrouirai.Progress[0].Mission2 > tenrouiraiData[(tenrouirai.Progress[0].Page*3)-2].Goal {
+			tenrouirai.Progress[0].Mission2 = tenrouiraiData[(tenrouirai.Progress[0].Page*3)-2].Goal
+		}
+		if tenrouirai.Progress[0].Mission1 > tenrouiraiData[(tenrouirai.Progress[0].Page*3)-1].Goal {
+			tenrouirai.Progress[0].Mission1 = tenrouiraiData[(tenrouirai.Progress[0].Page*3)-1].Goal
+		}
+
 		for _, progress := range tenrouirai.Progress {
 			bf := byteframe.NewByteFrame()
-			bf.WriteUint8(progress.Completed)
+			bf.WriteUint8(progress.Page)
 			bf.WriteUint16(progress.Mission1)
 			bf.WriteUint16(progress.Mission2)
 			bf.WriteUint16(progress.Mission3)
+			data = append(data, bf)
+		}
+	case 5:
+		rows, _ := s.server.db.Query(fmt.Sprintf(`SELECT name, tower_mission_%d FROM guild_characters gc INNER JOIN characters c on gc.character_id = c.id WHERE guild_id=$1 AND tower_mission_%d IS NOT NULL`, pkt.Unk3, pkt.Unk3), pkt.GuildID)
+		for rows.Next() {
+			temp := TenrouiraiCharScore{}
+			rows.Scan(&temp.Name, &temp.Score)
+			tenrouirai.CharScore = append(tenrouirai.CharScore, temp)
+		}
+		for _, charScore := range tenrouirai.CharScore {
+			bf := byteframe.NewByteFrame()
+			bf.WriteInt32(charScore.Score)
+			bf.WriteBytes(stringsupport.PaddedString(charScore.Name, 14, true))
+			data = append(data, bf)
+		}
+	case 6:
+		for _, ticket := range tenrouirai.Ticket {
+			bf := byteframe.NewByteFrame()
+			bf.WriteUint8(ticket.Unk0)
+			bf.WriteUint32(ticket.RP)
+			bf.WriteUint32(ticket.Unk2)
 			data = append(data, bf)
 		}
 	}
@@ -256,9 +323,9 @@ func handleMsgMhfPostTenrouirai(s *Session, p mhfpacket.MHFPacket) {
 		s.logger.Debug(
 			p.Opcode().String(),
 			zap.Uint8("Unk0", pkt.Unk0),
-			zap.Uint8("Unk1", pkt.Unk1),
+			zap.Uint8("Op", pkt.Op),
 			zap.Uint32("GuildID", pkt.GuildID),
-			zap.Uint8("Unk3", pkt.Unk3),
+			zap.Uint8("Unk1", pkt.Unk1),
 			zap.Uint16("Floors", pkt.Floors),
 			zap.Uint16("Antiques", pkt.Antiques),
 			zap.Uint16("Chests", pkt.Chests),
@@ -308,10 +375,10 @@ func handleMsgMhfGetGemInfo(s *Session, p mhfpacket.MHFPacket) {
 	gemInfo := []GemInfo{}
 	gemHistory := []GemHistory{}
 
-	tempGems := "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0"
+	tempGems := "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0"
 	s.server.db.QueryRow(`SELECT gems FROM tower WHERE char_id=$1`, s.charID).Scan(&tempGems)
 	for i, v := range stringsupport.CSVElems(tempGems) {
-		gemInfo = append(gemInfo, GemInfo{uint16(((i / 3) * 256) + ((i % 3) + 1)), uint16(v)})
+		gemInfo = append(gemInfo, GemInfo{uint16(((i / 5) * 256) + ((i % 5) + 1)), uint16(v)})
 	}
 
 	switch pkt.Unk0 {
@@ -351,11 +418,11 @@ func handleMsgMhfPostGemInfo(s *Session, p mhfpacket.MHFPacket) {
 		)
 	}
 
-	gems := "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0"
+	gems := "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0"
 	s.server.db.QueryRow(`SELECT gems FROM tower WHERE char_id=$1`, s.charID).Scan(&gems)
 	switch pkt.Op {
 	case 1: // Add gem
-		i := int(((pkt.Gem / 256) * 3) + (((pkt.Gem - ((pkt.Gem / 256) * 256)) - 1) % 3))
+		i := int(((pkt.Gem / 256) * 5) + (((pkt.Gem - ((pkt.Gem / 256) * 256)) - 1) % 5))
 		s.server.db.Exec(`UPDATE tower SET gems=$1 WHERE char_id=$2`, stringsupport.CSVSetIndex(gems, i, stringsupport.CSVGetIndex(gems, i)+int(pkt.Quantity)), s.charID)
 	case 2: // Transfer gem
 		// no way im doing this for now

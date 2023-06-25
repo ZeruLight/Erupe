@@ -3,6 +3,7 @@ package channelserver
 import (
 	"fmt"
 	"go.uber.org/zap"
+	"time"
 
 	"erupe-ce/common/byteframe"
 	"erupe-ce/common/stringsupport"
@@ -398,10 +399,10 @@ type GemInfo struct {
 }
 
 type GemHistory struct {
-	Unk0 uint16
-	Unk1 uint16
-	Unk2 uint32
-	Unk3 string
+	Gem       uint16
+	Message   uint16
+	Timestamp time.Time
+	Sender    string
 }
 
 func handleMsgMhfGetGemInfo(s *Session, p mhfpacket.MHFPacket) {
@@ -424,13 +425,13 @@ func handleMsgMhfGetGemInfo(s *Session, p mhfpacket.MHFPacket) {
 			bf.WriteUint16(info.Quantity)
 			data = append(data, bf)
 		}
-	default:
+	case 2:
 		for _, history := range gemHistory {
 			bf := byteframe.NewByteFrame()
-			bf.WriteUint16(history.Unk0)
-			bf.WriteUint16(history.Unk1)
-			bf.WriteUint32(history.Unk2)
-			bf.WriteBytes(stringsupport.PaddedString(history.Unk3, 14, true))
+			bf.WriteUint16(history.Gem)
+			bf.WriteUint16(history.Message)
+			bf.WriteUint32(uint32(history.Timestamp.Unix()))
+			bf.WriteBytes(stringsupport.PaddedString(history.Sender, 14, true))
 			data = append(data, bf)
 		}
 	}
@@ -462,5 +463,15 @@ func handleMsgMhfPostGemInfo(s *Session, p mhfpacket.MHFPacket) {
 	case 2: // Transfer gem
 		// no way im doing this for now
 	}
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+}
+
+func handleMsgMhfGetNotice(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfGetNotice)
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+}
+
+func handleMsgMhfPostNotice(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfPostNotice)
 	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }

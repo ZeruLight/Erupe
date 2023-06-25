@@ -1632,10 +1632,6 @@ func handleMsgMhfGetEarthValue(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfDebugPostValue(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfGetNotice(s *Session, p mhfpacket.MHFPacket) {}
-
-func handleMsgMhfPostNotice(s *Session, p mhfpacket.MHFPacket) {}
-
 func handleMsgMhfGetRandFromTable(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfGetSenyuDailyCount(s *Session, p mhfpacket.MHFPacket) {}

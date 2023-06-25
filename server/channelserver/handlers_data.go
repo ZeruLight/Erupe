@@ -1134,30 +1134,40 @@ func handleMsgMhfGetPaperData(s *Session, p mhfpacket.MHFPacket) {
 		}
 	case 5:
 		paperData = []PaperData{
+			// getTowerQuestTowerLevel
 			{1001, 1, 0, 0, 0, 0, 0},
 			{1001, 2, 0, 0, 0, 0, 0},
+			// iniTQT
 			{1003, 1, 100, 100, 200, 100, 0},
 			{1003, 2, 150, 100, 240, 100, 0},
 			{1004, 10, 9999, 40, 0, 0, 0},
 			{1005, 10, 500, 0, 0, 0, 0},
+			// getPaperDataSetFromProp
 			{1007, 1, 0, 0, 0, 0, 0},
 			{1008, 200, 400, 3000, 400, 3000, 0},
+			// getPaperDataSetParam1 / Dure Goal
 			{1010, 1, 4000, 0, 0, 0, 0},
 			{1010, 2, 4000, 0, 0, 0, 0},
+			// update_disp_flag / getPaperDataSetParam1
 			{1011, 1, 6000, 15000, 20000, 25000, 30000},
 			{1011, 2, 6000, 15000, 20000, 25000, 30000},
 			{1012, 1, 8000, 17500, 22500, 27500, 31000},
 			{1012, 2, 8000, 17500, 22500, 27500, 31000},
+			// setServerZako
 			{1015, 1, 16, 16, 16, 0, 0},
 			{1015, 2, 16, 16, 16, 0, 0},
+			// createTowerFloorRandomNumberArray
 			{1101, 1, 2016, 500, 0, 0, 0},
 			{1101, 2, 2016, 500, 0, 0, 0},
+			// HRP/SRP/GRP/GSRP/TRP reward
 			{1103, 1, 0, 0, 3000, 0, 3000},
 			{1103, 2, 0, 0, 3000, 0, 3000},
+			// getTowerNextVenomLevel
 			{1104, 1, 10, 9999, 40, 0, 0},
 			{1104, 2, 10, 9999, 40, 0, 0},
 			{1105, 1, 10, 500, 0, 0, 0},
 			{1105, 2, 10, 500, 0, 0, 0},
+			// setServerBoss
 			{2001, 1, 17, 58, 0, 6, 700},
 			{2001, 1, 20, 58, 0, 3, 200},
 			{2001, 1, 22, 58, 0, 7, 250},
@@ -1189,10 +1199,13 @@ func handleMsgMhfGetPaperData(s *Session, p mhfpacket.MHFPacket) {
 		}
 	case 6:
 		paperData = []PaperData{
+			// updateClearTowerFloor
 			{1002, 100, 0, 0, 0, 0, 0},
+			// give_gem_func
 			{1006, 1, 10000, 10000, 0, 0, 0},
 			{1006, 2, 10000, 20000, 0, 0, 0},
 			{1009, 20, 0, 0, 0, 0, 0},
+			// ttcStageInitDRP
 			{1013, 1, 1, 1, 100, 200, 300},
 			{1013, 1, 1, 2, 100, 200, 300},
 			{1013, 1, 2, 1, 300, 100, 200},
@@ -1219,6 +1232,7 @@ func handleMsgMhfGetPaperData(s *Session, p mhfpacket.MHFPacket) {
 			{1016, 2, 3, 80, 0, 0, 0},
 			{1201, 1, 60, 50, 0, 0, 0},
 			{1201, 2, 60, 50, 0, 0, 0},
+			// Gimmick Damage {ID, Block, StartFloor, EndFloor, Multiplier*100, Unk, Unk}
 			{1202, 1, 0, 5, 50, 0, 0},
 			{1202, 1, 6, 20, 60, 0, 0},
 			{1202, 1, 21, 40, 70, 0, 0},
@@ -1231,6 +1245,7 @@ func handleMsgMhfGetPaperData(s *Session, p mhfpacket.MHFPacket) {
 			{1202, 2, 101, 200, 100, 0, 0},
 			{1202, 2, 201, 500, 150, 0, 0},
 			{1202, 2, 501, 9999, 150, 0, 0},
+			// Mon Damage {ID, Block, StartFloor, EndFloor, Multiplier*100, Unk, Unk}
 			{1203, 1, 0, 5, 10, 0, 0},
 			{1203, 1, 6, 10, 20, 0, 0},
 			{1203, 1, 11, 30, 30, 0, 0},
@@ -1246,6 +1261,7 @@ func handleMsgMhfGetPaperData(s *Session, p mhfpacket.MHFPacket) {
 			{1203, 2, 0, 120, 70, 0, 0},
 			{1203, 2, 121, 500, 120, 0, 0},
 			{1203, 2, 501, 9999, 120, 0, 0},
+			// Mon HP {ID, Block, StartFloor, EndFloor, Multiplier*100, Unk, Unk}
 			{1204, 1, 0, 5, 15, 0, 0},
 			{1204, 1, 6, 10, 20, 0, 0},
 			{1204, 1, 11, 15, 25, 0, 0},
@@ -1270,6 +1286,7 @@ func handleMsgMhfGetPaperData(s *Session, p mhfpacket.MHFPacket) {
 			{1204, 2, 0, 120, 70, 0, 0},
 			{1204, 2, 121, 500, 120, 0, 0},
 			{1204, 2, 501, 9999, 120, 0, 0},
+			// Supply Items {ID, Block, Unk, ItemID, Quantity, Unk, Unk}
 			{4001, 1, 0, 0, 0, 0, 0},
 			{4001, 2, 0, 10667, 5, 0, 1},
 			{4001, 2, 0, 10667, 5, 0, 1},
@@ -1295,6 +1312,7 @@ func handleMsgMhfGetPaperData(s *Session, p mhfpacket.MHFPacket) {
 			{4001, 2, 0, 10683, 2, 0, 1},
 			{4001, 2, 0, 10678, 1, 0, 1},
 			{4001, 2, 0, 10678, 1, 0, 1},
+			// Item Rewards {ID, Block, Unk, ItemID, Quantity?, Chance*100, Unk}
 			{4005, 1, 0, 11159, 1, 5000, 1},
 			{4005, 1, 0, 11160, 1, 3350, 1},
 			{4005, 1, 0, 11161, 1, 1500, 1},
@@ -1596,6 +1614,7 @@ func handleMsgMhfGetPaperData(s *Session, p mhfpacket.MHFPacket) {
 			{4007, 2, 0, 11467, 1, 250, 1},
 			{4007, 2, 0, 11468, 1, 500, 1},
 			{4007, 2, 0, 11469, 1, 175, 1},
+			// Probably treasure chest rewards
 			{4202, 1, 0, 11163, 1, 6000, 1},
 			{4202, 1, 0, 11465, 1, 200, 1},
 			{4202, 1, 0, 11466, 1, 100, 1},

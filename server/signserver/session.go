@@ -156,6 +156,13 @@ func (s *Session) handleWIIUSGN(bf *byteframe.ByteFrame) {
 }
 
 func (s *Session) handlePSSGN(bf *byteframe.ByteFrame) {
+	// Prevent reading malformed request
+	if len(bf.DataFromCurrent()) < 128 {
+		resp := byteframe.NewByteFrame()
+		resp.WriteUint8(uint8(SIGN_EABORT))
+		s.cryptConn.SendPacket(resp.Data())
+		return
+	}
 	_ = bf.ReadNullTerminatedBytes() // VITA = 0000000256, PS3 = 0000000255
 	_ = bf.ReadBytes(2)              // VITA = 1, PS3 = !
 	_ = bf.ReadBytes(82)

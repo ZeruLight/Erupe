@@ -80,12 +80,11 @@ func handleMsgMhfGetUdSchedule(s *Session, p mhfpacket.MHFPacket) {
 		timestamps = generateDivaTimestamps(s, start, false)
 	}
 
-	bf.WriteUint32(id)
-	for i, timestamp := range timestamps {
-		if s.server.erupeConfig.ClientMode == _config.Z1 && i == 4 {
-			continue
-		}
-		bf.WriteUint32(timestamp)
+	if s.server.erupeConfig.ClientMode != _config.Z1 {
+		bf.WriteUint32(id)
+	}
+	for i := range timestamps {
+		bf.WriteUint32(timestamps[i])
 	}
 
 	bf.WriteUint16(0x19) // Unk 00011001

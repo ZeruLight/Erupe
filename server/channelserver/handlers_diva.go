@@ -72,7 +72,11 @@ func handleMsgMhfGetUdSchedule(s *Session, p mhfpacket.MHFPacket) {
 	var timestamps []uint32
 	if s.server.erupeConfig.DevMode && s.server.erupeConfig.DevModeOptions.DivaEvent >= 0 {
 		if s.server.erupeConfig.DevModeOptions.DivaEvent == 0 {
-			doAckBufSucceed(s, pkt.AckHandle, make([]byte, 36))
+			if s.server.erupeConfig.ClientMode == _config.Z1 {
+				doAckBufSucceed(s, pkt.AckHandle, make([]byte, 32))
+			} else {
+				doAckBufSucceed(s, pkt.AckHandle, make([]byte, 36))
+			}
 			return
 		}
 		timestamps = generateDivaTimestamps(s, uint32(s.server.erupeConfig.DevModeOptions.DivaEvent), true)

@@ -1,19 +1,20 @@
 package mhfpacket
 
-import ( 
- "errors" 
+import (
+	"errors"
 
- 	"erupe-ce/network/clientctx"
-	"erupe-ce/network"
 	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgMhfGetTinyBin represents the MSG_MHF_GET_TINY_BIN
 type MsgMhfGetTinyBin struct {
 	// Communicator type, multi-format. This might be valid for only one type.
 	AckHandle uint32
-	Unk0      uint16
+	Unk0      uint8
 	Unk1      uint8
+	Unk2      uint8
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -24,8 +25,9 @@ func (m *MsgMhfGetTinyBin) Opcode() network.PacketID {
 // Parse parses the packet from binary
 func (m *MsgMhfGetTinyBin) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
-	m.Unk0 = bf.ReadUint16()
+	m.Unk0 = bf.ReadUint8()
 	m.Unk1 = bf.ReadUint8()
+	m.Unk2 = bf.ReadUint8()
 	return nil
 }
 

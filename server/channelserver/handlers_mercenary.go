@@ -222,8 +222,8 @@ func handleMsgMhfReadMercenaryM(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfContractMercenary(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfContractMercenary)
 	switch pkt.Op {
-	case 0:
-		s.server.db.Exec("UPDATE characters SET pact_id=$1 WHERE id=$2", pkt.PactMercID, s.charID)
+	case 0: // Form loan
+		s.server.db.Exec("UPDATE characters SET pact_id=$1 WHERE id=$2", pkt.PactMercID, pkt.CID)
 	case 1: // Cancel lend
 		s.server.db.Exec("UPDATE characters SET pact_id=0 WHERE id=$1", s.charID)
 	case 2: // Cancel loan

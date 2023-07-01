@@ -1,14 +1,27 @@
-package config
+package _config
 
 import (
 	"fmt"
 	"log"
 	"net"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/spf13/viper"
 )
+
+type Mode string
+
+const (
+	ZZ Mode = "ZZ"
+	Z2 Mode = "Z2"
+	Z1 Mode = "Z1"
+)
+
+func (m Mode) String() string {
+	return string(m)
+}
 
 // Config holds the global server-wide config.
 type Config struct {
@@ -22,6 +35,7 @@ type Config struct {
 	PatchServerFile        string   // File patch server override
 	ScreenshotAPIURL       string   // Destination for screenshots uploaded to BBS
 	DeleteOnSaveCorruption bool     // Attempts to save corrupted data will flag the save for deletion
+	ClientMode             Mode
 	DevMode                bool
 
 	DevModeOptions  DevModeOptions
@@ -38,21 +52,23 @@ type Config struct {
 
 // DevModeOptions holds various debug/temporary options for use while developing Erupe.
 type DevModeOptions struct {
-	AutoCreateAccount   bool // Automatically create accounts if they don't exist
-	CleanDB             bool // Automatically wipes the DB on server reset.
-	MaxLauncherHR       bool // Sets the HR returned in the launcher to HR7 so that you can join non-beginner worlds.
-	LogInboundMessages  bool // Log all messages sent to the server
-	LogOutboundMessages bool // Log all messages sent to the clients
-	MaxHexdumpLength    int  // Maximum number of bytes printed when logs are enabled
-	DivaEvent           int  // Diva Defense event status
-	FestaEvent          int  // Hunter's Festa event status
-	TournamentEvent     int  // VS Tournament event status
-	MezFesEvent         bool // MezFes status
-	MezFesAlt           bool // Swaps out Volpakkun for Tokotoko
-	DisableTokenCheck   bool // Disables checking login token exists in the DB (security risk!)
-	QuestDebugTools     bool // Enable various quest debug logs
-	EarthStatusOverride int32
-	SaveDumps           SaveDumpOptions
+	AutoCreateAccount    bool // Automatically create accounts if they don't exist
+	CleanDB              bool // Automatically wipes the DB on server reset.
+	MaxLauncherHR        bool // Sets the HR returned in the launcher to HR7 so that you can join non-beginner worlds.
+	LogInboundMessages   bool // Log all messages sent to the server
+	LogOutboundMessages  bool // Log all messages sent to the clients
+	MaxHexdumpLength     int  // Maximum number of bytes printed when logs are enabled
+	DivaEvent            int  // Diva Defense event status
+	FestaEvent           int  // Hunter's Festa event status
+	TournamentEvent      int  // VS Tournament event status
+	MezFesEvent          bool // MezFes status
+	MezFesAlt            bool // Swaps out Volpakkun for Tokotoko
+	DisableTokenCheck    bool // Disables checking login token exists in the DB (security risk!)
+	QuestDebugTools      bool // Enable various quest debug logs
+	EarthStatusOverride  int32
+	EarthIDOverride      int32
+	EarthMonsterOverride int32
+	SaveDumps            SaveDumpOptions
 }
 
 type SaveDumpOptions struct {
@@ -62,17 +78,28 @@ type SaveDumpOptions struct {
 
 // GameplayOptions has various gameplay modifiers
 type GameplayOptions struct {
-	FeaturedWeapons     int    // Number of Active Feature weapons to generate daily
-	MaximumNP           int    // Maximum number of NP held by a player
-	MaximumRP           uint16 // Maximum number of RP held by a player
-	DisableLoginBoost   bool   // Disables the Login Boost system
-	DisableBoostTime    bool   // Disables the daily NetCafe Boost Time
-	BoostTimeDuration   int    // The number of minutes NetCafe Boost Time lasts for
-	GuildMealDuration   int    // The number of minutes a Guild Meal can be activated for after cooking
-	BonusQuestAllowance uint32 // Number of Bonus Point Quests to allow daily
-	DailyQuestAllowance uint32 // Number of Daily Quests to allow daily
-	MezfesSoloTickets   uint32 // Number of solo tickets given weekly
-	MezfesGroupTickets  uint32 // Number of group tickets given weekly
+	FeaturedWeapons      int     // Number of Active Feature weapons to generate daily
+	MaximumNP            int     // Maximum number of NP held by a player
+	MaximumRP            uint16  // Maximum number of RP held by a player
+	DisableLoginBoost    bool    // Disables the Login Boost system
+	DisableBoostTime     bool    // Disables the daily NetCafe Boost Time
+	BoostTimeDuration    int     // The number of minutes NetCafe Boost Time lasts for
+	GuildMealDuration    int     // The number of minutes a Guild Meal can be activated for after cooking
+	BonusQuestAllowance  uint32  // Number of Bonus Point Quests to allow daily
+	DailyQuestAllowance  uint32  // Number of Daily Quests to allow daily
+	MezfesSoloTickets    uint32  // Number of solo tickets given weekly
+	MezfesGroupTickets   uint32  // Number of group tickets given weekly
+	GUrgentRate          uint16  // Adjusts the rate of G Urgent quests spawning
+	GCPMultiplier        float32 // Adjusts the multiplier of GCP rewarded for quest completion
+	GRPMultiplier        float32 // Adjusts the multiplier of G Rank Points rewarded for quest completion
+	GSRPMultiplier       float32 // Adjusts the multiplier of G Skill Rank Points rewarded for quest completion
+	GZennyMultiplier     float32 // Adjusts the multiplier of G Zenny rewarded for quest completion
+	MaterialMultiplier   float32 // Adjusts the multiplier of Monster Materials rewarded for quest completion
+	ExtraCarves          uint16  // Grant n extra chances to carve ALL carcasses
+	DisableHunterNavi    bool    // Disables the Hunter Navi
+	EnableHiganjimaEvent bool    // Enables the Higanjima event in the Rasta Bar
+	EnableNierEvent      bool    // Enables the Nier event in the Rasta Bar
+	DisableRoad          bool    // Disables the Hunting Road
 }
 
 // Discord holds the discord integration config.
@@ -157,7 +184,6 @@ func init() {
 	if err != nil {
 		preventClose(fmt.Sprintf("Failed to load config: %s", err.Error()))
 	}
-
 }
 
 // getOutboundIP4 gets the preferred outbound ip4 of this machine
@@ -197,6 +223,15 @@ func LoadConfig() (*Config, error) {
 
 	if c.Host == "" {
 		c.Host = getOutboundIP4().To4().String()
+	}
+
+	switch strings.ToUpper(c.ClientMode.String()) {
+	case "Z1":
+		c.ClientMode = Z1
+	case "Z2":
+		c.ClientMode = Z2
+	default:
+		c.ClientMode = ZZ
 	}
 
 	return c, nil

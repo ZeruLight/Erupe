@@ -3,13 +3,13 @@ package entranceserver
 import (
 	"encoding/binary"
 	"encoding/hex"
+	_config "erupe-ce/config"
 	"fmt"
 	"net"
 
 	"erupe-ce/common/stringsupport"
 
 	"erupe-ce/common/byteframe"
-	"erupe-ce/config"
 	"erupe-ce/server/channelserver"
 )
 
@@ -19,11 +19,17 @@ var season uint8
 // Server Channels
 var currentplayers uint16
 
-func encodeServerInfo(config *config.Config, s *Server, local bool) []byte {
+func encodeServerInfo(config *_config.Config, s *Server, local bool) []byte {
 	serverInfos := config.Entrance.Entries
 	bf := byteframe.NewByteFrame()
 
 	for serverIdx, si := range serverInfos {
+		// Prevent MezFes Worlds displaying on Z1
+		if config.ClientMode == _config.Z1 {
+			if si.Type == 6 {
+				continue
+			}
+		}
 		sid := (4096 + serverIdx*256) + 16
 		err := s.db.QueryRow("SELECT season FROM servers WHERE server_id=$1", sid).Scan(&season)
 		if err != nil {
@@ -91,8 +97,17 @@ func makeHeader(data []byte, respType string, entryCount uint16, key byte) []byt
 	return bf.Data()
 }
 
-func makeSv2Resp(config *config.Config, s *Server, local bool) []byte {
+func makeSv2Resp(config *_config.Config, s *Server, local bool) []byte {
 	serverInfos := config.Entrance.Entries
+	// Decrease by the number of MezFes Worlds
+	var mf int
+	if config.ClientMode == _config.Z1 {
+		for _, si := range serverInfos {
+			if si.Type == 6 {
+				mf++
+			}
+		}
+	}
 	rawServerData := encodeServerInfo(config, s, local)
 
 	if s.erupeConfig.DevMode && s.erupeConfig.DevModeOptions.LogOutboundMessages {
@@ -100,7 +115,7 @@ func makeSv2Resp(config *config.Config, s *Server, local bool) []byte {
 	}
 
 	bf := byteframe.NewByteFrame()
-	bf.WriteBytes(makeHeader(rawServerData, "SV2", uint16(len(serverInfos)), 0x00))
+	bf.WriteBytes(makeHeader(rawServerData, "SV2", uint16(len(serverInfos)-mf), 0x00))
 	return bf.Data()
 }
 

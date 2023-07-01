@@ -11,6 +11,7 @@
   "PatchServerFile": "",
   "ScreenshotAPIURL": "",
   "DeleteOnSaveCorruption": false,
+  "ClientMode": "ZZ",
   "DevMode": true,
   "DevModeOptions": {
     "AutoCreateAccount": true,
@@ -27,6 +28,8 @@
     "DisableTokenCheck": false,
     "QuestDebugTools": false,
     "EarthStatusOverride": 0,
+    "EarthIDOverride": 0,
+    "EarthMonsterOverride": 0,
     "SaveDumps": {
       "Enabled": true,
       "OutputDir": "savedata"
@@ -43,7 +46,18 @@
     "BonusQuestAllowance": 3,
     "DailyQuestAllowance": 1,
     "MezfesSoloTickets": 10,
-    "MezfesGroupTickets": 4
+    "MezfesGroupTickets": 4,
+    "GUrgentRate": 10,
+    "GCPMultiplier": 1.00,
+    "GRPMultiplier": 1.00,
+    "GSRPMultiplier": 1.00,
+    "GZennyMultiplier": 1.00,
+    "MaterialMultiplier": 1.00,
+    "ExtraCarves": 0,
+    "DisableHunterNavi": false,
+    "EnableHiganjimaEvent": false,
+    "EnableNierEvent": false,
+    "DisableRoad": false
   },
   "Discord": {
     "Enabled": false,

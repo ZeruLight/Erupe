@@ -16,14 +16,14 @@ import (
 type Config struct {
 	Logger      *zap.Logger
 	DB          *sqlx.DB
-	ErupeConfig *config.Config
+	ErupeConfig *_config.Config
 }
 
 // Server is a MHF sign server.
 type Server struct {
 	sync.Mutex
 	logger         *zap.Logger
-	erupeConfig    *config.Config
+	erupeConfig    *_config.Config
 	sessions       map[int]*Session
 	db             *sqlx.DB
 	listener       net.Listener

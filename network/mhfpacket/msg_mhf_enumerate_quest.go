@@ -2,6 +2,7 @@ package mhfpacket
 
 import (
 	"errors"
+	_config "erupe-ce/config"
 
 	"erupe-ce/common/byteframe"
 	"erupe-ce/network"
@@ -30,7 +31,9 @@ func (m *MsgMhfEnumerateQuest) Parse(bf *byteframe.ByteFrame, ctx *clientctx.Cli
 	m.World = bf.ReadUint8()
 	m.Counter = bf.ReadUint16()
 	m.Offset = bf.ReadUint16()
-	m.Unk4 = bf.ReadUint8()
+	if _config.ErupeConfig.ClientMode != _config.Z1 {
+		m.Unk4 = bf.ReadUint8()
+	}
 	return nil
 }
 

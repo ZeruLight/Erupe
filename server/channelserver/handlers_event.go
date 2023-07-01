@@ -2,6 +2,7 @@ package channelserver
 
 import (
 	"erupe-ce/common/token"
+	_config "erupe-ce/config"
 	"math"
 	"time"
 
@@ -90,14 +91,18 @@ func handleMsgMhfGetWeeklySchedule(s *Session, p mhfpacket.MHFPacket) {
 }
 
 func generateFeatureWeapons(count int) activeFeature {
-	if count > 14 {
-		count = 14
+	max := 14
+	if _config.ErupeConfig.ClientMode != _config.ZZ {
+		max = 13
+	}
+	if count > max {
+		count = max
 	}
 	nums := make([]int, 0)
 	var result int
 	for len(nums) < count {
 		rng := token.RNG()
-		num := rng.Intn(14)
+		num := rng.Intn(max)
 		exist := false
 		for _, v := range nums {
 			if v == num {

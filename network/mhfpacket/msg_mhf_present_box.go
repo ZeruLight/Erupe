@@ -18,8 +18,7 @@ type MsgMhfPresentBox struct {
 	Unk4      uint32
 	Unk5      uint32
 	Unk6      uint32
-	Unk7      uint32
-	Unk8      uint32
+	Unk7      []uint32
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -37,8 +36,9 @@ func (m *MsgMhfPresentBox) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientC
 	m.Unk4 = bf.ReadUint32()
 	m.Unk5 = bf.ReadUint32()
 	m.Unk6 = bf.ReadUint32()
-	m.Unk7 = bf.ReadUint32()
-	m.Unk8 = bf.ReadUint32()
+	for i := uint32(0); i < m.Unk2; i++ {
+		m.Unk7 = append(m.Unk7, bf.ReadUint32())
+	}
 	return nil
 }
 

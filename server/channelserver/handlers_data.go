@@ -1123,14 +1123,7 @@ func handleMsgMhfGetPaperData(s *Session, p mhfpacket.MHFPacket) {
 	case 0:
 		paperMissions = PaperMission{
 			[]PaperMissionTimetable{{TimeMidnight(), TimeMidnight().Add(24 * time.Hour)}},
-			[]PaperMissionData{
-				{1, 1, 50, 7, 10, 8, 10},
-				{1, 2, 50, 7, 10, 8, 10},
-				{1, 3, 50, 7, 10, 8, 10},
-				{1, 4, 50, 7, 10, 8, 10},
-				{1, 5, 50, 7, 10, 8, 10},
-				{1, 6, 50, 7, 10, 8, 10},
-			},
+			[]PaperMissionData{},
 		}
 	case 5:
 		paperData = []PaperData{

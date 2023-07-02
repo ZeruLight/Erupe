@@ -54,13 +54,15 @@ func handleMsgMhfLoadLegendDispatch(s *Session, p mhfpacket.MHFPacket) {
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
+const NaviLength = 552
+
 func handleMsgMhfLoadHunterNavi(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfLoadHunterNavi)
 	var data []byte
 	err := s.server.db.QueryRow("SELECT hunternavi FROM characters WHERE id = $1", s.charID).Scan(&data)
 	if len(data) == 0 {
 		s.logger.Error("Failed to load hunternavi", zap.Error(err))
-		data = make([]byte, 0x226)
+		data = make([]byte, NaviLength)
 	}
 	doAckBufSucceed(s, pkt.AckHandle, data)
 }
@@ -78,7 +80,7 @@ func handleMsgMhfSaveHunterNavi(s *Session, p mhfpacket.MHFPacket) {
 		// Check if we actually had any hunternavi data, using a blank buffer if not.
 		// This is requried as the client will try to send a diff after character creation without a prior MsgMhfSaveHunterNavi packet.
 		if len(data) == 0 {
-			data = make([]byte, 0x226)
+			data = make([]byte, NaviLength)
 		}
 
 		// Perform diff and compress it to write back to db

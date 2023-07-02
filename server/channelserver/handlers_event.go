@@ -95,8 +95,11 @@ func generateFeatureWeapons(count int) activeFeature {
 	if _config.ErupeConfig.RealClientMode < _config.ZZ {
 		max = 13
 	}
-	if _config.ErupeConfig.RealClientMode < _config.GG {
+	if _config.ErupeConfig.RealClientMode < _config.G10 {
 		max = 12
+	}
+	if _config.ErupeConfig.RealClientMode < _config.GG {
+		max = 11
 	}
 	if count > max {
 		count = max

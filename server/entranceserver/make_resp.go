@@ -56,10 +56,10 @@ func encodeServerInfo(config *_config.Config, s *Server, local bool) []byte {
 		bf.WriteUint8(si.Recommended)
 
 		if s.erupeConfig.RealClientMode <= _config.GG {
-			bf.WriteUint8(64) // Prevents malformed server name
 			combined := append(stringsupport.UTF8ToSJIS(si.Name), []byte{0x00}...)
 			combined = append(combined, stringsupport.UTF8ToSJIS(si.Description)...)
-			bf.WriteBytes(stringsupport.PaddedString(string(combined), 64, false))
+			bf.WriteUint8(uint8(len(combined)))
+			bf.WriteBytes(combined)
 		} else {
 			bf.WriteUint8(0) // Prevents malformed server name
 			combined := append(stringsupport.UTF8ToSJIS(si.Name), []byte{0x00}...)
@@ -67,7 +67,9 @@ func encodeServerInfo(config *_config.Config, s *Server, local bool) []byte {
 			bf.WriteBytes(stringsupport.PaddedString(string(combined), 65, false))
 		}
 
-		bf.WriteUint32(si.AllowedClientFlags)
+		if s.erupeConfig.RealClientMode >= _config.GG {
+			bf.WriteUint32(si.AllowedClientFlags)
+		}
 
 		for channelIdx, ci := range si.Channels {
 			sid = (4096 + serverIdx*256) + (16 + channelIdx)
@@ -137,8 +139,13 @@ func makeSv2Resp(config *_config.Config, s *Server, local bool) []byte {
 		fmt.Printf("[Server] -> [Client]\nData [%d bytes]:\n%s\n", len(rawServerData), hex.Dump(rawServerData))
 	}
 
+	respType := "SV2"
+	if config.RealClientMode <= _config.G32 {
+		respType = "SVR"
+	}
+
 	bf := byteframe.NewByteFrame()
-	bf.WriteBytes(makeHeader(rawServerData, "SV2", uint16(len(serverInfos)-(mf+ret)), 0x00))
+	bf.WriteBytes(makeHeader(rawServerData, respType, uint16(len(serverInfos)-(mf+ret)), 0x00))
 	return bf.Data()
 }
 

@@ -60,7 +60,7 @@ func (s *Session) handlePacket(pkt []byte) error {
 	case "VITASGN:100":
 		s.client = VITA
 		s.handlePSSGN(bf)
-	case "WIIUSGN:100":
+	case "WIIUSGN:100", "WIIUSGN:000":
 		s.client = WIIU
 		s.handleWIIUSGN(bf)
 	case "DELETE:100":

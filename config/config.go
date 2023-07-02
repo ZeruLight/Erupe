@@ -11,16 +11,58 @@ import (
 	"github.com/spf13/viper"
 )
 
-type Mode string
+type Mode int
 
 const (
-	ZZ Mode = "ZZ"
-	Z2 Mode = "Z2"
-	Z1 Mode = "Z1"
+	S1 Mode = iota + 1
+	S15
+	S2
+	S25
+	S3
+	S35
+	S4
+	S5
+	S55
+	S6
+	S7
+	S8
+	S85
+	S9
+	S10
+	F1
+	F2
+	F3
+	F4
+	F5
+	G1
+	G2
+	G3
+	G31
+	G32
+	GG
+	G5
+	G51
+	G52
+	G6
+	G61
+	G7
+	G8
+	G81
+	G9
+	G91
+	G10
+	G101
+	Z1
+	Z2
+	ZZ
 )
 
+var versionStrings = []string{"S1.0", "S1.5", "S2.0", "S2.5", "S3.0", "S3.5", "S4.0", "S5.0", "S5.5", "S6.0", "S7.0",
+	"S8.0", "S8.5", "S9", "S10", "FW.1", "FW.2", "FW.3", "FW.4", "FW.5", "G1", "G2", "G3", "G3.1", "G3.2", "GG", "G5",
+	"G5.1", "G5.2", "G6", "G6.1", "G7", "G8", "G8.1", "G9", "G9.1", "G10", "G10.1", "Z1", "Z2", "ZZ"}
+
 func (m Mode) String() string {
-	return string(m)
+	return versionStrings[m]
 }
 
 // Config holds the global server-wide config.
@@ -35,7 +77,8 @@ type Config struct {
 	PatchServerFile        string   // File patch server override
 	ScreenshotAPIURL       string   // Destination for screenshots uploaded to BBS
 	DeleteOnSaveCorruption bool     // Attempts to save corrupted data will flag the save for deletion
-	ClientMode             Mode
+	ClientMode             string
+	RealClientMode         Mode
 	DevMode                bool
 
 	DevModeOptions  DevModeOptions
@@ -225,13 +268,18 @@ func LoadConfig() (*Config, error) {
 		c.Host = getOutboundIP4().To4().String()
 	}
 
-	switch strings.ToUpper(c.ClientMode.String()) {
-	case "Z1":
-		c.ClientMode = Z1
-	case "Z2":
-		c.ClientMode = Z2
-	default:
-		c.ClientMode = ZZ
+	for i := range versionStrings {
+		if strings.ToUpper(c.ClientMode) == versionStrings[i] {
+			c.RealClientMode = Mode(i + 1)
+			c.ClientMode = strings.ToUpper(c.ClientMode)
+			if c.RealClientMode < Z1 {
+				c.ClientMode += " (Debug only)"
+			}
+		}
+	}
+	if c.RealClientMode == 0 {
+		c.ClientMode = versionStrings[len(versionStrings)-1]
+		c.RealClientMode = ZZ
 	}
 
 	return c, nil

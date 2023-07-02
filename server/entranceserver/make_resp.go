@@ -25,8 +25,13 @@ func encodeServerInfo(config *_config.Config, s *Server, local bool) []byte {
 
 	for serverIdx, si := range serverInfos {
 		// Prevent MezFes Worlds displaying on Z1
-		if config.ClientMode == _config.Z1 {
+		if config.RealClientMode <= _config.Z1 {
 			if si.Type == 6 {
+				continue
+			}
+		}
+		if config.RealClientMode <= _config.G6 {
+			if si.Type == 5 {
 				continue
 			}
 		}
@@ -49,10 +54,19 @@ func encodeServerInfo(config *_config.Config, s *Server, local bool) []byte {
 		bf.WriteUint8(si.Type)
 		bf.WriteUint8(season)
 		bf.WriteUint8(si.Recommended)
-		bf.WriteUint8(0) // Prevents malformed server name
-		combined := append(stringsupport.UTF8ToSJIS(si.Name), []byte{0x00}...)
-		combined = append(combined, stringsupport.UTF8ToSJIS(si.Description)...)
-		bf.WriteBytes(stringsupport.PaddedString(string(combined), 65, false))
+
+		if s.erupeConfig.RealClientMode <= _config.GG {
+			bf.WriteUint8(64) // Prevents malformed server name
+			combined := append(stringsupport.UTF8ToSJIS(si.Name), []byte{0x00}...)
+			combined = append(combined, stringsupport.UTF8ToSJIS(si.Description)...)
+			bf.WriteBytes(stringsupport.PaddedString(string(combined), 64, false))
+		} else {
+			bf.WriteUint8(0) // Prevents malformed server name
+			combined := append(stringsupport.UTF8ToSJIS(si.Name), []byte{0x00}...)
+			combined = append(combined, stringsupport.UTF8ToSJIS(si.Description)...)
+			bf.WriteBytes(stringsupport.PaddedString(string(combined), 65, false))
+		}
+
 		bf.WriteUint32(si.AllowedClientFlags)
 
 		for channelIdx, ci := range si.Channels {
@@ -101,10 +115,19 @@ func makeSv2Resp(config *_config.Config, s *Server, local bool) []byte {
 	serverInfos := config.Entrance.Entries
 	// Decrease by the number of MezFes Worlds
 	var mf int
-	if config.ClientMode == _config.Z1 {
+	if config.RealClientMode <= _config.Z1 {
 		for _, si := range serverInfos {
 			if si.Type == 6 {
 				mf++
+			}
+		}
+	}
+	// and Return Worlds
+	var ret int
+	if config.RealClientMode <= _config.G6 {
+		for _, si := range serverInfos {
+			if si.Type == 5 {
+				ret++
 			}
 		}
 	}
@@ -115,7 +138,7 @@ func makeSv2Resp(config *_config.Config, s *Server, local bool) []byte {
 	}
 
 	bf := byteframe.NewByteFrame()
-	bf.WriteBytes(makeHeader(rawServerData, "SV2", uint16(len(serverInfos)-mf), 0x00))
+	bf.WriteBytes(makeHeader(rawServerData, "SV2", uint16(len(serverInfos)-(mf+ret)), 0x00))
 	return bf.Data()
 }
 

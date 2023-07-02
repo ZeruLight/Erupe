@@ -5,6 +5,7 @@ import (
 	ps "erupe-ce/common/pascalstring"
 	"erupe-ce/common/stringsupport"
 	"erupe-ce/common/token"
+	_config "erupe-ce/config"
 	"erupe-ce/server/channelserver"
 	"fmt"
 	"go.uber.org/zap"
@@ -77,8 +78,11 @@ func (s *Session) makeSignResponse(uid int) []byte {
 		bf.WriteBool(true)                                                       // Use uint16 GR, no reason not to
 		bf.WriteBytes(stringsupport.PaddedString(char.Name, 16, true))           // Character name
 		bf.WriteBytes(stringsupport.PaddedString(char.UnkDescString, 32, false)) // unk str
-		bf.WriteUint16(char.GR)
-		bf.WriteUint16(0) // Unk
+		if s.server.erupeConfig.RealClientMode >= _config.G7 {
+			bf.WriteUint16(char.GR)
+			bf.WriteUint8(0) // Unk
+			bf.WriteUint8(0) // Unk
+		}
 	}
 
 	friends := s.server.getFriendsForCharacters(chars)

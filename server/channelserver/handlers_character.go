@@ -148,7 +148,7 @@ func (save *CharacterSaveData) Decompress() error {
 func (save *CharacterSaveData) updateSaveDataWithStruct() {
 	rpBytes := make([]byte, 2)
 	binary.LittleEndian.PutUint16(rpBytes, save.RP)
-	if _config.ErupeConfig.ClientMode == _config.ZZ {
+	if _config.ErupeConfig.RealClientMode == _config.ZZ {
 		copy(save.decompSave[pointerRP:pointerRP+2], rpBytes)
 		copy(save.decompSave[pointerKQF:pointerKQF+8], save.KQF)
 	} else {
@@ -166,7 +166,7 @@ func (save *CharacterSaveData) updateStructWithSaveData() {
 		save.Gender = false
 	}
 	if !save.IsNewCharacter {
-		if _config.ErupeConfig.ClientMode == _config.ZZ {
+		if _config.ErupeConfig.RealClientMode == _config.ZZ {
 			save.RP = binary.LittleEndian.Uint16(save.decompSave[pointerRP : pointerRP+2])
 			save.HouseTier = save.decompSave[pointerHouseTier : pointerHouseTier+5]
 			save.HouseData = save.decompSave[pointerHouseData : pointerHouseData+195]

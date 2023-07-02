@@ -1391,7 +1391,7 @@ func handleMsgMhfEnumerateGuildMember(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint32(member.CharID)
 		bf.WriteUint16(member.HRP)
 		bf.WriteUint16(member.GR)
-		if s.server.erupeConfig.ClientMode != _config.ZZ {
+		if s.server.erupeConfig.RealClientMode < _config.ZZ {
 			// Magnet Spike crash workaround
 			bf.WriteUint16(0)
 		} else {

@@ -21,12 +21,9 @@ func UnpackSimple(data []byte) []byte {
 	bf.SetLE()
 	header := bf.ReadUint32()
 
-	println("Decrypting")
-
 	if header == 0x1A524B4A {
 		bf.Seek(0x2, io.SeekCurrent)
 		jpkType := bf.ReadUint16()
-		println("JPK Type: ", jpkType)
 
 		switch jpkType {
 		case 3:
@@ -39,8 +36,6 @@ func UnpackSimple(data []byte) []byte {
 			return outBuffer
 		}
 	}
-
-	println("Skipping")
 
 	return data
 }
@@ -110,8 +105,5 @@ func JPKCopy(outBuffer []byte, offset int, length int, index *int) {
 
 func ReadByte(bf *byteframe.ByteFrame) byte {
 	value := bf.ReadUint8()
-	if value < 0 {
-		println("Not implemented")
-	}
 	return byte(value)
 }

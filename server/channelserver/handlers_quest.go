@@ -95,7 +95,7 @@ func readOriginalPointers(string_pointer int32, quest []byte) []byte {
 	quest_failure_pointer := file_bytes.ReadInt32()
 	quest_contractor_pointer := file_bytes.ReadInt32()
 	quest_description_pointer := file_bytes.ReadInt32()
-	//Use String header pointers to seek to string and then read null terminated string
+
 	file_bytes.Seek(int64(quest_name_pointer), io.SeekStart)
 	quest_name_string := file_bytes.ReadNullTerminatedBytes()
 	file_bytes.Seek(int64(quest_main_pointer), io.SeekStart)
@@ -134,6 +134,7 @@ func readOriginalPointers(string_pointer int32, quest []byte) []byte {
 	new_pointers.WriteNullTerminatedBytes(quest_failure_string)
 	new_pointers.WriteNullTerminatedBytes(quest_contractor_string)
 	new_pointers.WriteNullTerminatedBytes(quest_description_string)
+
 	new_pointers.WriteUint8(18)
 	new_pointers.WriteBytes([]byte{0x83, 0x59, 0x89, 0x5B, 0x83, 0x3A, 0x58, 0xB6, 0x8E, 0x59, 0x82, 0xCC, 0x83, 0x58, 0x83, 0x58, 0x83, 0x81})
 

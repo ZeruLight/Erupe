@@ -10,12 +10,12 @@ import (
 	"io"
 )
 
-var m_shiftIndex int = 0
-var m_flag byte = byte(0)
+var mShiftIndex = 0
+var mFlag = byte(0)
 
 func UnpackSimple(data []byte) []byte {
-	m_shiftIndex = 0
-	m_flag = byte(0)
+	mShiftIndex = 0
+	mFlag = byte(0)
 
 	bf := byteframe.NewByteFrameFromBytes(data)
 	bf.SetLE()
@@ -44,28 +44,28 @@ func ProcessDecode(data *byteframe.ByteFrame, outBuffer []byte) {
 	outIndex := 0
 
 	for int(data.Index()) < len(data.Data()) && outIndex < len(outBuffer)-1 {
-		if JPKBitshift(data) == 0 {
+		if JPKBitShift(data) == 0 {
 			outBuffer[outIndex] = ReadByte(data)
 			outIndex++
 			continue
 		} else {
-			if JPKBitshift(data) == 0 {
-				len := (JPKBitshift(data) << 1) | JPKBitshift(data)
+			if JPKBitShift(data) == 0 {
+				length := (JPKBitShift(data) << 1) | JPKBitShift(data)
 				off := ReadByte(data)
-				JPKCopy(outBuffer, int(off), int(len)+3, &outIndex)
+				JPKCopy(outBuffer, int(off), int(length)+3, &outIndex)
 				continue
 			} else {
 				hi := ReadByte(data)
 				lo := ReadByte(data)
-				var len int = int((hi & 0xE0)) >> 5
-				var off int = ((int(hi) & 0x1F) << 8) | int(lo)
-				if len != 0 {
-					JPKCopy(outBuffer, off, len+2, &outIndex)
+				length := int(hi&0xE0) >> 5
+				off := ((int(hi) & 0x1F) << 8) | int(lo)
+				if length != 0 {
+					JPKCopy(outBuffer, off, length+2, &outIndex)
 					continue
 				} else {
-					if JPKBitshift(data) == 0 {
-						len := (JPKBitshift(data) << 3) | (JPKBitshift(data) << 2) | (JPKBitshift(data) << 1) | JPKBitshift(data)
-						JPKCopy(outBuffer, off, int(len)+2+8, &outIndex)
+					if JPKBitShift(data) == 0 {
+						length := (JPKBitShift(data) << 3) | (JPKBitShift(data) << 2) | (JPKBitShift(data) << 1) | JPKBitShift(data)
+						JPKCopy(outBuffer, off, int(length)+2+8, &outIndex)
 						continue
 					} else {
 						temp := ReadByte(data)
@@ -85,15 +85,15 @@ func ProcessDecode(data *byteframe.ByteFrame, outBuffer []byte) {
 	}
 }
 
-func JPKBitshift(data *byteframe.ByteFrame) byte {
-	m_shiftIndex--
+func JPKBitShift(data *byteframe.ByteFrame) byte {
+	mShiftIndex--
 
-	if m_shiftIndex < 0 {
-		m_shiftIndex = 7
-		m_flag = ReadByte(data)
+	if mShiftIndex < 0 {
+		mShiftIndex = 7
+		mFlag = ReadByte(data)
 	}
 
-	return (byte)((m_flag >> m_shiftIndex) & 1)
+	return (byte)((mFlag >> mShiftIndex) & 1)
 }
 
 func JPKCopy(outBuffer []byte, offset int, length int, index *int) {
@@ -105,5 +105,5 @@ func JPKCopy(outBuffer []byte, offset int, length int, index *int) {
 
 func ReadByte(bf *byteframe.ByteFrame) byte {
 	value := bf.ReadUint8()
-	return byte(value)
+	return value
 }

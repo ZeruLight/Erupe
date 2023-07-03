@@ -11,10 +11,17 @@ If you want to modify or compile Erupe yourself, please read on.
 - [Go](https://go.dev/dl/)
 - [PostgreSQL](https://www.postgresql.org/download/)
 
-# Comptaible Clients 
+# Comptaible Clients
+## Platforms
+- PC
+- PS3
+- PSVita
+- Wii U
+## Versions
 - ZZ
 - Z2
 - Z1
+
 
 ### Installation
 

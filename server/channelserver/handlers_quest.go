@@ -96,6 +96,8 @@ func readOriginalPointers(string_pointer int32, quest []byte) []byte {
 	quest_contractor_pointer := file_bytes.ReadInt32()
 	quest_description_pointer := file_bytes.ReadInt32()
 
+	// Read the strings in order to determine the length of the new string pointers for use in the new offsets
+	// It must seek to each initial pointer since the order is not consistent.
 	file_bytes.Seek(int64(quest_name_pointer), io.SeekStart)
 	quest_name_string := file_bytes.ReadNullTerminatedBytes()
 	file_bytes.Seek(int64(quest_main_pointer), io.SeekStart)
@@ -113,9 +115,10 @@ func readOriginalPointers(string_pointer int32, quest []byte) []byte {
 	file_bytes.Seek(int64(quest_description_pointer), io.SeekStart)
 	quest_description_string := file_bytes.ReadNullTerminatedBytes()
 
+	pointer_start := 352
+
 	new_pointers := byteframe.NewByteFrame()
 	new_pointers.SetLE()
-	pointer_start := 352
 
 	new_pointers.WriteInt32(int32(pointer_start))
 	new_pointers.WriteInt32(int32(pointer_start + len(quest_name_string) + 1))
@@ -157,19 +160,15 @@ func loadQuestFile(s *Session, quest_id string) []byte {
 	data_pointer := file_bytes.ReadInt32()
 	file_bytes.Seek(int64(data_pointer), io.SeekStart)
 
-	// Read the quest data.
-	quest_body := file_bytes.ReadBytes(320)
+	// The 320 bytes directly following the data pointer must go directly into the event's body, after the header and before the string pointers.
+	quest_body := byteframe.NewByteFrameFromBytes(file_bytes.ReadBytes(320))
+	quest_body.SetLE()
+	quest_body.Seek(40, io.SeekStart)
 
-	quest_pointer := byteframe.NewByteFrameFromBytes(quest_body)
-	quest_pointer.SetLE()
-
-	quest_pointer.Seek(40, io.SeekStart)
-	string_pointer := quest_pointer.ReadInt32()
-
-	strings := readOriginalPointers(string_pointer, decrypted)
+	strings := readOriginalPointers(quest_body.ReadInt32(), decrypted)
 
 	body := byteframe.NewByteFrame()
-	body.WriteBytes(quest_body)
+	body.WriteBytes(quest_body.Data())
 	body.Seek(0, io.SeekEnd)
 	body.WriteBytes(strings)
 
@@ -183,6 +182,8 @@ func makeEventQuest(s *Session, rows *sql.Rows) ([]byte, error) {
 
 	bf := byteframe.NewByteFrame()
 	bf.SetLE()
+
+	// Reconstructing the event-header itself. A lot of the data is not actually necessary for the quest to operate normally.
 	bf.WriteInt32(id)
 	bf.WriteInt32(0)
 	bf.WriteBytes([]byte{0x0F, byte(max_players), byte(quest_type), 0x01})
@@ -200,11 +201,11 @@ func makeEventQuest(s *Session, rows *sql.Rows) ([]byte, error) {
 
 	bf.WriteBytes(data)
 
-	// update checksum
+	// Update the checksum at pos 21, the checksum is determined the total length of the file minus 553 turned into a single byte.
 	bf.Seek(21, io.SeekStart)
 	bf.WriteUint8(uint8(len(bf.Data()) - 553))
 
-	// overwrite bytes at pos 62
+	// Overwrite the string-pointer at 62 to point at 320. This is always 320 and does not count the 22 from the event header.
 	bf.Seek(62, io.SeekStart)
 	bf.WriteInt16(320)
 

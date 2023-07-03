@@ -144,15 +144,10 @@ func loadQuestFile(s *Session, quest_id string) []byte {
 	file, err := os.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("quests/%s.bin", quest_id)))
 
 	if err != nil {
-		s.logger.Error(fmt.Sprintf("Failed to open file: %s/quests/%s.bin", s.server.erupeConfig.BinPath, quest_id))
 		return nil
 	}
 
-	println(fmt.Sprintf("quests/%s.bin", quest_id))
 	decrypted := decryption.UnpackSimple(file)
-	os.WriteFile(fmt.Sprintf("%s.bin", quest_id), decrypted, 0644)
-
-	println("Reading quest file " + quest_id)
 
 	file_bytes := byteframe.NewByteFrameFromBytes(decrypted)
 	file_bytes.SetLE()

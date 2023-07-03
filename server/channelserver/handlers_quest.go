@@ -1,14 +1,17 @@
 package channelserver
 
 import (
+	"database/sql"
 	"erupe-ce/common/byteframe"
+	"erupe-ce/common/decryption"
 	"erupe-ce/network/mhfpacket"
 	"fmt"
-	"go.uber.org/zap"
 	"io"
 	"os"
 	"path/filepath"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 func handleMsgSysGetFile(s *Session, p mhfpacket.MHFPacket) {
@@ -79,34 +82,170 @@ func handleMsgMhfSaveFavoriteQuest(s *Session, p mhfpacket.MHFPacket) {
 	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
+func readOriginalPointers(string_pointer int32, quest []byte) []byte {
+	file_bytes := byteframe.NewByteFrameFromBytes(quest)
+	file_bytes.SetLE()
+	file_bytes.Seek(int64(string_pointer), io.SeekStart)
+
+	quest_name_pointer := file_bytes.ReadInt32()
+	quest_main_pointer := file_bytes.ReadInt32()
+	quest_a_pointer := file_bytes.ReadInt32()
+	quest_b_pointer := file_bytes.ReadInt32()
+	quest_clear_pointer := file_bytes.ReadInt32()
+	quest_failure_pointer := file_bytes.ReadInt32()
+	quest_contractor_pointer := file_bytes.ReadInt32()
+	quest_description_pointer := file_bytes.ReadInt32()
+	//Use String header pointers to seek to string and then read null terminated string
+	file_bytes.Seek(int64(quest_name_pointer), io.SeekStart)
+	quest_name_string := file_bytes.ReadNullTerminatedBytes()
+	file_bytes.Seek(int64(quest_main_pointer), io.SeekStart)
+	quest_main_string := file_bytes.ReadNullTerminatedBytes()
+	file_bytes.Seek(int64(quest_a_pointer), io.SeekStart)
+	quest_a_string := file_bytes.ReadNullTerminatedBytes()
+	file_bytes.Seek(int64(quest_b_pointer), io.SeekStart)
+	quest_b_string := file_bytes.ReadNullTerminatedBytes()
+	file_bytes.Seek(int64(quest_clear_pointer), io.SeekStart)
+	quest_clear_string := file_bytes.ReadNullTerminatedBytes()
+	file_bytes.Seek(int64(quest_failure_pointer), io.SeekStart)
+	quest_failure_string := file_bytes.ReadNullTerminatedBytes()
+	file_bytes.Seek(int64(quest_contractor_pointer), io.SeekStart)
+	quest_contractor_string := file_bytes.ReadNullTerminatedBytes()
+	file_bytes.Seek(int64(quest_description_pointer), io.SeekStart)
+	quest_description_string := file_bytes.ReadNullTerminatedBytes()
+
+	new_pointers := byteframe.NewByteFrame()
+	new_pointers.SetLE()
+	pointer_start := 352
+
+	new_pointers.WriteInt32(int32(pointer_start))
+	new_pointers.WriteInt32(int32(pointer_start + len(quest_name_string) + 1))
+	new_pointers.WriteInt32(int32(pointer_start + len(quest_name_string) + len(quest_main_string) + 2))
+	new_pointers.WriteInt32(int32(pointer_start + len(quest_name_string) + len(quest_main_string) + len(quest_a_string) + 3))
+	new_pointers.WriteInt32(int32(pointer_start + len(quest_name_string) + len(quest_main_string) + len(quest_a_string) + len(quest_b_string) + 26))
+	new_pointers.WriteInt32(int32(pointer_start + len(quest_name_string) + len(quest_main_string) + len(quest_a_string) + len(quest_b_string) + len(quest_clear_string) + 5))
+	new_pointers.WriteInt32(int32(pointer_start + len(quest_name_string) + len(quest_main_string) + len(quest_a_string) + len(quest_b_string) + len(quest_clear_string) + len(quest_failure_string) + 6))
+	new_pointers.WriteInt32(int32(pointer_start + len(quest_name_string) + len(quest_main_string) + len(quest_a_string) + len(quest_b_string) + len(quest_clear_string) + len(quest_failure_string) + len(quest_contractor_string) + 7))
+
+	new_pointers.WriteNullTerminatedBytes(quest_name_string)
+	new_pointers.WriteNullTerminatedBytes(quest_main_string)
+	new_pointers.WriteNullTerminatedBytes(quest_a_string)
+	new_pointers.WriteNullTerminatedBytes(quest_b_string)
+	new_pointers.WriteNullTerminatedBytes(quest_clear_string)
+	new_pointers.WriteNullTerminatedBytes(quest_failure_string)
+	new_pointers.WriteNullTerminatedBytes(quest_contractor_string)
+	new_pointers.WriteNullTerminatedBytes(quest_description_string)
+	new_pointers.WriteUint8(18)
+	new_pointers.WriteBytes([]byte{0x83, 0x59, 0x89, 0x5B, 0x83, 0x3A, 0x58, 0xB6, 0x8E, 0x59, 0x82, 0xCC, 0x83, 0x58, 0x83, 0x58, 0x83, 0x81})
+
+	return new_pointers.Data()
+}
+
+func loadQuestFile(s *Session, quest_id string) []byte {
+	file, err := os.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("quests/%s.bin", quest_id)))
+
+	if err != nil {
+		s.logger.Error(fmt.Sprintf("Failed to open file: %s/quests/%s.bin", s.server.erupeConfig.BinPath, quest_id))
+		return nil
+	}
+
+	println(fmt.Sprintf("quests/%s.bin", quest_id))
+	decrypted := decryption.UnpackSimple(file)
+	os.WriteFile(fmt.Sprintf("%s.bin", quest_id), decrypted, 0644)
+
+	println("Reading quest file " + quest_id)
+
+	file_bytes := byteframe.NewByteFrameFromBytes(decrypted)
+	file_bytes.SetLE()
+	file_bytes.Seek(0, io.SeekStart)
+
+	data_pointer := file_bytes.ReadInt32()
+	file_bytes.Seek(int64(data_pointer), io.SeekStart)
+
+	// Read the quest data.
+	quest_body := file_bytes.ReadBytes(320)
+
+	quest_pointer := byteframe.NewByteFrameFromBytes(quest_body)
+	quest_pointer.SetLE()
+
+	quest_pointer.Seek(40, io.SeekStart)
+	string_pointer := quest_pointer.ReadInt32()
+
+	strings := readOriginalPointers(string_pointer, decrypted)
+
+	body := byteframe.NewByteFrame()
+	body.WriteBytes(quest_body)
+	body.Seek(0, io.SeekEnd)
+	body.WriteBytes(strings)
+
+	return body.Data()
+}
+
+func makeEventQuest(s *Session, rows *sql.Rows) ([]byte, error) {
+	var id int32
+	var max_players, quest_type, quest_id uint16
+	rows.Scan(&id, &max_players, &quest_type, &quest_id)
+
+	bf := byteframe.NewByteFrame()
+	bf.SetLE()
+	bf.WriteInt32(id)
+	bf.WriteInt32(0)
+	bf.WriteBytes([]byte{0x0F, byte(max_players), byte(quest_type), 0x01})
+	bf.WriteUint16(0)
+	bf.WriteUint16(0)
+	bf.WriteBytes([]byte{0x00, 0x01})
+	bf.WriteUint16(0)
+	bf.WriteBytes([]byte{0x02, 0x00})
+
+	data := loadQuestFile(s, fmt.Sprintf("%d", quest_id)+"d0")
+
+	if data == nil {
+		return nil, fmt.Errorf("failed to load quest file")
+	}
+
+	bf.WriteBytes(data)
+
+	// update checksum
+	bf.Seek(21, io.SeekStart)
+	bf.WriteUint8(uint8(len(bf.Data()) - 553))
+
+	// overwrite bytes at pos 62
+	bf.Seek(62, io.SeekStart)
+	bf.WriteInt16(320)
+
+	return bf.Data(), nil
+}
+
 func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateQuest)
 	var totalCount, returnedCount uint16
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint16(0)
-	filepath.Walk(fmt.Sprintf("%s/events/", s.server.erupeConfig.BinPath), func(path string, info os.FileInfo, err error) error {
+
+	rows, _ := s.server.db.Query("SELECT id, max_players, quest_type, quest_id FROM event_quests ORDER BY quest_id ASC")
+
+	// Loop through each row and load the quest entry if it exists.
+	for rows.Next() {
+		var pointer []byte
+		var max_players, quest_type, checksum, quest_id uint16
+		rows.Scan(&pointer, &max_players, &quest_type, &checksum, &quest_id)
+
+		data, err := makeEventQuest(s, rows)
+
 		if err != nil {
-			return err
-		} else if info.IsDir() {
-			return nil
-		}
-		data, err := os.ReadFile(path)
-		if err != nil {
-			return err
+			continue
 		} else {
 			if len(data) > 850 || len(data) < 400 {
-				return nil // Could be more or less strict with size limits
+				continue
 			} else {
 				totalCount++
 				if totalCount > pkt.Offset && len(bf.Data()) < 60000 {
 					returnedCount++
 					bf.WriteBytes(data)
-					return nil
+					continue
 				}
 			}
 		}
-		return nil
-	})
+	}
 
 	type tuneValue struct {
 		ID    uint16
@@ -549,6 +688,7 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 	bf.WriteUint16(pkt.Offset)
 	bf.Seek(0, io.SeekStart)
 	bf.WriteUint16(returnedCount)
+
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 

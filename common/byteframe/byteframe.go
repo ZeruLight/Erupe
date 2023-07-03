@@ -138,6 +138,10 @@ func (b *ByteFrame) DataFromCurrent() []byte {
 	return b.buf[b.index:b.usedSize]
 }
 
+func (b *ByteFrame) Index() uint {
+	return b.index
+}
+
 // SetLE sets the byte order to litte endian.
 func (b *ByteFrame) SetLE() {
 	b.byteOrder = binary.LittleEndian

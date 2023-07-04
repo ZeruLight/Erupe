@@ -177,8 +177,9 @@ func loadQuestFile(s *Session, questId string) []byte {
 
 func makeEventQuest(s *Session, rows *sql.Rows) ([]byte, error) {
 	var id int32
-	var maxPlayers, questType, questId uint16
-	rows.Scan(&id, &maxPlayers, &questType, &questId)
+	var questId uint16
+	var maxPlayers, questType, mark uint8
+	rows.Scan(&id, &maxPlayers, &questType, &questId, &mark)
 
 	bf := byteframe.NewByteFrame()
 	bf.SetLE()
@@ -186,12 +187,14 @@ func makeEventQuest(s *Session, rows *sql.Rows) ([]byte, error) {
 	// Reconstructing the event-header itself. A lot of the data is not actually necessary for the quest to operate normally.
 	bf.WriteInt32(id)
 	bf.WriteInt32(0)
-	bf.WriteBytes([]byte{0x0F, byte(maxPlayers), byte(questType), 0x01})
+	bf.WriteUint8(0) // Indexer
+	bf.WriteUint8(maxPlayers)
+	bf.WriteUint8(questType)
+	bf.WriteUint8(mark)
+	bf.WriteUint16(0)
+	bf.WriteUint32(0)
 	bf.WriteUint16(0)
 	bf.WriteUint16(0)
-	bf.WriteBytes([]byte{0x00, 0x01})
-	bf.WriteUint16(0)
-	bf.WriteBytes([]byte{0x02, 0x00})
 
 	data := loadQuestFile(s, fmt.Sprintf("%05d", questId)+"d0")
 
@@ -218,7 +221,7 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint16(0)
 
-	rows, _ := s.server.db.Query("SELECT id, max_players, quest_type, quest_id FROM event_quests ORDER BY quest_id")
+	rows, _ := s.server.db.Query("SELECT id, COALESCE(max_players, 4) AS max_players, quest_type, quest_id, COALESCE(mark, 0) AS mark FROM event_quests ORDER BY quest_id")
 
 	// Loop through each row and load the quest entry if it exists.
 	for rows.Next() {

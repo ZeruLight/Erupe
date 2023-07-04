@@ -193,7 +193,7 @@ func makeEventQuest(s *Session, rows *sql.Rows) ([]byte, error) {
 	bf.WriteUint16(0)
 	bf.WriteBytes([]byte{0x02, 0x00})
 
-	data := loadQuestFile(s, fmt.Sprintf("%d", questId)+"d0")
+	data := loadQuestFile(s, fmt.Sprintf("%05d", questId)+"d0")
 
 	if data == nil {
 		return nil, fmt.Errorf("failed to load quest file")

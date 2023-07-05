@@ -124,7 +124,7 @@ func readOriginalPointers(string_pointer int32, quest []byte) []byte {
 	newPointers.WriteInt32(int32(pointerStart + len(questNameString) + 1))
 	newPointers.WriteInt32(int32(pointerStart + len(questNameString) + len(questMainString) + 2))
 	newPointers.WriteInt32(int32(pointerStart + len(questNameString) + len(questMainString) + len(questAString) + 3))
-	newPointers.WriteInt32(int32(pointerStart + len(questNameString) + len(questMainString) + len(questAString) + len(questBString) + 26))
+	newPointers.WriteInt32(int32(pointerStart + len(questNameString) + len(questMainString) + len(questAString) + len(questBString) + 4))
 	newPointers.WriteInt32(int32(pointerStart + len(questNameString) + len(questMainString) + len(questAString) + len(questBString) + len(questClearString) + 5))
 	newPointers.WriteInt32(int32(pointerStart + len(questNameString) + len(questMainString) + len(questAString) + len(questBString) + len(questClearString) + len(questFailureString) + 6))
 	newPointers.WriteInt32(int32(pointerStart + len(questNameString) + len(questMainString) + len(questAString) + len(questBString) + len(questClearString) + len(questFailureString) + len(questContractorString) + 7))

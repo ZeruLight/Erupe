@@ -29,6 +29,7 @@
     "QuestDebugTools": false,
     "EarthStatusOverride": 0,
     "EarthIDOverride": 0,
+    "DynamicSeasons": false,
     "EarthMonsterOverride": 0,
     "SaveDumps": {
       "Enabled": true,
@@ -110,9 +111,9 @@
   ],
   "Database": {
     "Host": "localhost",
-    "Port": 5433,
+    "Port": 5432,
     "User": "postgres",
-    "Password": "admin",
+    "Password": "",
     "Database": "erupe"
   },
   "Sign": {

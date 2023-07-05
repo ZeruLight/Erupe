@@ -51,8 +51,19 @@ func handleMsgSysGetFile(s *Session, p mhfpacket.MHFPacket) {
 					zap.String("Filename", pkt.Filename),
 				)
 			}
-			// Get quest file.
-			data, err := os.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("quests/%s.bin", pkt.Filename)))
+
+			// Get quest file and convert to season if the option is enabled
+			var data []byte
+			var err error
+
+			if s.server.erupeConfig.DevModeOptions.DynamicSeasons {
+				data, err = os.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("quests/%s.bin", pkt.Filename)))
+			} else {
+				data, err = os.ReadFile(seasonConversion(s, filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("quests/%s.bin", pkt.Filename))))
+			}
+
+			// convert based on season
+
 			if err != nil {
 				s.logger.Error(fmt.Sprintf("Failed to open file: %s/quests/%s.bin", s.server.erupeConfig.BinPath, pkt.Filename))
 				// This will crash the game.
@@ -61,6 +72,39 @@ func handleMsgSysGetFile(s *Session, p mhfpacket.MHFPacket) {
 			}
 			doAckBufSucceed(s, pkt.AckHandle, data)
 		}
+	}
+}
+
+// Convert the file to load based on the season
+func seasonConversion(s *Session, questPath string) string {
+
+	// remove the last 6 from the quest path
+	newQuestPath := questPath[:len(questPath)-6]
+
+	// Calculate the current day of the season in order to determine time scale
+	currentDayOfSeason := (time.Now().Unix()/6000)%15 + 1
+	// Determine if it is day or night based on the current day of the season
+	timeCycle := uint8(((currentDayOfSeason % 1) * 24)) < 12
+
+	// Determine the current season based on a modulus of the current time
+	season := uint8((int(float64((time.Now().Unix() * int64(s.server.ID)) / (6000 * 15)))) % 3)
+
+	var timeSet string
+
+	// Determine the letter to append for day / night
+	if timeCycle {
+		timeSet = "n"
+	} else {
+		timeSet = "d"
+	}
+
+	fileName := fmt.Sprintf("%s%s%d.bin", newQuestPath, timeSet, season)
+
+	// Return the original if the season-based file does not exist for some reason
+	if _, err := os.Stat(fileName); err == nil {
+		return fileName
+	} else {
+		return questPath
 	}
 }
 

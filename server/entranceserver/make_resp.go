@@ -6,15 +6,13 @@ import (
 	_config "erupe-ce/config"
 	"fmt"
 	"net"
+	"time"
 
 	"erupe-ce/common/stringsupport"
 
 	"erupe-ce/common/byteframe"
 	"erupe-ce/server/channelserver"
 )
-
-// Server Entries
-var season uint8
 
 // Server Channels
 var currentplayers uint16
@@ -36,10 +34,8 @@ func encodeServerInfo(config *_config.Config, s *Server, local bool) []byte {
 			}
 		}
 		sid := (4096 + serverIdx*256) + 16
-		err := s.db.QueryRow("SELECT season FROM servers WHERE server_id=$1", sid).Scan(&season)
-		if err != nil {
-			season = 0
-		}
+		//season := (uint8(float64((time.Now().Unix() + int64(sid)) / 1000))) % 3
+		season := uint8((int(float64((time.Now().Unix() * int64(sid)) / (6000 * 15)))) % 3)
 		if si.IP == "" {
 			si.IP = config.Host
 		}

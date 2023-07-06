@@ -33,7 +33,7 @@ func encodeServerInfo(config *_config.Config, s *Server, local bool) []byte {
 				continue
 			}
 		}
-		sid := (4096 + serverIdx*256) + 16
+		sid := (4096 + serverIdx*256) * 6000
 		//season := (uint8(float64((time.Now().Unix() + int64(sid)) / 1000))) % 3
 		season := uint8((int(float64((time.Now().Unix() * int64(sid)) / (6000 * 15)))) % 3)
 		if si.IP == "" {

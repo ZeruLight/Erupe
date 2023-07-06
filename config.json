@@ -17,8 +17,8 @@
     "AutoCreateAccount": true,
     "CleanDB": false,
     "MaxLauncherHR": false,
-    "LogInboundMessages": false,
-    "LogOutboundMessages": false,
+    "LogInboundMessages": true,
+    "LogOutboundMessages": true,
     "MaxHexdumpLength": 256,
     "DivaEvent": 0,
     "FestaEvent": -1,
@@ -29,7 +29,7 @@
     "QuestDebugTools": false,
     "EarthStatusOverride": 0,
     "EarthIDOverride": 0,
-    "DynamicSeasons": false,
+    "DynamicSeasons": true,
     "EarthMonsterOverride": 0,
     "SaveDumps": {
       "Enabled": true,
@@ -111,9 +111,9 @@
   ],
   "Database": {
     "Host": "localhost",
-    "Port": 5432,
+    "Port": 5433,
     "User": "postgres",
-    "Password": "",
+    "Password": "admin",
     "Database": "erupe"
   },
   "Sign": {
@@ -136,6 +136,13 @@
         "Channels": [
           { "Port": 54001, "MaxPlayers": 100 },
           { "Port": 54002, "MaxPlayers": 100 }
+        ]
+      },
+      {
+        "Name": "Newbie 2", "Description": "", "IP": "", "Type": 3, "Recommended": 2, "AllowedClientFlags": 0,
+        "Channels": [
+          { "Port": 54009, "MaxPlayers": 100 },
+          { "Port": 54010, "MaxPlayers": 100 }
         ]
       }, {
         "Name": "Normal", "Description": "", "IP": "", "Type": 1, "Recommended": 0, "AllowedClientFlags": 0,

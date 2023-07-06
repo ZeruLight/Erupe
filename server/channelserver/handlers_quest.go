@@ -81,18 +81,18 @@ func seasonConversion(s *Session, questPath string) string {
 	// remove the last 6 from the quest path
 	newQuestPath := questPath[:len(questPath)-6]
 
-	// Calculate the current day of the season in order to determine time scale
-	currentDayOfSeason := (time.Now().Unix()/6000)%15 + 1
 	// Determine if it is day or night based on the current day of the season
-	timeCycle := uint8(((currentDayOfSeason % 1) * 24)) < 12
+	timeCycle := uint8(time.Now().Unix()/3000) % 2
 
 	// Determine the current season based on a modulus of the current time
-	season := uint8((int(float64((time.Now().Unix() * int64(s.server.ID)) / (6000 * 15)))) % 3)
+	sid := (4096 + s.server.ID*256) * 6000
+
+	season := uint8((int(float64((time.Now().Unix() * int64(sid)) / (6000 * 15)))) % 3)
 
 	var timeSet string
 
 	// Determine the letter to append for day / night
-	if timeCycle {
+	if timeCycle == 0 {
 		timeSet = "n"
 	} else {
 		timeSet = "d"

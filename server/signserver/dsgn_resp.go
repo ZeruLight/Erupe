@@ -89,7 +89,12 @@ func (s *Session) makeSignResponse(uid int) []byte {
 	if len(friends) == 0 {
 		bf.WriteUint8(0)
 	} else {
-		bf.WriteUint8(uint8(len(friends)))
+		if len(friends) > 255 {
+			bf.WriteUint8(255)
+			bf.WriteUint16(uint16(len(friends)))
+		} else {
+			bf.WriteUint8(uint8(len(friends)))
+		}
 		for _, friend := range friends {
 			bf.WriteUint32(friend.CID)
 			bf.WriteUint32(friend.ID)
@@ -101,7 +106,12 @@ func (s *Session) makeSignResponse(uid int) []byte {
 	if len(guildmates) == 0 {
 		bf.WriteUint8(0)
 	} else {
-		bf.WriteUint8(uint8(len(guildmates)))
+		if len(guildmates) > 255 {
+			bf.WriteUint8(255)
+			bf.WriteUint16(uint16(len(guildmates)))
+		} else {
+			bf.WriteUint8(uint8(len(guildmates)))
+		}
 		for _, guildmate := range guildmates {
 			bf.WriteUint32(guildmate.CID)
 			bf.WriteUint32(guildmate.ID)

@@ -776,14 +776,13 @@ func handleMsgMhfUpdateGuacot(s *Session, p mhfpacket.MHFPacket) {
 	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
+type ScenarioCounterItem struct {
+	MainID     uint32 `db:"scenario_id"`
+	CategoryID uint8  `db:"category_id"` // 0 = basic, 1 = veteran, 3 = other, 6 = pallone, 7 = diva
+}
+
 func handleMsgMhfInfoScenarioCounter(s *Session, p mhfpacket.MHFPacket) {
-	type ScenarioCounterItem struct {
-		MainID     uint32 `db:"scenario_id"`
-		CategoryID uint8  `db:"category_id"` // 0 = basic, 1 = veteran, 3 = other, 6 = pallone, 7 = diva
-	}
-
 	pkt := p.(*mhfpacket.MsgMhfInfoScenarioCounter)
-
 	scenarioData, err := s.server.db.Queryx("SELECT scenario_id, category_id FROM scenario_counter")
 	if err != nil {
 		s.logger.Error("Failed to get scenario counter info from db", zap.Error(err))
@@ -791,31 +790,28 @@ func handleMsgMhfInfoScenarioCounter(s *Session, p mhfpacket.MHFPacket) {
 		return
 	}
 	bf := byteframe.NewByteFrame()
-	var scenarioCount uint32
+	var scenarioCount uint8
 	for scenarioData.Next() {
-		postData := &ScenarioCounterItem{}
-		err = scenarioData.StructScan(&postData)
+		scenario := &ScenarioCounterItem{}
+		err = scenarioData.StructScan(&scenario)
 		if err != nil {
 			continue
 		}
 		scenarioCount++
-		bf.WriteUint32(postData.MainID)
+		bf.WriteUint32(scenario.MainID)
 		// if item exchange
-		if postData.CategoryID == 3 || postData.CategoryID == 6 || postData.CategoryID == 7 {
-			bf.WriteUint8(1)
-
+		if scenario.CategoryID == 3 || scenario.CategoryID == 6 || scenario.CategoryID == 7 {
+			bf.WriteBool(true)
 		} else {
-			bf.WriteUint8(0)
-
+			bf.WriteBool(false)
 		}
-		bf.WriteUint8(postData.CategoryID)
+		bf.WriteUint8(scenario.CategoryID)
 	}
 
 	data := byteframe.NewByteFrame()
-	data.WriteUint8(uint8(scenarioCount)) // Entry count
+	data.WriteUint8(scenarioCount)
 	data.WriteBytes(bf.Data())
 	doAckBufSucceed(s, pkt.AckHandle, data.Data())
-
 }
 
 func handleMsgMhfGetEtcPoints(s *Session, p mhfpacket.MHFPacket) {

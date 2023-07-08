@@ -953,28 +953,38 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint8(FestivalColourCodes[guild.FestivalColour])
 		bf.WriteUint32(guild.RankRP)
 		bf.WriteBytes(guildLeaderName)
-		bf.WriteBytes([]byte{0x00, 0x00, 0x00, 0x00}) // Unk
-		bf.WriteBool(false)                           // isReturnGuild
-		bf.WriteBool(false)                           // earnedSpecialHall
-		bf.WriteBytes([]byte{0x02, 0x02})             // Unk
-		bf.WriteUint32(guild.EventRP)
+		bf.WriteUint32(0)   // Unk
+		bf.WriteBool(false) // isReturnGuild
+		bf.WriteBool(false) // earnedSpecialHall
+		bf.WriteUint8(2)
+		bf.WriteUint8(2)
+		bf.WriteUint32(guild.EventRP) // Skipped if last byte is <2?
 		ps.Uint8(bf, guild.PugiName1, true)
 		ps.Uint8(bf, guild.PugiName2, true)
 		ps.Uint8(bf, guild.PugiName3, true)
 		bf.WriteUint8(guild.PugiOutfit1)
 		bf.WriteUint8(guild.PugiOutfit2)
 		bf.WriteUint8(guild.PugiOutfit3)
+		// TODO: Skip if Diva Poogies don't exist yet
 		bf.WriteUint8(guild.PugiOutfit1)
 		bf.WriteUint8(guild.PugiOutfit2)
 		bf.WriteUint8(guild.PugiOutfit3)
 		bf.WriteUint32(guild.PugiOutfits)
 
-		// Unk flags
-		bf.WriteUint8(0x3C) // also seen as 0x32 on JP and 0x64 on TW
+		if guild.Rank >= 3 {
+			bf.WriteUint8(40)
+		} else if guild.Rank >= 7 {
+			bf.WriteUint8(50)
+		} else if guild.Rank >= 10 {
+			bf.WriteUint8(60)
+		} else {
+			bf.WriteUint8(30)
+		}
 
-		bf.WriteBytes([]byte{
-			0x00, 0x00, 0xD6, 0xD8, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-		})
+		bf.WriteUint32(55000)
+		bf.WriteUint32(0)
+		bf.WriteUint16(0)
+		bf.WriteUint16(0)
 
 		if guild.AllianceID > 0 {
 			alliance, err := GetAllianceData(s, guild.AllianceID)
@@ -984,7 +994,8 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 				bf.WriteUint32(alliance.ID)
 				bf.WriteUint32(uint32(alliance.CreatedAt.Unix()))
 				bf.WriteUint16(alliance.TotalMembers)
-				bf.WriteUint16(0) // Unk0
+				bf.WriteUint8(0)
+				bf.WriteUint8(0)
 				ps.Uint16(bf, alliance.Name, true)
 				if alliance.SubGuild1ID > 0 {
 					if alliance.SubGuild2ID > 0 {
@@ -1044,29 +1055,46 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 			bf.WriteUint16(uint16(len(applicants)))
 			for _, applicant := range applicants {
 				bf.WriteUint32(applicant.CharID)
-				bf.WriteUint16(0)
-				bf.WriteUint16(0)
+				bf.WriteUint32(0)
 				bf.WriteUint16(applicant.HRP)
 				bf.WriteUint16(applicant.GR)
 				ps.Uint8(bf, applicant.Name, true)
 			}
 		}
 
-		bf.WriteUint16(0x0000) // lenAllianceApplications
+		type UnkGuildInfo struct {
+			Unk0 uint8
+			Unk1 uint8
+			Unk2 uint8
+		}
+		unkGuildInfo := []UnkGuildInfo{}
+		bf.WriteUint8(uint8(len(unkGuildInfo)))
+		for _, info := range unkGuildInfo {
+			bf.WriteUint8(info.Unk0)
+			bf.WriteUint8(info.Unk1)
+			bf.WriteUint8(info.Unk2)
+		}
 
-		/*
-			alliance application format
-			uint16 numapplicants (above)
-
-			uint32 guild id
-			uint32 guild leader id (for mail)
-			uint32 unk (always null in pcap)
-			uint16 member count
-			uint16 len guild name
-			string nullterm guild name
-			uint16 len guild leader name
-			string nullterm guild leader name
-		*/
+		type AllianceInvite struct {
+			GuildID    uint32
+			LeaderID   uint32
+			Unk0       uint16
+			Unk1       uint16
+			Members    uint16
+			GuildName  string
+			LeaderName string
+		}
+		allianceInvites := []AllianceInvite{}
+		bf.WriteUint8(uint8(len(allianceInvites)))
+		for _, invite := range allianceInvites {
+			bf.WriteUint32(invite.GuildID)
+			bf.WriteUint32(invite.LeaderID)
+			bf.WriteUint16(invite.Unk0)
+			bf.WriteUint16(invite.Unk1)
+			bf.WriteUint16(invite.Members)
+			ps.Uint16(bf, invite.GuildName, true)
+			ps.Uint16(bf, invite.LeaderName, true)
+		}
 
 		if guild.Icon != nil {
 			bf.WriteUint8(uint8(len(guild.Icon.Parts)))
@@ -1084,7 +1112,7 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 				bf.WriteUint16(p.PosY)
 			}
 		} else {
-			bf.WriteUint8(0x00)
+			bf.WriteUint8(0)
 		}
 		bf.WriteUint8(0) // Unk
 

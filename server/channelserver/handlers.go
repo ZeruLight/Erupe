@@ -776,42 +776,53 @@ func handleMsgMhfUpdateGuacot(s *Session, p mhfpacket.MHFPacket) {
 	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
-type ScenarioCounterItem struct {
-	MainID     uint32 `db:"scenario_id"`
-	CategoryID uint8  `db:"category_id"` // 0 = basic, 1 = veteran, 3 = other, 6 = pallone, 7 = diva
+type Scenario struct {
+	MainID uint32
+	// 0 = Basic
+	// 1 = Veteran
+	// 3 = Other
+	// 6 = Pallone
+	// 7 = Diva
+	CategoryID uint8
 }
 
 func handleMsgMhfInfoScenarioCounter(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfInfoScenarioCounter)
+	var scenarios []Scenario
+	var scenario Scenario
 	scenarioData, err := s.server.db.Queryx("SELECT scenario_id, category_id FROM scenario_counter")
 	if err != nil {
+		scenarioData.Close()
 		s.logger.Error("Failed to get scenario counter info from db", zap.Error(err))
 		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
-	bf := byteframe.NewByteFrame()
-	var scenarioCount uint8
 	for scenarioData.Next() {
-		scenario := &ScenarioCounterItem{}
-		err = scenarioData.StructScan(&scenario)
+		err = scenarioData.Scan(&scenario.MainID, &scenario.CategoryID)
 		if err != nil {
 			continue
 		}
-		scenarioCount++
+	}
+
+	// Trim excess scenarios
+	if len(scenarios) > 128 {
+		scenarios = scenarios[:128]
+	}
+
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint8(uint8(len(scenarios)))
+	for _, scenario := range scenarios {
 		bf.WriteUint32(scenario.MainID)
-		// if item exchange
-		if scenario.CategoryID == 3 || scenario.CategoryID == 6 || scenario.CategoryID == 7 {
+		// If item exchange
+		switch scenario.CategoryID {
+		case 3, 6, 7:
 			bf.WriteBool(true)
-		} else {
+		default:
 			bf.WriteBool(false)
 		}
 		bf.WriteUint8(scenario.CategoryID)
 	}
-
-	data := byteframe.NewByteFrame()
-	data.WriteUint8(scenarioCount)
-	data.WriteBytes(bf.Data())
-	doAckBufSucceed(s, pkt.AckHandle, data.Data())
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfGetEtcPoints(s *Session, p mhfpacket.MHFPacket) {

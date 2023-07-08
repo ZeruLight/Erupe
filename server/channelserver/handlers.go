@@ -794,7 +794,7 @@ func handleMsgMhfInfoScenarioCounter(s *Session, p mhfpacket.MHFPacket) {
 	if err != nil {
 		scenarioData.Close()
 		s.logger.Error("Failed to get scenario counter info from db", zap.Error(err))
-		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
+		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 1))
 		return
 	}
 	for scenarioData.Next() {
@@ -802,6 +802,7 @@ func handleMsgMhfInfoScenarioCounter(s *Session, p mhfpacket.MHFPacket) {
 		if err != nil {
 			continue
 		}
+		scenarios = append(scenarios, scenario)
 	}
 
 	// Trim excess scenarios

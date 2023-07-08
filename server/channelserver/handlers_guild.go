@@ -616,13 +616,7 @@ func handleMsgMhfOperateGuild(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfOperateGuild)
 
 	guild, err := GetGuildInfoByID(s, pkt.GuildID)
-
-	if err != nil {
-		return
-	}
-
 	characterGuildInfo, err := GetCharacterGuildData(s, s.charID)
-
 	if err != nil {
 		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 		return
@@ -631,22 +625,19 @@ func handleMsgMhfOperateGuild(s *Session, p mhfpacket.MHFPacket) {
 	bf := byteframe.NewByteFrame()
 
 	switch pkt.Action {
-	case mhfpacket.OPERATE_GUILD_DISBAND:
+	case mhfpacket.OperateGuildDisband:
+		response := 1
 		if guild.LeaderCharID != s.charID {
 			s.logger.Warn(fmt.Sprintf("character '%d' is attempting to manage guild '%d' without permission", s.charID, guild.ID))
-			return
+			response = 0
+		} else {
+			err = guild.Disband(s)
+			if err != nil {
+				response = 0
+			}
 		}
-
-		err = guild.Disband(s)
-		response := 0x01
-
-		if err != nil {
-			// All successful acks return 0x01, assuming 0x00 is failure
-			response = 0x00
-		}
-
 		bf.WriteUint32(uint32(response))
-	case mhfpacket.OPERATE_GUILD_RESIGN:
+	case mhfpacket.OperateGuildResign:
 		guildMembers, err := GetGuildMembers(s, guild.ID, false)
 		if err == nil {
 			sort.Slice(guildMembers[:], func(i, j int) bool {
@@ -665,25 +656,22 @@ func handleMsgMhfOperateGuild(s *Session, p mhfpacket.MHFPacket) {
 			}
 			guild.Save(s)
 		}
-	case mhfpacket.OPERATE_GUILD_APPLY:
+	case mhfpacket.OperateGuildApply:
 		err = guild.CreateApplication(s, s.charID, GuildApplicationTypeApplied, nil)
-
 		if err == nil {
 			bf.WriteUint32(guild.LeaderCharID)
+		} else {
+			bf.WriteUint32(0)
 		}
-	case mhfpacket.OPERATE_GUILD_LEAVE:
-		var err error
-
+	case mhfpacket.OperateGuildLeave:
 		if characterGuildInfo.IsApplicant {
 			err = guild.RejectApplication(s, s.charID)
 		} else {
 			err = guild.RemoveCharacter(s, s.charID)
 		}
-
-		response := 0x01
+		response := 1
 		if err != nil {
-			// All successful acks return 0x01, assuming 0x00 is failure
-			response = 0x00
+			response = 0
 		} else {
 			mail := Mail{
 				RecipientID:     s.charID,
@@ -693,26 +681,25 @@ func handleMsgMhfOperateGuild(s *Session, p mhfpacket.MHFPacket) {
 			}
 			mail.Send(s, nil)
 		}
-
 		bf.WriteUint32(uint32(response))
-	case mhfpacket.OPERATE_GUILD_DONATE_RANK:
+	case mhfpacket.OperateGuildDonateRank:
 		bf.WriteBytes(handleDonateRP(s, uint16(pkt.Data1.ReadUint32()), guild, false))
-	case mhfpacket.OPERATE_GUILD_SET_APPLICATION_DENY:
+	case mhfpacket.OperateGuildSetApplicationDeny:
 		s.server.db.Exec("UPDATE guilds SET recruiting=false WHERE id=$1", guild.ID)
-	case mhfpacket.OPERATE_GUILD_SET_APPLICATION_ALLOW:
+	case mhfpacket.OperateGuildSetApplicationAllow:
 		s.server.db.Exec("UPDATE guilds SET recruiting=true WHERE id=$1", guild.ID)
-	case mhfpacket.OPERATE_GUILD_SET_AVOID_LEADERSHIP_TRUE:
+	case mhfpacket.OperateGuildSetAvoidLeadershipTrue:
 		handleAvoidLeadershipUpdate(s, pkt, true)
-	case mhfpacket.OPERATE_GUILD_SET_AVOID_LEADERSHIP_FALSE:
+	case mhfpacket.OperateGuildSetAvoidLeadershipFalse:
 		handleAvoidLeadershipUpdate(s, pkt, false)
-	case mhfpacket.OPERATE_GUILD_UPDATE_COMMENT:
+	case mhfpacket.OperateGuildUpdateComment:
 		if !characterGuildInfo.IsLeader && !characterGuildInfo.IsSubLeader() {
 			doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 			return
 		}
 		guild.Comment = stringsupport.SJISToUTF8(pkt.Data2.ReadNullTerminatedBytes())
 		guild.Save(s)
-	case mhfpacket.OPERATE_GUILD_UPDATE_MOTTO:
+	case mhfpacket.OperateGuildUpdateMotto:
 		if !characterGuildInfo.IsLeader && !characterGuildInfo.IsSubLeader() {
 			doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 			return
@@ -721,27 +708,29 @@ func handleMsgMhfOperateGuild(s *Session, p mhfpacket.MHFPacket) {
 		guild.SubMotto = pkt.Data1.ReadUint8()
 		guild.MainMotto = pkt.Data1.ReadUint8()
 		guild.Save(s)
-	case mhfpacket.OPERATE_GUILD_RENAME_PUGI_1:
+	case mhfpacket.OperateGuildRenamePugi1:
 		handleRenamePugi(s, pkt.Data2, guild, 1)
-	case mhfpacket.OPERATE_GUILD_RENAME_PUGI_2:
+	case mhfpacket.OperateGuildRenamePugi2:
 		handleRenamePugi(s, pkt.Data2, guild, 2)
-	case mhfpacket.OPERATE_GUILD_RENAME_PUGI_3:
+	case mhfpacket.OperateGuildRenamePugi3:
 		handleRenamePugi(s, pkt.Data2, guild, 3)
-	case mhfpacket.OPERATE_GUILD_CHANGE_PUGI_1:
+	case mhfpacket.OperateGuildChangePugi1:
 		handleChangePugi(s, uint8(pkt.Data1.ReadUint32()), guild, 1)
-	case mhfpacket.OPERATE_GUILD_CHANGE_PUGI_2:
+	case mhfpacket.OperateGuildChangePugi2:
 		handleChangePugi(s, uint8(pkt.Data1.ReadUint32()), guild, 2)
-	case mhfpacket.OPERATE_GUILD_CHANGE_PUGI_3:
+	case mhfpacket.OperateGuildChangePugi3:
 		handleChangePugi(s, uint8(pkt.Data1.ReadUint32()), guild, 3)
-	case mhfpacket.OPERATE_GUILD_UNLOCK_OUTFIT:
+	case mhfpacket.OperateGuildUnlockOutfit:
 		// TODO: This doesn't implement blocking, if someone unlocked the same outfit at the same time
 		s.server.db.Exec(`UPDATE guilds SET pugi_outfits=pugi_outfits+$1 WHERE id=$2`, int(math.Pow(float64(pkt.Data1.ReadUint32()), 2)), guild.ID)
-	case mhfpacket.OPERATE_GUILD_DONATE_EVENT:
+	case mhfpacket.OperateGuildDonateRoom:
+		// TODO: Where does this go?
+	case mhfpacket.OperateGuildDonateEvent:
 		quantity := uint16(pkt.Data1.ReadUint32())
 		bf.WriteBytes(handleDonateRP(s, quantity, guild, true))
 		// TODO: Move this value onto rp_yesterday and reset to 0... daily?
 		s.server.db.Exec(`UPDATE guild_characters SET rp_today=rp_today+$1 WHERE character_id=$2`, quantity, s.charID)
-	case mhfpacket.OPERATE_GUILD_EVENT_EXCHANGE:
+	case mhfpacket.OperateGuildEventExchange:
 		rp := uint16(pkt.Data1.ReadUint32())
 		var balance uint32
 		s.server.db.QueryRow(`UPDATE guilds SET event_rp=event_rp-$1 WHERE id=$2 RETURNING event_rp`, rp, guild.ID).Scan(&balance)

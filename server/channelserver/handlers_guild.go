@@ -919,7 +919,12 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint8(guild.SubMotto)
 
 		// Unk appears to be static
-		bf.WriteBytes([]byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
+		bf.WriteUint8(0)
+		bf.WriteUint8(0)
+		bf.WriteUint8(0)
+		bf.WriteUint8(0)
+		bf.WriteUint8(0)
+		bf.WriteUint8(0)
 
 		bf.WriteBool(!guild.Recruiting)
 
@@ -954,10 +959,11 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint8(guild.PugiOutfit1)
 		bf.WriteUint8(guild.PugiOutfit2)
 		bf.WriteUint8(guild.PugiOutfit3)
-		// TODO: Skip if Diva Poogies don't exist yet
-		bf.WriteUint8(guild.PugiOutfit1)
-		bf.WriteUint8(guild.PugiOutfit2)
-		bf.WriteUint8(guild.PugiOutfit3)
+		if s.server.erupeConfig.RealClientMode >= _config.Z1 {
+			bf.WriteUint8(guild.PugiOutfit1)
+			bf.WriteUint8(guild.PugiOutfit2)
+			bf.WriteUint8(guild.PugiOutfit3)
+		}
 		bf.WriteUint32(guild.PugiOutfits)
 
 		if guild.Rank >= 3 {
@@ -972,7 +978,7 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 
 		bf.WriteUint32(55000)
 		bf.WriteUint32(0)
-		bf.WriteUint16(0)
+		bf.WriteUint16(0) // Changing Room RP
 		bf.WriteUint16(0)
 
 		if guild.AllianceID > 0 {
@@ -1365,7 +1371,7 @@ func handleMsgMhfEnumerateGuildMember(s *Session, p mhfpacket.MHFPacket) {
 	if guild != nil {
 		isApplicant, _ := guild.HasApplicationForCharID(s, s.charID)
 		if isApplicant {
-			doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
+			doAckBufSucceed(s, pkt.AckHandle, make([]byte, 2))
 			return
 		}
 	}
@@ -1407,7 +1413,9 @@ func handleMsgMhfEnumerateGuildMember(s *Session, p mhfpacket.MHFPacket) {
 	for _, member := range guildMembers {
 		bf.WriteUint32(member.CharID)
 		bf.WriteUint16(member.HRP)
-		bf.WriteUint16(member.GR)
+		if s.server.erupeConfig.RealClientMode > _config.G7 {
+			bf.WriteUint16(member.GR)
+		}
 		if s.server.erupeConfig.RealClientMode < _config.ZZ {
 			// Magnet Spike crash workaround
 			bf.WriteUint16(0)
@@ -1473,7 +1481,6 @@ func handleMsgMhfGetGuildManageRight(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetGuildManageRight)
 
 	guild, err := GetGuildInfoByCharacterId(s, s.charID)
-
 	if guild == nil && s.prevGuildID != 0 {
 		guild, err = GetGuildInfoByID(s, s.prevGuildID)
 		s.prevGuildID = 0
@@ -1483,31 +1490,14 @@ func handleMsgMhfGetGuildManageRight(s *Session, p mhfpacket.MHFPacket) {
 		}
 	}
 
-	if err != nil {
-		s.logger.Warn("failed to respond to manage rights message")
-		return
-	} else if guild == nil {
-		bf := byteframe.NewByteFrame()
-		bf.WriteUint16(0x00) // Unk
-		bf.WriteUint16(0x00) // Member count
-
-		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
-		return
-	}
-
 	bf := byteframe.NewByteFrame()
-
-	bf.WriteUint16(0x00) // Unk
-	bf.WriteUint16(guild.MemberCount)
-
+	bf.WriteUint32(uint32(guild.MemberCount))
 	members, _ := GetGuildMembers(s, guild.ID, false)
-
 	for _, member := range members {
 		bf.WriteUint32(member.CharID)
 		bf.WriteBool(member.Recruiter)
 		bf.WriteBytes(make([]byte, 3))
 	}
-
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 

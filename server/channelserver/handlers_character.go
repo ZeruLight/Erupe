@@ -151,7 +151,7 @@ func (save *CharacterSaveData) updateSaveDataWithStruct() {
 	if _config.ErupeConfig.RealClientMode == _config.ZZ {
 		copy(save.decompSave[pointerRP:pointerRP+2], rpBytes)
 		copy(save.decompSave[pointerKQF:pointerKQF+8], save.KQF)
-	} else {
+	} else if _config.ErupeConfig.RealClientMode >= _config.Z1 {
 		copy(save.decompSave[pointerRPZ:pointerRPZ+2], rpBytes)
 		copy(save.decompSave[pointerKQFZ:pointerKQFZ+8], save.KQF)
 	}
@@ -181,7 +181,7 @@ func (save *CharacterSaveData) updateStructWithSaveData() {
 				save.GR = grpToGR(binary.LittleEndian.Uint32(save.decompSave[pointerGRP : pointerGRP+4]))
 			}
 			save.KQF = save.decompSave[pointerKQF : pointerKQF+8]
-		} else {
+		} else if _config.ErupeConfig.RealClientMode >= _config.Z1 {
 			save.RP = binary.LittleEndian.Uint16(save.decompSave[pointerRPZ : pointerRPZ+2])
 			save.HouseTier = save.decompSave[pointerHouseTierZ : pointerHouseTierZ+5]
 			save.HouseData = save.decompSave[pointerHouseDataZ : pointerHouseDataZ+195]

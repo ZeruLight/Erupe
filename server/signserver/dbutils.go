@@ -131,9 +131,6 @@ func (s *Server) getFriendsForCharacters(chars []character) []members {
 		}
 		friends = append(friends, charFriends...)
 	}
-	if len(friends) > 255 { // Uint8
-		friends = friends[:255]
-	}
 	return friends
 }
 
@@ -153,14 +150,11 @@ func (s *Server) getGuildmatesForCharacters(chars []character) []members {
 			if err != nil {
 				continue
 			}
-			for i, _ := range charGuildmates {
+			for i := range charGuildmates {
 				charGuildmates[i].CID = char.ID
 			}
 			guildmates = append(guildmates, charGuildmates...)
 		}
-	}
-	if len(guildmates) > 255 { // Uint8
-		guildmates = guildmates[:255]
 	}
 	return guildmates
 }

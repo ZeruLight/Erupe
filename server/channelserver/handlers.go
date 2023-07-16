@@ -552,10 +552,6 @@ func handleMsgSysInfokyserver(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfGetCaUniqueID(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfEnumerateItem(s *Session, p mhfpacket.MHFPacket) {}
-
-func handleMsgMhfAcquireItem(s *Session, p mhfpacket.MHFPacket) {}
-
 func handleMsgMhfTransferItem(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfTransferItem)
 	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})

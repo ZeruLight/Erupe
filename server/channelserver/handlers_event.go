@@ -48,9 +48,41 @@ func handleMsgMhfReleaseEvent(s *Session, p mhfpacket.MHFPacket) {
 	})
 }
 
+type Event struct {
+	Unk0 uint16
+	Unk1 uint16
+	Unk2 uint16
+	Unk3 uint16
+	Unk4 uint16
+	Unk5 uint32
+	Unk6 uint32
+	Unk7 []uint16
+}
+
 func handleMsgMhfEnumerateEvent(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateEvent)
-	stubEnumerateNoResults(s, pkt.AckHandle)
+	bf := byteframe.NewByteFrame()
+
+	events := []Event{}
+
+	bf.WriteUint8(uint8(len(events)))
+	for _, event := range events {
+		bf.WriteUint16(event.Unk0)
+		bf.WriteUint16(event.Unk1)
+		bf.WriteUint16(event.Unk2)
+		bf.WriteUint16(event.Unk3)
+		bf.WriteUint16(event.Unk4)
+		bf.WriteUint32(event.Unk5)
+		bf.WriteUint32(event.Unk6)
+		if event.Unk0 == 2 {
+			bf.WriteUint8(uint8(len(event.Unk7)))
+			for _, u := range event.Unk7 {
+				bf.WriteUint16(u)
+			}
+		}
+	}
+
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 type activeFeature struct {

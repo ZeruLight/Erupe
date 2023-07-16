@@ -10,9 +10,9 @@ import (
 
 // MsgMhfStateCampaign represents the MSG_MHF_STATE_CAMPAIGN
 type MsgMhfStateCampaign struct {
-	AckHandle uint32
-	Unk0      uint32
-	Unk1      uint16
+	AckHandle  uint32
+	CampaignID uint32
+	Unk1       uint16
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -23,7 +23,7 @@ func (m *MsgMhfStateCampaign) Opcode() network.PacketID {
 // Parse parses the packet from binary
 func (m *MsgMhfStateCampaign) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
-	m.Unk0 = bf.ReadUint32()
+	m.CampaignID = bf.ReadUint32()
 	m.Unk1 = bf.ReadUint16()
 	return nil
 }

@@ -108,10 +108,12 @@ func handleMsgMhfEnumerateCampaign(s *Session, p mhfpacket.MHFPacket) {
 	for _, category := range categories {
 		bf.WriteUint16(category.ID)
 		bf.WriteUint8(category.Type)
-		bf.WriteUint8(uint8(len(category.Title)))
-		bf.WriteUint8(uint8(len(category.Description)))
-		bf.WriteBytes(stringsupport.UTF8ToSJIS(category.Title))
-		bf.WriteBytes(stringsupport.UTF8ToSJIS(category.Description))
+		xTitle := stringsupport.UTF8ToSJIS(category.Title)
+		xDescription := stringsupport.UTF8ToSJIS(category.Description)
+		bf.WriteUint8(uint8(len(xTitle)))
+		bf.WriteUint8(uint8(len(xDescription)))
+		bf.WriteBytes(xTitle)
+		bf.WriteBytes(xDescription)
 	}
 
 	if len(campaignLinks) > 255 {
@@ -130,7 +132,7 @@ func handleMsgMhfEnumerateCampaign(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfStateCampaign(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfStateCampaign)
 	bf := byteframe.NewByteFrame()
-	bf.WriteUint16(0)
+	bf.WriteUint16(1)
 	bf.WriteUint16(0)
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }

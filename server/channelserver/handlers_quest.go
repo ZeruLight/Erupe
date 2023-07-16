@@ -45,15 +45,11 @@ func handleMsgSysGetFile(s *Session, p mhfpacket.MHFPacket) {
 			)
 		}
 
-		// Get quest file and convert to season if the option is enabled
-		var data []byte
-		var err error
-
 		if s.server.erupeConfig.DevModeOptions.DynamicSeasons && s.server.erupeConfig.DevMode {
-			seasonConversion(s, pkt.Filename)
+			pkt.Filename = seasonConversion(s, pkt.Filename)
 		}
 
-		data, err = os.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("quests/%s.bin", pkt.Filename)))
+		data, err := os.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("quests/%s.bin", pkt.Filename)))
 		if err != nil {
 			s.logger.Error(fmt.Sprintf("Failed to open file: %s/quests/%s.bin", s.server.erupeConfig.BinPath, pkt.Filename))
 			// This will crash the game.

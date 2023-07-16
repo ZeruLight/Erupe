@@ -51,31 +51,31 @@ This portion of the documentation goes over the `config.json` file.
 | PatchServerFile        |                                                                                                                                                       |           |                                 |
 | ScreenshotAPIURL       | This is the URL you want user sreenshots to go to                                                                                                     |           |                                 |
 | DeleteOnSaveCorruption | This option deletes a users save from the database if they corrupt it, can be used as punishment for cheaters                                         | false     |                                 |
-| ClientMode             | This tells the server what client it should run for                                                                                                   | ZZ        | Check compatible versions above |
+| ClientMode             | This tells the server what client version it should target                                                                                            | ZZ        | Check compatible versions above |
 | DevMode                | This enables DevModeOptions to be configured                                                                                                          | true      |                                 |
 
 ### `DevModeOptions` Configuraiton
 
-| Variable             | Description                                                                                        | Default  | Options                          |
-|----------------------|----------------------------------------------------------------------------------------------------|----------|----------------------------------|
-| AutoCreateAccount    | This allows users that don't exist to auto create there account from initial login                 | true     |                                  |
-| CleanDB              | This cleans the database down                                                                      | false    |                                  |
-| MaxLauncherHR        | This sets the launcher value to HR7 to allow you to break World HR requirements                    | false    |                                  |
-| LogInboundMessages   | This will allow inbound messages to be logged in the stdout terminal you run the applicaiton from  | false    |                                  |
-| LogOutboundMessages  | This will allow outbound messages to be logged in the stdout terminal you run the applicaiton from | false    |                                  |
-| MaxHexdumpLength     | This is the maximum amount of hex that will be dumped to stdout along side a message               | 0        |                                  |
-| DivaEvent            | This overrides the Diva event stage in game                                                        | 2        | 0/1/2/3/-1                       |
-| FestaEvent           | This overrides the Hunter Festival event stage in game                                             | 2        | 0/1/2/3/-1                       |
-| TournamentEvent      | This overrides the Hunter Tournament event stage in game                                           | 2        | 0/1/2/3/-1                       |
-| MezFesEvent          | Enables whether the MezFes event & World are active                                                | true     |                                  |
-| MezFesAlt            | Switches the multiplayer MezFes event                                                              | false    |                                  |
-| DisableTokenCheck    | This disables the random token that is generated at login from being checked, very insecure        | false    |                                  |
-| QuestDebugTools      | Enable various quest debug logs                                                                    | false    |                                  |
-| EarthStatusOverride  | Enables Pallone Fest, Tower and Conquest War events                                                | 0        | 2=Conquest, 11=Pallone, 21=Tower |
-| EarthIDOverride      | A random event ID                                                                                  | 0        |                                  |
-| EarthMonsterOverride | Sets the ID of the monster targeted in the Conquest War                                            | 0        |                                  |
-| SaveDumps.Enables    | Enables save dumps to a folder that is set at `SaveDumps.OutputDir`                                | true     |                                  |
-| SaveDumps.OutputDir  | The folder that save dumps are saved to                                                            | savedata |                                  |
+| Variable             | Description                                                                                 | Default  | Options                          |
+|----------------------|---------------------------------------------------------------------------------------------|----------|----------------------------------|
+| AutoCreateAccount    | This allows users that don't exist to auto create there account from initial login          | true     |                                  |
+| CleanDB              | This cleans the database down                                                               | false    |                                  |
+| MaxLauncherHR        | This sets the launcher value to HR7 to allow you to break World HR requirements             | false    |                                  |
+| LogInboundMessages   | This will allow inbound messages to be logged to stdout                                     | false    |                                  |
+| LogOutboundMessages  | This will allow outbound messages to be logged to stdout                                    | false    |                                  |
+| MaxHexdumpLength     | This is the maximum amount of hex bytes that will be dumped to stdout                       | 0        |                                  |
+| DivaEvent            | This overrides the Diva event stage in game                                                 | 2        | 0/1/2/3/-1                       |
+| FestaEvent           | This overrides the Hunter Festival event stage in game                                      | 2        | 0/1/2/3/-1                       |
+| TournamentEvent      | This overrides the Hunter Tournament event stage in game                                    | 2        | 0/1/2/3/-1                       |
+| MezFesEvent          | Enables whether the MezFes event & World are active                                         | true     |                                  |
+| MezFesAlt            | Switches the multiplayer MezFes event                                                       | false    |                                  |
+| DisableTokenCheck    | This disables the random token that is generated at login from being checked, very insecure | false    |                                  |
+| QuestDebugTools      | Enable various quest debug logs                                                             | false    |                                  |
+| EarthStatusOverride  | Enables Pallone Fest, Tower and Conquest War events                                         | 0        | 2=Conquest, 11=Pallone, 21=Tower |
+| EarthIDOverride      | A random event ID                                                                           | 0        |                                  |
+| EarthMonsterOverride | Sets the ID of the monster targeted in the Conquest War                                     | 0        |                                  |
+| SaveDumps.Enables    | Enables save dumps to a folder that is set at `SaveDumps.OutputDir`                         | true     |                                  |
+| SaveDumps.OutputDir  | The folder that save dumps are saved to                                                     | savedata |                                  |
 
 ### `GameplayOptions` Configuraiton
 
@@ -111,23 +111,23 @@ This may be either be removed or revamped in a future version.
 ### Commands
 There are several chat commands that can be turned on and off. Most of them are really for admins or debugging purposes.
 
-| Name     | command        | Description                                             | Options             |
-|----------|----------------|---------------------------------------------------------|---------------------|
-| Rights   | !rights        | Changes rights interger to specifc interger             |                     |
-| Teleport | !tele          | Teleports user to specific x,y,z                        |                     |
-| Reload   | !reload        | Flush all objects and users and reload stage you are on |                     |
-| KeyQuest | !kqf           |                                                         |                     |
-| Course   | !course OPTION | Changes the players course                              | HL,EX,Premium,Boost |
-| PSN      | !psn  USERNAME | Links Erupe account to PSN                              |                     |
+| Name     | command        | Description                                | Options             |
+|----------|----------------|--------------------------------------------|---------------------|
+| Rights   | !rights VALUE  | Sets the rights integer for your account   |                     |
+| Teleport | !tele X,Y      | Teleports user to specific x,y coordinate  |                     |
+| Reload   | !reload        | Reloads all users and character objects    |                     |
+| KeyQuest | !kqf FLAGS     | Sets the Key Quest Flag for your character |                     |
+| Course   | !course OPTION | Enables/Disables a course for your account | HL,EX,Premium,Boost |
+| PSN      | !psn  USERNAME | Links the specified PSN to your account    |                     |
 
 ### Ravi Sub Commands
 | Name     | command                          | Description                   |
 |----------|----------------------------------|-------------------------------|
 | Raviente | !ravi start                      | Starts Ravi Event             |
-| Raviente | !ravi cm / !ravi checkmultiplier | Checks Ravi health multiplier |
-| Raviente | !ravi ss                         | Send sedation                 |
-| Raviente | !ravi sr                         | Send resurrection             |
-| Raviente | !ravi rs                         | Request sedation              |
+| Raviente | !ravi cm / !ravi checkmultiplier | Checks Ravi Damage Multiplier |
+| Raviente | !ravi ss                         | Send Sedation Support         |
+| Raviente | !ravi sr                         | Send Resurrection Support     |
+| Raviente | !ravi rs                         | Request Sedation Support      |
 
 
 ## World `Entries` config

@@ -111,9 +111,9 @@
   ],
   "Database": {
     "Host": "localhost",
-    "Port": 5433,
+    "Port": 5432,
     "User": "postgres",
-    "Password": "admin",
+    "Password": "",
     "Database": "erupe"
   },
   "Sign": {
@@ -136,13 +136,6 @@
         "Channels": [
           { "Port": 54001, "MaxPlayers": 100 },
           { "Port": 54002, "MaxPlayers": 100 }
-        ]
-      },
-      {
-        "Name": "Newbie 2", "Description": "", "IP": "", "Type": 3, "Recommended": 2, "AllowedClientFlags": 0,
-        "Channels": [
-          { "Port": 54009, "MaxPlayers": 100 },
-          { "Port": 54010, "MaxPlayers": 100 }
         ]
       }, {
         "Name": "Normal", "Description": "", "IP": "", "Type": 1, "Recommended": 0, "AllowedClientFlags": 0,

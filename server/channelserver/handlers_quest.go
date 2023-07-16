@@ -38,73 +38,52 @@ func handleMsgSysGetFile(s *Session, p mhfpacket.MHFPacket) {
 		}
 		doAckBufSucceed(s, pkt.AckHandle, data)
 	} else {
-		if _, err := os.Stat(filepath.Join(s.server.erupeConfig.BinPath, "quest_override.bin")); err == nil {
-			data, err := os.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, "quest_override.bin"))
-			if err != nil {
-				panic(err)
-			}
-			doAckBufSucceed(s, pkt.AckHandle, data)
-		} else {
-			if s.server.erupeConfig.DevModeOptions.QuestDebugTools && s.server.erupeConfig.DevMode {
-				s.logger.Debug(
-					"Quest",
-					zap.String("Filename", pkt.Filename),
-				)
-			}
-
-			// Get quest file and convert to season if the option is enabled
-			var data []byte
-			var err error
-
-			if s.server.erupeConfig.DevModeOptions.DynamicSeasons {
-				data, err = os.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("quests/%s.bin", pkt.Filename)))
-			} else {
-				data, err = os.ReadFile(seasonConversion(s, filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("quests/%s.bin", pkt.Filename))))
-			}
-
-			// convert based on season
-
-			if err != nil {
-				s.logger.Error(fmt.Sprintf("Failed to open file: %s/quests/%s.bin", s.server.erupeConfig.BinPath, pkt.Filename))
-				// This will crash the game.
-				doAckBufSucceed(s, pkt.AckHandle, data)
-				return
-			}
-			doAckBufSucceed(s, pkt.AckHandle, data)
+		if s.server.erupeConfig.DevModeOptions.QuestDebugTools && s.server.erupeConfig.DevMode {
+			s.logger.Debug(
+				"Quest",
+				zap.String("Filename", pkt.Filename),
+			)
 		}
+
+		// Get quest file and convert to season if the option is enabled
+		var data []byte
+		var err error
+
+		if s.server.erupeConfig.DevModeOptions.DynamicSeasons && s.server.erupeConfig.DevMode {
+			seasonConversion(s, pkt.Filename)
+		}
+
+		data, err = os.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("quests/%s.bin", pkt.Filename)))
+		if err != nil {
+			s.logger.Error(fmt.Sprintf("Failed to open file: %s/quests/%s.bin", s.server.erupeConfig.BinPath, pkt.Filename))
+			// This will crash the game.
+			doAckBufSucceed(s, pkt.AckHandle, data)
+			return
+		}
+		doAckBufSucceed(s, pkt.AckHandle, data)
 	}
 }
 
-// Convert the file to load based on the season
-func seasonConversion(s *Session, questPath string) string {
-
-	// remove the last 6 from the quest path
-	newQuestPath := questPath[:len(questPath)-6]
-
-	// Determine if it is day or night based on the current day of the season
-	timeCycle := uint8(time.Now().Unix()/3000) % 2
-
-	// Determine the current season based on a modulus of the current time
-	sid := (4096 + s.server.ID*256) * 6000
-
-	season := uint8((int(float64((time.Now().Unix() * int64(sid)) / (6000 * 15)))) % 3)
-
-	var timeSet string
-
+func seasonConversion(s *Session, questFile string) string {
 	// Determine the letter to append for day / night
-	if timeCycle == 0 {
-		timeSet = "n"
-	} else {
+	var timeSet string
+	if TimeGameAbsolute() > 2880 {
 		timeSet = "d"
+	} else {
+		timeSet = "n"
 	}
 
-	fileName := fmt.Sprintf("%s%s%d.bin", newQuestPath, timeSet, season)
+	// Determine the current season based on a modulus of the current time
+	sid := int64(((s.server.ID & 0xFF00) - 4096) / 256)
+	season := ((TimeAdjusted().Unix() / 86400) + sid) % 3
 
-	// Return the original if the season-based file does not exist for some reason
-	if _, err := os.Stat(fileName); err == nil {
-		return fileName
+	filename := fmt.Sprintf("%s%s%d", questFile[:5], timeSet, season)
+
+	// Return original file if file doesn't exist
+	if _, err := os.Stat(filename); err == nil {
+		return filename
 	} else {
-		return questPath
+		return questFile
 	}
 }
 
@@ -126,10 +105,10 @@ func handleMsgMhfSaveFavoriteQuest(s *Session, p mhfpacket.MHFPacket) {
 	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
-func readOriginalPointers(string_pointer int32, quest []byte) []byte {
+func readOriginalPointers(stringPointer int32, quest []byte) []byte {
 	fileBytes := byteframe.NewByteFrameFromBytes(quest)
 	fileBytes.SetLE()
-	fileBytes.Seek(int64(string_pointer), io.SeekStart)
+	fileBytes.Seek(int64(stringPointer), io.SeekStart)
 
 	questNamePointer := fileBytes.ReadInt32()
 	questMainPointer := fileBytes.ReadInt32()

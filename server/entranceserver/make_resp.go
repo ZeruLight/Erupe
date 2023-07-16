@@ -3,12 +3,10 @@ package entranceserver
 import (
 	"encoding/binary"
 	"encoding/hex"
+	"erupe-ce/common/stringsupport"
 	_config "erupe-ce/config"
 	"fmt"
 	"net"
-	"time"
-
-	"erupe-ce/common/stringsupport"
 
 	"erupe-ce/common/byteframe"
 	"erupe-ce/server/channelserver"
@@ -33,9 +31,8 @@ func encodeServerInfo(config *_config.Config, s *Server, local bool) []byte {
 				continue
 			}
 		}
+
 		sid := (4096 + serverIdx*256) * 6000
-		//season := (uint8(float64((time.Now().Unix() + int64(sid)) / 1000))) % 3
-		season := uint8((int(float64((time.Now().Unix() * int64(sid)) / (6000 * 15)))) % 3)
 		if si.IP == "" {
 			si.IP = config.Host
 		}
@@ -48,7 +45,7 @@ func encodeServerInfo(config *_config.Config, s *Server, local bool) []byte {
 		bf.WriteUint16(0x0000)
 		bf.WriteUint16(uint16(len(si.Channels)))
 		bf.WriteUint8(si.Type)
-		bf.WriteUint8(season)
+		bf.WriteUint8(uint8(((channelserver.TimeAdjusted().Unix() / 86400) + int64(serverIdx)) % 3))
 		bf.WriteUint8(si.Recommended)
 
 		if s.erupeConfig.RealClientMode <= _config.GG {

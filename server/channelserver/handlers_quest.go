@@ -45,7 +45,7 @@ func handleMsgSysGetFile(s *Session, p mhfpacket.MHFPacket) {
 			)
 		}
 
-		if s.server.erupeConfig.DevModeOptions.DynamicSeasons && s.server.erupeConfig.DevMode {
+		if s.server.erupeConfig.GameplayOptions.SeasonOverride {
 			pkt.Filename = seasonConversion(s, pkt.Filename)
 		}
 
@@ -69,11 +69,7 @@ func seasonConversion(s *Session, questFile string) string {
 		timeSet = "n"
 	}
 
-	// Determine the current season based on a modulus of the current time
-	sid := int64(((s.server.ID & 0xFF00) - 4096) / 256)
-	season := ((TimeAdjusted().Unix() / 86400) + sid) % 3
-
-	filename := fmt.Sprintf("%s%s%d", questFile[:5], timeSet, season)
+	filename := fmt.Sprintf("%s%s%d", questFile[:5], timeSet, s.server.Season())
 
 	// Return original file if file doesn't exist
 	if _, err := os.Stat(filename); err == nil {

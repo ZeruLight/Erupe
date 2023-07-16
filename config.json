@@ -29,7 +29,6 @@
     "QuestDebugTools": false,
     "EarthStatusOverride": 0,
     "EarthIDOverride": 0,
-    "DynamicSeasons": true,
     "EarthMonsterOverride": 0,
     "SaveDumps": {
       "Enabled": true,
@@ -58,7 +57,8 @@
     "DisableHunterNavi": false,
     "EnableHiganjimaEvent": false,
     "EnableNierEvent": false,
-    "DisableRoad": false
+    "DisableRoad": false,
+    "SeasonOverride": false
   },
   "Discord": {
     "Enabled": false,

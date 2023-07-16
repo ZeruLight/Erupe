@@ -110,7 +110,6 @@ type DevModeOptions struct {
 	QuestDebugTools      bool // Enable various quest debug logs
 	EarthStatusOverride  int32
 	EarthIDOverride      int32
-	DynamicSeasons       bool // Enables dynamic seasons
 	EarthMonsterOverride int32
 	SaveDumps            SaveDumpOptions
 }
@@ -144,6 +143,7 @@ type GameplayOptions struct {
 	EnableHiganjimaEvent bool    // Enables the Higanjima event in the Rasta Bar
 	EnableNierEvent      bool    // Enables the Nier event in the Rasta Bar
 	DisableRoad          bool    // Disables the Hunting Road
+	SeasonOverride       bool    // Overrides the Quest Season with the current Mezeporta Season
 }
 
 // Discord holds the discord integration config.

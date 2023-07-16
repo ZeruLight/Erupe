@@ -97,64 +97,48 @@ func handleMsgMhfSaveFavoriteQuest(s *Session, p mhfpacket.MHFPacket) {
 	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
+type QuestMeta struct {
+	pointers []int32
+	strings  [][]byte
+}
+
 func readOriginalPointers(stringPointer int32, quest []byte) []byte {
 	fileBytes := byteframe.NewByteFrameFromBytes(quest)
 	fileBytes.SetLE()
 	fileBytes.Seek(int64(stringPointer), io.SeekStart)
 
-	questNamePointer := fileBytes.ReadInt32()
-	questMainPointer := fileBytes.ReadInt32()
-	questAPointer := fileBytes.ReadInt32()
-	questBPointer := fileBytes.ReadInt32()
-	questClearPointer := fileBytes.ReadInt32()
-	questFailurePointer := fileBytes.ReadInt32()
-	questContractorPointer := fileBytes.ReadInt32()
-	questDescriptionPointer := fileBytes.ReadInt32()
+	stringMeta := QuestMeta{
+		pointers: make([]int32, 8),
+		strings:  make([][]byte, 8),
+	}
 
-	// Read the strings in order to determine the length of the new string pointers for use in the new offsets
-	// It must seek to each initial pointer since the order is not consistent.
-	fileBytes.Seek(int64(questNamePointer), io.SeekStart)
-	questNameString := fileBytes.ReadNullTerminatedBytes()
-	fileBytes.Seek(int64(questMainPointer), io.SeekStart)
-	questMainString := fileBytes.ReadNullTerminatedBytes()
-	fileBytes.Seek(int64(questAPointer), io.SeekStart)
-	questAString := fileBytes.ReadNullTerminatedBytes()
-	fileBytes.Seek(int64(questBPointer), io.SeekStart)
-	questBString := fileBytes.ReadNullTerminatedBytes()
-	fileBytes.Seek(int64(questClearPointer), io.SeekStart)
-	questClearString := fileBytes.ReadNullTerminatedBytes()
-	fileBytes.Seek(int64(questFailurePointer), io.SeekStart)
-	questFailureString := fileBytes.ReadNullTerminatedBytes()
-	fileBytes.Seek(int64(questContractorPointer), io.SeekStart)
-	questContractorString := fileBytes.ReadNullTerminatedBytes()
-	fileBytes.Seek(int64(questDescriptionPointer), io.SeekStart)
-	questDescriptionString := fileBytes.ReadNullTerminatedBytes()
+	for i := 0; i < 8; i++ {
+		stringMeta.pointers[i] = fileBytes.ReadInt32()
+	}
 
-	pointerStart := 352
+	for i := 0; i < 8; i++ {
+		fileBytes.Seek(int64(stringMeta.pointers[i]), io.SeekStart)
+		stringMeta.strings[i] = fileBytes.ReadNullTerminatedBytes()
+	}
 
 	newPointers := byteframe.NewByteFrame()
 	newPointers.SetLE()
 
-	newPointers.WriteInt32(int32(pointerStart))
-	newPointers.WriteInt32(int32(pointerStart + len(questNameString) + 1))
-	newPointers.WriteInt32(int32(pointerStart + len(questNameString) + len(questMainString) + 2))
-	newPointers.WriteInt32(int32(pointerStart + len(questNameString) + len(questMainString) + len(questAString) + 3))
-	newPointers.WriteInt32(int32(pointerStart + len(questNameString) + len(questMainString) + len(questAString) + len(questBString) + 4))
-	newPointers.WriteInt32(int32(pointerStart + len(questNameString) + len(questMainString) + len(questAString) + len(questBString) + len(questClearString) + 5))
-	newPointers.WriteInt32(int32(pointerStart + len(questNameString) + len(questMainString) + len(questAString) + len(questBString) + len(questClearString) + len(questFailureString) + 6))
-	newPointers.WriteInt32(int32(pointerStart + len(questNameString) + len(questMainString) + len(questAString) + len(questBString) + len(questClearString) + len(questFailureString) + len(questContractorString) + 7))
+	// write the new string pointers
+	for i := 0; i < 8; i++ {
+		length := 352
+		for j := 0; j < i; j++ {
+			length += len(stringMeta.strings[j]) + 1
+		}
+		newPointers.WriteInt32(int32(length))
+	}
 
-	newPointers.WriteNullTerminatedBytes(questNameString)
-	newPointers.WriteNullTerminatedBytes(questMainString)
-	newPointers.WriteNullTerminatedBytes(questAString)
-	newPointers.WriteNullTerminatedBytes(questBString)
-	newPointers.WriteNullTerminatedBytes(questClearString)
-	newPointers.WriteNullTerminatedBytes(questFailureString)
-	newPointers.WriteNullTerminatedBytes(questContractorString)
-	newPointers.WriteNullTerminatedBytes(questDescriptionString)
+	for i := 0; i < 8; i++ {
+		newPointers.WriteNullTerminatedBytes(stringMeta.strings[i])
+	}
 
-	newPointers.WriteUint8(18)
-	newPointers.WriteBytes([]byte{0x83, 0x59, 0x89, 0x5B, 0x83, 0x3A, 0x58, 0xB6, 0x8E, 0x59, 0x82, 0xCC, 0x83, 0x58, 0x83, 0x58, 0x83, 0x81})
+	newPointers.WriteUint8(1)
+	newPointers.WriteInt8(0x00)
 
 	return newPointers.Data()
 }

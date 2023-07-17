@@ -4,6 +4,7 @@ import (
 	"database/sql"
 	"erupe-ce/common/byteframe"
 	"erupe-ce/common/decryption"
+	ps "erupe-ce/common/pascalstring"
 	"erupe-ce/network/mhfpacket"
 	"fmt"
 	"io"
@@ -97,81 +98,62 @@ func handleMsgMhfSaveFavoriteQuest(s *Session, p mhfpacket.MHFPacket) {
 	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
-type QuestMeta struct {
-	pointers []int32
-	strings  [][]byte
-}
-
-func readOriginalPointers(stringPointer int32, quest []byte) []byte {
+func readOriginalPointers(pointer int64, quest []byte) []byte {
 	fileBytes := byteframe.NewByteFrameFromBytes(quest)
 	fileBytes.SetLE()
-	fileBytes.Seek(int64(stringPointer), io.SeekStart)
+	fileBytes.Seek(pointer, 0)
 
-	stringMeta := QuestMeta{
-		pointers: make([]int32, 8),
-		strings:  make([][]byte, 8),
+	questMeta := struct {
+		pointers []int64
+		strings  [][]byte
+	}{
+		make([]int64, 8),
+		make([][]byte, 8),
 	}
 
 	for i := 0; i < 8; i++ {
-		stringMeta.pointers[i] = fileBytes.ReadInt32()
+		questMeta.pointers[i] = int64(fileBytes.ReadUint32())
 	}
-
 	for i := 0; i < 8; i++ {
-		fileBytes.Seek(int64(stringMeta.pointers[i]), io.SeekStart)
-		stringMeta.strings[i] = fileBytes.ReadNullTerminatedBytes()
+		fileBytes.Seek(questMeta.pointers[i], 0)
+		questMeta.strings[i] = fileBytes.ReadNullTerminatedBytes()
 	}
 
 	newPointers := byteframe.NewByteFrame()
 	newPointers.SetLE()
-
-	// write the new string pointers
 	for i := 0; i < 8; i++ {
 		length := 352
 		for j := 0; j < i; j++ {
-			length += len(stringMeta.strings[j]) + 1
+			length += len(questMeta.strings[j]) + 1
 		}
-		newPointers.WriteInt32(int32(length))
+		newPointers.WriteUint32(uint32(length))
 	}
-
 	for i := 0; i < 8; i++ {
-		newPointers.WriteNullTerminatedBytes(stringMeta.strings[i])
+		newPointers.WriteNullTerminatedBytes(questMeta.strings[i])
 	}
-
-	newPointers.WriteUint8(1)
-	newPointers.WriteInt8(0x00)
-
+	ps.Uint8(newPointers, "", true) // Unused developer comment section?
 	return newPointers.Data()
 }
 
 func loadQuestFile(s *Session, questId string) []byte {
 	file, err := os.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("quests/%s.bin", questId)))
-
 	if err != nil {
 		return nil
 	}
 
 	decrypted := decryption.UnpackSimple(file)
-
 	fileBytes := byteframe.NewByteFrameFromBytes(decrypted)
 	fileBytes.SetLE()
-	fileBytes.Seek(0, io.SeekStart)
-
-	dataPointer := fileBytes.ReadInt32()
-	fileBytes.Seek(int64(dataPointer), io.SeekStart)
+	fileBytes.Seek(int64(fileBytes.ReadInt32()), io.SeekStart)
 
 	// The 320 bytes directly following the data pointer must go directly into the event's body, after the header and before the string pointers.
 	questBody := byteframe.NewByteFrameFromBytes(fileBytes.ReadBytes(320))
 	questBody.SetLE()
 	questBody.Seek(40, io.SeekStart)
-
-	strings := readOriginalPointers(questBody.ReadInt32(), decrypted)
-
-	body := byteframe.NewByteFrame()
-	body.WriteBytes(questBody.Data())
-	body.Seek(0, io.SeekEnd)
-	body.WriteBytes(strings)
-
-	return body.Data()
+	strings := readOriginalPointers(int64(questBody.ReadUint32()), decrypted)
+	questBody.Seek(0, 2)
+	questBody.WriteBytes(strings)
+	return questBody.Data()
 }
 
 func makeEventQuest(s *Session, rows *sql.Rows) ([]byte, error) {

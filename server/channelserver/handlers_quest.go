@@ -61,7 +61,7 @@ func handleMsgSysGetFile(s *Session, p mhfpacket.MHFPacket) {
 	}
 }
 
-func seasonConversion(s *Session, questFile string) string {
+func questSuffix(s *Session) string {
 	// Determine the letter to append for day / night
 	var timeSet string
 	if TimeGameAbsolute() > 2880 {
@@ -69,8 +69,11 @@ func seasonConversion(s *Session, questFile string) string {
 	} else {
 		timeSet = "n"
 	}
+	return fmt.Sprintf("%s%d", timeSet, s.server.Season())
+}
 
-	filename := fmt.Sprintf("%s%s%d", questFile[:5], timeSet, s.server.Season())
+func seasonConversion(s *Session, questFile string) string {
+	filename := fmt.Sprintf("%s%s", questFile[:5], questSuffix(s))
 
 	// Return original file if file doesn't exist
 	if _, err := os.Stat(filename); err == nil {

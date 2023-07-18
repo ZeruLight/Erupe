@@ -118,6 +118,7 @@ func loadQuestFile(s *Session, questId int) []byte {
 	// Find the master quest string pointer
 	questBody.Seek(40, 0)
 	fileBytes.Seek(int64(questBody.ReadUint32()), 0)
+	questBody.Seek(40, 0)
 	// Overwrite it
 	questBody.WriteUint32(320)
 	questBody.Seek(0, 2)

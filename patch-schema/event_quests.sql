@@ -9,4 +9,6 @@ create table if not exists event_quests
     mark integer
 );
 
+ALTER TABLE IF EXISTS public.servers DROP COLUMN IF EXISTS season;
+
 END;

@@ -98,8 +98,8 @@ func handleMsgMhfSaveFavoriteQuest(s *Session, p mhfpacket.MHFPacket) {
 	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
-func loadQuestFile(s *Session, questFile string) []byte {
-	file, err := os.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("quests/%s.bin", questFile)))
+func loadQuestFile(s *Session, questId int) []byte {
+	file, err := os.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("quests/%05dd0.bin", questId)))
 	if err != nil {
 		return nil
 	}
@@ -143,7 +143,7 @@ func makeEventQuest(s *Session, rows *sql.Rows) ([]byte, error) {
 	var maxPlayers, questType, mark uint8
 	rows.Scan(&id, &maxPlayers, &questType, &questId, &mark)
 
-	data := loadQuestFile(s, fmt.Sprintf("%05dd0", questId))
+	data := loadQuestFile(s, questId)
 	if data == nil {
 		return nil, fmt.Errorf("failed to load quest file")
 	}

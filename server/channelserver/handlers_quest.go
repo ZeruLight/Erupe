@@ -124,11 +124,11 @@ func loadQuestFile(s *Session, questId int) []byte {
 	newStrings := byteframe.NewByteFrame()
 	tempPointer := 352
 	for i := 0; i < 8; i++ {
+		questBody.WriteUint32(uint32(tempPointer))
 		temp := int64(fileBytes.Index())
 		fileBytes.Seek(int64(fileBytes.ReadUint32()), 0)
 		tempString = fileBytes.ReadNullTerminatedBytes()
-		fileBytes.Seek(temp, 0)
-		questBody.WriteUint32(uint32(tempPointer + len(tempString) + 1))
+		fileBytes.Seek(temp+4, 0)
 		tempPointer += len(tempString) + 1
 		newStrings.WriteNullTerminatedBytes(tempString)
 	}

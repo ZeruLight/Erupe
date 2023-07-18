@@ -98,45 +98,8 @@ func handleMsgMhfSaveFavoriteQuest(s *Session, p mhfpacket.MHFPacket) {
 	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
-func readOriginalPointers(pointer int64, quest []byte) []byte {
-	fileBytes := byteframe.NewByteFrameFromBytes(quest)
-	fileBytes.SetLE()
-	fileBytes.Seek(pointer, 0)
-
-	questMeta := struct {
-		pointers []int64
-		strings  [][]byte
-	}{
-		make([]int64, 8),
-		make([][]byte, 8),
-	}
-
-	for i := 0; i < 8; i++ {
-		questMeta.pointers[i] = int64(fileBytes.ReadUint32())
-	}
-	for i := 0; i < 8; i++ {
-		fileBytes.Seek(questMeta.pointers[i], 0)
-		questMeta.strings[i] = fileBytes.ReadNullTerminatedBytes()
-	}
-
-	newPointers := byteframe.NewByteFrame()
-	newPointers.SetLE()
-	for i := 0; i < 8; i++ {
-		length := 352
-		for j := 0; j < i; j++ {
-			length += len(questMeta.strings[j]) + 1
-		}
-		newPointers.WriteUint32(uint32(length))
-	}
-	for i := 0; i < 8; i++ {
-		newPointers.WriteNullTerminatedBytes(questMeta.strings[i])
-	}
-	ps.Uint8(newPointers, "", true) // Unused developer comment section?
-	return newPointers.Data()
-}
-
-func loadQuestFile(s *Session, questId string) []byte {
-	file, err := os.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("quests/%s.bin", questId)))
+func loadQuestFile(s *Session, questFile string) []byte {
+	file, err := os.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("quests/%s.bin", questFile)))
 	if err != nil {
 		return nil
 	}
@@ -144,30 +107,50 @@ func loadQuestFile(s *Session, questId string) []byte {
 	decrypted := decryption.UnpackSimple(file)
 	fileBytes := byteframe.NewByteFrameFromBytes(decrypted)
 	fileBytes.SetLE()
-	fileBytes.Seek(int64(fileBytes.ReadInt32()), io.SeekStart)
+	fileBytes.Seek(int64(fileBytes.ReadUint32()), 0)
 
 	// The 320 bytes directly following the data pointer must go directly into the event's body, after the header and before the string pointers.
 	questBody := byteframe.NewByteFrameFromBytes(fileBytes.ReadBytes(320))
 	questBody.SetLE()
-	questBody.Seek(40, io.SeekStart)
-	strings := readOriginalPointers(int64(questBody.ReadUint32()), decrypted)
+	// Find the master quest string pointer
+	questBody.Seek(40, 0)
+	fileBytes.Seek(int64(questBody.ReadUint32()), 0)
+	// Overwrite it
+	questBody.WriteUint32(320)
 	questBody.Seek(0, 2)
-	questBody.WriteBytes(strings)
+
+	// Rewrite the quest strings and their pointers
+	var tempString []byte
+	newStrings := byteframe.NewByteFrame()
+	tempPointer := 352
+	for i := 0; i < 8; i++ {
+		temp := int64(fileBytes.Index())
+		fileBytes.Seek(int64(fileBytes.ReadUint32()), 0)
+		tempString = fileBytes.ReadNullTerminatedBytes()
+		fileBytes.Seek(temp, 0)
+		questBody.WriteUint32(uint32(tempPointer + len(tempString) + 1))
+		tempPointer += len(tempString) + 1
+		newStrings.WriteNullTerminatedBytes(tempString)
+	}
+	questBody.WriteBytes(newStrings.Data())
+
 	return questBody.Data()
 }
 
 func makeEventQuest(s *Session, rows *sql.Rows) ([]byte, error) {
-	var id int32
-	var questId uint16
+	var id uint32
+	var questId int
 	var maxPlayers, questType, mark uint8
 	rows.Scan(&id, &maxPlayers, &questType, &questId, &mark)
 
-	bf := byteframe.NewByteFrame()
-	bf.SetLE()
+	data := loadQuestFile(s, fmt.Sprintf("%05dd0", questId))
+	if data == nil {
+		return nil, fmt.Errorf("failed to load quest file")
+	}
 
-	// Reconstructing the event-header itself. A lot of the data is not actually necessary for the quest to operate normally.
-	bf.WriteInt32(id)
-	bf.WriteInt32(0)
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint32(id)
+	bf.WriteUint32(0)
 	bf.WriteUint8(0) // Indexer
 	bf.WriteUint8(maxPlayers)
 	bf.WriteUint8(questType)
@@ -175,23 +158,9 @@ func makeEventQuest(s *Session, rows *sql.Rows) ([]byte, error) {
 	bf.WriteUint16(0)
 	bf.WriteUint32(0)
 	bf.WriteUint16(0)
-	bf.WriteUint16(0)
-
-	data := loadQuestFile(s, fmt.Sprintf("%05d", questId)+"d0")
-
-	if data == nil {
-		return nil, fmt.Errorf("failed to load quest file")
-	}
-
+	bf.WriteUint16(uint16(len(data)))
 	bf.WriteBytes(data)
-
-	// Update the checksum at pos 21, the checksum is determined the total length of the file minus 553 turned into a single byte.
-	bf.Seek(21, io.SeekStart)
-	bf.WriteUint8(uint8(len(bf.Data()) - 553))
-
-	// Overwrite the string-pointer at 62 to point at 320. This is always 320 and does not count the 22 from the event header.
-	bf.Seek(62, io.SeekStart)
-	bf.WriteInt16(320)
+	ps.Uint8(bf, "", true) // What is this string for?
 
 	return bf.Data(), nil
 }
@@ -215,7 +184,7 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 		if err != nil {
 			continue
 		} else {
-			if len(data) > 850 || len(data) < 400 {
+			if len(data) > 896 || len(data) < 352 {
 				continue
 			} else {
 				totalCount++

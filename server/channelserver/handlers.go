@@ -1630,7 +1630,13 @@ func handleMsgMhfDebugPostValue(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfGetRandFromTable(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfGetSenyuDailyCount(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfGetSenyuDailyCount(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfGetSenyuDailyCount)
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint16(0)
+	bf.WriteUint16(0)
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+}
 
 type SeibattleTimetable struct {
 	Start time.Time

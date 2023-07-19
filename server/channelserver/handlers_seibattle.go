@@ -68,7 +68,15 @@ func handleMsgMhfReadBeatLevel(s *Session, p mhfpacket.MHFPacket) {
 	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
 }
 
-func handleMsgMhfReadLastWeekBeatRanking(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfReadLastWeekBeatRanking(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfReadLastWeekBeatRanking)
+	bf := byteframe.NewByteFrame()
+	bf.WriteInt32(0)
+	bf.WriteInt32(0)
+	bf.WriteInt32(0)
+	bf.WriteInt32(0)
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+}
 
 func handleMsgMhfUpdateBeatLevel(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfUpdateBeatLevel)

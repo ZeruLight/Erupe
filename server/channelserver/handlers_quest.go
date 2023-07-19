@@ -176,15 +176,8 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 	bf.WriteUint16(0)
 
 	rows, _ := s.server.db.Query("SELECT id, COALESCE(max_players, 4) AS max_players, quest_type, quest_id, COALESCE(mark, 0) AS mark FROM event_quests ORDER BY quest_id")
-
-	// Loop through each row and load the quest entry if it exists.
 	for rows.Next() {
-		var pointer []byte
-		var maxPlayers, questType, checksum, questId uint16
-		rows.Scan(&pointer, &maxPlayers, &questType, &checksum, &questId)
-
 		data, err := makeEventQuest(s, rows)
-
 		if err != nil {
 			continue
 		} else {

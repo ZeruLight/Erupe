@@ -32,7 +32,7 @@
     "EarthMonsterOverride": 0,
     "SaveDumps": {
       "Enabled": true,
-      "OutputDir": "savedata"
+      "OutputDir": "save-backups"
     }
   },
   "GameplayOptions": {

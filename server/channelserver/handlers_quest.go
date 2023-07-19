@@ -142,9 +142,9 @@ func loadQuestFile(s *Session, questId int) []byte {
 }
 
 func makeEventQuest(s *Session, rows *sql.Rows) ([]byte, error) {
-	var id uint32
+	var id, mark uint32
 	var questId int
-	var maxPlayers, questType, mark uint8
+	var maxPlayers, questType uint8
 	rows.Scan(&id, &maxPlayers, &questType, &questId, &mark)
 
 	data := loadQuestFile(s, questId)
@@ -158,9 +158,9 @@ func makeEventQuest(s *Session, rows *sql.Rows) ([]byte, error) {
 	bf.WriteUint8(0) // Indexer
 	bf.WriteUint8(maxPlayers)
 	bf.WriteUint8(questType)
-	bf.WriteUint8(mark)
+	bf.WriteUint8(0)
 	bf.WriteUint16(0)
-	bf.WriteUint32(0)
+	bf.WriteUint32(mark)
 	bf.WriteUint16(0)
 	bf.WriteUint16(uint16(len(data)))
 	bf.WriteBytes(data)

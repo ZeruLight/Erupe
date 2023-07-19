@@ -1,17 +1,20 @@
 package mhfpacket
 
-import ( 
- "errors" 
+import (
+	"errors"
 
- 	"erupe-ce/network/clientctx"
-	"erupe-ce/network"
 	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgMhfSexChanger represents the MSG_MHF_SEX_CHANGER
 type MsgMhfSexChanger struct {
 	AckHandle uint32
 	Gender    uint8
+	Unk0      uint8
+	Unk1      uint8
+	Unk2      uint8
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -23,6 +26,9 @@ func (m *MsgMhfSexChanger) Opcode() network.PacketID {
 func (m *MsgMhfSexChanger) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
 	m.Gender = bf.ReadUint8()
+	m.Unk0 = bf.ReadUint8()
+	m.Unk1 = bf.ReadUint8()
+	m.Unk2 = bf.ReadUint8()
 	return nil
 }
 

@@ -55,6 +55,7 @@
     "MaterialMultiplier": 1.00,
     "ExtraCarves": 0,
     "DisableHunterNavi": false,
+    "EnableKaijiEvent": false,
     "EnableHiganjimaEvent": false,
     "EnableNierEvent": false,
     "DisableRoad": false

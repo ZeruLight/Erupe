@@ -133,13 +133,18 @@ func (save *CharacterSaveData) Save(s *Session) {
 
 	save.updateSaveDataWithStruct()
 
-	err := save.Compress()
-	if err != nil {
-		s.logger.Error("Failed to compress savedata", zap.Error(err))
-		return
+	if _config.ErupeConfig.RealClientMode >= _config.G1 {
+		err := save.Compress()
+		if err != nil {
+			s.logger.Error("Failed to compress savedata", zap.Error(err))
+			return
+		}
+	} else {
+		// Saves were not compressed
+		save.compSave = save.decompSave
 	}
 
-	_, err = s.server.db.Exec(`UPDATE characters	SET savedata=$1, is_new_character=false, hrp=$2, gr=$3, is_female=$4, weapon_type=$5, weapon_id=$6 WHERE id=$7
+	_, err := s.server.db.Exec(`UPDATE characters	SET savedata=$1, is_new_character=false, hrp=$2, gr=$3, is_female=$4, weapon_type=$5, weapon_id=$6 WHERE id=$7
 	`, save.compSave, save.HRP, save.GR, save.Gender, save.WeaponType, save.WeaponID, save.CharID)
 	if err != nil {
 		s.logger.Error("Failed to update savedata", zap.Error(err), zap.Uint32("charID", save.CharID))

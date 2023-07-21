@@ -63,7 +63,6 @@ type Guild struct {
 	Recruiting     bool           `db:"recruiting"`
 	FestivalColour FestivalColour `db:"festival_colour"`
 	Souls          uint32         `db:"souls"`
-	Rank           uint16         `db:"rank"`
 	AllianceID     uint32         `db:"alliance_id"`
 	Icon           *GuildIcon     `db:"icon"`
 
@@ -116,6 +115,35 @@ func (gi *GuildIcon) Value() (valuer driver.Value, err error) {
 	return json.Marshal(gi)
 }
 
+func (g *Guild) Rank() uint16 {
+	rpMap := []uint32{
+		24, 48, 96, 144, 192, 240, 288, 360, 432,
+		504, 600, 696, 792, 888, 984, 1080, 1200,
+	}
+	if _config.ErupeConfig.RealClientMode <= _config.Z2 {
+		rpMap = []uint32{
+			3500, 6000, 8500, 11000, 13500, 16000, 20000, 24000, 28000,
+			33000, 38000, 43000, 48000, 55000, 70000, 90000, 120000,
+		}
+	}
+	for i, u := range rpMap {
+		if g.RankRP < u {
+			if _config.ErupeConfig.RealClientMode <= _config.S6 && i >= 12 {
+				return 12
+			} else if _config.ErupeConfig.RealClientMode <= _config.G32 && i >= 14 {
+				return 14
+			}
+			return uint16(i)
+		}
+	}
+	if _config.ErupeConfig.RealClientMode <= _config.S6 {
+		return 12
+	} else if _config.ErupeConfig.RealClientMode <= _config.G32 {
+		return 14
+	}
+	return 17
+}
+
 const guildInfoSelectQuery = `
 SELECT
 	g.id,
@@ -138,14 +166,6 @@ SELECT
 	recruiting,
 	COALESCE((SELECT team FROM festa_registrations fr WHERE fr.guild_id = g.id), 'none') AS festival_colour,
 	(SELECT SUM(souls) FROM guild_characters gc WHERE gc.guild_id = g.id) AS souls,
-	CASE
-		WHEN rank_rp <= 48 THEN rank_rp/24
-		WHEN rank_rp <= 288 THEN rank_rp/48+1
-		WHEN rank_rp <= 504 THEN rank_rp/72+3
-		WHEN rank_rp <= 1080 THEN (rank_rp-24)/96+5
-		WHEN rank_rp < 1200 THEN 16
-		ELSE 17
-	END rank,
 	COALESCE((
 		SELECT id FROM guild_alliances ga WHERE
 	 	ga.parent_id = g.id OR
@@ -912,7 +932,7 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 
 		bf.WriteUint32(guild.ID)
 		bf.WriteUint32(guild.LeaderCharID)
-		bf.WriteUint16(guild.Rank)
+		bf.WriteUint16(guild.Rank())
 		bf.WriteUint16(guild.MemberCount)
 
 		bf.WriteUint8(guild.MainMotto)
@@ -966,11 +986,11 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 		}
 		bf.WriteUint32(guild.PugiOutfits)
 
-		if guild.Rank >= 3 {
+		if guild.Rank() >= 3 {
 			bf.WriteUint8(40)
-		} else if guild.Rank >= 7 {
+		} else if guild.Rank() >= 7 {
 			bf.WriteUint8(50)
-		} else if guild.Rank >= 10 {
+		} else if guild.Rank() >= 10 {
 			bf.WriteUint8(60)
 		} else {
 			bf.WriteUint8(30)
@@ -1008,7 +1028,7 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 				} else {
 					bf.WriteUint16(0)
 				}
-				bf.WriteUint16(alliance.ParentGuild.Rank)
+				bf.WriteUint16(alliance.ParentGuild.Rank())
 				bf.WriteUint16(alliance.ParentGuild.MemberCount)
 				ps.Uint16(bf, alliance.ParentGuild.Name, true)
 				ps.Uint16(bf, alliance.ParentGuild.LeaderName, true)
@@ -1020,7 +1040,7 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 					} else {
 						bf.WriteUint16(0)
 					}
-					bf.WriteUint16(alliance.SubGuild1.Rank)
+					bf.WriteUint16(alliance.SubGuild1.Rank())
 					bf.WriteUint16(alliance.SubGuild1.MemberCount)
 					ps.Uint16(bf, alliance.SubGuild1.Name, true)
 					ps.Uint16(bf, alliance.SubGuild1.LeaderName, true)
@@ -1033,7 +1053,7 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 					} else {
 						bf.WriteUint16(0)
 					}
-					bf.WriteUint16(alliance.SubGuild2.Rank)
+					bf.WriteUint16(alliance.SubGuild2.Rank())
 					bf.WriteUint16(alliance.SubGuild2.MemberCount)
 					ps.Uint16(bf, alliance.SubGuild2.Name, true)
 					ps.Uint16(bf, alliance.SubGuild2.LeaderName, true)
@@ -1309,7 +1329,7 @@ func handleMsgMhfEnumerateGuild(s *Session, p mhfpacket.MHFPacket) {
 			bf.WriteUint32(guild.LeaderCharID)
 			bf.WriteUint16(guild.MemberCount)
 			bf.WriteUint16(0x0000) // Unk
-			bf.WriteUint16(guild.Rank)
+			bf.WriteUint16(guild.Rank())
 			bf.WriteUint32(uint32(guild.CreatedAt.Unix()))
 			ps.Uint8(bf, guild.Name, true)
 			ps.Uint8(bf, guild.LeaderName, true)

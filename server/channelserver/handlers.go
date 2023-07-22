@@ -452,6 +452,9 @@ func handleMsgMhfTransitMessage(s *Session, p mhfpacket.MHFPacket) {
 			StagePrefix     string
 			RankRestriction uint16
 			Targets         []uint16
+			Unk0            []uint16
+			Unk1            []uint16
+			QuestID         []uint16
 		}
 		findPartyParams := FindPartyParams{
 			StagePrefix: "sl2Ls210",
@@ -499,6 +502,33 @@ func handleMsgMhfTransitMessage(s *Session, p mhfpacket.MHFPacket) {
 						findPartyParams.StagePrefix = "sl2Ls465"
 					case 5: // Quick Party
 						// Unk
+					}
+				}
+			case 3: // Unknown
+				values := int(bf.ReadUint8())
+				for i := 0; i < values; i++ {
+					if _config.ErupeConfig.RealClientMode >= _config.Z1 {
+						findPartyParams.Unk0 = append(findPartyParams.Unk0, bf.ReadUint16())
+					} else {
+						findPartyParams.Unk0 = append(findPartyParams.Unk0, uint16(bf.ReadInt8()))
+					}
+				}
+			case 4: // Looking for n or already have n
+				values := int(bf.ReadUint8())
+				for i := 0; i < values; i++ {
+					if _config.ErupeConfig.RealClientMode >= _config.Z1 {
+						findPartyParams.Unk1 = append(findPartyParams.Unk1, bf.ReadUint16())
+					} else {
+						findPartyParams.Unk1 = append(findPartyParams.Unk1, uint16(bf.ReadInt8()))
+					}
+				}
+			case 5:
+				values := int(bf.ReadUint8())
+				for i := 0; i < values; i++ {
+					if _config.ErupeConfig.RealClientMode >= _config.Z1 {
+						findPartyParams.QuestID = append(findPartyParams.QuestID, bf.ReadUint16())
+					} else {
+						findPartyParams.QuestID = append(findPartyParams.QuestID, uint16(bf.ReadInt8()))
 					}
 				}
 			}

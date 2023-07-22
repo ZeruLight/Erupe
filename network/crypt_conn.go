@@ -47,8 +47,10 @@ func (cc *CryptConn) ReadPacket() ([]byte, error) {
 		return nil, err
 	}
 
+	dataSize := uint32(cph.DataSize) + (uint32(cph.Pf0-0x03) * 0x1000)
+
 	// Now read the encrypted packet body after getting its size from the header.
-	encryptedPacketBody := make([]byte, cph.DataSize)
+	encryptedPacketBody := make([]byte, dataSize)
 	_, err = io.ReadFull(cc.conn, encryptedPacketBody)
 	if err != nil {
 		return nil, err
@@ -56,7 +58,7 @@ func (cc *CryptConn) ReadPacket() ([]byte, error) {
 
 	// Update the key rotation before decrypting.
 	if cph.KeyRotDelta != 0 {
-		cc.readKeyRot = (uint32(cph.KeyRotDelta) * (cc.readKeyRot + 1))
+		cc.readKeyRot = uint32(cph.KeyRotDelta) * (cc.readKeyRot + 1)
 	}
 
 	out, combinedCheck, check0, check1, check2 := crypto.Decrypt(encryptedPacketBody, cc.readKeyRot, nil)
@@ -94,7 +96,7 @@ func (cc *CryptConn) SendPacket(data []byte) error {
 	keyRotDelta := byte(3)
 
 	if keyRotDelta != 0 {
-		cc.sendKeyRot = (uint32(keyRotDelta) * (cc.sendKeyRot + 1))
+		cc.sendKeyRot = uint32(keyRotDelta) * (cc.sendKeyRot + 1)
 	}
 
 	// Encrypt the data

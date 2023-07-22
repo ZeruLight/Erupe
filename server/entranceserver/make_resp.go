@@ -56,7 +56,7 @@ func encodeServerInfo(config *_config.Config, s *Server, local bool) []byte {
 			bf.WriteUint8(si.Recommended)
 		}
 
-		if s.erupeConfig.RealClientMode <= _config.S6 {
+		if s.erupeConfig.RealClientMode <= _config.F4 {
 			combined := append(stringsupport.UTF8ToSJIS(si.Name), []byte{0x00}...)
 			combined = append(combined, stringsupport.UTF8ToSJIS(si.Description)...)
 			bf.WriteBytes(stringsupport.PaddedString(string(combined), 65, false))

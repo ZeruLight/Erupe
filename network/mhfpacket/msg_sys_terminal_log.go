@@ -39,7 +39,7 @@ func (m *MsgSysTerminalLog) Parse(bf *byteframe.ByteFrame, ctx *clientctx.Client
 	m.Unk0 = bf.ReadUint16()
 
 	values := 15
-	if _config.ErupeConfig.RealClientMode <= _config.F4 {
+	if _config.ErupeConfig.RealClientMode <= _config.F5 {
 		values = 7
 	}
 	for i := 0; i < int(m.EntryCount); i++ {

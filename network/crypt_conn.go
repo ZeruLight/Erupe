@@ -3,6 +3,7 @@ package network
 import (
 	"encoding/hex"
 	"errors"
+	_config "erupe-ce/config"
 	"fmt"
 	"io"
 	"net"
@@ -47,10 +48,15 @@ func (cc *CryptConn) ReadPacket() ([]byte, error) {
 		return nil, err
 	}
 
-	dataSize := uint32(cph.DataSize) + (uint32(cph.Pf0-0x03) * 0x1000)
-
 	// Now read the encrypted packet body after getting its size from the header.
-	encryptedPacketBody := make([]byte, dataSize)
+	var encryptedPacketBody []byte
+
+	// Don't know when support for this was added, works in Forward.4, doesn't work in Season 6.0
+	if _config.ErupeConfig.RealClientMode < _config.F1 {
+		encryptedPacketBody = make([]byte, cph.DataSize)
+	} else {
+		encryptedPacketBody = make([]byte, uint32(cph.DataSize)+(uint32(cph.Pf0-0x03)*0x1000))
+	}
 	_, err = io.ReadFull(cc.conn, encryptedPacketBody)
 	if err != nil {
 		return nil, err

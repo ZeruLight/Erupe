@@ -151,14 +151,14 @@ type FestaTrial struct {
 }
 
 type FestaReward struct {
-	Unk0 uint8
-	Unk1 uint8
-	Unk2 uint16
-	Unk3 uint16
-	Unk4 uint16
-	Unk5 uint16
-	Unk6 uint16
-	Unk7 uint8
+	Unk0     uint8
+	Unk1     uint8
+	ItemType uint16
+	Quantity uint16
+	ItemID   uint16
+	Unk5     uint16
+	Unk6     uint16
+	Unk7     uint8
 }
 
 func handleMsgMhfInfoFesta(s *Session, p mhfpacket.MHFPacket) {
@@ -225,46 +225,47 @@ func handleMsgMhfInfoFesta(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint16(trial.Unk)
 	}
 
+	// The Winner and Loser Armor IDs are missing
 	rewards := []FestaReward{
 		{1, 0, 7, 350, 1520, 0, 0, 0},
 		{1, 0, 7, 1000, 7011, 0, 0, 1},
 		{1, 0, 12, 1000, 0, 0, 0, 0},
 		{1, 0, 13, 0, 0, 0, 0, 0},
-		{1, 0, 1, 0, 0, 0, 0, 0},
+		//{1, 0, 1, 0, 0, 0, 0, 0},
 		{2, 0, 7, 350, 1520, 0, 0, 0},
 		{2, 0, 7, 1000, 7011, 0, 0, 1},
 		{2, 0, 12, 1000, 0, 0, 0, 0},
 		{2, 0, 13, 0, 0, 0, 0, 0},
-		{2, 0, 4, 0, 0, 0, 0, 0},
+		//{2, 0, 4, 0, 0, 0, 0, 0},
 		{3, 0, 7, 350, 1520, 0, 0, 0},
 		{3, 0, 7, 1000, 7011, 0, 0, 1},
 		{3, 0, 12, 1000, 0, 0, 0, 0},
 		{3, 0, 13, 0, 0, 0, 0, 0},
-		{3, 0, 1, 0, 0, 0, 0, 0},
+		//{3, 0, 1, 0, 0, 0, 0, 0},
 		{4, 0, 7, 350, 1520, 0, 0, 0},
 		{4, 0, 7, 1000, 7011, 0, 0, 1},
 		{4, 0, 12, 1000, 0, 0, 0, 0},
 		{4, 0, 13, 0, 0, 0, 0, 0},
-		{4, 0, 4, 0, 0, 0, 0, 0},
+		//{4, 0, 4, 0, 0, 0, 0, 0},
 		{5, 0, 7, 350, 1520, 0, 0, 0},
 		{5, 0, 7, 1000, 7011, 0, 0, 1},
 		{5, 0, 12, 1000, 0, 0, 0, 0},
 		{5, 0, 13, 0, 0, 0, 0, 0},
-		{5, 0, 1, 0, 0, 0, 0, 0},
+		//{5, 0, 1, 0, 0, 0, 0, 0},
 	}
 	bf.WriteUint16(uint16(len(rewards)))
 	for _, reward := range rewards {
 		bf.WriteUint8(reward.Unk0)
 		bf.WriteUint8(reward.Unk1)
-		bf.WriteUint16(reward.Unk2)
-		bf.WriteUint16(reward.Unk3)
-		bf.WriteUint16(reward.Unk4)
+		bf.WriteUint16(reward.ItemType)
+		bf.WriteUint16(reward.Quantity)
+		bf.WriteUint16(reward.ItemID)
 		bf.WriteUint16(reward.Unk5)
 		bf.WriteUint16(reward.Unk6)
 		bf.WriteUint8(reward.Unk7)
 	}
 
-	bf.WriteUint32(120000)
+	bf.WriteUint32(s.server.erupeConfig.GameplayOptions.MaximumFP)
 	bf.WriteUint16(500)
 
 	categoryWinners := uint16(0) // NYI

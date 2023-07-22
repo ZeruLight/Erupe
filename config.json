@@ -39,6 +39,7 @@
     "FeaturedWeapons": 1,
     "MaximumNP": 100000,
     "MaximumRP": 50000,
+    "MaximumFP": 120000,
     "DisableLoginBoost": false,
     "DisableBoostTime": false,
     "BoostTimeDuration": 120,

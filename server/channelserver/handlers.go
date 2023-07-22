@@ -453,7 +453,9 @@ func handleMsgMhfTransitMessage(s *Session, p mhfpacket.MHFPacket) {
 			RankRestriction uint16
 			Targets         []uint16
 		}
-		findPartyParams := FindPartyParams{}
+		findPartyParams := FindPartyParams{
+			StagePrefix: "sl2Ls210",
+		}
 		bf := byteframe.NewByteFrameFromBytes(pkt.MessageData)
 		numParams := int(bf.ReadUint8())
 		maxResults := bf.ReadUint16()

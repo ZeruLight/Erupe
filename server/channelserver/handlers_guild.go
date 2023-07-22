@@ -130,6 +130,8 @@ func (g *Guild) Rank() uint16 {
 		if g.RankRP < u {
 			if _config.ErupeConfig.RealClientMode <= _config.S6 && i >= 12 {
 				return 12
+			} else if _config.ErupeConfig.RealClientMode <= _config.F4 && i >= 13 {
+				return 13
 			} else if _config.ErupeConfig.RealClientMode <= _config.G32 && i >= 14 {
 				return 14
 			}
@@ -138,6 +140,8 @@ func (g *Guild) Rank() uint16 {
 	}
 	if _config.ErupeConfig.RealClientMode <= _config.S6 {
 		return 12
+	} else if _config.ErupeConfig.RealClientMode <= _config.F4 {
+		return 13
 	} else if _config.ErupeConfig.RealClientMode <= _config.G32 {
 		return 14
 	}

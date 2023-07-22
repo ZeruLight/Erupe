@@ -6,6 +6,7 @@ import (
 	"erupe-ce/common/mhfcourse"
 	ps "erupe-ce/common/pascalstring"
 	"erupe-ce/common/stringsupport"
+	_config "erupe-ce/config"
 	"fmt"
 	"io"
 	"net"
@@ -447,48 +448,110 @@ func handleMsgMhfTransitMessage(s *Session, p mhfpacket.MHFPacket) {
 			}
 		}
 	case 4: // Find Party
+		type FindPartyParams struct {
+			StagePrefix     string
+			RankRestriction uint16
+			Targets         []uint16
+			Unk0            []uint16
+			Unk1            []uint16
+			QuestID         []uint16
+		}
+		findPartyParams := FindPartyParams{
+			StagePrefix: "sl2Ls210",
+		}
 		bf := byteframe.NewByteFrameFromBytes(pkt.MessageData)
-		setting := bf.ReadUint8()
+		numParams := int(bf.ReadUint8())
 		maxResults := bf.ReadUint16()
-		bf.Seek(2, 1)
-		partyType := bf.ReadUint16()
-		rankRestriction := uint16(0)
-		if setting >= 2 {
-			bf.Seek(2, 1)
-			rankRestriction = bf.ReadUint16()
-		}
-		targets := make([]uint16, 4)
-		if setting >= 3 {
-			bf.Seek(1, 1)
-			lenTargets := int(bf.ReadUint8())
-			for i := 0; i < lenTargets; i++ {
-				targets[i] = bf.ReadUint16()
+		for i := 0; i < numParams; i++ {
+			switch bf.ReadUint8() {
+			case 0:
+				values := int(bf.ReadUint8())
+				for i := 0; i < values; i++ {
+					if _config.ErupeConfig.RealClientMode >= _config.Z1 {
+						findPartyParams.RankRestriction = bf.ReadUint16()
+					} else {
+						findPartyParams.RankRestriction = uint16(bf.ReadInt8())
+					}
+				}
+			case 1:
+				values := int(bf.ReadUint8())
+				for i := 0; i < values; i++ {
+					if _config.ErupeConfig.RealClientMode >= _config.Z1 {
+						findPartyParams.Targets = append(findPartyParams.Targets, bf.ReadUint16())
+					} else {
+						findPartyParams.Targets = append(findPartyParams.Targets, uint16(bf.ReadInt8()))
+					}
+				}
+			case 2:
+				values := int(bf.ReadUint8())
+				for i := 0; i < values; i++ {
+					var value int16
+					if _config.ErupeConfig.RealClientMode >= _config.Z1 {
+						value = bf.ReadInt16()
+					} else {
+						value = int16(bf.ReadInt8())
+					}
+					switch value {
+					case 0: // Public Bar
+						findPartyParams.StagePrefix = "sl2Ls210"
+					case 1: // Tokotoko Partnya
+						findPartyParams.StagePrefix = "sl2Ls463"
+					case 2: // Hunting Prowess Match
+						findPartyParams.StagePrefix = "sl2Ls286"
+					case 3: // Volpakkun Together
+						findPartyParams.StagePrefix = "sl2Ls465"
+					case 5: // Quick Party
+						// Unk
+					}
+				}
+			case 3: // Unknown
+				values := int(bf.ReadUint8())
+				for i := 0; i < values; i++ {
+					if _config.ErupeConfig.RealClientMode >= _config.Z1 {
+						findPartyParams.Unk0 = append(findPartyParams.Unk0, bf.ReadUint16())
+					} else {
+						findPartyParams.Unk0 = append(findPartyParams.Unk0, uint16(bf.ReadInt8()))
+					}
+				}
+			case 4: // Looking for n or already have n
+				values := int(bf.ReadUint8())
+				for i := 0; i < values; i++ {
+					if _config.ErupeConfig.RealClientMode >= _config.Z1 {
+						findPartyParams.Unk1 = append(findPartyParams.Unk1, bf.ReadUint16())
+					} else {
+						findPartyParams.Unk1 = append(findPartyParams.Unk1, uint16(bf.ReadInt8()))
+					}
+				}
+			case 5:
+				values := int(bf.ReadUint8())
+				for i := 0; i < values; i++ {
+					if _config.ErupeConfig.RealClientMode >= _config.Z1 {
+						findPartyParams.QuestID = append(findPartyParams.QuestID, bf.ReadUint16())
+					} else {
+						findPartyParams.QuestID = append(findPartyParams.QuestID, uint16(bf.ReadInt8()))
+					}
+				}
 			}
-		}
-		var stagePrefix string
-		switch partyType {
-		case 0: // Public Bar
-			stagePrefix = "sl2Ls210"
-		case 1: // Tokotoko Partnya
-			stagePrefix = "sl2Ls463"
-		case 2: // Hunting Prowess Match
-			stagePrefix = "sl2Ls286"
-		case 3: // Volpakkun Together
-			stagePrefix = "sl2Ls465"
-		case 5: // Quick Party
-			// Unk
 		}
 		for _, c := range s.server.Channels {
 			for _, stage := range c.stages {
 				if count == maxResults {
 					break
 				}
-				if strings.HasPrefix(stage.id, stagePrefix) {
+				if strings.HasPrefix(stage.id, findPartyParams.StagePrefix) {
 					sb3 := byteframe.NewByteFrameFromBytes(stage.rawBinaryData[stageBinaryKey{1, 3}])
 					sb3.Seek(4, 0)
 					stageRankRestriction := sb3.ReadUint16()
 					stageTarget := sb3.ReadUint16()
-					if rankRestriction != 0xFFFF && stageRankRestriction < rankRestriction {
+					if stageRankRestriction > findPartyParams.RankRestriction {
+						continue
+					}
+					if len(findPartyParams.Targets) > 0 {
+						for _, target := range findPartyParams.Targets {
+							if target == stageTarget {
+								break
+							}
+						}
 						continue
 					}
 					count++

@@ -2,10 +2,11 @@ package mhfpacket
 
 import (
 	"errors"
+	_config "erupe-ce/config"
 
+	"erupe-ce/common/byteframe"
 	"erupe-ce/network"
 	"erupe-ce/network/clientctx"
-	"erupe-ce/common/byteframe"
 )
 
 // MsgMhfAcquireCafeItem represents the MSG_MHF_ACQUIRE_CAFE_ITEM
@@ -30,7 +31,11 @@ func (m *MsgMhfAcquireCafeItem) Parse(bf *byteframe.ByteFrame, ctx *clientctx.Cl
 	m.ItemType = bf.ReadUint16()
 	m.ItemID = bf.ReadUint16()
 	m.Quant = bf.ReadUint16()
-	m.PointCost = bf.ReadUint32()
+	if _config.ErupeConfig.RealClientMode >= _config.G1 {
+		m.PointCost = bf.ReadUint32()
+	} else {
+		m.PointCost = uint32(bf.ReadUint16())
+	}
 	m.Unk0 = bf.ReadUint16()
 	return nil
 }

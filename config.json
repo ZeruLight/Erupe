@@ -70,31 +70,31 @@
     {
       "Name": "Rights",
       "Enabled": false,
-      "Prefix": "!rights"
+      "Prefix": "rights"
     }, {
       "Name": "Raviente",
       "Enabled": true,
-      "Prefix": "!ravi"
+      "Prefix": "ravi"
     }, {
       "Name": "Teleport",
       "Enabled": false,
-      "Prefix": "!tele"
+      "Prefix": "tele"
     }, {
       "Name": "Reload",
       "Enabled": true,
-      "Prefix": "!reload"
+      "Prefix": "reload"
     }, {
       "Name": "KeyQuest",
       "Enabled": false,
-      "Prefix": "!kqf"
+      "Prefix": "kqf"
     }, {
       "Name": "Course",
       "Enabled": true,
-      "Prefix": "!course"
+      "Prefix": "course"
     }, {
       "Name": "PSN",
       "Enabled": true,
-      "Prefix": "!psn"
+      "Prefix": "psn"
     }
   ],
   "Courses": [

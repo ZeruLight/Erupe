@@ -57,7 +57,7 @@ func (s *Session) handlePacket(pkt []byte) error {
 	case "PS3SGN:100":
 		s.client = PS3
 		s.handlePSSGN(bf)
-	case "VITASGN:100":
+	case "VITASGN:100", "VITASGN:000":
 		s.client = VITA
 		s.handlePSSGN(bf)
 	case "WIIUSGN:100", "WIIUSGN:000":

@@ -9,14 +9,14 @@ import (
 
 type DiscordBot struct {
 	Session         *discordgo.Session
-	config          *config.Config
+	config          *_config.Config
 	logger          *zap.Logger
 	MainGuild       *discordgo.Guild
 	RealtimeChannel *discordgo.Channel
 }
 
 type Options struct {
-	Config *config.Config
+	Config *_config.Config
 	Logger *zap.Logger
 }
 

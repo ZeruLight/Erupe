@@ -3,6 +3,7 @@ package channelserver
 import (
 	"erupe-ce/common/byteframe"
 	"erupe-ce/common/stringsupport"
+	_config "erupe-ce/config"
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/server/channelserver/compression/deltacomp"
 	"erupe-ce/server/channelserver/compression/nullcomp"
@@ -56,11 +57,15 @@ func handleMsgMhfLoadLegendDispatch(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfLoadHunterNavi(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfLoadHunterNavi)
+	naviLength := 552
+	if s.server.erupeConfig.RealClientMode <= _config.G7 {
+		naviLength = 280
+	}
 	var data []byte
 	err := s.server.db.QueryRow("SELECT hunternavi FROM characters WHERE id = $1", s.charID).Scan(&data)
 	if len(data) == 0 {
 		s.logger.Error("Failed to load hunternavi", zap.Error(err))
-		data = make([]byte, 0x226)
+		data = make([]byte, naviLength)
 	}
 	doAckBufSucceed(s, pkt.AckHandle, data)
 }
@@ -68,6 +73,10 @@ func handleMsgMhfLoadHunterNavi(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfSaveHunterNavi(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSaveHunterNavi)
 	if pkt.IsDataDiff {
+		naviLength := 552
+		if s.server.erupeConfig.RealClientMode <= _config.G7 {
+			naviLength = 280
+		}
 		var data []byte
 		// Load existing save
 		err := s.server.db.QueryRow("SELECT hunternavi FROM characters WHERE id = $1", s.charID).Scan(&data)
@@ -78,7 +87,7 @@ func handleMsgMhfSaveHunterNavi(s *Session, p mhfpacket.MHFPacket) {
 		// Check if we actually had any hunternavi data, using a blank buffer if not.
 		// This is requried as the client will try to send a diff after character creation without a prior MsgMhfSaveHunterNavi packet.
 		if len(data) == 0 {
-			data = make([]byte, 0x226)
+			data = make([]byte, naviLength)
 		}
 
 		// Perform diff and compress it to write back to db
@@ -222,8 +231,8 @@ func handleMsgMhfReadMercenaryM(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfContractMercenary(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfContractMercenary)
 	switch pkt.Op {
-	case 0:
-		s.server.db.Exec("UPDATE characters SET pact_id=$1 WHERE id=$2", pkt.PactMercID, s.charID)
+	case 0: // Form loan
+		s.server.db.Exec("UPDATE characters SET pact_id=$1 WHERE id=$2", pkt.PactMercID, pkt.CID)
 	case 1: // Cancel lend
 		s.server.db.Exec("UPDATE characters SET pact_id=0 WHERE id=$1", s.charID)
 	case 2: // Cancel loan

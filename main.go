@@ -1,6 +1,7 @@
 package main
 
 import (
+	_config "erupe-ce/config"
 	"fmt"
 	"net"
 	"os"
@@ -9,7 +10,6 @@ import (
 	"syscall"
 	"time"
 
-	"erupe-ce/config"
 	"erupe-ce/server/channelserver"
 	"erupe-ce/server/discordbot"
 	"erupe-ce/server/entranceserver"
@@ -45,7 +45,8 @@ func main() {
 	var err error
 
 	var zapLogger *zap.Logger
-	if config.ErupeConfig.DevMode {
+	config := _config.ErupeConfig
+	if config.DevMode {
 		zapLogger, _ = zap.NewDevelopment()
 	} else {
 		zapLogger, _ = zap.NewProduction()
@@ -55,20 +56,21 @@ func main() {
 	logger := zapLogger.Named("main")
 
 	logger.Info(fmt.Sprintf("Starting Erupe (9.3b-%s)", Commit()))
+	logger.Info(fmt.Sprintf("Client Mode: %s (%d)", config.ClientMode, config.RealClientMode))
 
-	if config.ErupeConfig.Database.Password == "" {
+	if config.Database.Password == "" {
 		preventClose("Database password is blank")
 	}
 
-	if net.ParseIP(config.ErupeConfig.Host) == nil {
-		ips, _ := net.LookupIP(config.ErupeConfig.Host)
+	if net.ParseIP(config.Host) == nil {
+		ips, _ := net.LookupIP(config.Host)
 		for _, ip := range ips {
 			if ip != nil {
-				config.ErupeConfig.Host = ip.String()
+				config.Host = ip.String()
 				break
 			}
 		}
-		if net.ParseIP(config.ErupeConfig.Host) == nil {
+		if net.ParseIP(config.Host) == nil {
 			preventClose("Invalid host address")
 		}
 	}
@@ -76,10 +78,10 @@ func main() {
 	// Discord bot
 	var discordBot *discordbot.DiscordBot = nil
 
-	if config.ErupeConfig.Discord.Enabled {
+	if config.Discord.Enabled {
 		bot, err := discordbot.NewDiscordBot(discordbot.Options{
 			Logger: logger,
-			Config: config.ErupeConfig,
+			Config: _config.ErupeConfig,
 		})
 
 		if err != nil {
@@ -102,11 +104,11 @@ func main() {
 	// Create the postgres DB pool.
 	connectString := fmt.Sprintf(
 		"host='%s' port='%d' user='%s' password='%s' dbname='%s' sslmode=disable",
-		config.ErupeConfig.Database.Host,
-		config.ErupeConfig.Database.Port,
-		config.ErupeConfig.Database.User,
-		config.ErupeConfig.Database.Password,
-		config.ErupeConfig.Database.Database,
+		config.Database.Host,
+		config.Database.Port,
+		config.Database.User,
+		config.Database.Password,
+		config.Database.Database,
 	)
 
 	db, err := sqlx.Open("postgres", connectString)
@@ -126,7 +128,7 @@ func main() {
 	_ = db.MustExec("DELETE FROM servers")
 
 	// Clean the DB if the option is on.
-	if config.ErupeConfig.DevMode && config.ErupeConfig.DevModeOptions.CleanDB {
+	if config.DevMode && config.DevModeOptions.CleanDB {
 		logger.Info("Database: Started clearing...")
 		cleanDB(db)
 		logger.Info("Database: Finished clearing")
@@ -139,11 +141,11 @@ func main() {
 	// Entrance server.
 
 	var entranceServer *entranceserver.Server
-	if config.ErupeConfig.Entrance.Enabled {
+	if config.Entrance.Enabled {
 		entranceServer = entranceserver.NewServer(
 			&entranceserver.Config{
 				Logger:      logger.Named("entrance"),
-				ErupeConfig: config.ErupeConfig,
+				ErupeConfig: _config.ErupeConfig,
 				DB:          db,
 			})
 		err = entranceServer.Start()
@@ -158,11 +160,11 @@ func main() {
 	// Sign server.
 
 	var signServer *signserver.Server
-	if config.ErupeConfig.Sign.Enabled {
+	if config.Sign.Enabled {
 		signServer = signserver.NewServer(
 			&signserver.Config{
 				Logger:      logger.Named("sign"),
-				ErupeConfig: config.ErupeConfig,
+				ErupeConfig: _config.ErupeConfig,
 				DB:          db,
 			})
 		err = signServer.Start()
@@ -176,11 +178,11 @@ func main() {
 
 	// New Sign server
 	var newSignServer *signv2server.Server
-	if config.ErupeConfig.SignV2.Enabled {
+	if config.SignV2.Enabled {
 		newSignServer = signv2server.NewServer(
 			&signv2server.Config{
 				Logger:      logger.Named("sign"),
-				ErupeConfig: config.ErupeConfig,
+				ErupeConfig: _config.ErupeConfig,
 				DB:          db,
 			})
 		err = newSignServer.Start()
@@ -194,23 +196,23 @@ func main() {
 
 	var channels []*channelserver.Server
 
-	if config.ErupeConfig.Channel.Enabled {
+	if config.Channel.Enabled {
 		channelQuery := ""
 		si := 0
 		ci := 0
 		count := 1
-		for j, ee := range config.ErupeConfig.Entrance.Entries {
+		for j, ee := range config.Entrance.Entries {
 			for i, ce := range ee.Channels {
 				sid := (4096 + si*256) + (16 + ci)
 				c := *channelserver.NewServer(&channelserver.Config{
 					ID:          uint16(sid),
 					Logger:      logger.Named("channel-" + fmt.Sprint(count)),
-					ErupeConfig: config.ErupeConfig,
+					ErupeConfig: _config.ErupeConfig,
 					DB:          db,
 					DiscordBot:  discordBot,
 				})
 				if ee.IP == "" {
-					c.IP = config.ErupeConfig.Host
+					c.IP = config.Host
 				} else {
 					c.IP = ee.IP
 				}
@@ -246,7 +248,7 @@ func main() {
 	signal.Notify(c, os.Interrupt, syscall.SIGTERM)
 	<-c
 
-	if !config.ErupeConfig.DisableSoftCrash {
+	if !config.DisableSoftCrash {
 		for i := 0; i < 10; i++ {
 			message := fmt.Sprintf("Shutting down in %d...", 10-i)
 			for _, c := range channels {
@@ -257,21 +259,21 @@ func main() {
 		}
 	}
 
-	if config.ErupeConfig.Channel.Enabled {
+	if config.Channel.Enabled {
 		for _, c := range channels {
 			c.Shutdown()
 		}
 	}
 
-	if config.ErupeConfig.Sign.Enabled {
+	if config.Sign.Enabled {
 		signServer.Shutdown()
 	}
 
-	if config.ErupeConfig.SignV2.Enabled {
+	if config.SignV2.Enabled {
 		newSignServer.Shutdown()
 	}
 
-	if config.ErupeConfig.Entrance.Enabled {
+	if config.Entrance.Enabled {
 		entranceServer.Shutdown()
 	}
 
@@ -285,7 +287,7 @@ func wait() {
 }
 
 func preventClose(text string) {
-	if config.ErupeConfig.DisableSoftCrash {
+	if _config.ErupeConfig.DisableSoftCrash {
 		os.Exit(0)
 	}
 	fmt.Println("\nFailed to start Erupe:\n" + text)

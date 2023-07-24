@@ -11,6 +11,7 @@
   "PatchServerFile": "",
   "ScreenshotAPIURL": "",
   "DeleteOnSaveCorruption": false,
+  "ClientMode": "ZZ",
   "DevMode": true,
   "DevModeOptions": {
     "AutoCreateAccount": true,
@@ -26,21 +27,39 @@
     "MezFesAlt": false,
     "DisableTokenCheck": false,
     "QuestDebugTools": false,
+    "EarthStatusOverride": 0,
+    "EarthIDOverride": 0,
+    "EarthMonsterOverride": 0,
     "SaveDumps": {
       "Enabled": true,
-      "OutputDir": "savedata"
+      "OutputDir": "save-backups"
     }
   },
   "GameplayOptions": {
     "FeaturedWeapons": 1,
     "MaximumNP": 100000,
     "MaximumRP": 50000,
+    "MaximumFP": 120000,
     "DisableLoginBoost": false,
     "DisableBoostTime": false,
     "BoostTimeDuration": 120,
     "GuildMealDuration": 60,
     "BonusQuestAllowance": 3,
-    "DailyQuestAllowance": 1
+    "DailyQuestAllowance": 1,
+    "MezfesSoloTickets": 10,
+    "MezfesGroupTickets": 4,
+    "GUrgentRate": 10,
+    "GCPMultiplier": 1.00,
+    "GRPMultiplier": 1.00,
+    "GSRPMultiplier": 1.00,
+    "GZennyMultiplier": 1.00,
+    "MaterialMultiplier": 1.00,
+    "ExtraCarves": 0,
+    "DisableHunterNavi": false,
+    "EnableKaijiEvent": false,
+    "EnableHiganjimaEvent": false,
+    "EnableNierEvent": false,
+    "DisableRoad": false
   },
   "Discord": {
     "Enabled": false,

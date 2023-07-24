@@ -30,7 +30,7 @@ type Stage struct {
 
 	// Objects
 	objects     map[uint32]*Object
-	objectIndex uint8
+	objectIndex uint16
 
 	// Map of session -> charID.
 	// These are clients that are CURRENTLY in the stage
@@ -56,7 +56,6 @@ func NewStage(ID string) *Stage {
 		clients:             make(map[*Session]uint32),
 		reservedClientSlots: make(map[uint32]bool),
 		objects:             make(map[uint32]*Object),
-		objectIndex:         0,
 		rawBinaryData:       make(map[stageBinaryKey][]byte),
 		maxPlayers:          4,
 	}
@@ -97,16 +96,10 @@ func (s *Stage) isQuest() bool {
 }
 
 func (s *Stage) NextObjectID() uint32 {
-	s.objectIndex = s.objectIndex + 1
-	// Objects beyond 127 do not duplicate correctly
-	// Indexes 0 and 127 does not update position correctly
-	if s.objectIndex == 127 {
-		s.objectIndex = 1
-	}
+	s.objectIndex++
 	bf := byteframe.NewByteFrame()
-	bf.WriteUint8(0)
-	bf.WriteUint8(s.objectIndex)
-	bf.WriteUint16(0)
-	obj := uint32(bf.Data()[3]) | uint32(bf.Data()[2])<<8 | uint32(bf.Data()[1])<<16 | uint32(bf.Data()[0])<<24
-	return obj
+	bf.WriteUint16(127)
+	bf.WriteUint16(s.objectIndex)
+	bf.Seek(0, 0)
+	return bf.ReadUint32()
 }

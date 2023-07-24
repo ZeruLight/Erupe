@@ -2,10 +2,9 @@ package mhfpacket
 
 import (
 	"errors"
-	"fmt"
-
-	"erupe-ce/common/byteframe"
 	"erupe-ce/common/bfutil"
+	"erupe-ce/common/byteframe"
+	_config "erupe-ce/config"
 	"erupe-ce/network"
 	"erupe-ce/network/clientctx"
 )
@@ -27,8 +26,9 @@ func (m *MsgSysCreateAcquireSemaphore) Opcode() network.PacketID {
 func (m *MsgSysCreateAcquireSemaphore) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
 	m.Unk0 = bf.ReadUint16()
-	m.PlayerCount = bf.ReadUint8()
-	fmt.Printf("PLAYER COUNT :: %d", m.PlayerCount)
+	if _config.ErupeConfig.RealClientMode >= _config.G1 {
+		m.PlayerCount = bf.ReadUint8()
+	}
 	SemaphoreIDLength := bf.ReadUint8()
 	m.SemaphoreID = string(bfutil.UpToNull(bf.ReadBytes(uint(SemaphoreIDLength))))
 	return nil

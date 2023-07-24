@@ -12,15 +12,9 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func (s *Server) newUserChara(username string) error {
-	var id int
-	err := s.db.QueryRow("SELECT id FROM users WHERE username = $1", username).Scan(&id)
-	if err != nil {
-		return err
-	}
-
+func (s *Server) newUserChara(uid int) error {
 	var numNewChars int
-	err = s.db.QueryRow("SELECT COUNT(*) FROM characters WHERE user_id = $1 AND is_new_character = true", id).Scan(&numNewChars)
+	err := s.db.QueryRow("SELECT COUNT(*) FROM characters WHERE user_id = $1 AND is_new_character = true", uid).Scan(&numNewChars)
 	if err != nil {
 		return err
 	}
@@ -35,7 +29,7 @@ func (s *Server) newUserChara(username string) error {
 			user_id, is_female, is_new_character, name, unk_desc_string,
 			hrp, gr, weapon_type, last_login)
 		VALUES($1, False, True, '', '', 0, 0, 0, $2)`,
-		id,
+		uid,
 		uint32(time.Now().Unix()),
 	)
 	if err != nil {
@@ -60,19 +54,6 @@ func (s *Server) registerDBAccount(username string, password string) (uint32, er
 		return 0, err
 	}
 
-	// Create a base new character.
-	_, err = s.db.Exec(`
-		INSERT INTO characters (
-			user_id, is_female, is_new_character, name, unk_desc_string,
-			hrp, gr, weapon_type, last_login)
-		VALUES($1, False, True, '', '', 0, 0, 0, $2)`,
-		uid,
-		uint32(time.Now().Unix()),
-	)
-	if err != nil {
-		return 0, err
-	}
-
 	return uid, nil
 }
 
@@ -90,7 +71,7 @@ type character struct {
 
 func (s *Server) getCharactersForUser(uid uint32) ([]character, error) {
 	characters := make([]character, 0)
-	err := s.db.Select(&characters, "SELECT id, is_female, is_new_character, name, unk_desc_string, hrp, gr, weapon_type, last_login FROM characters WHERE user_id = $1 AND deleted = false ORDER BY id ASC", uid)
+	err := s.db.Select(&characters, "SELECT id, is_female, is_new_character, name, unk_desc_string, hrp, gr, weapon_type, last_login FROM characters WHERE user_id = $1 AND deleted = false ORDER BY id", uid)
 	if err != nil {
 		return nil, err
 	}
@@ -158,9 +139,6 @@ func (s *Server) getFriendsForCharacters(chars []character) []members {
 		}
 		friends = append(friends, charFriends...)
 	}
-	if len(friends) > 255 { // Uint8
-		friends = friends[:255]
-	}
 	return friends
 }
 
@@ -180,14 +158,11 @@ func (s *Server) getGuildmatesForCharacters(chars []character) []members {
 			if err != nil {
 				continue
 			}
-			for i, _ := range charGuildmates {
+			for i := range charGuildmates {
 				charGuildmates[i].CID = char.ID
 			}
 			guildmates = append(guildmates, charGuildmates...)
 		}
-	}
-	if len(guildmates) > 255 { // Uint8
-		guildmates = guildmates[:255]
 	}
 	return guildmates
 }

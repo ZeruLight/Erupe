@@ -35,16 +35,16 @@ const (
 	BroadcastTypeWorld    = 0x0a
 )
 
-var commands map[string]config.Command
+var commands map[string]_config.Command
 
 func init() {
-	commands = make(map[string]config.Command)
+	commands = make(map[string]_config.Command)
 	zapConfig := zap.NewDevelopmentConfig()
 	zapConfig.DisableCaller = true
 	zapLogger, _ := zapConfig.Build()
 	defer zapLogger.Sync()
 	logger := zapLogger.Named("commands")
-	cmds := config.ErupeConfig.Commands
+	cmds := _config.ErupeConfig.Commands
 	for _, cmd := range cmds {
 		commands[cmd.Name] = cmd
 		if cmd.Enabled {
@@ -55,7 +55,7 @@ func init() {
 	}
 }
 
-func sendDisabledCommandMessage(s *Session, cmd config.Command) {
+func sendDisabledCommandMessage(s *Session, cmd _config.Command) {
 	sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandDisabled"], cmd.Name))
 }
 
@@ -211,7 +211,7 @@ func parseChatCommand(s *Session, command string) {
 				for _, course := range mhfcourse.Courses() {
 					for _, alias := range course.Aliases() {
 						if strings.ToLower(name) == strings.ToLower(alias) {
-							if slices.Contains(s.server.erupeConfig.Courses, config.Course{Name: course.Aliases()[0], Enabled: true}) {
+							if slices.Contains(s.server.erupeConfig.Courses, _config.Course{Name: course.Aliases()[0], Enabled: true}) {
 								var delta, rightsInt uint32
 								if mhfcourse.CourseExists(course.ID, s.courses) {
 									ei := slices.IndexFunc(s.courses, func(c mhfcourse.Course) bool {

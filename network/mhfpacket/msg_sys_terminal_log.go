@@ -2,6 +2,7 @@ package mhfpacket
 
 import (
 	"errors"
+	_config "erupe-ce/config"
 
 	"erupe-ce/common/byteframe"
 	"erupe-ce/network"
@@ -37,12 +38,16 @@ func (m *MsgSysTerminalLog) Parse(bf *byteframe.ByteFrame, ctx *clientctx.Client
 	m.EntryCount = bf.ReadUint16()
 	m.Unk0 = bf.ReadUint16()
 
+	values := 15
+	if _config.ErupeConfig.RealClientMode <= _config.F5 {
+		values = 7
+	}
 	for i := 0; i < int(m.EntryCount); i++ {
 		e := &TerminalLogEntry{}
 		e.Index = bf.ReadUint32()
 		e.Type1 = bf.ReadUint8()
 		e.Type2 = bf.ReadUint8()
-		for j := 0; j < 15; j++ {
+		for j := 0; j < values; j++ {
 			e.Data = append(e.Data, bf.ReadInt16())
 		}
 		m.Entries = append(m.Entries, e)

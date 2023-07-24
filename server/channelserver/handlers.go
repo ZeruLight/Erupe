@@ -6,6 +6,7 @@ import (
 	"erupe-ce/common/mhfcourse"
 	ps "erupe-ce/common/pascalstring"
 	"erupe-ce/common/stringsupport"
+	_config "erupe-ce/config"
 	"fmt"
 	"io"
 	"net"
@@ -27,15 +28,16 @@ func stubEnumerateNoResults(s *Session, ackHandle uint32) {
 	doAckBufSucceed(s, ackHandle, enumBf.Data())
 }
 
-// Temporary function to just return no results for many MSG_MHF_GET* packets.
-func stubGetNoResults(s *Session, ackHandle uint32) {
-	resp := byteframe.NewByteFrame()
-	resp.WriteUint32(0x0A218EAD) // Unk shared ID. Sent in response of MSG_MHF_GET_TOWER_INFO, MSG_MHF_GET_PAPER_DATA etc. (World ID?)
-	resp.WriteUint32(0)          // Unk
-	resp.WriteUint32(0)          // Unk
-	resp.WriteUint32(0)          // Entry count
-
-	doAckBufSucceed(s, ackHandle, resp.Data())
+func doAckEarthSucceed(s *Session, ackHandle uint32, data []*byteframe.ByteFrame) {
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint32(uint32(s.server.erupeConfig.DevModeOptions.EarthIDOverride))
+	bf.WriteUint32(0)
+	bf.WriteUint32(0)
+	bf.WriteUint32(uint32(len(data)))
+	for i := range data {
+		bf.WriteBytes(data[i].Data())
+	}
+	doAckBufSucceed(s, ackHandle, bf.Data())
 }
 
 func doAckBufSucceed(s *Session, ackHandle uint32, data []byte) {
@@ -245,7 +247,7 @@ func logoutPlayer(s *Session) {
 	removeSessionFromStage(s)
 
 	saveData, err := GetCharacterSaveData(s, s.charID)
-	if err != nil {
+	if err != nil || saveData == nil {
 		s.logger.Error("Failed to get savedata")
 		return
 	}
@@ -446,48 +448,110 @@ func handleMsgMhfTransitMessage(s *Session, p mhfpacket.MHFPacket) {
 			}
 		}
 	case 4: // Find Party
+		type FindPartyParams struct {
+			StagePrefix     string
+			RankRestriction uint16
+			Targets         []uint16
+			Unk0            []uint16
+			Unk1            []uint16
+			QuestID         []uint16
+		}
+		findPartyParams := FindPartyParams{
+			StagePrefix: "sl2Ls210",
+		}
 		bf := byteframe.NewByteFrameFromBytes(pkt.MessageData)
-		setting := bf.ReadUint8()
+		numParams := int(bf.ReadUint8())
 		maxResults := bf.ReadUint16()
-		bf.Seek(2, 1)
-		partyType := bf.ReadUint16()
-		rankRestriction := uint16(0)
-		if setting >= 2 {
-			bf.Seek(2, 1)
-			rankRestriction = bf.ReadUint16()
-		}
-		targets := make([]uint16, 4)
-		if setting >= 3 {
-			bf.Seek(1, 1)
-			lenTargets := int(bf.ReadUint8())
-			for i := 0; i < lenTargets; i++ {
-				targets[i] = bf.ReadUint16()
+		for i := 0; i < numParams; i++ {
+			switch bf.ReadUint8() {
+			case 0:
+				values := int(bf.ReadUint8())
+				for i := 0; i < values; i++ {
+					if _config.ErupeConfig.RealClientMode >= _config.Z1 {
+						findPartyParams.RankRestriction = bf.ReadUint16()
+					} else {
+						findPartyParams.RankRestriction = uint16(bf.ReadInt8())
+					}
+				}
+			case 1:
+				values := int(bf.ReadUint8())
+				for i := 0; i < values; i++ {
+					if _config.ErupeConfig.RealClientMode >= _config.Z1 {
+						findPartyParams.Targets = append(findPartyParams.Targets, bf.ReadUint16())
+					} else {
+						findPartyParams.Targets = append(findPartyParams.Targets, uint16(bf.ReadInt8()))
+					}
+				}
+			case 2:
+				values := int(bf.ReadUint8())
+				for i := 0; i < values; i++ {
+					var value int16
+					if _config.ErupeConfig.RealClientMode >= _config.Z1 {
+						value = bf.ReadInt16()
+					} else {
+						value = int16(bf.ReadInt8())
+					}
+					switch value {
+					case 0: // Public Bar
+						findPartyParams.StagePrefix = "sl2Ls210"
+					case 1: // Tokotoko Partnya
+						findPartyParams.StagePrefix = "sl2Ls463"
+					case 2: // Hunting Prowess Match
+						findPartyParams.StagePrefix = "sl2Ls286"
+					case 3: // Volpakkun Together
+						findPartyParams.StagePrefix = "sl2Ls465"
+					case 5: // Quick Party
+						// Unk
+					}
+				}
+			case 3: // Unknown
+				values := int(bf.ReadUint8())
+				for i := 0; i < values; i++ {
+					if _config.ErupeConfig.RealClientMode >= _config.Z1 {
+						findPartyParams.Unk0 = append(findPartyParams.Unk0, bf.ReadUint16())
+					} else {
+						findPartyParams.Unk0 = append(findPartyParams.Unk0, uint16(bf.ReadInt8()))
+					}
+				}
+			case 4: // Looking for n or already have n
+				values := int(bf.ReadUint8())
+				for i := 0; i < values; i++ {
+					if _config.ErupeConfig.RealClientMode >= _config.Z1 {
+						findPartyParams.Unk1 = append(findPartyParams.Unk1, bf.ReadUint16())
+					} else {
+						findPartyParams.Unk1 = append(findPartyParams.Unk1, uint16(bf.ReadInt8()))
+					}
+				}
+			case 5:
+				values := int(bf.ReadUint8())
+				for i := 0; i < values; i++ {
+					if _config.ErupeConfig.RealClientMode >= _config.Z1 {
+						findPartyParams.QuestID = append(findPartyParams.QuestID, bf.ReadUint16())
+					} else {
+						findPartyParams.QuestID = append(findPartyParams.QuestID, uint16(bf.ReadInt8()))
+					}
+				}
 			}
-		}
-		var stagePrefix string
-		switch partyType {
-		case 0: // Public Bar
-			stagePrefix = "sl2Ls210"
-		case 1: // Tokotoko Partnya
-			stagePrefix = "sl2Ls463"
-		case 2: // Hunting Prowess Match
-			stagePrefix = "sl2Ls286"
-		case 3: // Volpakkun Together
-			stagePrefix = "sl2Ls465"
-		case 5: // Quick Party
-			// Unk
 		}
 		for _, c := range s.server.Channels {
 			for _, stage := range c.stages {
 				if count == maxResults {
 					break
 				}
-				if strings.HasPrefix(stage.id, stagePrefix) {
+				if strings.HasPrefix(stage.id, findPartyParams.StagePrefix) {
 					sb3 := byteframe.NewByteFrameFromBytes(stage.rawBinaryData[stageBinaryKey{1, 3}])
 					sb3.Seek(4, 0)
 					stageRankRestriction := sb3.ReadUint16()
 					stageTarget := sb3.ReadUint16()
-					if rankRestriction != 0xFFFF && stageRankRestriction < rankRestriction {
+					if stageRankRestriction > findPartyParams.RankRestriction {
+						continue
+					}
+					if len(findPartyParams.Targets) > 0 {
+						for _, target := range findPartyParams.Targets {
+							if target == stageTarget {
+								break
+							}
+						}
 						continue
 					}
 					count++
@@ -550,10 +614,6 @@ func handleMsgSysEnumuser(s *Session, p mhfpacket.MHFPacket) {}
 func handleMsgSysInfokyserver(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfGetCaUniqueID(s *Session, p mhfpacket.MHFPacket) {}
-
-func handleMsgMhfEnumerateItem(s *Session, p mhfpacket.MHFPacket) {}
-
-func handleMsgMhfAcquireItem(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfTransferItem(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfTransferItem)
@@ -1574,138 +1634,209 @@ func handleMsgMhfStampcardPrize(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfUnreserveSrg(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfReadBeatLevel(s *Session, p mhfpacket.MHFPacket) {
-	pkt := p.(*mhfpacket.MsgMhfReadBeatLevel)
-
-	// This response is fixed and will never change on JP,
-	// but I've left it dynamic for possible other client differences.
-	resp := byteframe.NewByteFrame()
-	for i := 0; i < int(pkt.ValidIDCount); i++ {
-		resp.WriteUint32(pkt.IDs[i])
-		resp.WriteUint32(1)
-		resp.WriteUint32(1)
-		resp.WriteUint32(1)
-	}
-
-	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
-}
-
-func handleMsgMhfUpdateBeatLevel(s *Session, p mhfpacket.MHFPacket) {
-	pkt := p.(*mhfpacket.MsgMhfUpdateBeatLevel)
-
-	doAckBufSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
-}
-
-func handleMsgMhfReadBeatLevelAllRanking(s *Session, p mhfpacket.MHFPacket) {}
-
-func handleMsgMhfReadBeatLevelMyRanking(s *Session, p mhfpacket.MHFPacket) {}
-
-func handleMsgMhfReadLastWeekBeatRanking(s *Session, p mhfpacket.MHFPacket) {}
-
-func handleMsgMhfGetFixedSeibatuRankingTable(s *Session, p mhfpacket.MHFPacket) {}
-
 func handleMsgMhfKickExportForce(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfGetEarthStatus(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetEarthStatus)
-
-	// TODO(Andoryuuta): Track down format for this data,
-	//	it can somehow be parsed as 8*uint32 chunks if the header is right.
-	/*
-		BEFORE ack-refactor:
-			resp := byteframe.NewByteFrame()
-			resp.WriteUint32(0)
-			resp.WriteUint32(0)
-
-			s.QueueAck(pkt.AckHandle, resp.Data())
-	*/
-	doAckBufSucceed(s, pkt.AckHandle, []byte{})
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint32(uint32(TimeWeekStart().Add(time.Hour * -24).Unix())) // Start
+	bf.WriteUint32(uint32(TimeWeekNext().Add(time.Hour * 24).Unix()))   // End
+	bf.WriteInt32(s.server.erupeConfig.DevModeOptions.EarthStatusOverride)
+	bf.WriteInt32(s.server.erupeConfig.DevModeOptions.EarthIDOverride)
+	bf.WriteInt32(s.server.erupeConfig.DevModeOptions.EarthMonsterOverride)
+	bf.WriteInt32(0)
+	bf.WriteInt32(0)
+	bf.WriteInt32(0)
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfRegistSpabiTime(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfGetEarthValue(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetEarthValue)
-	var earthValues []struct{ Unk0, Unk1, Unk2, Unk3, Unk4, Unk5 uint32 }
-	if pkt.ReqType == 3 {
-		earthValues = []struct {
-			Unk0, Unk1, Unk2, Unk3, Unk4, Unk5 uint32
-		}{
-			// TW identical to JP
-			{
-				Unk0: 0x03E9,
-				Unk1: 0x24,
-			},
-			{
-				Unk0: 0x2329,
-				Unk1: 0x03,
-			},
-			{
-				Unk0: 0x232A,
-				Unk1: 0x0A,
-				Unk2: 0x012C,
-			},
+	type EarthValues struct {
+		Value []uint32
+	}
+
+	var earthValues []EarthValues
+	switch pkt.ReqType {
+	case 1:
+		earthValues = []EarthValues{
+			{[]uint32{1, 312, 0, 0, 0, 0}},
+			{[]uint32{2, 99, 0, 0, 0, 0}},
 		}
-	} else if pkt.ReqType == 2 {
-		earthValues = []struct {
-			Unk0, Unk1, Unk2, Unk3, Unk4, Unk5 uint32
-		}{
-			// JP response was empty
-			{
-				Unk0: 0x01,
-				Unk1: 0x168B,
-			},
-			{
-				Unk0: 0x02,
-				Unk1: 0x0737,
-			},
+	case 2:
+		earthValues = []EarthValues{
+			{[]uint32{1, 5771, 0, 0, 0, 0}},
+			{[]uint32{2, 1847, 0, 0, 0, 0}},
 		}
-	} else if pkt.ReqType == 1 {
-		earthValues = []struct {
-			Unk0, Unk1, Unk2, Unk3, Unk4, Unk5 uint32
-		}{
-			// JP simply sent 01 and 02 respectively
-			{
-				Unk0: 0x01,
-				Unk1: 0x0138,
-			},
-			{
-				Unk0: 0x02,
-				Unk1: 0x63,
-			},
+	case 3:
+		earthValues = []EarthValues{
+			{[]uint32{1001, 36, 0, 0, 0, 0}},
+			{[]uint32{9001, 3, 0, 0, 0, 0}},
+			{[]uint32{9002, 10, 300, 0, 0, 0}},
 		}
 	}
 
-	resp := byteframe.NewByteFrame()
-	resp.WriteUint32(0x0A218EAD)               // Unk shared ID. Sent in response of MSG_MHF_GET_TOWER_INFO, MSG_MHF_GET_PAPER_DATA etc.
-	resp.WriteUint32(0)                        // Unk
-	resp.WriteUint32(0)                        // Unk
-	resp.WriteUint32(uint32(len(earthValues))) // value count
-	for _, v := range earthValues {
-		resp.WriteUint32(v.Unk0)
-		resp.WriteUint32(v.Unk1)
-		resp.WriteUint32(v.Unk2)
-		resp.WriteUint32(v.Unk3)
-		resp.WriteUint32(v.Unk4)
-		resp.WriteUint32(v.Unk5)
+	var data []*byteframe.ByteFrame
+	for _, i := range earthValues {
+		bf := byteframe.NewByteFrame()
+		for _, j := range i.Value {
+			bf.WriteUint32(j)
+		}
+		data = append(data, bf)
 	}
-
-	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
+	doAckEarthSucceed(s, pkt.AckHandle, data)
 }
 
 func handleMsgMhfDebugPostValue(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfGetNotice(s *Session, p mhfpacket.MHFPacket) {}
-
-func handleMsgMhfPostNotice(s *Session, p mhfpacket.MHFPacket) {}
-
 func handleMsgMhfGetRandFromTable(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfGetSenyuDailyCount(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfGetSenyuDailyCount(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfGetSenyuDailyCount)
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint16(0)
+	bf.WriteUint16(0)
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+}
+
+type SeibattleTimetable struct {
+	Start time.Time
+	End   time.Time
+}
+
+type SeibattleKeyScore struct {
+	Unk0 uint8
+	Unk1 int32
+}
+
+type SeibattleCareer struct {
+	Unk0 uint16
+	Unk1 uint16
+	Unk2 uint16
+}
+
+type SeibattleOpponent struct {
+	Unk0 int32
+	Unk1 int8
+}
+
+type SeibattleConventionResult struct {
+	Unk0 uint32
+	Unk1 uint16
+	Unk2 uint16
+	Unk3 uint16
+	Unk4 uint16
+}
+
+type SeibattleCharScore struct {
+	Unk0 uint32
+}
+
+type SeibattleCurResult struct {
+	Unk0 uint32
+	Unk1 uint16
+	Unk2 uint16
+	Unk3 uint16
+}
+
+type Seibattle struct {
+	Timetable        []SeibattleTimetable
+	KeyScore         []SeibattleKeyScore
+	Career           []SeibattleCareer
+	Opponent         []SeibattleOpponent
+	ConventionResult []SeibattleConventionResult
+	CharScore        []SeibattleCharScore
+	CurResult        []SeibattleCurResult
+}
 
 func handleMsgMhfGetSeibattle(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetSeibattle)
-	stubGetNoResults(s, pkt.AckHandle)
+	var data []*byteframe.ByteFrame
+	seibattle := Seibattle{
+		Timetable: []SeibattleTimetable{
+			{TimeMidnight(), TimeMidnight().Add(time.Hour * 8)},
+			{TimeMidnight().Add(time.Hour * 8), TimeMidnight().Add(time.Hour * 16)},
+			{TimeMidnight().Add(time.Hour * 16), TimeMidnight().Add(time.Hour * 24)},
+		},
+		KeyScore: []SeibattleKeyScore{
+			{0, 0},
+		},
+		Career: []SeibattleCareer{
+			{0, 0, 0},
+		},
+		Opponent: []SeibattleOpponent{
+			{1, 1},
+		},
+		ConventionResult: []SeibattleConventionResult{
+			{0, 0, 0, 0, 0},
+		},
+		CharScore: []SeibattleCharScore{
+			{0},
+		},
+		CurResult: []SeibattleCurResult{
+			{0, 0, 0, 0},
+		},
+	}
+
+	switch pkt.Type {
+	case 1:
+		for _, timetable := range seibattle.Timetable {
+			bf := byteframe.NewByteFrame()
+			bf.WriteUint32(uint32(timetable.Start.Unix()))
+			bf.WriteUint32(uint32(timetable.End.Unix()))
+			data = append(data, bf)
+		}
+	case 3: // Key score?
+		for _, keyScore := range seibattle.KeyScore {
+			bf := byteframe.NewByteFrame()
+			bf.WriteUint8(keyScore.Unk0)
+			bf.WriteInt32(keyScore.Unk1)
+			data = append(data, bf)
+		}
+	case 4: // Career?
+		for _, career := range seibattle.Career {
+			bf := byteframe.NewByteFrame()
+			bf.WriteUint16(career.Unk0)
+			bf.WriteUint16(career.Unk1)
+			bf.WriteUint16(career.Unk2)
+			data = append(data, bf)
+		}
+	case 5: // Opponent?
+		for _, opponent := range seibattle.Opponent {
+			bf := byteframe.NewByteFrame()
+			bf.WriteInt32(opponent.Unk0)
+			bf.WriteInt8(opponent.Unk1)
+			data = append(data, bf)
+		}
+	case 6: // Convention result?
+		for _, conventionResult := range seibattle.ConventionResult {
+			bf := byteframe.NewByteFrame()
+			bf.WriteUint32(conventionResult.Unk0)
+			bf.WriteUint16(conventionResult.Unk1)
+			bf.WriteUint16(conventionResult.Unk2)
+			bf.WriteUint16(conventionResult.Unk3)
+			bf.WriteUint16(conventionResult.Unk4)
+			data = append(data, bf)
+		}
+	case 7: // Char score?
+		for _, charScore := range seibattle.CharScore {
+			bf := byteframe.NewByteFrame()
+			bf.WriteUint32(charScore.Unk0)
+			data = append(data, bf)
+		}
+	case 8: // Cur result?
+		for _, curResult := range seibattle.CurResult {
+			bf := byteframe.NewByteFrame()
+			bf.WriteUint32(curResult.Unk0)
+			bf.WriteUint16(curResult.Unk1)
+			bf.WriteUint16(curResult.Unk2)
+			bf.WriteUint16(curResult.Unk3)
+			data = append(data, bf)
+		}
+	}
+	doAckEarthSucceed(s, pkt.AckHandle, data)
 }
 
 func handleMsgMhfPostSeibattle(s *Session, p mhfpacket.MHFPacket) {}

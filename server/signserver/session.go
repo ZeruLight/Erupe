@@ -53,22 +53,22 @@ func (s *Session) work() {
 func (s *Session) handlePacket(pkt []byte) error {
 	bf := byteframe.NewByteFrameFromBytes(pkt)
 	reqType := string(bf.ReadNullTerminatedBytes())
-	switch reqType {
-	case "DLTSKEYSIGN:100", "DSGN:100":
+	switch reqType[:len(reqType)-3] {
+	case "DLTSKEYSIGN:", "DSGN:":
 		s.handleDSGN(bf)
-	case "PS3SGN:100":
+	case "PS3SGN:":
 		s.client = PS3
 		s.handlePSSGN(bf)
-	case "VITASGN:100":
+	case "VITASGN:":
 		s.client = VITA
 		s.handlePSSGN(bf)
-	case "WIIUSGN:100", "WIIUSGN:000":
+	case "WIIUSGN:":
 		s.client = WIIU
 		s.handleWIIUSGN(bf)
-	case "VITACOGLNK:100":
+	case "VITACOGLNK:":
 		s.client = VITA
 		s.handlePSNLink(bf)
-	case "DELETE:100":
+	case "DELETE:":
 		token := string(bf.ReadNullTerminatedBytes())
 		characterID := int(bf.ReadUint32())
 		tokenID := bf.ReadUint32()

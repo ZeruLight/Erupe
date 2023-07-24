@@ -112,23 +112,24 @@ func (s *Session) authenticate(username string, password string) {
 func (s *Session) handleWIIUSGN(bf *byteframe.ByteFrame) {
 	_ = bf.ReadBytes(1)
 	wiiuKey := string(bf.ReadBytes(64))
-	var reqUsername string
-	err := s.server.db.QueryRow(`SELECT username FROM users WHERE wiiu_key = $1`, wiiuKey).Scan(&reqUsername)
-	if err == sql.ErrNoRows {
-		resp := byteframe.NewByteFrame()
-		resp.WriteUint8(uint8(SIGN_ECOGLINK))
-		s.cryptConn.SendPacket(resp.Data())
+	var uid uint32
+	err := s.server.db.QueryRow(`SELECT id FROM users WHERE wiiu_key = $1`, wiiuKey).Scan(&uid)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			s.logger.Info("Unlinked Wii U attempted to authenticate", zap.String("Key", wiiuKey))
+			s.sendCode(SIGN_ECOGLINK)
+			return
+		}
+		s.sendCode(SIGN_EABORT)
 		return
 	}
-	s.authenticate(reqUsername, "")
+	s.cryptConn.SendPacket(s.makeSignResponse(uid))
 }
 
 func (s *Session) handlePSSGN(bf *byteframe.ByteFrame) {
 	// Prevent reading malformed request
 	if len(bf.DataFromCurrent()) < 128 {
-		resp := byteframe.NewByteFrame()
-		resp.WriteUint8(uint8(SIGN_EABORT))
-		s.cryptConn.SendPacket(resp.Data())
+		s.sendCode(SIGN_EABORT)
 		return
 	}
 	_ = bf.ReadNullTerminatedBytes() // VITA = 0000000256, PS3 = 0000000255

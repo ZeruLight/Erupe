@@ -12,7 +12,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func (s *Server) newUserChara(uid int) error {
+func (s *Server) newUserChara(uid uint32) error {
 	var numNewChars int
 	err := s.db.QueryRow("SELECT COUNT(*) FROM characters WHERE user_id = $1 AND is_new_character = true", uid).Scan(&numNewChars)
 	if err != nil {

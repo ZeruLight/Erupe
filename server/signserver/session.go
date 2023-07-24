@@ -97,7 +97,7 @@ func (s *Session) authenticate(username string, password string) {
 	switch resp {
 	case SIGN_SUCCESS:
 		if newCharaReq {
-			_ = s.server.newUserChara(username)
+			_ = s.server.newUserChara(uid)
 		}
 		bf.WriteBytes(s.makeSignResponse(uid))
 	default:

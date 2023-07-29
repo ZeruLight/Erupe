@@ -12,41 +12,29 @@ import (
 	"go.uber.org/zap"
 )
 
+type SavePointer int
+
 const (
-	pointerGender = 0x51 // +1
-
-	pointerRP            = 0x22D16 // +2
-	pointerHouseTier     = 0x1FB6C // +5
-	pointerHouseData     = 0x1FE01 // +195
-	pointerBookshelfData = 0x22298 // +5576
-	// Gallery data also exists at 0x21578, is this the contest submission?
-	pointerGalleryData = 0x22320 // +1748
-	pointerToreData    = 0x1FCB4 // +240
-	pointerGardenData  = 0x22C58 // +68
-	pointerWeaponType  = 0x1F715 // +1
-	pointerWeaponID    = 0x1F60A // +2
-	pointerHRP         = 0x1FDF6 // +2
-	pointerGRP         = 0x1FDFC // +4
-	pointerKQF         = 0x23D20 // +8
-
-	pointerRPZ            = 0x1A076
-	pointerHouseTierZ     = 0x16ECC
-	pointerHouseDataZ     = 0x17161
-	pointerBookshelfDataZ = 0x195F8
-	pointerGalleryDataZ   = 0x19680
-	pointerToreDataZ      = 0x17014
-	pointerGardenDataZ    = 0x19FB8
-	pointerWeaponTypeZ    = 0x16A75
-	pointerWeaponIDZ      = 0x1696A
-	pointerHRPZ           = 0x17156
-	pointerGRPZ           = 0x1715C
-	pointerKQFZ           = 0x1B080
+	pGender        = iota // +1
+	pRP                   // +2
+	pHouseTier            // +5
+	pHouseData            // +195
+	pBookshelfData        // +5576
+	pGalleryData          // +1748
+	pToreData             // +240
+	pGardenData           // +68
+	pWeaponType           // +1
+	pWeaponID             // +2
+	pHRP                  // +2
+	pGRP                  // +4
+	pKQF                  // +8
 )
 
 type CharacterSaveData struct {
 	CharID         uint32
 	Name           string
 	IsNewCharacter bool
+	Pointers       map[SavePointer]int
 
 	Gender        bool
 	RP            uint16
@@ -66,6 +54,39 @@ type CharacterSaveData struct {
 	decompSave []byte
 }
 
+func getPointers() map[SavePointer]int {
+	pointers := map[SavePointer]int{pGender: 81}
+	switch _config.ErupeConfig.RealClientMode {
+	case _config.ZZ:
+		pointers[pWeaponID] = 128522
+		pointers[pWeaponType] = 128789
+		pointers[pHouseTier] = 129900
+		pointers[pToreData] = 130228
+		pointers[pHRP] = 130550
+		pointers[pGRP] = 130556
+		pointers[pHouseData] = 130561
+		pointers[pBookshelfData] = 139928
+		pointers[pGalleryData] = 140064
+		pointers[pGardenData] = 142424
+		pointers[pRP] = 142614
+		pointers[pKQF] = 146720
+	case _config.Z2, _config.Z1, _config.G101, _config.G10:
+		pointers[pWeaponID] = 92522
+		pointers[pWeaponType] = 92789
+		pointers[pHouseTier] = 93900
+		pointers[pToreData] = 94228
+		pointers[pHRP] = 94550
+		pointers[pGRP] = 94556
+		pointers[pHouseData] = 94561
+		pointers[pBookshelfData] = 103928
+		pointers[pGalleryData] = 104064
+		pointers[pGardenData] = 106424
+		pointers[pRP] = 106614
+		pointers[pKQF] = 110720
+	}
+	return pointers
+}
+
 func GetCharacterSaveData(s *Session, charID uint32) (*CharacterSaveData, error) {
 	result, err := s.server.db.Query("SELECT id, savedata, is_new_character, name FROM characters WHERE id = $1", charID)
 	if err != nil {
@@ -79,7 +100,9 @@ func GetCharacterSaveData(s *Session, charID uint32) (*CharacterSaveData, error)
 		return nil, err
 	}
 
-	saveData := &CharacterSaveData{}
+	saveData := &CharacterSaveData{
+		Pointers: getPointers(),
+	}
 	err = result.Scan(&saveData.CharID, &saveData.compSave, &saveData.IsNewCharacter, &saveData.Name)
 	if err != nil {
 		s.logger.Error("Failed to scan savedata", zap.Error(err), zap.Uint32("charID", charID))
@@ -110,13 +133,18 @@ func (save *CharacterSaveData) Save(s *Session) {
 
 	save.updateSaveDataWithStruct()
 
-	err := save.Compress()
-	if err != nil {
-		s.logger.Error("Failed to compress savedata", zap.Error(err))
-		return
+	if _config.ErupeConfig.RealClientMode >= _config.G1 {
+		err := save.Compress()
+		if err != nil {
+			s.logger.Error("Failed to compress savedata", zap.Error(err))
+			return
+		}
+	} else {
+		// Saves were not compressed
+		save.compSave = save.decompSave
 	}
 
-	_, err = s.server.db.Exec(`UPDATE characters	SET savedata=$1, is_new_character=false, hrp=$2, gr=$3, is_female=$4, weapon_type=$5, weapon_id=$6 WHERE id=$7
+	_, err := s.server.db.Exec(`UPDATE characters	SET savedata=$1, is_new_character=false, hrp=$2, gr=$3, is_female=$4, weapon_type=$5, weapon_id=$6 WHERE id=$7
 	`, save.compSave, save.HRP, save.GR, save.Gender, save.WeaponType, save.WeaponID, save.CharID)
 	if err != nil {
 		s.logger.Error("Failed to update savedata", zap.Error(err), zap.Uint32("charID", save.CharID))
@@ -148,54 +176,36 @@ func (save *CharacterSaveData) Decompress() error {
 func (save *CharacterSaveData) updateSaveDataWithStruct() {
 	rpBytes := make([]byte, 2)
 	binary.LittleEndian.PutUint16(rpBytes, save.RP)
-	if _config.ErupeConfig.RealClientMode == _config.ZZ {
-		copy(save.decompSave[pointerRP:pointerRP+2], rpBytes)
-		copy(save.decompSave[pointerKQF:pointerKQF+8], save.KQF)
-	} else if _config.ErupeConfig.RealClientMode >= _config.Z1 {
-		copy(save.decompSave[pointerRPZ:pointerRPZ+2], rpBytes)
-		copy(save.decompSave[pointerKQFZ:pointerKQFZ+8], save.KQF)
+	if _config.ErupeConfig.RealClientMode >= _config.G10 {
+		copy(save.decompSave[save.Pointers[pRP]:save.Pointers[pRP]+2], rpBytes)
+		copy(save.decompSave[save.Pointers[pKQF]:save.Pointers[pKQF]+8], save.KQF)
 	}
 }
 
 // This will update the save struct with the values stored in the character save
 func (save *CharacterSaveData) updateStructWithSaveData() {
 	save.Name = stringsupport.SJISToUTF8(bfutil.UpToNull(save.decompSave[88:100]))
-	if save.decompSave[pointerGender] == 1 {
+	if save.decompSave[save.Pointers[pGender]] == 1 {
 		save.Gender = true
 	} else {
 		save.Gender = false
 	}
 	if !save.IsNewCharacter {
-		if _config.ErupeConfig.RealClientMode == _config.ZZ {
-			save.RP = binary.LittleEndian.Uint16(save.decompSave[pointerRP : pointerRP+2])
-			save.HouseTier = save.decompSave[pointerHouseTier : pointerHouseTier+5]
-			save.HouseData = save.decompSave[pointerHouseData : pointerHouseData+195]
-			save.BookshelfData = save.decompSave[pointerBookshelfData : pointerBookshelfData+5576]
-			save.GalleryData = save.decompSave[pointerGalleryData : pointerGalleryData+1748]
-			save.ToreData = save.decompSave[pointerToreData : pointerToreData+240]
-			save.GardenData = save.decompSave[pointerGardenData : pointerGardenData+68]
-			save.WeaponType = save.decompSave[pointerWeaponType]
-			save.WeaponID = binary.LittleEndian.Uint16(save.decompSave[pointerWeaponID : pointerWeaponID+2])
-			save.HRP = binary.LittleEndian.Uint16(save.decompSave[pointerHRP : pointerHRP+2])
+		if _config.ErupeConfig.RealClientMode >= _config.G10 {
+			save.RP = binary.LittleEndian.Uint16(save.decompSave[save.Pointers[pRP] : save.Pointers[pRP]+2])
+			save.HouseTier = save.decompSave[save.Pointers[pHouseTier] : save.Pointers[pHouseTier]+5]
+			save.HouseData = save.decompSave[save.Pointers[pHouseData] : save.Pointers[pHouseData]+195]
+			save.BookshelfData = save.decompSave[save.Pointers[pBookshelfData] : save.Pointers[pBookshelfData]+5576]
+			save.GalleryData = save.decompSave[save.Pointers[pGalleryData] : save.Pointers[pGalleryData]+1748]
+			save.ToreData = save.decompSave[save.Pointers[pToreData] : save.Pointers[pToreData]+240]
+			save.GardenData = save.decompSave[save.Pointers[pGardenData] : save.Pointers[pGardenData]+68]
+			save.WeaponType = save.decompSave[save.Pointers[pWeaponType]]
+			save.WeaponID = binary.LittleEndian.Uint16(save.decompSave[save.Pointers[pWeaponID] : save.Pointers[pWeaponID]+2])
+			save.HRP = binary.LittleEndian.Uint16(save.decompSave[save.Pointers[pHRP] : save.Pointers[pHRP]+2])
 			if save.HRP == uint16(999) {
-				save.GR = grpToGR(binary.LittleEndian.Uint32(save.decompSave[pointerGRP : pointerGRP+4]))
+				save.GR = grpToGR(binary.LittleEndian.Uint32(save.decompSave[save.Pointers[pGRP] : save.Pointers[pGRP]+4]))
 			}
-			save.KQF = save.decompSave[pointerKQF : pointerKQF+8]
-		} else if _config.ErupeConfig.RealClientMode >= _config.Z1 {
-			save.RP = binary.LittleEndian.Uint16(save.decompSave[pointerRPZ : pointerRPZ+2])
-			save.HouseTier = save.decompSave[pointerHouseTierZ : pointerHouseTierZ+5]
-			save.HouseData = save.decompSave[pointerHouseDataZ : pointerHouseDataZ+195]
-			save.BookshelfData = save.decompSave[pointerBookshelfDataZ : pointerBookshelfDataZ+5576]
-			save.GalleryData = save.decompSave[pointerGalleryDataZ : pointerGalleryDataZ+1748]
-			save.ToreData = save.decompSave[pointerToreDataZ : pointerToreDataZ+240]
-			save.GardenData = save.decompSave[pointerGardenDataZ : pointerGardenDataZ+68]
-			save.WeaponType = save.decompSave[pointerWeaponTypeZ]
-			save.WeaponID = binary.LittleEndian.Uint16(save.decompSave[pointerWeaponIDZ : pointerWeaponIDZ+2])
-			save.HRP = binary.LittleEndian.Uint16(save.decompSave[pointerHRPZ : pointerHRPZ+2])
-			if save.HRP == uint16(999) {
-				save.GR = grpToGR(binary.LittleEndian.Uint32(save.decompSave[pointerGRPZ : pointerGRPZ+4]))
-			}
-			save.KQF = save.decompSave[pointerKQFZ : pointerKQFZ+8]
+			save.KQF = save.decompSave[save.Pointers[pKQF] : save.Pointers[pKQF]+8]
 		}
 	}
 	return
@@ -203,5 +213,5 @@ func (save *CharacterSaveData) updateStructWithSaveData() {
 
 func handleMsgMhfSexChanger(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSexChanger)
-	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }

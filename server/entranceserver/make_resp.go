@@ -46,9 +46,15 @@ func encodeServerInfo(config *_config.Config, s *Server, local bool) []byte {
 		bf.WriteUint16(uint16(len(si.Channels)))
 		bf.WriteUint8(si.Type)
 		bf.WriteUint8(uint8(((channelserver.TimeAdjusted().Unix() / 86400) + int64(serverIdx)) % 3))
-		bf.WriteUint8(si.Recommended)
+		if s.erupeConfig.RealClientMode >= _config.G1 {
+			bf.WriteUint8(si.Recommended)
+		}
 
-		if s.erupeConfig.RealClientMode <= _config.GG {
+		if s.erupeConfig.RealClientMode <= _config.F5 {
+			combined := append(stringsupport.UTF8ToSJIS(si.Name), []byte{0x00}...)
+			combined = append(combined, stringsupport.UTF8ToSJIS(si.Description)...)
+			bf.WriteBytes(stringsupport.PaddedString(string(combined), 65, false))
+		} else if s.erupeConfig.RealClientMode <= _config.GG {
 			combined := append(stringsupport.UTF8ToSJIS(si.Name), []byte{0x00}...)
 			combined = append(combined, stringsupport.UTF8ToSJIS(si.Description)...)
 			bf.WriteUint8(uint8(len(combined)))

@@ -124,6 +124,7 @@ type GameplayOptions struct {
 	FeaturedWeapons                int    // Number of Active Feature weapons to generate daily
 	MaximumNP                      int    // Maximum number of NP held by a player
 	MaximumRP                      uint16 // Maximum number of RP held by a player
+  MaximumFP                      uint32  // Maximum number of FP held by a player
 	DisableLoginBoost              bool   // Disables the Login Boost system
 	DisableBoostTime               bool   // Disables the daily NetCafe Boost Time
 	BoostTimeDuration              int    // The number of minutes NetCafe Boost Time lasts for
@@ -145,6 +146,7 @@ type GameplayOptions struct {
 	MaterialMultiplier             float32 // Adjusts the multiplier of Monster Materials rewarded for quest completion
 	ExtraCarves                    uint16  // Grant n extra chances to carve ALL carcasses
 	DisableHunterNavi              bool    // Disables the Hunter Navi
+  EnableKaijiEvent               bool    // Enables the Kaiji event in the Rasta Bar
 	EnableHiganjimaEvent           bool    // Enables the Higanjima event in the Rasta Bar
 	EnableNierEvent                bool    // Enables the Nier event in the Rasta Bar
 	DisableRoad                    bool    // Disables the Hunting Road

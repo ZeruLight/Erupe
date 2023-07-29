@@ -1,11 +1,12 @@
 package mhfpacket
 
-import ( 
- "errors" 
+import (
+	"errors"
+	_config "erupe-ce/config"
 
- 	"erupe-ce/network/clientctx"
-	"erupe-ce/network"
 	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgMhfSavedata represents the MSG_MHF_SAVEDATA
@@ -29,7 +30,9 @@ func (m *MsgMhfSavedata) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientCon
 	m.AllocMemSize = bf.ReadUint32()
 	m.SaveType = bf.ReadUint8()
 	m.Unk1 = bf.ReadUint32()
-	m.DataSize = bf.ReadUint32()
+	if _config.ErupeConfig.RealClientMode >= _config.G1 {
+		m.DataSize = bf.ReadUint32()
+	}
 	if m.DataSize == 0 { // seems to be used when DataSize = 0 rather than on savetype?
 		m.RawDataPayload = bf.ReadBytes(uint(m.AllocMemSize))
 	} else {

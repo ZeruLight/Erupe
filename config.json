@@ -32,13 +32,14 @@
     "EarthMonsterOverride": 0,
     "SaveDumps": {
       "Enabled": true,
-      "OutputDir": "savedata"
+      "OutputDir": "save-backups"
     }
   },
   "GameplayOptions": {
     "FeaturedWeapons": 1,
     "MaximumNP": 100000,
     "MaximumRP": 50000,
+    "MaximumFP": 120000,
     "DisableLoginBoost": false,
     "DisableBoostTime": false,
     "BoostTimeDuration": 120,
@@ -60,6 +61,7 @@
     "MaterialMultiplier": 1.00,
     "ExtraCarves": 0,
     "DisableHunterNavi": false,
+    "EnableKaijiEvent": false,
     "EnableHiganjimaEvent": false,
     "EnableNierEvent": false,
     "DisableRoad": false,

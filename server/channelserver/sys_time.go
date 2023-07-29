@@ -23,3 +23,7 @@ func TimeWeekStart() time.Time {
 func TimeWeekNext() time.Time {
 	return TimeWeekStart().Add(time.Hour * 24 * 7)
 }
+
+func TimeGameAbsolute() uint32 {
+	return uint32((TimeAdjusted().Unix() - 2160) % 5760)
+}

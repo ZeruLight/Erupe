@@ -95,18 +95,3 @@ func (s *Stage) isCharInQuestByID(charID uint32) bool {
 func (s *Stage) isQuest() bool {
 	return len(s.reservedClientSlots) > 0
 }
-
-func (s *Stage) NextObjectID() uint32 {
-	s.objectIndex = s.objectIndex + 1
-	// Objects beyond 127 do not duplicate correctly
-	// Indexes 0 and 127 does not update position correctly
-	if s.objectIndex == 127 {
-		s.objectIndex = 1
-	}
-	bf := byteframe.NewByteFrame()
-	bf.WriteUint8(0)
-	bf.WriteUint8(s.objectIndex)
-	bf.WriteUint16(0)
-	obj := uint32(bf.Data()[3]) | uint32(bf.Data()[2])<<8 | uint32(bf.Data()[1])<<16 | uint32(bf.Data()[0])<<24
-	return obj
-}

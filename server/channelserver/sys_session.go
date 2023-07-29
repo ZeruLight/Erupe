@@ -34,6 +34,7 @@ type Session struct {
 	clientContext *clientctx.ClientContext
 	lastPacket    time.Time
 
+	objectIndex      uint16
 	userEnteredStage bool // If the user has entered a stage before
 	stageID          string
 	stage            *Stage
@@ -78,6 +79,7 @@ func NewSession(server *Server, conn net.Conn) *Session {
 		sessionStart:   TimeAdjusted().Unix(),
 		stageMoveStack: stringstack.New(),
 	}
+	s.SetObjectID()
 	return s
 }
 
@@ -267,4 +269,30 @@ func (s *Session) logMessage(opcode uint16, data []byte, sender string, recipien
 	} else {
 		fmt.Printf("Data [%d bytes]:\n(Too long!)\n\n", len(data))
 	}
+}
+
+func (s *Session) SetObjectID() {
+	for i := uint16(1); i < 127; i++ {
+		exists := false
+		for _, j := range s.server.objectIDs {
+			if i == j {
+				exists = true
+				break
+			}
+		}
+		if !exists {
+			s.server.objectIDs[s] = i
+			return
+		}
+	}
+	s.server.objectIDs[s] = 0
+}
+
+func (s *Session) NextObjectID() uint32 {
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint16(s.server.objectIDs[s])
+	s.objectIndex++
+	bf.WriteUint16(s.objectIndex)
+	bf.Seek(0, 0)
+	return bf.ReadUint32()
 }

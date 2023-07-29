@@ -156,7 +156,20 @@ func makeEventQuest(s *Session, rows *sql.Rows) ([]byte, error) {
 	bf.WriteUint32(id)
 	bf.WriteUint32(0)
 	bf.WriteUint8(0) // Indexer
-	bf.WriteUint8(maxPlayers)
+	switch questType {
+	case 16:
+		bf.WriteUint8(s.server.erupeConfig.GameplayOptions.RegularRavienteMaxPlayers)
+	case 22:
+		bf.WriteUint8(s.server.erupeConfig.GameplayOptions.ViolentRavienteMaxPlayers)
+	case 40:
+		bf.WriteUint8(s.server.erupeConfig.GameplayOptions.BerserkRavienteMaxPlayers)
+	case 50:
+		bf.WriteUint8(s.server.erupeConfig.GameplayOptions.ExtremeRavienteMaxPlayers)
+	case 51:
+		bf.WriteUint8(s.server.erupeConfig.GameplayOptions.SmallBerserkRavienteMaxPlayers)
+	default:
+		bf.WriteUint8(maxPlayers)
+	}
 	bf.WriteUint8(questType)
 	bf.WriteUint8(0)
 	bf.WriteUint16(0)

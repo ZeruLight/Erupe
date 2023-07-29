@@ -222,7 +222,7 @@ func main() {
 				if err != nil {
 					preventClose(fmt.Sprintf("Channel: Failed to start, %s", err.Error()))
 				} else {
-					channelQuery += fmt.Sprintf(`INSERT INTO servers (server_id, season, current_players, world_name, world_description, land) VALUES (%d, %d, 0, '%s', '%s', %d);`, sid, si%3, ee.Name, ee.Description, i+1)
+					channelQuery += fmt.Sprintf(`INSERT INTO servers (server_id, current_players, world_name, world_description, land) VALUES (%d, 0, '%s', '%s', %d);`, sid, ee.Name, ee.Description, i+1)
 					channels = append(channels, &c)
 					logger.Info(fmt.Sprintf("Channel %d (%d): Started successfully", count, ce.Port))
 					ci++

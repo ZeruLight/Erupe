@@ -1853,8 +1853,7 @@ func handleMsgMhfGetDailyMissionPersonal(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfSetDailyMissionPersonal(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfGetEquipSkinHist(s *Session, p mhfpacket.MHFPacket) {
-	pkt := p.(*mhfpacket.MsgMhfGetEquipSkinHist)
+func equipSkinHistSize() int {
 	size := 3200
 	if _config.ErupeConfig.RealClientMode <= _config.Z2 {
 		size = 2560
@@ -1862,7 +1861,12 @@ func handleMsgMhfGetEquipSkinHist(s *Session, p mhfpacket.MHFPacket) {
 	if _config.ErupeConfig.RealClientMode <= _config.Z1 {
 		size = 1280
 	}
+	return size
+}
 
+func handleMsgMhfGetEquipSkinHist(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfGetEquipSkinHist)
+	size := equipSkinHistSize()
 	var data []byte
 	err := s.server.db.QueryRow("SELECT COALESCE(skin_hist::bytea, $2::bytea) FROM characters WHERE id = $1", s.charID, make([]byte, size)).Scan(&data)
 	if err != nil {
@@ -1874,14 +1878,7 @@ func handleMsgMhfGetEquipSkinHist(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfUpdateEquipSkinHist(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfUpdateEquipSkinHist)
-	size := 3200
-	if _config.ErupeConfig.RealClientMode <= _config.Z2 {
-		size = 2560
-	}
-	if _config.ErupeConfig.RealClientMode <= _config.Z1 {
-		size = 1280
-	}
-
+	size := equipSkinHistSize()
 	var data []byte
 	err := s.server.db.QueryRow("SELECT COALESCE(skin_hist, $2) FROM characters WHERE id = $1", s.charID, make([]byte, size)).Scan(&data)
 	if err != nil {

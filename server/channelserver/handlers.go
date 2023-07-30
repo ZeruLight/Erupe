@@ -1951,20 +1951,45 @@ func handleMsgMhfGetLobbyCrowd(s *Session, p mhfpacket.MHFPacket) {
 	doAckBufSucceed(s, pkt.AckHandle, make([]byte, 0x320))
 }
 
+type TrendWeapon struct {
+	WeaponType uint8
+	WeaponID   uint16
+}
+
 func handleMsgMhfGetTrendWeapon(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetTrendWeapon)
-	// TODO (Fist): Work out actual format limitations, seems to be final upgrade
-	// for weapons and it traverses its upgrade tree to recommend base as final
-	// 423C correlates with most popular magnet spike in use on JP
-	// 2A 00 3C 44 00 3C 76 00 3F EA 01 0F 20 01 0F 50 01 0F F8 02 3C 7E 02 3D
-	// F3 02 40 2A 03 3D 65 03 3F 2A 03 40 36 04 3D 59 04 41 E7 04 43 3E 05 0A
-	// ED 05 0F 4C 05 0F F2 06 3A FE 06 41 E8 06 41 FA 07 3B 02 07 3F ED 07 40
-	// 24 08 3D 37 08 3F 66 08 41 EC 09 3D 38 09 3F 8A 09 41 EE 0A 0E 78 0A 0F
-	// AA 0A 0F F9 0B 3E 2E 0B 41 EF 0B 42 FB 0C 41 F0 0C 43 3F 0C 43 EE 0D 41 F1 0D 42 10 0D 42 3C 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-	doAckBufSucceed(s, pkt.AckHandle, make([]byte, 0xA9))
+	trendWeapons := [14][3]TrendWeapon{}
+	for i := uint8(0); i < 14; i++ {
+		rows, err := s.server.db.Query(`SELECT weapon_id FROM trend_weapons WHERE weapon_type=$1 ORDER BY count DESC LIMIT 3`, i)
+		if err != nil {
+			continue
+		}
+		j := 0
+		for rows.Next() {
+			trendWeapons[i][j].WeaponType = i
+			rows.Scan(&trendWeapons[i][j].WeaponID)
+			j++
+		}
+	}
+
+	x := uint8(0)
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint8(0)
+	for _, weaponType := range trendWeapons {
+		for _, weapon := range weaponType {
+			bf.WriteUint8(weapon.WeaponType)
+			bf.WriteUint16(weapon.WeaponID)
+			x++
+		}
+	}
+	bf.Seek(0, 0)
+	bf.WriteUint8(x)
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfUpdateUseTrendWeaponLog(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfUpdateUseTrendWeaponLog)
-	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+	s.server.db.Exec(`INSERT INTO trend_weapons (weapon_id, weapon_type, count) VALUES ($1, $2, 1) ON CONFLICT (weapon_id) DO
+		UPDATE SET count = trend_weapons.count+1`, pkt.WeaponID, pkt.WeaponType)
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }

@@ -239,19 +239,19 @@ func dumpSaveData(s *Session, data []byte, suffix string) {
 		_, err := os.Stat(dir)
 		if err != nil {
 			if os.IsNotExist(err) {
-				err = os.Mkdir(dir, os.ModePerm)
+				err = os.MkdirAll(dir, os.ModePerm)
 				if err != nil {
-					s.logger.Warn("Error dumping savedata, could not create folder")
+					s.logger.Error("Error dumping savedata, could not create folder")
 					return
 				}
 			} else {
-				s.logger.Warn("Error dumping savedata")
+				s.logger.Error("Error dumping savedata")
 				return
 			}
 		}
 		err = os.WriteFile(path, data, 0644)
 		if err != nil {
-			s.logger.Warn("Error dumping savedata, could not write file", zap.Error(err))
+			s.logger.Error("Error dumping savedata, could not write file", zap.Error(err))
 		}
 	}
 }

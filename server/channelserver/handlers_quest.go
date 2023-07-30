@@ -171,7 +171,11 @@ func makeEventQuest(s *Session, rows *sql.Rows) ([]byte, error) {
 		bf.WriteUint8(maxPlayers)
 	}
 	bf.WriteUint8(questType)
-	bf.WriteUint8(0)
+	if questType == 9 {
+		bf.WriteBool(false)
+	} else {
+		bf.WriteBool(true)
+	}
 	bf.WriteUint16(0)
 	bf.WriteUint32(mark)
 	bf.WriteUint16(0)
@@ -636,7 +640,8 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 		{false, 10000},
 	}
 	bf.WriteUint16(uint16(len(vsQuestItems)))
-	bf.WriteUint32(uint32(len(vsQuestBets)))
+	bf.WriteUint16(0) // Unk array of uint16s
+	bf.WriteUint16(uint16(len(vsQuestBets)))
 	bf.WriteUint16(0) // Unk
 
 	for i := range vsQuestItems {

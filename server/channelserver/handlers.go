@@ -1697,7 +1697,14 @@ func handleMsgMhfGetEarthValue(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfDebugPostValue(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfGetRandFromTable(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfGetRandFromTable(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfGetRandFromTable)
+	bf := byteframe.NewByteFrame()
+	for i := uint16(0); i < pkt.Results; i++ {
+		bf.WriteUint32(0)
+	}
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+}
 
 func handleMsgMhfGetSenyuDailyCount(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetSenyuDailyCount)

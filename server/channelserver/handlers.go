@@ -1855,59 +1855,50 @@ func handleMsgMhfSetDailyMissionPersonal(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfGetEquipSkinHist(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetEquipSkinHist)
-	// Transmog / reskin system,  bitmask of 3200 bytes length
-	// presumably divided by 5 sections for 5120 armour IDs covered
-	// +10,000 for actual ID to be unlocked by each bit
-	// Returning 3200 bytes of FF just unlocks everything for now
+	size := 3200
+	if _config.ErupeConfig.RealClientMode <= _config.Z2 {
+		size = 2560
+	}
+	if _config.ErupeConfig.RealClientMode <= _config.Z1 {
+		size = 1280
+	}
+
 	var data []byte
-	err := s.server.db.QueryRow("SELECT COALESCE(skin_hist::bytea, $2::bytea) FROM characters WHERE id = $1", s.charID, make([]byte, 0xC80)).Scan(&data)
+	err := s.server.db.QueryRow("SELECT COALESCE(skin_hist::bytea, $2::bytea) FROM characters WHERE id = $1", s.charID, make([]byte, size)).Scan(&data)
 	if err != nil {
 		s.logger.Error("Failed to load skin_hist", zap.Error(err))
-		data = make([]byte, 3200)
+		data = make([]byte, size)
 	}
 	doAckBufSucceed(s, pkt.AckHandle, data)
 }
 
 func handleMsgMhfUpdateEquipSkinHist(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfUpdateEquipSkinHist)
-	// sends a raw armour ID back that needs to be mapped into the persistent bitmask above (-10,000)
+	size := 3200
+	if _config.ErupeConfig.RealClientMode <= _config.Z2 {
+		size = 2560
+	}
+	if _config.ErupeConfig.RealClientMode <= _config.Z1 {
+		size = 1280
+	}
+
 	var data []byte
-	err := s.server.db.QueryRow("SELECT COALESCE(skin_hist, $2) FROM characters WHERE id = $1", s.charID, make([]byte, 0xC80)).Scan(&data)
+	err := s.server.db.QueryRow("SELECT COALESCE(skin_hist, $2) FROM characters WHERE id = $1", s.charID, make([]byte, size)).Scan(&data)
 	if err != nil {
-		s.logger.Error("Failed to save skin_hist", zap.Error(err))
-		doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+		s.logger.Error("Failed to get skin_hist", zap.Error(err))
+		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
 
-	var bit int
-	var startByte int
-	switch pkt.MogType {
-	case 0: // legs
-		bit = int(pkt.ArmourID) - 10000
-		startByte = 0
-	case 1:
-		bit = int(pkt.ArmourID) - 10000
-		startByte = 640
-	case 2:
-		bit = int(pkt.ArmourID) - 10000
-		startByte = 1280
-	case 3:
-		bit = int(pkt.ArmourID) - 10000
-		startByte = 1920
-	case 4:
-		bit = int(pkt.ArmourID) - 10000
-		startByte = 2560
-	}
+	bit := int(pkt.ArmourID) - 10000
+	startByte := (size / 5) * int(pkt.MogType)
 	// psql set_bit could also work but I couldn't get it working
-	byteInd := (bit / 8)
+	byteInd := bit / 8
 	bitInByte := bit % 8
-	data[startByte+byteInd] |= bits.Reverse8((1 << uint(bitInByte)))
+	data[startByte+byteInd] |= bits.Reverse8(1 << uint(bitInByte))
 	dumpSaveData(s, data, "skinhist")
-	_, err = s.server.db.Exec("UPDATE characters SET skin_hist=$1 WHERE id=$2", data, s.charID)
-	if err != nil {
-		panic(err)
-	}
-	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+	s.server.db.Exec("UPDATE characters SET skin_hist=$1 WHERE id=$2", data, s.charID)
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfGetUdShopCoin(s *Session, p mhfpacket.MHFPacket) {

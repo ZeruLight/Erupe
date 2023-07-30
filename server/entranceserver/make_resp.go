@@ -12,9 +12,6 @@ import (
 	"erupe-ce/server/channelserver"
 )
 
-// Server Channels
-var currentplayers uint16
-
 func encodeServerInfo(config *_config.Config, s *Server, local bool) []byte {
 	serverInfos := config.Entrance.Entries
 	bf := byteframe.NewByteFrame()
@@ -75,18 +72,19 @@ func encodeServerInfo(config *_config.Config, s *Server, local bool) []byte {
 			bf.WriteUint16(ci.Port)
 			bf.WriteUint16(16 + uint16(channelIdx))
 			bf.WriteUint16(ci.MaxPlayers)
-			err := s.db.QueryRow("SELECT current_players FROM servers WHERE server_id=$1", sid).Scan(&currentplayers)
-			if err != nil {
-				currentplayers = 0
-			}
-			bf.WriteUint16(currentplayers)
-			bf.WriteUint32(0)
-			bf.WriteUint32(0)
-			bf.WriteUint32(0)
-			bf.WriteUint16(319) // Unk
-			bf.WriteUint16(252) // Unk
-			bf.WriteUint16(248) // Unk
-			bf.WriteUint16(0x3039)
+			var currentPlayers uint16
+			s.db.QueryRow("SELECT current_players FROM servers WHERE server_id=$1", sid).Scan(&currentPlayers)
+			bf.WriteUint16(currentPlayers)
+			bf.WriteUint16(0)     // Unk
+			bf.WriteUint16(0)     // Unk
+			bf.WriteUint16(0)     // Unk
+			bf.WriteUint16(0)     // Unk
+			bf.WriteUint16(0)     // Unk
+			bf.WriteUint16(0)     // Unk
+			bf.WriteUint16(319)   // Unk
+			bf.WriteUint16(252)   // Unk
+			bf.WriteUint16(248)   // Unk
+			bf.WriteUint16(12345) // Unk
 		}
 	}
 	bf.WriteUint32(uint32(channelserver.TimeAdjusted().Unix()))

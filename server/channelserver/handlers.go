@@ -111,7 +111,12 @@ func handleMsgSysTerminalLog(s *Session, p mhfpacket.MHFPacket) {
 		s.server.logger.Info("SysTerminalLog",
 			zap.Uint8("Type1", pkt.Entries[i].Type1),
 			zap.Uint8("Type2", pkt.Entries[i].Type2),
-			zap.Int16s("Data", pkt.Entries[i].Data))
+			zap.Int16("Unk0", pkt.Entries[i].Unk0),
+			zap.Int32("Unk1", pkt.Entries[i].Unk1),
+			zap.Int32("Unk2", pkt.Entries[i].Unk2),
+			zap.Int32("Unk3", pkt.Entries[i].Unk3),
+			zap.Int32s("Unk4", pkt.Entries[i].Unk4),
+		)
 	}
 	resp := byteframe.NewByteFrame()
 	resp.WriteUint32(pkt.LogID + 1) // LogID to use for requests after this.

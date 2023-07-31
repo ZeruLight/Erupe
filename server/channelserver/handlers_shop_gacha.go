@@ -3,6 +3,7 @@ package channelserver
 import (
 	"erupe-ce/common/byteframe"
 	ps "erupe-ce/common/pascalstring"
+	_config "erupe-ce/config"
 	"erupe-ce/network/mhfpacket"
 	"math/rand"
 )
@@ -109,6 +110,12 @@ func handleMsgMhfEnumerateShop(s *Session, p mhfpacket.MHFPacket) {
 	// 8: special item
 	switch pkt.ShopType {
 	case 1: // Running gachas
+		// Fundamentally, gacha works completely differently, just hide it for now.
+		if _config.ErupeConfig.RealClientMode <= _config.G7 {
+			doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
+			return
+		}
+
 		var count uint16
 		shopEntries, err := s.server.db.Queryx("SELECT id, min_gr, min_hr, name, url_banner, url_feature, url_thumbnail, wide, recommended, gacha_type, hidden FROM gacha_shop")
 		if err != nil {

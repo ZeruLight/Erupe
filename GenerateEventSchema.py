@@ -1,6 +1,6 @@
 import os
 
-d = 'bin/_events'
+d = 'bin/events'
 out = 'begin;insert into event_quests(max_players, quest_type, quest_id, mark)values'
 for y, _, x in os.walk(d):
     for z in x:

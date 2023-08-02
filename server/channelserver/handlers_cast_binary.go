@@ -89,9 +89,15 @@ func parseChatCommand(s *Session, command string) {
 			if err != nil || n != 1 {
 				sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandPSNError"], commands["PSN"].Prefix))
 			} else {
-				_, err = s.server.db.Exec(`UPDATE users u SET psn_id=$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)`, id, s.charID)
-				if err == nil {
-					sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandPSNSuccess"], id))
+				var exists int
+				s.server.db.QueryRow(`SELECT count(*) FROM users WHERE psn_id = $1`, id).Scan(&exists)
+				if exists == 0 {
+					_, err = s.server.db.Exec(`UPDATE users u SET psn_id=$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)`, id, s.charID)
+					if err == nil {
+						sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandPSNSuccess"], id))
+					}
+				} else {
+					sendServerChatMessage(s, s.server.dict["commandPSNExists"])
 				}
 			}
 		}

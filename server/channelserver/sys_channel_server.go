@@ -47,6 +47,7 @@ type Server struct {
 	acceptConns    chan net.Conn
 	deleteConns    chan net.Conn
 	sessions       map[net.Conn]*Session
+	objectIDs      map[*Session]uint16
 	listener       net.Listener // Listener that is created when Server.Start is called.
 	isShuttingDown bool
 
@@ -152,6 +153,7 @@ func NewServer(config *Config) *Server {
 		acceptConns:     make(chan net.Conn),
 		deleteConns:     make(chan net.Conn),
 		sessions:        make(map[net.Conn]*Session),
+		objectIDs:       make(map[*Session]uint16),
 		stages:          make(map[string]*Stage),
 		userBinaryParts: make(map[userBinaryPartID][]byte),
 		semaphore:       make(map[string]*Semaphore),
@@ -404,4 +406,9 @@ func (s *Server) NextSemaphoreID() uint32 {
 		}
 	}
 	return s.semaphoreIndex
+}
+
+func (s *Server) Season() uint8 {
+	sid := int64(((s.ID & 0xFF00) - 4096) / 256)
+	return uint8(((TimeAdjusted().Unix() / 86400) + sid) % 3)
 }

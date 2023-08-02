@@ -111,7 +111,12 @@ func handleMsgSysTerminalLog(s *Session, p mhfpacket.MHFPacket) {
 		s.server.logger.Info("SysTerminalLog",
 			zap.Uint8("Type1", pkt.Entries[i].Type1),
 			zap.Uint8("Type2", pkt.Entries[i].Type2),
-			zap.Int16s("Data", pkt.Entries[i].Data))
+			zap.Int16("Unk0", pkt.Entries[i].Unk0),
+			zap.Int32("Unk1", pkt.Entries[i].Unk1),
+			zap.Int32("Unk2", pkt.Entries[i].Unk2),
+			zap.Int32("Unk3", pkt.Entries[i].Unk3),
+			zap.Int32s("Unk4", pkt.Entries[i].Unk4),
+		)
 	}
 	resp := byteframe.NewByteFrame()
 	resp.WriteUint32(pkt.LogID + 1) // LogID to use for requests after this.
@@ -177,6 +182,7 @@ func logoutPlayer(s *Session) {
 		delete(s.server.sessions, s.rawConn)
 	}
 	s.rawConn.Close()
+	delete(s.server.objectIDs, s)
 	s.server.Unlock()
 
 	for _, stage := range s.server.stages {
@@ -1691,7 +1697,14 @@ func handleMsgMhfGetEarthValue(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfDebugPostValue(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfGetRandFromTable(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfGetRandFromTable(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfGetRandFromTable)
+	bf := byteframe.NewByteFrame()
+	for i := uint16(0); i < pkt.Results; i++ {
+		bf.WriteUint32(0)
+	}
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+}
 
 func handleMsgMhfGetSenyuDailyCount(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetSenyuDailyCount)
@@ -1847,61 +1860,49 @@ func handleMsgMhfGetDailyMissionPersonal(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfSetDailyMissionPersonal(s *Session, p mhfpacket.MHFPacket) {}
 
+func equipSkinHistSize() int {
+	size := 3200
+	if _config.ErupeConfig.RealClientMode <= _config.Z2 {
+		size = 2560
+	}
+	if _config.ErupeConfig.RealClientMode <= _config.Z1 {
+		size = 1280
+	}
+	return size
+}
+
 func handleMsgMhfGetEquipSkinHist(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetEquipSkinHist)
-	// Transmog / reskin system,  bitmask of 3200 bytes length
-	// presumably divided by 5 sections for 5120 armour IDs covered
-	// +10,000 for actual ID to be unlocked by each bit
-	// Returning 3200 bytes of FF just unlocks everything for now
+	size := equipSkinHistSize()
 	var data []byte
-	err := s.server.db.QueryRow("SELECT COALESCE(skin_hist::bytea, $2::bytea) FROM characters WHERE id = $1", s.charID, make([]byte, 0xC80)).Scan(&data)
+	err := s.server.db.QueryRow("SELECT COALESCE(skin_hist::bytea, $2::bytea) FROM characters WHERE id = $1", s.charID, make([]byte, size)).Scan(&data)
 	if err != nil {
 		s.logger.Error("Failed to load skin_hist", zap.Error(err))
-		data = make([]byte, 3200)
+		data = make([]byte, size)
 	}
 	doAckBufSucceed(s, pkt.AckHandle, data)
 }
 
 func handleMsgMhfUpdateEquipSkinHist(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfUpdateEquipSkinHist)
-	// sends a raw armour ID back that needs to be mapped into the persistent bitmask above (-10,000)
+	size := equipSkinHistSize()
 	var data []byte
-	err := s.server.db.QueryRow("SELECT COALESCE(skin_hist, $2) FROM characters WHERE id = $1", s.charID, make([]byte, 0xC80)).Scan(&data)
+	err := s.server.db.QueryRow("SELECT COALESCE(skin_hist, $2) FROM characters WHERE id = $1", s.charID, make([]byte, size)).Scan(&data)
 	if err != nil {
-		s.logger.Error("Failed to save skin_hist", zap.Error(err))
-		doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+		s.logger.Error("Failed to get skin_hist", zap.Error(err))
+		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
 
-	var bit int
-	var startByte int
-	switch pkt.MogType {
-	case 0: // legs
-		bit = int(pkt.ArmourID) - 10000
-		startByte = 0
-	case 1:
-		bit = int(pkt.ArmourID) - 10000
-		startByte = 640
-	case 2:
-		bit = int(pkt.ArmourID) - 10000
-		startByte = 1280
-	case 3:
-		bit = int(pkt.ArmourID) - 10000
-		startByte = 1920
-	case 4:
-		bit = int(pkt.ArmourID) - 10000
-		startByte = 2560
-	}
+	bit := int(pkt.ArmourID) - 10000
+	startByte := (size / 5) * int(pkt.MogType)
 	// psql set_bit could also work but I couldn't get it working
-	byteInd := (bit / 8)
+	byteInd := bit / 8
 	bitInByte := bit % 8
-	data[startByte+byteInd] |= bits.Reverse8((1 << uint(bitInByte)))
+	data[startByte+byteInd] |= bits.Reverse8(1 << uint(bitInByte))
 	dumpSaveData(s, data, "skinhist")
-	_, err = s.server.db.Exec("UPDATE characters SET skin_hist=$1 WHERE id=$2", data, s.charID)
-	if err != nil {
-		panic(err)
-	}
-	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+	s.server.db.Exec("UPDATE characters SET skin_hist=$1 WHERE id=$2", data, s.charID)
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfGetUdShopCoin(s *Session, p mhfpacket.MHFPacket) {
@@ -1945,20 +1946,45 @@ func handleMsgMhfGetLobbyCrowd(s *Session, p mhfpacket.MHFPacket) {
 	doAckBufSucceed(s, pkt.AckHandle, make([]byte, 0x320))
 }
 
+type TrendWeapon struct {
+	WeaponType uint8
+	WeaponID   uint16
+}
+
 func handleMsgMhfGetTrendWeapon(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetTrendWeapon)
-	// TODO (Fist): Work out actual format limitations, seems to be final upgrade
-	// for weapons and it traverses its upgrade tree to recommend base as final
-	// 423C correlates with most popular magnet spike in use on JP
-	// 2A 00 3C 44 00 3C 76 00 3F EA 01 0F 20 01 0F 50 01 0F F8 02 3C 7E 02 3D
-	// F3 02 40 2A 03 3D 65 03 3F 2A 03 40 36 04 3D 59 04 41 E7 04 43 3E 05 0A
-	// ED 05 0F 4C 05 0F F2 06 3A FE 06 41 E8 06 41 FA 07 3B 02 07 3F ED 07 40
-	// 24 08 3D 37 08 3F 66 08 41 EC 09 3D 38 09 3F 8A 09 41 EE 0A 0E 78 0A 0F
-	// AA 0A 0F F9 0B 3E 2E 0B 41 EF 0B 42 FB 0C 41 F0 0C 43 3F 0C 43 EE 0D 41 F1 0D 42 10 0D 42 3C 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00
-	doAckBufSucceed(s, pkt.AckHandle, make([]byte, 0xA9))
+	trendWeapons := [14][3]TrendWeapon{}
+	for i := uint8(0); i < 14; i++ {
+		rows, err := s.server.db.Query(`SELECT weapon_id FROM trend_weapons WHERE weapon_type=$1 ORDER BY count DESC LIMIT 3`, i)
+		if err != nil {
+			continue
+		}
+		j := 0
+		for rows.Next() {
+			trendWeapons[i][j].WeaponType = i
+			rows.Scan(&trendWeapons[i][j].WeaponID)
+			j++
+		}
+	}
+
+	x := uint8(0)
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint8(0)
+	for _, weaponType := range trendWeapons {
+		for _, weapon := range weaponType {
+			bf.WriteUint8(weapon.WeaponType)
+			bf.WriteUint16(weapon.WeaponID)
+			x++
+		}
+	}
+	bf.Seek(0, 0)
+	bf.WriteUint8(x)
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfUpdateUseTrendWeaponLog(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfUpdateUseTrendWeaponLog)
-	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+	s.server.db.Exec(`INSERT INTO trend_weapons (weapon_id, weapon_type, count) VALUES ($1, $2, 1) ON CONFLICT (weapon_id) DO
+		UPDATE SET count = trend_weapons.count+1`, pkt.WeaponID, pkt.WeaponType)
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }

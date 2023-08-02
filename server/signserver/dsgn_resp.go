@@ -14,7 +14,7 @@ import (
 func (s *Session) makeSignResponse(uid uint32) []byte {
 	// Get the characters from the DB.
 	chars, err := s.server.getCharactersForUser(uid)
-	if len(chars) == 0 {
+	if len(chars) == 0 && uid != 0 {
 		err = s.server.newUserChara(uid)
 		if err == nil {
 			chars, err = s.server.getCharactersForUser(uid)

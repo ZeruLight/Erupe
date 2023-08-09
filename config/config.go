@@ -133,6 +133,7 @@ type GameplayOptions struct {
 	DailyQuestAllowance            uint32 // Number of Daily Quests to allow daily
 	MezfesSoloTickets              uint32 // Number of solo tickets given weekly
 	MezfesGroupTickets             uint32 // Number of group tickets given weekly
+	LowLatencyRaviente             bool   // Toggles low latency mode for Raviente, can be network intensive
 	RegularRavienteMaxPlayers      uint8
 	ViolentRavienteMaxPlayers      uint8
 	BerserkRavienteMaxPlayers      uint8

@@ -48,6 +48,7 @@
     "DailyQuestAllowance": 1,
     "MezfesSoloTickets": 10,
     "MezfesGroupTickets": 4,
+    "LowLatencyRaviente": false,
     "RegularRavienteMaxPlayers": 8,
     "ViolentRavienteMaxPlayers": 8,
     "BerserkRavienteMaxPlayers": 32,

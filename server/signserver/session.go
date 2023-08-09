@@ -65,8 +65,7 @@ func (s *Session) handlePacket(pkt []byte) error {
 	case "WIIUSGN:":
 		s.client = WIIU
 		s.handleWIIUSGN(bf)
-	case "VITACOGLNK:":
-		s.client = VITA
+	case "VITACOGLNK:", "COGLNK:":
 		s.handlePSNLink(bf)
 	case "DELETE:":
 		token := string(bf.ReadNullTerminatedBytes())

@@ -1,14 +1,18 @@
 package signserver
 
 import (
+	"database/sql"
+	"errors"
 	"erupe-ce/common/mhfcourse"
+	"erupe-ce/common/token"
 	"strings"
 	"time"
 
+	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
 )
 
-func (s *Server) newUserChara(uid int) error {
+func (s *Server) newUserChara(uid uint32) error {
 	var numNewChars int
 	err := s.db.QueryRow("SELECT COUNT(*) FROM characters WHERE user_id = $1 AND is_new_character = true", uid).Scan(&numNewChars)
 	if err != nil {
@@ -35,20 +39,22 @@ func (s *Server) newUserChara(uid int) error {
 	return nil
 }
 
-func (s *Server) registerDBAccount(username string, password string) (int, error) {
+func (s *Server) registerDBAccount(username string, password string) (uint32, error) {
+	var uid uint32
+	s.logger.Info("Creating user", zap.String("User", username))
+
 	// Create salted hash of user password
 	passwordHash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
 		return 0, err
 	}
 
-	var id int
-	err = s.db.QueryRow("INSERT INTO users (username, password, return_expires) VALUES ($1, $2, $3) RETURNING id", username, string(passwordHash), time.Now().Add(time.Hour*24*30)).Scan(&id)
+	err = s.db.QueryRow("INSERT INTO users (username, password, return_expires) VALUES ($1, $2, $3) RETURNING id", username, string(passwordHash), time.Now().Add(time.Hour*24*30)).Scan(&uid)
 	if err != nil {
 		return 0, err
 	}
 
-	return id, nil
+	return uid, nil
 }
 
 type character struct {
@@ -63,7 +69,7 @@ type character struct {
 	LastLogin      uint32 `db:"last_login"`
 }
 
-func (s *Server) getCharactersForUser(uid int) ([]character, error) {
+func (s *Server) getCharactersForUser(uid uint32) ([]character, error) {
 	characters := make([]character, 0)
 	err := s.db.Select(&characters, "SELECT id, is_female, is_new_character, name, unk_desc_string, hrp, gr, weapon_type, last_login FROM characters WHERE user_id = $1 AND deleted = false ORDER BY id", uid)
 	if err != nil {
@@ -72,7 +78,7 @@ func (s *Server) getCharactersForUser(uid int) ([]character, error) {
 	return characters, nil
 }
 
-func (s *Server) getReturnExpiry(uid int) time.Time {
+func (s *Server) getReturnExpiry(uid uint32) time.Time {
 	var returnExpiry, lastLogin time.Time
 	s.db.Get(&lastLogin, "SELECT COALESCE(last_login, now()) FROM users WHERE id=$1", uid)
 	if time.Now().Add((time.Hour * 24) * -90).After(lastLogin) {
@@ -89,16 +95,18 @@ func (s *Server) getReturnExpiry(uid int) time.Time {
 	return returnExpiry
 }
 
-func (s *Server) getLastCID(uid int) uint32 {
+func (s *Server) getLastCID(uid uint32) uint32 {
 	var lastPlayed uint32
 	_ = s.db.QueryRow("SELECT last_character FROM users WHERE id=$1", uid).Scan(&lastPlayed)
 	return lastPlayed
 }
 
-func (s *Server) getUserRights(uid int) uint32 {
-	rights := uint32(2)
-	_ = s.db.QueryRow("SELECT rights FROM users WHERE id=$1", uid).Scan(&rights)
-	_, rights = mhfcourse.GetCourseStruct(rights)
+func (s *Server) getUserRights(uid uint32) uint32 {
+	var rights uint32
+	if uid != 0 {
+		_ = s.db.QueryRow("SELECT rights FROM users WHERE id=$1", uid).Scan(&rights)
+		_, rights = mhfcourse.GetCourseStruct(rights)
+	}
 	return rights
 }
 
@@ -159,14 +167,12 @@ func (s *Server) getGuildmatesForCharacters(chars []character) []members {
 	return guildmates
 }
 
-func (s *Server) deleteCharacter(cid int, token string) error {
-	var verify int
-	err := s.db.QueryRow("SELECT count(*) FROM sign_sessions WHERE token = $1", token).Scan(&verify)
-	if err != nil {
-		return err // Invalid token
+func (s *Server) deleteCharacter(cid int, token string, tokenID uint32) error {
+	if !s.validateToken(token, tokenID) {
+		return errors.New("invalid token")
 	}
 	var isNew bool
-	err = s.db.QueryRow("SELECT is_new_character FROM characters WHERE id = $1", cid).Scan(&isNew)
+	err := s.db.QueryRow("SELECT is_new_character FROM characters WHERE id = $1", cid).Scan(&isNew)
 	if isNew {
 		_, err = s.db.Exec("DELETE FROM characters WHERE id = $1", cid)
 	} else {
@@ -179,7 +185,7 @@ func (s *Server) deleteCharacter(cid int, token string) error {
 }
 
 // Unused
-func (s *Server) checkToken(uid int) (bool, error) {
+func (s *Server) checkToken(uid uint32) (bool, error) {
 	var exists int
 	err := s.db.QueryRow("SELECT count(*) FROM sign_sessions WHERE user_id = $1", uid).Scan(&exists)
 	if err != nil {
@@ -191,10 +197,55 @@ func (s *Server) checkToken(uid int) (bool, error) {
 	return false, nil
 }
 
-func (s *Server) registerToken(uid int, token string) error {
-	_, err := s.db.Exec("INSERT INTO sign_sessions (user_id, token) VALUES ($1, $2)", uid, token)
-	if err != nil {
-		return err
+func (s *Server) registerUidToken(uid uint32) (uint32, string, error) {
+	token := token.Generate(16)
+	var tid uint32
+	err := s.db.QueryRow(`INSERT INTO sign_sessions (user_id, token) VALUES ($1, $2) RETURNING id`, uid, token).Scan(&tid)
+	return tid, token, err
+}
+
+func (s *Server) registerPsnToken(psn string) (uint32, string, error) {
+	token := token.Generate(16)
+	var tid uint32
+	err := s.db.QueryRow(`INSERT INTO sign_sessions (psn_id, token) VALUES ($1, $2) RETURNING id`, psn, token).Scan(&tid)
+	return tid, token, err
+}
+
+func (s *Server) validateToken(token string, tokenID uint32) bool {
+	query := `SELECT count(*) FROM sign_sessions WHERE token = $1`
+	if tokenID > 0 {
+		query += ` AND id = $2`
 	}
-	return nil
+	var exists int
+	err := s.db.QueryRow(query, token, tokenID).Scan(&exists)
+	if err != nil || exists == 0 {
+		return false
+	}
+	return true
+}
+
+func (s *Server) validateLogin(user string, pass string) (uint32, RespID) {
+	var uid uint32
+	var passDB string
+	err := s.db.QueryRow(`SELECT id, password FROM users WHERE username = $1`, user).Scan(&uid, &passDB)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			s.logger.Info("User not found", zap.String("User", user))
+			if s.erupeConfig.DevMode && s.erupeConfig.DevModeOptions.AutoCreateAccount {
+				uid, err = s.registerDBAccount(user, pass)
+				if err == nil {
+					return uid, SIGN_SUCCESS
+				} else {
+					return 0, SIGN_EABORT
+				}
+			}
+			return 0, SIGN_EAUTH
+		}
+		return 0, SIGN_EABORT
+	} else {
+		if bcrypt.CompareHashAndPassword([]byte(passDB), []byte(pass)) == nil {
+			return uid, SIGN_SUCCESS
+		}
+		return 0, SIGN_EPASS
+	}
 }

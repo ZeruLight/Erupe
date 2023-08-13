@@ -272,13 +272,12 @@ func handleMsgSysPing(s *Session, p mhfpacket.MHFPacket) {
 }
 
 func handleMsgSysTime(s *Session, p mhfpacket.MHFPacket) {
-	//pkt := p.(*mhfpacket.MsgSysTime)
-
 	resp := &mhfpacket.MsgSysTime{
 		GetRemoteTime: false,
 		Timestamp:     uint32(TimeAdjusted().Unix()), // JP timezone
 	}
 	s.QueueSendMHF(resp)
+	s.notifyRavi()
 }
 
 func handleMsgSysIssueLogkey(s *Session, p mhfpacket.MHFPacket) {

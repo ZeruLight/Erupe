@@ -5,6 +5,7 @@ import (
 	"erupe-ce/common/byteframe"
 	"erupe-ce/common/decryption"
 	ps "erupe-ce/common/pascalstring"
+	_config "erupe-ce/config"
 	"erupe-ce/network/mhfpacket"
 	"fmt"
 	"io"
@@ -177,7 +178,9 @@ func makeEventQuest(s *Session, rows *sql.Rows) ([]byte, error) {
 		bf.WriteBool(true)
 	}
 	bf.WriteUint16(0)
-	bf.WriteUint32(mark)
+	if _config.ErupeConfig.RealClientMode >= _config.G1 {
+		bf.WriteUint32(mark)
+	}
 	bf.WriteUint16(0)
 	bf.WriteUint16(uint16(len(data)))
 	bf.WriteBytes(data)
@@ -202,10 +205,18 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 				continue
 			} else {
 				totalCount++
-				if totalCount > pkt.Offset && len(bf.Data()) < 60000 {
-					returnedCount++
-					bf.WriteBytes(data)
-					continue
+				if _config.ErupeConfig.RealClientMode == _config.F5 {
+					if totalCount > pkt.Offset && len(bf.Data()) < 21550 {
+						returnedCount++
+						bf.WriteBytes(data)
+						continue
+					}
+				} else {
+					if totalCount > pkt.Offset && len(bf.Data()) < 60000 {
+						returnedCount++
+						bf.WriteBytes(data)
+						continue
+					}
 				}
 			}
 		}

@@ -51,14 +51,25 @@ func handleMsgSysGetFile(s *Session, p mhfpacket.MHFPacket) {
 			pkt.Filename = seasonConversion(s, pkt.Filename)
 		}
 
-		data, err := os.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("quests/%s.bin", pkt.Filename)))
-		if err != nil {
-			s.logger.Error(fmt.Sprintf("Failed to open file: %s/quests/%s.bin", s.server.erupeConfig.BinPath, pkt.Filename))
-			// This will crash the game.
+		if _config.ErupeConfig.RealClientMode <= _config.F5 {
+			data, err := os.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("old_quests/%s.bin", pkt.Filename)))
+			if err != nil {
+				s.logger.Error(fmt.Sprintf("Failed to open file: %s/old_quests/%s.bin", s.server.erupeConfig.BinPath, pkt.Filename))
+				// This will crash the game.
+				doAckBufSucceed(s, pkt.AckHandle, data)
+				return
+			}
 			doAckBufSucceed(s, pkt.AckHandle, data)
-			return
+		} else {
+			data, err := os.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("quests/%s.bin", pkt.Filename)))
+			if err != nil {
+				s.logger.Error(fmt.Sprintf("Failed to open file: %s/quests/%s.bin", s.server.erupeConfig.BinPath, pkt.Filename))
+				// This will crash the game.
+				doAckBufSucceed(s, pkt.AckHandle, data)
+				return
+			}
+			doAckBufSucceed(s, pkt.AckHandle, data)
 		}
-		doAckBufSucceed(s, pkt.AckHandle, data)
 	}
 }
 
@@ -142,11 +153,16 @@ func loadQuestFile(s *Session, questId int) []byte {
 	return questBody.Data()
 }
 
-func makeEventQuest(s *Session, rows *sql.Rows) ([]byte, error) {
+func makeEventQuest(s *Session, rows *sql.Rows, weeklyCycle int, currentCycle int) ([]byte, error) {
 	var id, mark uint32
 	var questId int
 	var maxPlayers, questType uint8
-	rows.Scan(&id, &maxPlayers, &questType, &questId, &mark)
+	var availableInAllCycles bool
+
+	err := rows.Scan(&id, &maxPlayers, &questType, &questId, &mark, &weeklyCycle, &availableInAllCycles)
+	if err != nil {
+		return nil, err
+	}
 
 	data := loadQuestFile(s, questId)
 	if data == nil {
@@ -195,23 +211,75 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint16(0)
 
-	rows, _ := s.server.db.Query("SELECT id, COALESCE(max_players, 4) AS max_players, quest_type, quest_id, COALESCE(mark, 0) AS mark FROM event_quests ORDER BY quest_id")
+	// Check weekly_cycle_info to get the current cycle and the last timestamp
+	var lastCycleUpdate time.Time
+	var currentCycle int
+
+	if s.server.erupeConfig.DevModeOptions.WeeklyQuestCycle {
+		err := s.server.db.QueryRow("SELECT current_cycle_number, last_cycle_update_timestamp FROM weekly_cycle_info").Scan(&currentCycle, &lastCycleUpdate)
+		if err != nil {
+			if err == sql.ErrNoRows {
+				// Insert the first data if there isn't
+				_, err := s.server.db.Exec("INSERT INTO weekly_cycle_info (current_cycle_number, last_cycle_update_timestamp) VALUES ($1, $2)", 1, TimeWeekStart())
+				if err != nil {
+					panic(err)
+				}
+				currentCycle = 1
+				lastCycleUpdate = TimeWeekStart()
+			} else {
+				panic(err)
+			}
+		}
+	}
+
+	// Check if it's time to update the cycle
+	if lastCycleUpdate.Add(7 * 24 * time.Hour).Before(TimeMidnight()) {
+		// Update the cycle and the timestamp in the weekly_cycle_info table
+		newCycle := (currentCycle % 5) + 1
+		_, err := s.server.db.Exec("UPDATE weekly_cycle_info SET current_cycle_number = $1, last_cycle_update_timestamp = $2", newCycle, TimeWeekStart())
+		if err != nil {
+			panic(err)
+		}
+		currentCycle = newCycle
+	}
+
+	var tableName = "event_quests"
+	/* This is an example of how I have to test and avoid issues, might be a thing later?
+ 	var tableName string
+	if _config.ErupeConfig.RealClientMode <= _config.F5 {
+		tableName = "event_quests_older"
+	} else {
+		tableName = "event_quests"
+	}
+ 	*/
+
+	// Check the event_quests_older table to load the current week quests
+	rows, err := s.server.db.Query("SELECT id, COALESCE(max_players, 4) AS max_players, quest_type, quest_id, COALESCE(mark, 0) AS mark, weekly_cycle, available_in_all_cycles FROM "+tableName+" WHERE weekly_cycle = $1 OR available_in_all_cycles = true ORDER BY quest_id", currentCycle)
+	if err != nil {
+		panic(err)
+	}
+	defer rows.Close()
+
+	// Process the current week quests
 	for rows.Next() {
-		data, err := makeEventQuest(s, rows)
+		var id, mark uint32
+		var questId, weeklyCycle int
+		var maxPlayers, questType uint8
+		var availableInAllCycles bool
+		err := rows.Scan(&id, &maxPlayers, &questType, &questId, &mark, &weeklyCycle, &availableInAllCycles)
 		if err != nil {
 			continue
-		} else {
-			if len(data) > 896 || len(data) < 352 {
+		}
+
+		if (availableInAllCycles && questId != 0) || (questId != 0 && (weeklyCycle == currentCycle || availableInAllCycles)) {
+			data, err := makeEventQuest(s, rows, weeklyCycle, currentCycle)
+			if err != nil {
 				continue
 			} else {
-				totalCount++
-				if _config.ErupeConfig.RealClientMode == _config.F5 {
-					if totalCount > pkt.Offset && len(bf.Data()) < 21550 {
-						returnedCount++
-						bf.WriteBytes(data)
-						continue
-					}
+				if len(data) > 896 || len(data) < 352 {
+					continue
 				} else {
+					totalCount++
 					if totalCount > pkt.Offset && len(bf.Data()) < 60000 {
 						returnedCount++
 						bf.WriteBytes(data)

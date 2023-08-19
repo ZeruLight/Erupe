@@ -51,25 +51,14 @@ func handleMsgSysGetFile(s *Session, p mhfpacket.MHFPacket) {
 			pkt.Filename = seasonConversion(s, pkt.Filename)
 		}
 
-		if _config.ErupeConfig.RealClientMode <= _config.F5 {
-			data, err := os.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("old_quests/%s.bin", pkt.Filename)))
-			if err != nil {
-				s.logger.Error(fmt.Sprintf("Failed to open file: %s/old_quests/%s.bin", s.server.erupeConfig.BinPath, pkt.Filename))
-				// This will crash the game.
-				doAckBufSucceed(s, pkt.AckHandle, data)
-				return
-			}
+		data, err := os.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("quests/%s.bin", pkt.Filename)))
+		if err != nil {
+			s.logger.Error(fmt.Sprintf("Failed to open file: %s/quests/%s.bin", s.server.erupeConfig.BinPath, pkt.Filename))
+			// This will crash the game.
 			doAckBufSucceed(s, pkt.AckHandle, data)
-		} else {
-			data, err := os.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("quests/%s.bin", pkt.Filename)))
-			if err != nil {
-				s.logger.Error(fmt.Sprintf("Failed to open file: %s/quests/%s.bin", s.server.erupeConfig.BinPath, pkt.Filename))
-				// This will crash the game.
-				doAckBufSucceed(s, pkt.AckHandle, data)
-				return
-			}
-			doAckBufSucceed(s, pkt.AckHandle, data)
+			return
 		}
+		doAckBufSucceed(s, pkt.AckHandle, data)
 	}
 }
 

@@ -30,6 +30,7 @@
     "EarthStatusOverride": 0,
     "EarthIDOverride": 0,
     "EarthMonsterOverride": 0,
+    "WeeklyQuestCycle": false,
     "SaveDumps": {
       "Enabled": true,
       "OutputDir": "save-backups"

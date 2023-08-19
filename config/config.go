@@ -111,6 +111,7 @@ type DevModeOptions struct {
 	EarthStatusOverride  int32
 	EarthIDOverride      int32
 	EarthMonsterOverride int32
+	WeeklyQuestCycle     bool
 	SaveDumps            SaveDumpOptions
 }
 

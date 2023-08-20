@@ -7,7 +7,7 @@ create table if not exists event_quests
     quest_type integer not null,
     quest_id integer not null,
     mark integer,
-    weekly_cycle INT,
+    weekly_cycle integer default 1,
     available_in_all_cycles bool default true
 );
 

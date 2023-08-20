@@ -205,29 +205,37 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 	var currentCycle int
 
 	if s.server.erupeConfig.DevModeOptions.WeeklyQuestCycle {
-		err := s.server.db.QueryRow("SELECT current_cycle_number, last_cycle_update_timestamp FROM weekly_cycle_info").Scan(&currentCycle, &lastCycleUpdate)
+		// Check if the "EventQuests" entry exists in the events table
+		var eventTypeExists bool
+		err := s.server.db.QueryRow("SELECT EXISTS (SELECT 1 FROM events WHERE event_type = 'EventQuests')").Scan(&eventTypeExists)
 		if err != nil {
-			if err == sql.ErrNoRows {
-				// Insert the first data if there isn't
-				_, err := s.server.db.Exec("INSERT INTO weekly_cycle_info (current_cycle_number, last_cycle_update_timestamp) VALUES ($1, $2)", 1, TimeWeekStart())
-				if err != nil {
-					panic(err)
-				}
-				currentCycle = 1
-				lastCycleUpdate = TimeWeekStart()
-			} else {
-				panic(err)
+			fmt.Printf("Error checking for EventQuests entry: %v\n", err)
+		}
+
+		if !eventTypeExists {
+			// Insert the initial "EventQuests" entry with the current cycle number
+			_, err := s.server.db.Exec("INSERT INTO events (event_type, start_time, current_cycle_number) VALUES ($1, $2, $3)",
+				"EventQuests", TimeWeekStart(), 1)
+			if err != nil {
+				fmt.Printf("Error inserting EventQuests entry: %v\n", err)
 			}
+		}
+
+		// Get the current cycle number and last cycle update timestamp from the events table
+		err = s.server.db.QueryRow("SELECT current_cycle_number, start_time FROM events WHERE event_type = 'EventQuests'").Scan(&currentCycle, &lastCycleUpdate)
+		if err != nil {
+			fmt.Printf("Error getting EventQuests entry: %v\n", err)
 		}
 	}
 
 	// Check if it's time to update the cycle
-	if lastCycleUpdate.Add(7 * 24 * time.Hour).Before(TimeMidnight()) {
-		// Update the cycle and the timestamp in the weekly_cycle_info table
-		newCycle := (currentCycle % 5) + 1
-		_, err := s.server.db.Exec("UPDATE weekly_cycle_info SET current_cycle_number = $1, last_cycle_update_timestamp = $2", newCycle, TimeWeekStart())
+	if lastCycleUpdate.Add(time.Duration(s.server.erupeConfig.DevModeOptions.WeeklyCycleAmount) * 24 * time.Hour).Before(TimeMidnight()) {
+		// Update the cycle and the timestamp in the events table
+		newCycle := (currentCycle % s.server.erupeConfig.DevModeOptions.WeeklyCycleAmount) + 1
+		_, err := s.server.db.Exec("UPDATE events SET current_cycle_number = $1, start_time = $2 WHERE event_type = 'EventQuests'",
+			newCycle, TimeWeekStart())
 		if err != nil {
-			panic(err)
+			fmt.Printf("Error updating EventQuests entry: %v\n", err)
 		}
 		currentCycle = newCycle
 	}
@@ -245,7 +253,7 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 	// Check the event_quests_older table to load the current week quests
 	rows, err := s.server.db.Query("SELECT id, COALESCE(max_players, 4) AS max_players, quest_type, quest_id, COALESCE(mark, 0) AS mark, weekly_cycle, available_in_all_cycles FROM "+tableName+" WHERE weekly_cycle = $1 OR available_in_all_cycles = true ORDER BY quest_id", currentCycle)
 	if err != nil {
-		panic(err)
+		fmt.Printf("Error querying event quests: %v\n", err)
 	}
 	defer rows.Close()
 

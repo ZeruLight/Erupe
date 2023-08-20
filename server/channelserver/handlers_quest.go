@@ -268,7 +268,7 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 			continue
 		}
 
-		if (availableInAllCycles && questId != 0) || (questId != 0 && (weeklyCycle == currentCycle || availableInAllCycles)) {
+		if questId != 0 && (availableInAllCycles || (weeklyCycle == currentCycle && weeklyCycle != 0)) {
 			data, err := makeEventQuest(s, rows, weeklyCycle, currentCycle)
 			if err != nil {
 				continue

@@ -31,6 +31,7 @@
     "EarthIDOverride": 0,
     "EarthMonsterOverride": 0,
     "WeeklyQuestCycle": false,
+    "WeeklyCycleAmount": 5,
     "SaveDumps": {
       "Enabled": true,
       "OutputDir": "save-backups"

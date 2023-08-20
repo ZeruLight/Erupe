@@ -123,24 +123,24 @@ func handleMsgMhfGetWeeklySchedule(s *Session, p mhfpacket.MHFPacket) {
 }
 
 func generateFeatureWeapons(count int) activeFeature {
-	max := 14
+	_max := 14
 	if _config.ErupeConfig.RealClientMode < _config.ZZ {
-		max = 13
+		_max = 13
 	}
 	if _config.ErupeConfig.RealClientMode < _config.G10 {
-		max = 12
+		_max = 12
 	}
 	if _config.ErupeConfig.RealClientMode < _config.GG {
-		max = 11
+		_max = 11
 	}
-	if count > max {
-		count = max
+	if count > _max {
+		count = _max
 	}
 	nums := make([]int, 0)
 	var result int
 	for len(nums) < count {
 		rng := token.RNG()
-		num := rng.Intn(max)
+		num := rng.Intn(_max)
 		exist := false
 		for _, v := range nums {
 			if v == num {

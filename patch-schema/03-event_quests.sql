@@ -13,10 +13,7 @@ create table if not exists event_quests
 
 ALTER TABLE IF EXISTS public.servers DROP COLUMN IF EXISTS season;
 
-CREATE TABLE IF NOT EXISTS weekly_cycle_info (
-    id SERIAL PRIMARY KEY,
-    current_cycle_number INT,
-    last_cycle_update_timestamp TIMESTAMP WITH TIME ZONE
-);
+ALTER TABLE IF EXISTS public.events ADD COLUMN IF NOT EXISTS current_cycle_number int;
+ALTER TYPE event_type ADD VALUE 'EventQuests';
 
 END;

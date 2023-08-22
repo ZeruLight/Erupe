@@ -111,8 +111,6 @@ type DevModeOptions struct {
 	EarthStatusOverride  int32
 	EarthIDOverride      int32
 	EarthMonsterOverride int32
-	WeeklyQuestCycle     bool // Enable weekly event quests cycle
-	WeeklyCycleAmount    int  // Set the amount of cycles (week)
 	SaveDumps            SaveDumpOptions
 }
 

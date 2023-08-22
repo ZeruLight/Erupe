@@ -142,16 +142,12 @@ func loadQuestFile(s *Session, questId int) []byte {
 	return questBody.Data()
 }
 
-func makeEventQuest(s *Session, rows *sql.Rows, weeklyCycle int, currentCycle int) ([]byte, error) {
+func makeEventQuest(s *Session, rows *sql.Rows) ([]byte, error) {
 	var id, mark uint32
-	var questId int
+	var questId, activeDuration, inactiveDuration int
 	var maxPlayers, questType uint8
-	var availableInAllCycles bool
-
-	err := rows.Scan(&id, &maxPlayers, &questType, &questId, &mark, &weeklyCycle, &availableInAllCycles)
-	if err != nil {
-		return nil, err
-	}
+	var startTime time.Time
+	rows.Scan(&id, &maxPlayers, &questType, &questId, &mark, &startTime, &activeDuration, &inactiveDuration)
 
 	data := loadQuestFile(s, questId)
 	if data == nil {
@@ -200,46 +196,7 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint16(0)
 
-	// Check weekly_cycle_info to get the current cycle and the last timestamp
-	var lastCycleUpdate time.Time
-	var currentCycle int
-
-	if s.server.erupeConfig.DevModeOptions.WeeklyQuestCycle {
-		// Check if the "EventQuests" entry exists in the events table
-		var eventTypeExists bool
-		err := s.server.db.QueryRow("SELECT EXISTS (SELECT 1 FROM events WHERE event_type = 'EventQuests')").Scan(&eventTypeExists)
-		if err != nil {
-			fmt.Printf("Error checking for EventQuests entry: %v\n", err)
-		}
-
-		if !eventTypeExists {
-			// Insert the initial "EventQuests" entry with the current cycle number
-			_, err := s.server.db.Exec("INSERT INTO events (event_type, start_time, current_cycle_number) VALUES ($1, $2, $3)",
-				"EventQuests", TimeWeekStart(), 1)
-			if err != nil {
-				fmt.Printf("Error inserting EventQuests entry: %v\n", err)
-			}
-		}
-
-		// Get the current cycle number and last cycle update timestamp from the events table
-		err = s.server.db.QueryRow("SELECT current_cycle_number, start_time FROM events WHERE event_type = 'EventQuests'").Scan(&currentCycle, &lastCycleUpdate)
-		if err != nil {
-			fmt.Printf("Error getting EventQuests entry: %v\n", err)
-		}
-	}
-
-	// Check if it's time to update the cycle
-	if lastCycleUpdate.Add(time.Duration(s.server.erupeConfig.DevModeOptions.WeeklyCycleAmount) * 24 * time.Hour).Before(TimeMidnight()) {
-		// Update the cycle and the timestamp in the events table
-		newCycle := (currentCycle % s.server.erupeConfig.DevModeOptions.WeeklyCycleAmount) + 1
-		_, err := s.server.db.Exec("UPDATE events SET current_cycle_number = $1, start_time = $2 WHERE event_type = 'EventQuests'",
-			newCycle, TimeWeekStart())
-		if err != nil {
-			fmt.Printf("Error updating EventQuests entry: %v\n", err)
-		}
-		currentCycle = newCycle
-	}
-
+	currentTime := time.Now()
 	var tableName = "event_quests"
 	/* This is an example of how I have to test and avoid issues, might be a thing later?
  	var tableName string
@@ -249,27 +206,36 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 		tableName = "event_quests"
 	}
  	*/
-
-	// Check the event_quests_older table to load the current week quests
-	rows, err := s.server.db.Query("SELECT id, COALESCE(max_players, 4) AS max_players, quest_type, quest_id, COALESCE(mark, 0) AS mark, weekly_cycle, available_in_all_cycles FROM "+tableName+" WHERE weekly_cycle = $1 OR available_in_all_cycles = true ORDER BY quest_id", currentCycle)
+	// Check the event_quests table to load the quests with rotation system
+	rows, err := s.server.db.Query("SELECT id, COALESCE(max_players, 4) AS max_players, quest_type, quest_id, COALESCE(mark, 0) AS mark, start_time, active_duration, inactive_duration FROM " + tableName + "")
 	if err != nil {
 		fmt.Printf("Error querying event quests: %v\n", err)
 	}
 	defer rows.Close()
 
-	// Process the current week quests
 	for rows.Next() {
 		var id, mark uint32
-		var questId, weeklyCycle int
+		var questId, activeDuration, inactiveDuration int
 		var maxPlayers, questType uint8
-		var availableInAllCycles bool
-		err := rows.Scan(&id, &maxPlayers, &questType, &questId, &mark, &weeklyCycle, &availableInAllCycles)
+		var startTime time.Time
+		err := rows.Scan(&id, &maxPlayers, &questType, &questId, &mark, &startTime, &activeDuration, &inactiveDuration)
 		if err != nil {
 			continue
 		}
 
-		if questId != 0 && (availableInAllCycles || (weeklyCycle == currentCycle && weeklyCycle != 0)) {
-			data, err := makeEventQuest(s, rows, weeklyCycle, currentCycle)
+		// Calculate the rotation time based on start time, active duration, and inactive duration
+		rotationTime := startTime.Add(time.Duration(activeDuration+inactiveDuration) * 24 * time.Hour)
+		if currentTime.After(rotationTime) {
+			// The rotation time has passed, update the start time and reset the rotation
+			_, err := s.server.db.Exec("UPDATE "+tableName+" SET start_time = $1 WHERE quest_id = $2", rotationTime, questId)
+			if err != nil {
+				fmt.Printf("Error updating start time for quest: %v\n", err)
+			}
+		}
+
+		// Check if the quest is currently active
+		if currentTime.After(startTime) && currentTime.Sub(startTime) <= time.Duration(activeDuration)*24*time.Hour {
+			data, err := makeEventQuest(s, rows)
 			if err != nil {
 				continue
 			} else {

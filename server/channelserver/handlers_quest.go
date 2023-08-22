@@ -199,17 +199,14 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 	currentTime := time.Now()
 	var tableName = "event_quests"
 	/* This is an example of how I have to test and avoid issues, might be a thing later?
- 	var tableName string
-	if _config.ErupeConfig.RealClientMode <= _config.F5 {
+ 	if _config.ErupeConfig.RealClientMode <= _config.F5 {
 		tableName = "event_quests_older"
-	} else {
-		tableName = "event_quests"
 	}
  	*/
 	// Check the event_quests table to load the quests with rotation system
 	rows, err := s.server.db.Query("SELECT id, COALESCE(max_players, 4) AS max_players, quest_type, quest_id, COALESCE(mark, 0) AS mark, start_time, active_duration, inactive_duration FROM " + tableName + "")
 	if err != nil {
-		fmt.Printf("Error querying event quests: %v\n", err)
+		return
 	}
 	defer rows.Close()
 
@@ -229,7 +226,7 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 			// The rotation time has passed, update the start time and reset the rotation
 			_, err := s.server.db.Exec("UPDATE "+tableName+" SET start_time = $1 WHERE quest_id = $2", rotationTime, questId)
 			if err != nil {
-				fmt.Printf("Error updating start time for quest: %v\n", err)
+				return
 			}
 		}
 

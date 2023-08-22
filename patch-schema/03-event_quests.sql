@@ -7,13 +7,11 @@ create table if not exists event_quests
     quest_type integer not null,
     quest_id integer not null,
     mark integer,
-    weekly_cycle integer default 1,
-    available_in_all_cycles bool default true
+    start_time timestamp with time zone NOT NULL DEFAULT (CURRENT_DATE + interval '0 second'),
+    active_duration int not null,
+    inactive_duration int not null
 );
 
 ALTER TABLE IF EXISTS public.servers DROP COLUMN IF EXISTS season;
-
-ALTER TABLE IF EXISTS public.events ADD COLUMN IF NOT EXISTS current_cycle_number int;
-ALTER TYPE event_type ADD VALUE 'EventQuests';
 
 END;

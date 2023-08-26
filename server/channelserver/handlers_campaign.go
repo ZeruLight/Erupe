@@ -68,7 +68,7 @@ func handleMsgMhfEnumerateCampaign(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteInt16(event.MaxHR)
 		bf.WriteInt16(event.MinSR)
 		bf.WriteInt16(event.MaxSR)
-		if _config.ErupeConfig.RealClientMode >= _config.G1 {
+		if _config.ErupeConfig.RealClientMode >= _config.G3 {
 			bf.WriteInt16(event.MinGR)
 			bf.WriteInt16(event.MaxGR)
 		}

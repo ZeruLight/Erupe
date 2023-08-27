@@ -2,6 +2,7 @@ package channelserver
 
 import (
 	"erupe-ce/common/byteframe"
+	"erupe-ce/common/mhf"
 	ps "erupe-ce/common/pascalstring"
 	"erupe-ce/network/mhfpacket"
 
@@ -105,15 +106,15 @@ func handleMsgMhfApplyDistItem(s *Session, p mhfpacket.MHFPacket) {
 					quantity := int(distData.ReadUint16())
 					_ = distData.ReadBytes(4)
 					switch itemType {
-					case 17:
+					case uint8(mhf.NPointsDistribution):
 						_ = addPointNetcafe(s, quantity)
-					case 19:
+					case uint8(mhf.GachaCoinsDistribution):
 						s.server.db.Exec("UPDATE users u SET gacha_premium=gacha_premium+$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)", quantity, s.charID)
-					case 20:
+					case uint8(mhf.TrialGachaCoinsDistribution):
 						s.server.db.Exec("UPDATE users u SET gacha_trial=gacha_trial+$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)", quantity, s.charID)
-					case 21:
+					case uint8(mhf.FrontierPointsDistribution):
 						s.server.db.Exec("UPDATE users u SET frontier_points=frontier_points+$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)", quantity, s.charID)
-					case 23:
+					case uint8(mhf.RyoudanPointsDistribution):
 						saveData, err := GetCharacterSaveData(s, s.charID)
 						if err == nil {
 							saveData.RP += uint16(quantity)

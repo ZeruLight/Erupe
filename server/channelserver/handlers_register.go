@@ -3,243 +3,69 @@ package channelserver
 import (
 	"erupe-ce/common/byteframe"
 	"erupe-ce/network/mhfpacket"
+	"go.uber.org/zap"
 	"strings"
 )
 
+type RaviUpdate struct {
+	Op   uint8
+	Dest uint8
+	Data uint32
+}
+
 func handleMsgSysOperateRegister(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysOperateRegister)
+
+	var raviUpdates []RaviUpdate
+	var raviUpdate RaviUpdate
 	bf := byteframe.NewByteFrameFromBytes(pkt.RawDataPayload)
-	s.server.raviente.Lock()
-	switch pkt.SemaphoreID {
-	case 4:
-		resp := byteframe.NewByteFrame()
-		size := 6
-		for i := 0; i < len(bf.Data())-1; i += size {
-			op := bf.ReadUint8()
-			dest := bf.ReadUint8()
-			data := bf.ReadUint32()
-			resp.WriteUint8(1)
-			resp.WriteUint8(dest)
-			ref := &s.server.raviente.state.stateData[dest]
-			damageMultiplier := s.server.raviente.GetRaviMultiplier(s.server)
-			switch op {
-			case 2:
-				resp.WriteUint32(*ref)
-				if dest == 28 { // Berserk resurrection tracker
-					resp.WriteUint32(*ref + data)
-					*ref += data
-				} else if dest == 17 { // Berserk poison tracker
-					if damageMultiplier == 1 {
-						resp.WriteUint32(*ref + data)
-						*ref += data
-					} else {
-						resp.WriteUint32(*ref)
-					}
-				} else {
-					data = uint32(float64(data) * damageMultiplier)
-					resp.WriteUint32(*ref + data)
-					*ref += data
-				}
-			case 13:
-				fallthrough
-			case 14:
-				resp.WriteUint32(0)
-				resp.WriteUint32(data)
-				*ref = data
-			}
-		}
-		resp.WriteUint8(0)
-		doAckBufSucceed(s, pkt.AckHandle, resp.Data())
-	case 5:
-		resp := byteframe.NewByteFrame()
-		size := 6
-		for i := 0; i < len(bf.Data())-1; i += size {
-			op := bf.ReadUint8()
-			dest := bf.ReadUint8()
-			data := bf.ReadUint32()
-			resp.WriteUint8(1)
-			resp.WriteUint8(dest)
-			ref := &s.server.raviente.support.supportData[dest]
-			switch op {
-			case 2:
-				resp.WriteUint32(*ref)
-				resp.WriteUint32(*ref + data)
-				*ref += data
-			case 13:
-				fallthrough
-			case 14:
-				resp.WriteUint32(0)
-				resp.WriteUint32(data)
-				*ref = data
-			}
-		}
-		resp.WriteUint8(0)
-		doAckBufSucceed(s, pkt.AckHandle, resp.Data())
-	case 6:
-		resp := byteframe.NewByteFrame()
-		size := 6
-		for i := 0; i < len(bf.Data())-1; i += size {
-			op := bf.ReadUint8()
-			dest := bf.ReadUint8()
-			data := bf.ReadUint32()
-			resp.WriteUint8(1)
-			resp.WriteUint8(dest)
-			switch dest {
-			case 0:
-				resp.WriteUint32(0)
-				resp.WriteUint32(data)
-				s.server.raviente.register.nextTime = data
-			case 1:
-				resp.WriteUint32(0)
-				resp.WriteUint32(data)
-				s.server.raviente.register.startTime = data
-			case 2:
-				resp.WriteUint32(0)
-				resp.WriteUint32(data)
-				s.server.raviente.register.killedTime = data
-			case 3:
-				resp.WriteUint32(0)
-				resp.WriteUint32(data)
-				s.server.raviente.register.postTime = data
-			case 4:
-				ref := &s.server.raviente.register.register[0]
-				switch op {
-				case 2:
-					resp.WriteUint32(*ref)
-					resp.WriteUint32(*ref + data)
-					*ref += data
-				case 13:
-					resp.WriteUint32(0)
-					resp.WriteUint32(data)
-					*ref = data
-				case 14:
-					resp.WriteUint32(0)
-					resp.WriteUint32(data)
-				}
-			case 5:
-				resp.WriteUint32(0)
-				resp.WriteUint32(data)
-				s.server.raviente.register.carveQuest = data
-			case 6:
-				ref := &s.server.raviente.register.register[1]
-				switch op {
-				case 2:
-					resp.WriteUint32(*ref)
-					resp.WriteUint32(*ref + data)
-					*ref += data
-				case 13:
-					resp.WriteUint32(0)
-					resp.WriteUint32(data)
-					*ref = data
-				case 14:
-					resp.WriteUint32(0)
-					resp.WriteUint32(data)
-				}
-			case 7:
-				ref := &s.server.raviente.register.register[2]
-				switch op {
-				case 2:
-					resp.WriteUint32(*ref)
-					resp.WriteUint32(*ref + data)
-					*ref += data
-				case 13:
-					resp.WriteUint32(0)
-					resp.WriteUint32(data)
-					*ref = data
-				case 14:
-					resp.WriteUint32(0)
-					resp.WriteUint32(data)
-				}
-			case 8:
-				ref := &s.server.raviente.register.register[3]
-				switch op {
-				case 2:
-					resp.WriteUint32(*ref)
-					resp.WriteUint32(*ref + data)
-					*ref += data
-				case 13:
-					resp.WriteUint32(0)
-					resp.WriteUint32(data)
-					*ref = data
-				case 14:
-					resp.WriteUint32(0)
-					resp.WriteUint32(data)
-				}
-			case 9:
-				resp.WriteUint32(0)
-				resp.WriteUint32(data)
-				s.server.raviente.register.maxPlayers = data
-			case 10:
-				resp.WriteUint32(0)
-				resp.WriteUint32(data)
-				s.server.raviente.register.ravienteType = data
-			case 11:
-				ref := &s.server.raviente.register.register[4]
-				switch op {
-				case 2:
-					resp.WriteUint32(*ref)
-					resp.WriteUint32(*ref + data)
-					*ref += data
-				case 13:
-					resp.WriteUint32(0)
-					resp.WriteUint32(data)
-					*ref = data
-				case 14:
-					resp.WriteUint32(0)
-					resp.WriteUint32(data)
-				}
-			default:
-				resp.WriteUint32(0)
-				resp.WriteUint32(0)
-			}
-		}
-		resp.WriteUint8(0)
-		doAckBufSucceed(s, pkt.AckHandle, resp.Data())
+	for i := len(pkt.RawDataPayload) / 6; i > 0; i-- {
+		raviUpdate.Op = bf.ReadUint8()
+		raviUpdate.Dest = bf.ReadUint8()
+		raviUpdate.Data = bf.ReadUint32()
+		s.logger.Debug("RaviOps", zap.Uint8s("Op/Dest", []uint8{raviUpdate.Op, raviUpdate.Dest}), zap.Uint32s("Sema/Data", []uint32{pkt.SemaphoreID, raviUpdate.Data}))
+		raviUpdates = append(raviUpdates, raviUpdate)
 	}
+	bf = byteframe.NewByteFrame()
+
+	var _old, _new uint32
+	s.server.raviente.Lock()
+	for _, update := range raviUpdates {
+		switch update.Op {
+		case 2:
+			_old, _new = s.server.UpdateRavi(pkt.SemaphoreID, update.Dest, update.Data, true)
+		case 13, 14:
+			_old, _new = s.server.UpdateRavi(pkt.SemaphoreID, update.Dest, update.Data, false)
+		}
+		bf.WriteUint8(1)
+		bf.WriteUint8(update.Dest)
+		bf.WriteUint32(_old)
+		bf.WriteUint32(_new)
+	}
+	s.server.raviente.Unlock()
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+
 	if s.server.erupeConfig.GameplayOptions.LowLatencyRaviente {
 		s.notifyRavi()
 	}
-	s.server.raviente.Unlock()
 }
 
 func handleMsgSysLoadRegister(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysLoadRegister)
-	r := pkt.Unk1
-	switch r {
-	case 12:
-		resp := byteframe.NewByteFrame()
-		resp.WriteUint8(0)
-		resp.WriteUint8(12)
-		resp.WriteUint32(s.server.raviente.register.nextTime)
-		resp.WriteUint32(s.server.raviente.register.startTime)
-		resp.WriteUint32(s.server.raviente.register.killedTime)
-		resp.WriteUint32(s.server.raviente.register.postTime)
-		resp.WriteUint32(s.server.raviente.register.register[0])
-		resp.WriteUint32(s.server.raviente.register.carveQuest)
-		resp.WriteUint32(s.server.raviente.register.register[1])
-		resp.WriteUint32(s.server.raviente.register.register[2])
-		resp.WriteUint32(s.server.raviente.register.register[3])
-		resp.WriteUint32(s.server.raviente.register.maxPlayers)
-		resp.WriteUint32(s.server.raviente.register.ravienteType)
-		resp.WriteUint32(s.server.raviente.register.register[4])
-		doAckBufSucceed(s, pkt.AckHandle, resp.Data())
-	case 29:
-		resp := byteframe.NewByteFrame()
-		resp.WriteUint8(0)
-		resp.WriteUint8(29)
-		for _, v := range s.server.raviente.state.stateData {
-			resp.WriteUint32(v)
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint8(0)
+	bf.WriteUint8(pkt.Values)
+	for i := uint8(0); i < pkt.Values; i++ {
+		switch pkt.RegisterID {
+		case 4:
+			bf.WriteUint32(s.server.raviente.state[i])
+		case 5:
+			bf.WriteUint32(s.server.raviente.support[i])
+		case 6:
+			bf.WriteUint32(s.server.raviente.register[i])
 		}
-		doAckBufSucceed(s, pkt.AckHandle, resp.Data())
-	case 25:
-		resp := byteframe.NewByteFrame()
-		resp.WriteUint8(0)
-		resp.WriteUint8(25)
-		for _, v := range s.server.raviente.support.supportData {
-			resp.WriteUint32(v)
-		}
-		doAckBufSucceed(s, pkt.AckHandle, resp.Data())
 	}
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func (s *Session) notifyRavi() {
@@ -282,18 +108,7 @@ func getRaviSemaphore(s *Server) *Semaphore {
 }
 
 func resetRavi(s *Session) {
-	s.server.raviente.Lock()
-	s.server.raviente.register.nextTime = 0
-	s.server.raviente.register.startTime = 0
-	s.server.raviente.register.killedTime = 0
-	s.server.raviente.register.postTime = 0
-	s.server.raviente.register.ravienteType = 0
-	s.server.raviente.register.maxPlayers = 0
-	s.server.raviente.register.carveQuest = 0
-	s.server.raviente.register.register = []uint32{0, 0, 0, 0, 0}
-	s.server.raviente.state.stateData = []uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-	s.server.raviente.support.supportData = []uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-	s.server.raviente.Unlock()
+	s.server.raviente = NewRaviente()
 }
 
 func handleMsgSysNotifyRegister(s *Session, p mhfpacket.MHFPacket) {}

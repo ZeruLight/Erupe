@@ -263,32 +263,32 @@ func parseChatCommand(s *Session, command string) {
 					sendServerChatMessage(s, s.server.dict["commandRaviNoCommand"])
 				} else {
 					if strings.HasPrefix(command, "!ravi start") {
-						if s.server.raviente.register.startTime == 0 {
-							s.server.raviente.register.startTime = s.server.raviente.register.postTime
+						if s.server.raviente.register[1] == 0 {
+							s.server.raviente.register[1] = s.server.raviente.register[3]
 							sendServerChatMessage(s, s.server.dict["commandRaviStartSuccess"])
 							s.notifyRavi()
 						} else {
 							sendServerChatMessage(s, s.server.dict["commandRaviStartError"])
 						}
 					} else if strings.HasPrefix(command, "!ravi cm") || strings.HasPrefix(command, "!ravi checkmultiplier") {
-						sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandRaviMultiplier"], s.server.raviente.GetRaviMultiplier(s.server)))
+						sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandRaviMultiplier"], s.server.GetRaviMultiplier()))
 					} else if strings.HasPrefix(command, "!ravi sr") || strings.HasPrefix(command, "!ravi sendres") {
-						if s.server.raviente.state.stateData[28] > 0 {
+						if s.server.raviente.state[28] > 0 {
 							sendServerChatMessage(s, s.server.dict["commandRaviResSuccess"])
-							s.server.raviente.state.stateData[28] = 0
+							s.server.raviente.state[28] = 0
 						} else {
 							sendServerChatMessage(s, s.server.dict["commandRaviResError"])
 						}
 					} else if strings.HasPrefix(command, "!ravi ss") || strings.HasPrefix(command, "!ravi sendsed") {
 						sendServerChatMessage(s, s.server.dict["commandRaviSedSuccess"])
 						// Total BerRavi HP
-						HP := s.server.raviente.state.stateData[0] + s.server.raviente.state.stateData[1] + s.server.raviente.state.stateData[2] + s.server.raviente.state.stateData[3] + s.server.raviente.state.stateData[4]
-						s.server.raviente.support.supportData[1] = HP
+						HP := s.server.raviente.state[0] + s.server.raviente.state[1] + s.server.raviente.state[2] + s.server.raviente.state[3] + s.server.raviente.state[4]
+						s.server.raviente.support[1] = HP
 					} else if strings.HasPrefix(command, "!ravi rs") || strings.HasPrefix(command, "!ravi reqsed") {
 						sendServerChatMessage(s, s.server.dict["commandRaviRequest"])
 						// Total BerRavi HP
-						HP := s.server.raviente.state.stateData[0] + s.server.raviente.state.stateData[1] + s.server.raviente.state.stateData[2] + s.server.raviente.state.stateData[3] + s.server.raviente.state.stateData[4]
-						s.server.raviente.support.supportData[1] = HP + 12
+						HP := s.server.raviente.state[0] + s.server.raviente.state[1] + s.server.raviente.state[2] + s.server.raviente.state[3] + s.server.raviente.state[4]
+						s.server.raviente.support[1] = HP + 12
 					} else {
 						sendServerChatMessage(s, s.server.dict["commandRaviError"])
 					}

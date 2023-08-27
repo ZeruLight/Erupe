@@ -76,61 +76,25 @@ type Server struct {
 
 type Raviente struct {
 	sync.Mutex
-
-	register *RavienteRegister
-	state    *RavienteState
-	support  *RavienteSupport
+	register []uint32
+	state    []uint32
+	support  []uint32
 }
 
-type RavienteRegister struct {
-	nextTime     uint32
-	startTime    uint32
-	postTime     uint32
-	killedTime   uint32
-	ravienteType uint32
-	maxPlayers   uint32
-	carveQuest   uint32
-	register     []uint32
-}
-
-type RavienteState struct {
-	stateData []uint32
-}
-
-type RavienteSupport struct {
-	supportData []uint32
-}
-
-// Set up the Raviente variables for the server
 func NewRaviente() *Raviente {
-	ravienteRegister := &RavienteRegister{
-		nextTime:     0,
-		startTime:    0,
-		killedTime:   0,
-		postTime:     0,
-		ravienteType: 0,
-		maxPlayers:   0,
-		carveQuest:   0,
-	}
-	ravienteState := &RavienteState{}
-	ravienteSupport := &RavienteSupport{}
-	ravienteRegister.register = []uint32{0, 0, 0, 0, 0}
-	ravienteState.stateData = []uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-	ravienteSupport.supportData = []uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-
 	raviente := &Raviente{
-		register: ravienteRegister,
-		state:    ravienteState,
-		support:  ravienteSupport,
+		register: make([]uint32, 30),
+		state:    make([]uint32, 30),
+		support:  make([]uint32, 30),
 	}
 	return raviente
 }
 
-func (r *Raviente) GetRaviMultiplier(s *Server) float64 {
+func (s *Server) GetRaviMultiplier() float64 {
 	raviSema := getRaviSemaphore(s)
 	if raviSema != nil {
 		var minPlayers int
-		if r.register.maxPlayers > 8 {
+		if s.raviente.register[9] > 8 {
 			minPlayers = 24
 		} else {
 			minPlayers = 4
@@ -141,6 +105,40 @@ func (r *Raviente) GetRaviMultiplier(s *Server) float64 {
 		return float64(minPlayers / len(raviSema.clients))
 	}
 	return 0
+}
+
+func (s *Server) UpdateRavi(semaID uint32, index uint8, value uint32, update bool) (uint32, uint32) {
+	var prev uint32
+	switch semaID {
+	case 4:
+		switch index {
+		case 17, 28: // Ignore res and poison
+			break
+		default:
+			value = uint32(float64(value) * s.GetRaviMultiplier())
+		}
+		prev = s.raviente.state[index]
+		if prev != 0 && !update {
+			return prev, prev
+		}
+		s.raviente.state[index] += value
+		return prev, s.raviente.state[index]
+	case 5:
+		prev = s.raviente.support[index]
+		if prev != 0 && !update {
+			return prev, prev
+		}
+		s.raviente.support[index] += value
+		return prev, s.raviente.support[index]
+	case 6:
+		prev = s.raviente.register[index]
+		if prev != 0 && !update {
+			return prev, prev
+		}
+		s.raviente.register[index] += value
+		return prev, s.raviente.register[index]
+	}
+	return 0, 0
 }
 
 // NewServer creates a new Server type.

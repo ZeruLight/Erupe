@@ -2,7 +2,6 @@ package channelserver
 
 import (
 	"erupe-ce/common/byteframe"
-	"erupe-ce/common/mhf"
 	ps "erupe-ce/common/pascalstring"
 	"erupe-ce/common/stringsupport"
 	_config "erupe-ce/config"
@@ -157,7 +156,7 @@ func handleMsgMhfEnumerateItem(s *Session, p mhfpacket.MHFPacket) {
 		Unk3 uint16
 		Unk4 uint32
 		Unk5 uint32
-	}{{0, uint16(mhf.Potion), 3, 3, 1, 0}}
+	}{}
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint16(uint16(len(items)))
 	for _, item := range items {

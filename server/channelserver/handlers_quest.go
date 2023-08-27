@@ -660,6 +660,27 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 
 	offset := uint16(time.Now().Unix())
 	bf.WriteUint16(offset)
+
+	if _config.ErupeConfig.RealClientMode <= _config.F5 {
+		tuneValues = tuneValues[:256]
+	} else if _config.ErupeConfig.RealClientMode <= _config.G3 {
+		tuneValues = tuneValues[:283]
+	} else if _config.ErupeConfig.RealClientMode <= _config.GG {
+		tuneValues = tuneValues[:315]
+	} else if _config.ErupeConfig.RealClientMode <= _config.G61 {
+		tuneValues = tuneValues[:332]
+	} else if _config.ErupeConfig.RealClientMode <= _config.G7 {
+		tuneValues = tuneValues[:339]
+	} else if _config.ErupeConfig.RealClientMode <= _config.G81 {
+		tuneValues = tuneValues[:396]
+	} else if _config.ErupeConfig.RealClientMode <= _config.G91 {
+		tuneValues = tuneValues[:694]
+	} else if _config.ErupeConfig.RealClientMode <= _config.G101 {
+		tuneValues = tuneValues[:704]
+	} else if _config.ErupeConfig.RealClientMode <= _config.Z2 {
+		tuneValues = tuneValues[:750]
+	}
+
 	bf.WriteUint16(uint16(len(tuneValues)))
 	for i := range tuneValues {
 		bf.WriteUint16(tuneValues[i].ID ^ offset)

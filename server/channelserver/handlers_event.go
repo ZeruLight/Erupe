@@ -49,14 +49,14 @@ func handleMsgMhfReleaseEvent(s *Session, p mhfpacket.MHFPacket) {
 }
 
 type Event struct {
-	Unk0 uint16
-	Unk1 uint16
-	Unk2 uint16
-	Unk3 uint16
-	Unk4 uint16
-	Unk5 uint32
-	Unk6 uint32
-	Unk7 []uint16
+	EventType    uint16
+	Unk1         uint16
+	Unk2         uint16
+	Unk3         uint16
+	Unk4         uint16
+	Unk5         uint32
+	Unk6         uint32
+	QuestFileIDs []uint16
 }
 
 func handleMsgMhfEnumerateEvent(s *Session, p mhfpacket.MHFPacket) {
@@ -67,17 +67,17 @@ func handleMsgMhfEnumerateEvent(s *Session, p mhfpacket.MHFPacket) {
 
 	bf.WriteUint8(uint8(len(events)))
 	for _, event := range events {
-		bf.WriteUint16(event.Unk0)
+		bf.WriteUint16(event.EventType)
 		bf.WriteUint16(event.Unk1)
 		bf.WriteUint16(event.Unk2)
 		bf.WriteUint16(event.Unk3)
 		bf.WriteUint16(event.Unk4)
 		bf.WriteUint32(event.Unk5)
 		bf.WriteUint32(event.Unk6)
-		if event.Unk0 == 2 {
-			bf.WriteUint8(uint8(len(event.Unk7)))
-			for _, u := range event.Unk7 {
-				bf.WriteUint16(u)
+		if event.EventType == 2 {
+			bf.WriteUint8(uint8(len(event.QuestFileIDs)))
+			for _, qf := range event.QuestFileIDs {
+				bf.WriteUint16(qf)
 			}
 		}
 	}
@@ -123,24 +123,24 @@ func handleMsgMhfGetWeeklySchedule(s *Session, p mhfpacket.MHFPacket) {
 }
 
 func generateFeatureWeapons(count int) activeFeature {
-	max := 14
+	_max := 14
 	if _config.ErupeConfig.RealClientMode < _config.ZZ {
-		max = 13
+		_max = 13
 	}
 	if _config.ErupeConfig.RealClientMode < _config.G10 {
-		max = 12
+		_max = 12
 	}
 	if _config.ErupeConfig.RealClientMode < _config.GG {
-		max = 11
+		_max = 11
 	}
-	if count > max {
-		count = max
+	if count > _max {
+		count = _max
 	}
 	nums := make([]int, 0)
 	var result int
 	for len(nums) < count {
 		rng := token.RNG()
-		num := rng.Intn(max)
+		num := rng.Intn(_max)
 		exist := false
 		for _, v := range nums {
 			if v == num {

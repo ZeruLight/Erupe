@@ -30,7 +30,7 @@ type Stage struct {
 
 	// Objects
 	objects     map[uint32]*Object
-	objectIndex uint16
+	objectIndex uint8
 
 	// Map of session -> charID.
 	// These are clients that are CURRENTLY in the stage
@@ -56,6 +56,7 @@ func NewStage(ID string) *Stage {
 		clients:             make(map[*Session]uint32),
 		reservedClientSlots: make(map[uint32]bool),
 		objects:             make(map[uint32]*Object),
+		objectIndex:         0,
 		rawBinaryData:       make(map[stageBinaryKey][]byte),
 		maxPlayers:          4,
 	}
@@ -93,13 +94,4 @@ func (s *Stage) isCharInQuestByID(charID uint32) bool {
 
 func (s *Stage) isQuest() bool {
 	return len(s.reservedClientSlots) > 0
-}
-
-func (s *Stage) NextObjectID() uint32 {
-	s.objectIndex++
-	bf := byteframe.NewByteFrame()
-	bf.WriteUint16(127)
-	bf.WriteUint16(s.objectIndex)
-	bf.Seek(0, 0)
-	return bf.ReadUint32()
 }

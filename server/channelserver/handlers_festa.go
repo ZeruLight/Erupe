@@ -4,6 +4,7 @@ import (
 	"erupe-ce/common/byteframe"
 	ps "erupe-ce/common/pascalstring"
 	"erupe-ce/common/token"
+	_config "erupe-ce/config"
 	"erupe-ce/network/mhfpacket"
 	"sort"
 	"time"
@@ -265,7 +266,14 @@ func handleMsgMhfInfoFesta(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint8(reward.Unk7)
 	}
 
-	bf.WriteUint32(s.server.erupeConfig.GameplayOptions.MaximumFP)
+	if _config.ErupeConfig.RealClientMode <= _config.G61 {
+		if s.server.erupeConfig.GameplayOptions.MaximumFP > 0xFFFF {
+			s.server.erupeConfig.GameplayOptions.MaximumFP = 0xFFFF
+		}
+		bf.WriteUint16(uint16(s.server.erupeConfig.GameplayOptions.MaximumFP))
+	} else {
+		bf.WriteUint32(s.server.erupeConfig.GameplayOptions.MaximumFP)
+	}
 	bf.WriteUint16(500)
 
 	categoryWinners := uint16(0) // NYI

@@ -196,7 +196,9 @@ func handleMsgSysOperateRegister(s *Session, p mhfpacket.MHFPacket) {
 		resp.WriteUint8(0)
 		doAckBufSucceed(s, pkt.AckHandle, resp.Data())
 	}
-	s.notifyRavi()
+	if s.server.erupeConfig.GameplayOptions.LowLatencyRaviente {
+		s.notifyRavi()
+	}
 	s.server.raviente.Unlock()
 }
 
@@ -241,6 +243,10 @@ func handleMsgSysLoadRegister(s *Session, p mhfpacket.MHFPacket) {
 }
 
 func (s *Session) notifyRavi() {
+	sema := getRaviSemaphore(s.server)
+	if sema == nil {
+		return
+	}
 	var temp mhfpacket.MHFPacket
 	raviNotif := byteframe.NewByteFrame()
 	temp = &mhfpacket.MsgSysNotifyRegister{RegisterID: 4}
@@ -253,10 +259,15 @@ func (s *Session) notifyRavi() {
 	raviNotif.WriteUint16(uint16(temp.Opcode()))
 	temp.Build(raviNotif, s.clientContext)
 	raviNotif.WriteUint16(0x0010) // End it.
-	sema := getRaviSemaphore(s.server)
-	if sema != nil {
+	if s.server.erupeConfig.GameplayOptions.LowLatencyRaviente {
 		for session := range sema.clients {
 			session.QueueSend(raviNotif.Data())
+		}
+	} else {
+		for session := range sema.clients {
+			if session.charID == s.charID {
+				session.QueueSend(raviNotif.Data())
+			}
 		}
 	}
 }

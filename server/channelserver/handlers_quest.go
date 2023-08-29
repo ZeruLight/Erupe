@@ -1,14 +1,19 @@
 package channelserver
 
 import (
+	"database/sql"
 	"erupe-ce/common/byteframe"
+	"erupe-ce/common/decryption"
+	ps "erupe-ce/common/pascalstring"
+	_config "erupe-ce/config"
 	"erupe-ce/network/mhfpacket"
 	"fmt"
-	"go.uber.org/zap"
 	"io"
 	"os"
 	"path/filepath"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 func handleMsgSysGetFile(s *Session, p mhfpacket.MHFPacket) {
@@ -35,29 +40,47 @@ func handleMsgSysGetFile(s *Session, p mhfpacket.MHFPacket) {
 		}
 		doAckBufSucceed(s, pkt.AckHandle, data)
 	} else {
-		if _, err := os.Stat(filepath.Join(s.server.erupeConfig.BinPath, "quest_override.bin")); err == nil {
-			data, err := os.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, "quest_override.bin"))
-			if err != nil {
-				panic(err)
-			}
-			doAckBufSucceed(s, pkt.AckHandle, data)
-		} else {
-			if s.server.erupeConfig.DevModeOptions.QuestDebugTools && s.server.erupeConfig.DevMode {
-				s.logger.Debug(
-					"Quest",
-					zap.String("Filename", pkt.Filename),
-				)
-			}
-			// Get quest file.
-			data, err := os.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("quests/%s.bin", pkt.Filename)))
-			if err != nil {
-				s.logger.Error(fmt.Sprintf("Failed to open file: %s/quests/%s.bin", s.server.erupeConfig.BinPath, pkt.Filename))
-				// This will crash the game.
-				doAckBufSucceed(s, pkt.AckHandle, data)
-				return
-			}
-			doAckBufSucceed(s, pkt.AckHandle, data)
+		if s.server.erupeConfig.DevModeOptions.QuestDebugTools && s.server.erupeConfig.DevMode {
+			s.logger.Debug(
+				"Quest",
+				zap.String("Filename", pkt.Filename),
+			)
 		}
+
+		if s.server.erupeConfig.GameplayOptions.SeasonOverride {
+			pkt.Filename = seasonConversion(s, pkt.Filename)
+		}
+
+		data, err := os.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("quests/%s.bin", pkt.Filename)))
+		if err != nil {
+			s.logger.Error(fmt.Sprintf("Failed to open file: %s/quests/%s.bin", s.server.erupeConfig.BinPath, pkt.Filename))
+			// This will crash the game.
+			doAckBufSucceed(s, pkt.AckHandle, data)
+			return
+		}
+		doAckBufSucceed(s, pkt.AckHandle, data)
+	}
+}
+
+func questSuffix(s *Session) string {
+	// Determine the letter to append for day / night
+	var timeSet string
+	if TimeGameAbsolute() > 2880 {
+		timeSet = "d"
+	} else {
+		timeSet = "n"
+	}
+	return fmt.Sprintf("%s%d", timeSet, s.server.Season())
+}
+
+func seasonConversion(s *Session, questFile string) string {
+	filename := fmt.Sprintf("%s%s", questFile[:5], questSuffix(s))
+
+	// Return original file if file doesn't exist
+	if _, err := os.Stat(filename); err == nil {
+		return filename
+	} else {
+		return questFile
 	}
 }
 
@@ -79,34 +102,125 @@ func handleMsgMhfSaveFavoriteQuest(s *Session, p mhfpacket.MHFPacket) {
 	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
+func loadQuestFile(s *Session, questId int) []byte {
+	file, err := os.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("quests/%05dd0.bin", questId)))
+	if err != nil {
+		return nil
+	}
+
+	decrypted := decryption.UnpackSimple(file)
+	fileBytes := byteframe.NewByteFrameFromBytes(decrypted)
+	fileBytes.SetLE()
+	fileBytes.Seek(int64(fileBytes.ReadUint32()), 0)
+
+	// The 320 bytes directly following the data pointer must go directly into the event's body, after the header and before the string pointers.
+	questBody := byteframe.NewByteFrameFromBytes(fileBytes.ReadBytes(320))
+	questBody.SetLE()
+	// Find the master quest string pointer
+	questBody.Seek(40, 0)
+	fileBytes.Seek(int64(questBody.ReadUint32()), 0)
+	questBody.Seek(40, 0)
+	// Overwrite it
+	questBody.WriteUint32(320)
+	questBody.Seek(0, 2)
+
+	// Rewrite the quest strings and their pointers
+	var tempString []byte
+	newStrings := byteframe.NewByteFrame()
+	tempPointer := 352
+	for i := 0; i < 8; i++ {
+		questBody.WriteUint32(uint32(tempPointer))
+		temp := int64(fileBytes.Index())
+		fileBytes.Seek(int64(fileBytes.ReadUint32()), 0)
+		tempString = fileBytes.ReadNullTerminatedBytes()
+		fileBytes.Seek(temp+4, 0)
+		tempPointer += len(tempString) + 1
+		newStrings.WriteNullTerminatedBytes(tempString)
+	}
+	questBody.WriteBytes(newStrings.Data())
+
+	return questBody.Data()
+}
+
+func makeEventQuest(s *Session, rows *sql.Rows) ([]byte, error) {
+	var id, mark uint32
+	var questId int
+	var maxPlayers, questType uint8
+	rows.Scan(&id, &maxPlayers, &questType, &questId, &mark)
+
+	data := loadQuestFile(s, questId)
+	if data == nil {
+		return nil, fmt.Errorf("failed to load quest file")
+	}
+
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint32(id)
+	bf.WriteUint32(0)
+	bf.WriteUint8(0) // Indexer
+	switch questType {
+	case 16:
+		bf.WriteUint8(s.server.erupeConfig.GameplayOptions.RegularRavienteMaxPlayers)
+	case 22:
+		bf.WriteUint8(s.server.erupeConfig.GameplayOptions.ViolentRavienteMaxPlayers)
+	case 40:
+		bf.WriteUint8(s.server.erupeConfig.GameplayOptions.BerserkRavienteMaxPlayers)
+	case 50:
+		bf.WriteUint8(s.server.erupeConfig.GameplayOptions.ExtremeRavienteMaxPlayers)
+	case 51:
+		bf.WriteUint8(s.server.erupeConfig.GameplayOptions.SmallBerserkRavienteMaxPlayers)
+	default:
+		bf.WriteUint8(maxPlayers)
+	}
+	bf.WriteUint8(questType)
+	if questType == 9 {
+		bf.WriteBool(false)
+	} else {
+		bf.WriteBool(true)
+	}
+	bf.WriteUint16(0)
+	if _config.ErupeConfig.RealClientMode >= _config.G1 {
+		bf.WriteUint32(mark)
+	}
+	bf.WriteUint16(0)
+	bf.WriteUint16(uint16(len(data)))
+	bf.WriteBytes(data)
+	ps.Uint8(bf, "", true) // What is this string for?
+
+	return bf.Data(), nil
+}
+
 func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateQuest)
 	var totalCount, returnedCount uint16
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint16(0)
-	filepath.Walk(fmt.Sprintf("%s/events/", s.server.erupeConfig.BinPath), func(path string, info os.FileInfo, err error) error {
+
+	rows, _ := s.server.db.Query("SELECT id, COALESCE(max_players, 4) AS max_players, quest_type, quest_id, COALESCE(mark, 0) AS mark FROM event_quests ORDER BY quest_id")
+	for rows.Next() {
+		data, err := makeEventQuest(s, rows)
 		if err != nil {
-			return err
-		} else if info.IsDir() {
-			return nil
-		}
-		data, err := os.ReadFile(path)
-		if err != nil {
-			return err
+			continue
 		} else {
-			if len(data) > 850 || len(data) < 400 {
-				return nil // Could be more or less strict with size limits
+			if len(data) > 896 || len(data) < 352 {
+				continue
 			} else {
 				totalCount++
-				if totalCount > pkt.Offset && len(bf.Data()) < 60000 {
-					returnedCount++
-					bf.WriteBytes(data)
-					return nil
+				if _config.ErupeConfig.RealClientMode == _config.F5 {
+					if totalCount > pkt.Offset && len(bf.Data()) < 21550 {
+						returnedCount++
+						bf.WriteBytes(data)
+						continue
+					}
+				} else {
+					if totalCount > pkt.Offset && len(bf.Data()) < 60000 {
+						returnedCount++
+						bf.WriteBytes(data)
+						continue
+					}
 				}
 			}
 		}
-		return nil
-	})
+	}
 
 	type tuneValue struct {
 		ID    uint16
@@ -518,6 +632,27 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 
 	offset := uint16(time.Now().Unix())
 	bf.WriteUint16(offset)
+
+	if _config.ErupeConfig.RealClientMode <= _config.F5 {
+		tuneValues = tuneValues[:256]
+	} else if _config.ErupeConfig.RealClientMode <= _config.G3 {
+		tuneValues = tuneValues[:283]
+	} else if _config.ErupeConfig.RealClientMode <= _config.GG {
+		tuneValues = tuneValues[:315]
+	} else if _config.ErupeConfig.RealClientMode <= _config.G61 {
+		tuneValues = tuneValues[:332]
+	} else if _config.ErupeConfig.RealClientMode <= _config.G7 {
+		tuneValues = tuneValues[:339]
+	} else if _config.ErupeConfig.RealClientMode <= _config.G81 {
+		tuneValues = tuneValues[:396]
+	} else if _config.ErupeConfig.RealClientMode <= _config.G91 {
+		tuneValues = tuneValues[:694]
+	} else if _config.ErupeConfig.RealClientMode <= _config.G101 {
+		tuneValues = tuneValues[:704]
+	} else if _config.ErupeConfig.RealClientMode <= _config.Z2 {
+		tuneValues = tuneValues[:750]
+	}
+
 	bf.WriteUint16(uint16(len(tuneValues)))
 	for i := range tuneValues {
 		bf.WriteUint16(tuneValues[i].ID ^ offset)
@@ -537,7 +672,8 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 		{false, 10000},
 	}
 	bf.WriteUint16(uint16(len(vsQuestItems)))
-	bf.WriteUint32(uint32(len(vsQuestBets)))
+	bf.WriteUint16(0) // Unk array of uint16s
+	bf.WriteUint16(uint16(len(vsQuestBets)))
 	bf.WriteUint16(0) // Unk
 
 	for i := range vsQuestItems {
@@ -554,6 +690,7 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 	bf.WriteUint16(pkt.Offset)
 	bf.Seek(0, io.SeekStart)
 	bf.WriteUint16(returnedCount)
+
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 

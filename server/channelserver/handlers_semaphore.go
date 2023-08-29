@@ -85,13 +85,13 @@ func handleMsgSysCreateAcquireSemaphore(s *Session, p mhfpacket.MHFPacket) {
 	if !exists {
 		s.server.semaphoreLock.Lock()
 		if strings.HasPrefix(SemaphoreID, "hs_l0u3B5") {
-			suffix, _ := strconv.ParseUint(pkt.SemaphoreID[len(pkt.SemaphoreID)-1:], 10, 32)
+			suffix, _ := strconv.Atoi(pkt.SemaphoreID[len(pkt.SemaphoreID)-1:])
 			s.server.semaphore[SemaphoreID] = &Semaphore{
 				id_semaphore:        pkt.SemaphoreID,
 				id:                  uint32(suffix + 1),
 				clients:             make(map[*Session]uint32),
 				reservedClientSlots: make(map[uint32]interface{}),
-				maxPlayers:          32,
+				maxPlayers:          127,
 			}
 		} else {
 			s.server.semaphore[SemaphoreID] = NewSemaphore(s.server, SemaphoreID, 1)

@@ -22,6 +22,7 @@ func getLangStrings(s *Server) map[string]string {
 		strings["commandTeleportSuccess"] = "%d %dにテレポート"
 		strings["commandPSNError"] = "PSN連携コマンドエラー　例：%s <psn id>"
 		strings["commandPSNSuccess"] = "PSN「%s」が連携されています"
+		strings["commandPSNExists"] = "PSNは既存のユーザに接続されています"
 
 		strings["commandRaviNoCommand"] = "ラヴィコマンドが指定されていません"
 		strings["commandRaviStartSuccess"] = "大討伐を開始します"
@@ -72,6 +73,7 @@ func getLangStrings(s *Server) map[string]string {
 		strings["commandTeleportSuccess"] = "Teleporting to %d %d"
 		strings["commandPSNError"] = "Error in command. Format: %s <psn id>"
 		strings["commandPSNSuccess"] = "Connected PSN ID: %s"
+		strings["commandPSNExists"] = "PSN ID is connected to another account!"
 
 		strings["commandRaviNoCommand"] = "No Raviente command specified!"
 		strings["commandRaviStartSuccess"] = "The Great Slaying will begin in a moment"

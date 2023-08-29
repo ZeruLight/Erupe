@@ -88,9 +88,15 @@ func parseChatCommand(s *Session, command string) {
 	case commands["PSN"].Prefix:
 		if commands["PSN"].Enabled {
 			if len(args) > 1 {
-				_, err := s.server.db.Exec(`UPDATE users u SET psn_id=$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)`, args[1], s.charID)
-				if err == nil {
-					sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandPSNSuccess"], args[1]))
+				var exists int
+				s.server.db.QueryRow(`SELECT count(*) FROM users WHERE psn_id = $1`, id).Scan(&exists)
+				if exists == 0 {
+					_, err := s.server.db.Exec(`UPDATE users u SET psn_id=$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)`, args[1], s.charID)
+					if err == nil {
+						sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandPSNSuccess"], args[1]))
+					}
+				} else {
+					sendServerChatMessage(s, s.server.dict["commandPSNExists"])
 				}
 			} else {
 				sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandPSNError"], commands["PSN"].Prefix))

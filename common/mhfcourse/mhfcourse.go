@@ -1,8 +1,8 @@
 package mhfcourse
 
 import (
-	"golang.org/x/exp/slices"
 	"math"
+	"sort"
 	"time"
 )
 
@@ -68,8 +68,8 @@ func CourseExists(ID uint16, c []Course) bool {
 func GetCourseStruct(rights uint32) ([]Course, uint32) {
 	resp := []Course{{ID: 1}, {ID: 23}, {ID: 24}}
 	s := Courses()
-	slices.SortStableFunc(s, func(i, j Course) bool {
-		return i.ID > j.ID
+	sort.Slice(s, func(i, j int) bool {
+		return s[i].ID > s[j].ID
 	})
 	var normalCafeCourseSet, netcafeCourseSet bool
 	for _, course := range s {

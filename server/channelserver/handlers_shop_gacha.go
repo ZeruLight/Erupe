@@ -3,6 +3,7 @@ package channelserver
 import (
 	"erupe-ce/common/byteframe"
 	ps "erupe-ce/common/pascalstring"
+	_config "erupe-ce/config"
 	"erupe-ce/network/mhfpacket"
 	"math/rand"
 )
@@ -40,13 +41,14 @@ type GachaEntry struct {
 	EntryType      uint8   `db:"entry_type"`
 	ID             uint32  `db:"id"`
 	ItemType       uint8   `db:"item_type"`
-	ItemNumber     uint16  `db:"item_number"`
+	ItemNumber     uint32  `db:"item_number"`
 	ItemQuantity   uint16  `db:"item_quantity"`
 	Weight         float64 `db:"weight"`
 	Rarity         uint8   `db:"rarity"`
 	Rolls          uint8   `db:"rolls"`
 	FrontierPoints uint16  `db:"frontier_points"`
 	DailyLimit     uint8   `db:"daily_limit"`
+	Name           string  `db:"name"`
 }
 
 type GachaItem struct {
@@ -108,6 +110,12 @@ func handleMsgMhfEnumerateShop(s *Session, p mhfpacket.MHFPacket) {
 	// 8: special item
 	switch pkt.ShopType {
 	case 1: // Running gachas
+		// Fundamentally, gacha works completely differently, just hide it for now.
+		if _config.ErupeConfig.RealClientMode <= _config.G7 {
+			doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
+			return
+		}
+
 		var count uint16
 		shopEntries, err := s.server.db.Queryx("SELECT id, min_gr, min_hr, name, url_banner, url_feature, url_thumbnail, wide, recommended, gacha_type, hidden FROM gacha_shop")
 		if err != nil {
@@ -151,7 +159,7 @@ func handleMsgMhfEnumerateShop(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint32(pkt.ShopID)
 		var gachaType int
 		s.server.db.QueryRow(`SELECT gacha_type FROM gacha_shop WHERE id = $1`, pkt.ShopID).Scan(&gachaType)
-		entries, err := s.server.db.Queryx(`SELECT entry_type, id, item_type, item_number, item_quantity, weight, rarity, rolls, daily_limit, frontier_points FROM gacha_entries WHERE gacha_id = $1 ORDER BY weight DESC`, pkt.ShopID)
+		entries, err := s.server.db.Queryx(`SELECT entry_type, id, item_type, item_number, item_quantity, weight, rarity, rolls, daily_limit, frontier_points, name FROM gacha_entries WHERE gacha_id = $1 ORDER BY weight DESC`, pkt.ShopID)
 		if err != nil {
 			doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
 			return
@@ -168,8 +176,7 @@ func handleMsgMhfEnumerateShop(s *Session, p mhfpacket.MHFPacket) {
 			bf.WriteUint8(gachaEntry.EntryType)
 			bf.WriteUint32(gachaEntry.ID)
 			bf.WriteUint8(gachaEntry.ItemType)
-			bf.WriteUint16(0)
-			bf.WriteUint16(gachaEntry.ItemNumber)
+			bf.WriteUint32(gachaEntry.ItemNumber)
 			bf.WriteUint16(gachaEntry.ItemQuantity)
 			if gachaType >= 4 { // If box
 				bf.WriteUint16(1)
@@ -197,7 +204,11 @@ func handleMsgMhfEnumerateShop(s *Session, p mhfpacket.MHFPacket) {
 
 			bf.WriteUint16(gachaEntry.FrontierPoints)
 			bf.WriteUint8(gachaEntry.DailyLimit)
-			bf.WriteUint8(0)
+			if gachaEntry.EntryType < 10 {
+				ps.Uint8(bf, gachaEntry.Name, true)
+			} else {
+				bf.WriteUint8(0)
+			}
 			bf.WriteBytes(temp.Data())
 		}
 		bf.Seek(4, 0)

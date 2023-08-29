@@ -4,7 +4,6 @@ import (
 	"erupe-ce/common/byteframe"
 	ps "erupe-ce/common/pascalstring"
 	"erupe-ce/common/stringsupport"
-	"erupe-ce/common/token"
 	_config "erupe-ce/config"
 	"erupe-ce/server/channelserver"
 	"fmt"
@@ -12,10 +11,10 @@ import (
 	"strings"
 )
 
-func (s *Session) makeSignResponse(uid int) []byte {
+func (s *Session) makeSignResponse(uid uint32) []byte {
 	// Get the characters from the DB.
 	chars, err := s.server.getCharactersForUser(uid)
-	if len(chars) == 0 {
+	if len(chars) == 0 && uid != 0 {
 		err = s.server.newUserChara(uid)
 		if err == nil {
 			chars, err = s.server.getCharactersForUser(uid)
@@ -25,10 +24,18 @@ func (s *Session) makeSignResponse(uid int) []byte {
 		s.logger.Warn("Error getting characters from DB", zap.Error(err))
 	}
 
-	sessToken := token.Generate(16)
-	_ = s.server.registerToken(uid, sessToken)
-
 	bf := byteframe.NewByteFrame()
+	var tokenID uint32
+	var sessToken string
+	if uid == 0 && s.psn != "" {
+		tokenID, sessToken, err = s.server.registerPsnToken(s.psn)
+	} else {
+		tokenID, sessToken, err = s.server.registerUidToken(uid)
+	}
+	if err != nil {
+		bf.WriteUint8(uint8(SIGN_EABORT))
+		return bf.Data()
+	}
 
 	bf.WriteUint8(uint8(SIGN_SUCCESS)) // resp_code
 	if (s.server.erupeConfig.PatchServerManifest != "" && s.server.erupeConfig.PatchServerFile != "") || s.client == PS3 {
@@ -38,7 +45,7 @@ func (s *Session) makeSignResponse(uid int) []byte {
 	}
 	bf.WriteUint8(1) // entrance server count
 	bf.WriteUint8(uint8(len(chars)))
-	bf.WriteUint32(0xFFFFFFFF) // login_token_number
+	bf.WriteUint32(tokenID)
 	bf.WriteBytes([]byte(sessToken))
 	bf.WriteUint32(uint32(channelserver.TimeAdjusted().Unix()))
 	if s.client == PS3 {

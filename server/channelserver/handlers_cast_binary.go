@@ -89,7 +89,7 @@ func parseChatCommand(s *Session, command string) {
 		if commands["PSN"].Enabled {
 			if len(args) > 1 {
 				var exists int
-				s.server.db.QueryRow(`SELECT count(*) FROM users WHERE psn_id = $1`, id).Scan(&exists)
+				s.server.db.QueryRow(`SELECT count(*) FROM users WHERE psn_id = $1`, args[1]).Scan(&exists)
 				if exists == 0 {
 					_, err := s.server.db.Exec(`UPDATE users u SET psn_id=$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)`, args[1], s.charID)
 					if err == nil {

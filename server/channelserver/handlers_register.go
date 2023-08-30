@@ -6,6 +6,48 @@ import (
 	"strings"
 )
 
+func handleMsgMhfRegisterEvent(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfRegisterEvent)
+	bf := byteframe.NewByteFrame()
+	if pkt.Unk3 > 0 {
+		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+		return
+	}
+	bf.WriteUint8(uint8(pkt.WorldID))
+	bf.WriteUint8(uint8(pkt.LandID))
+	bf.WriteUint16(0x1142) // Probably random ID
+	doAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
+}
+
+func handleMsgMhfReleaseEvent(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfReleaseEvent)
+
+	// Do this ack manually because it uses a non-(0|1) error code
+	/*
+		_ACK_SUCCESS = 0
+		_ACK_ERROR = 1
+
+		_ACK_EINPROGRESS = 16
+		_ACK_ENOENT = 17
+		_ACK_ENOSPC = 18
+		_ACK_ETIMEOUT = 19
+
+		_ACK_EINVALID = 64
+		_ACK_EFAILED = 65
+		_ACK_ENOMEM = 66
+		_ACK_ENOTEXIT = 67
+		_ACK_ENOTREADY = 68
+		_ACK_EALREADY = 69
+		_ACK_DISABLE_WORK = 71
+	*/
+	s.QueueSendMHF(&mhfpacket.MsgSysAck{
+		AckHandle:        pkt.AckHandle,
+		IsBufferResponse: false,
+		ErrorCode:        0x41,
+		AckData:          []byte{0x00, 0x00, 0x00, 0x00},
+	})
+}
+
 type RaviUpdate struct {
 	Op   uint8
 	Dest uint8

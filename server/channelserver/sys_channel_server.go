@@ -158,6 +158,7 @@ func NewServer(config *Config) *Server {
 		discordBot:      config.DiscordBot,
 		name:            config.Name,
 		raviente: &Raviente{
+			id:       1,
 			register: make([]uint32, 30),
 			state:    make([]uint32, 30),
 			support:  make([]uint32, 30),

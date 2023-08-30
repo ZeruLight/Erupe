@@ -35,7 +35,7 @@ func destructEmptySemaphores(s *Session) {
 			s.server.semaphoreLock.Unlock()
 			delete(s.server.semaphore, id)
 			s.server.semaphoreLock.Lock()
-			if strings.HasPrefix(id, "hs_l0u3B5") {
+			if strings.HasPrefix(id, "hs_l0") {
 				releaseRaviSemaphore(s, sema)
 			}
 			s.logger.Debug("Destructed semaphore", zap.String("sema.id_semaphore", id))
@@ -49,7 +49,7 @@ func releaseRaviSemaphore(s *Session, sema *Semaphore) {
 	delete(sema.clients, s)
 	if strings.HasSuffix(sema.id_semaphore, "2") && len(sema.clients) == 0 {
 		s.logger.Debug("Main raviente semaphore is empty, resetting")
-		resetRavi(s)
+		s.server.resetRaviente()
 	}
 }
 
@@ -60,7 +60,7 @@ func handleMsgSysDeleteSemaphore(s *Session, p mhfpacket.MHFPacket) {
 		s.server.semaphoreLock.Lock()
 		for id, sema := range s.server.semaphore {
 			if sema.id == pkt.SemaphoreID {
-				if strings.HasPrefix(id, "hs_l0u3B5") {
+				if strings.HasPrefix(id, "hs_l0") {
 					releaseRaviSemaphore(s, sema)
 					s.server.semaphoreLock.Unlock()
 					return
@@ -84,7 +84,7 @@ func handleMsgSysCreateAcquireSemaphore(s *Session, p mhfpacket.MHFPacket) {
 	fmt.Printf("Got reserve stage req, StageID: %v\n\n", SemaphoreID)
 	if !exists {
 		s.server.semaphoreLock.Lock()
-		if strings.HasPrefix(SemaphoreID, "hs_l0u3B5") {
+		if strings.HasPrefix(SemaphoreID, "hs_l0") {
 			suffix, _ := strconv.Atoi(pkt.SemaphoreID[len(pkt.SemaphoreID)-1:])
 			s.server.semaphore[SemaphoreID] = &Semaphore{
 				id_semaphore:        pkt.SemaphoreID,

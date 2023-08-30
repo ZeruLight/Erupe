@@ -76,18 +76,17 @@ type Server struct {
 
 type Raviente struct {
 	sync.Mutex
+	id       uint16
 	register []uint32
 	state    []uint32
 	support  []uint32
 }
 
-func NewRaviente() *Raviente {
-	raviente := &Raviente{
-		register: make([]uint32, 30),
-		state:    make([]uint32, 30),
-		support:  make([]uint32, 30),
-	}
-	return raviente
+func (s *Server) resetRaviente() {
+	s.raviente.id = s.raviente.id + 1
+	s.raviente.register = make([]uint32, 30)
+	s.raviente.state = make([]uint32, 30)
+	s.raviente.support = make([]uint32, 30)
 }
 
 func (s *Server) GetRaviMultiplier() float64 {
@@ -158,7 +157,11 @@ func NewServer(config *Config) *Server {
 		semaphoreIndex:  7,
 		discordBot:      config.DiscordBot,
 		name:            config.Name,
-		raviente:        NewRaviente(),
+		raviente: &Raviente{
+			register: make([]uint32, 30),
+			state:    make([]uint32, 30),
+			support:  make([]uint32, 30),
+		},
 	}
 
 	// Mezeporta

@@ -16,7 +16,7 @@ func handleMsgMhfRegisterEvent(s *Session, p mhfpacket.MHFPacket) {
 	}
 	bf.WriteUint8(uint8(pkt.WorldID))
 	bf.WriteUint8(uint8(pkt.LandID))
-	bf.WriteUint16(0x1142) // Probably random ID
+	bf.WriteUint16(s.server.raviente.id)
 	doAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
 }
 
@@ -142,15 +142,11 @@ func (s *Session) notifyRavi() {
 
 func (s *Server) getRaviSemaphore() *Semaphore {
 	for _, semaphore := range s.semaphore {
-		if strings.HasPrefix(semaphore.id_semaphore, "hs_l0u3B5") && strings.HasSuffix(semaphore.id_semaphore, "3") {
+		if strings.HasPrefix(semaphore.id_semaphore, "hs_l0") && strings.HasSuffix(semaphore.id_semaphore, "3") {
 			return semaphore
 		}
 	}
 	return nil
-}
-
-func resetRavi(s *Session) {
-	s.server.raviente = NewRaviente()
 }
 
 func handleMsgSysNotifyRegister(s *Session, p mhfpacket.MHFPacket) {}

@@ -3,7 +3,6 @@ package channelserver
 import (
 	"erupe-ce/common/byteframe"
 	"erupe-ce/network/mhfpacket"
-	"go.uber.org/zap"
 	"strings"
 )
 
@@ -18,12 +17,12 @@ func handleMsgSysOperateRegister(s *Session, p mhfpacket.MHFPacket) {
 
 	var raviUpdates []RaviUpdate
 	var raviUpdate RaviUpdate
-	bf := byteframe.NewByteFrameFromBytes(pkt.RawDataPayload)
+	// Strip null terminator
+	bf := byteframe.NewByteFrameFromBytes(pkt.RawDataPayload[:len(pkt.RawDataPayload)-1])
 	for i := len(pkt.RawDataPayload) / 6; i > 0; i-- {
 		raviUpdate.Op = bf.ReadUint8()
 		raviUpdate.Dest = bf.ReadUint8()
 		raviUpdate.Data = bf.ReadUint32()
-		s.logger.Debug("RaviOps", zap.Uint8s("Op/Dest", []uint8{raviUpdate.Op, raviUpdate.Dest}), zap.Uint32s("Sema/Data", []uint32{pkt.SemaphoreID, raviUpdate.Data}))
 		raviUpdates = append(raviUpdates, raviUpdate)
 	}
 	bf = byteframe.NewByteFrame()

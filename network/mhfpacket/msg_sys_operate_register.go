@@ -25,8 +25,7 @@ func (m *MsgSysOperateRegister) Parse(bf *byteframe.ByteFrame, ctx *clientctx.Cl
 	m.SemaphoreID = bf.ReadUint32()
 	_ = bf.ReadUint16()
 	dataSize := bf.ReadUint16()
-	m.RawDataPayload = bf.ReadBytes(uint(dataSize) - 1)
-	_ = bf.ReadBytes(1) // Null terminator
+	m.RawDataPayload = bf.ReadBytes(uint(dataSize))
 	return nil
 }
 

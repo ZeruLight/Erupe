@@ -9,7 +9,8 @@ import (
 func handleMsgMhfRegisterEvent(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfRegisterEvent)
 	bf := byteframe.NewByteFrame()
-	if pkt.Unk3 > 0 {
+	// Some kind of check if there's already a session
+	if pkt.Unk3 > 0 && s.server.getRaviSemaphore() == nil {
 		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
@@ -110,7 +111,7 @@ func handleMsgSysLoadRegister(s *Session, p mhfpacket.MHFPacket) {
 }
 
 func (s *Session) notifyRavi() {
-	sema := getRaviSemaphore(s.server)
+	sema := s.server.getRaviSemaphore()
 	if sema == nil {
 		return
 	}
@@ -139,7 +140,7 @@ func (s *Session) notifyRavi() {
 	}
 }
 
-func getRaviSemaphore(s *Server) *Semaphore {
+func (s *Server) getRaviSemaphore() *Semaphore {
 	for _, semaphore := range s.semaphore {
 		if strings.HasPrefix(semaphore.id_semaphore, "hs_l0u3B5") && strings.HasSuffix(semaphore.id_semaphore, "3") {
 			return semaphore

@@ -246,7 +246,7 @@ func parseChatCommand(s *Session, command string) {
 	case commands["Raviente"].Prefix:
 		if commands["Raviente"].Enabled {
 			if len(args) > 1 {
-				if getRaviSemaphore(s.server) != nil {
+				if s.server.getRaviSemaphore() != nil {
 					switch args[1] {
 					case "start":
 						if s.server.raviente.register[1] == 0 {
@@ -420,7 +420,7 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 		}
 	case BroadcastTypeServer:
 		if pkt.MessageType == 1 {
-			if getRaviSemaphore(s.server) != nil {
+			if s.server.getRaviSemaphore() != nil {
 				s.server.BroadcastMHF(resp, s)
 			}
 		} else {

@@ -91,7 +91,7 @@ func NewRaviente() *Raviente {
 }
 
 func (s *Server) GetRaviMultiplier() float64 {
-	raviSema := getRaviSemaphore(s)
+	raviSema := s.getRaviSemaphore()
 	if raviSema != nil {
 		var minPlayers int
 		if s.raviente.register[9] > 8 {

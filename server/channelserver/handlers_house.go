@@ -250,7 +250,7 @@ func handleMsgMhfLoadDecoMyset(s *Session, p mhfpacket.MHFPacket) {
 		s.logger.Error("Failed to load decomyset", zap.Error(err))
 	}
 	if len(data) == 0 {
-		if s.server.erupeConfig.RealClientMode <= _config.G7 {
+		if s.server.erupeConfig.RealClientMode < _config.G10 {
 			data = []byte{0x00, 0x00}
 		}
 		data = []byte{0x01, 0x00}

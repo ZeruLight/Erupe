@@ -3,6 +3,7 @@ package channelserver
 import (
 	"fmt"
 	"net"
+	"strings"
 	"sync"
 
 	"erupe-ce/common/byteframe"
@@ -83,6 +84,12 @@ type Raviente struct {
 }
 
 func (s *Server) resetRaviente() {
+	for _, semaphore := range s.semaphore {
+		if strings.HasPrefix(semaphore.name, "hs_l0") {
+			return
+		}
+	}
+	s.logger.Debug("All Raviente Semaphores empty, resetting")
 	s.raviente.id = s.raviente.id + 1
 	s.raviente.register = make([]uint32, 30)
 	s.raviente.state = make([]uint32, 30)
@@ -109,7 +116,7 @@ func (s *Server) GetRaviMultiplier() float64 {
 func (s *Server) UpdateRavi(semaID uint32, index uint8, value uint32, update bool) (uint32, uint32) {
 	var prev uint32
 	switch semaID {
-	case 4:
+	case 0x40000:
 		switch index {
 		case 17, 28: // Ignore res and poison
 			break
@@ -122,14 +129,14 @@ func (s *Server) UpdateRavi(semaID uint32, index uint8, value uint32, update boo
 		}
 		s.raviente.state[index] += value
 		return prev, s.raviente.state[index]
-	case 5:
+	case 0x50000:
 		prev = s.raviente.support[index]
 		if prev != 0 && !update {
 			return prev, prev
 		}
 		s.raviente.support[index] += value
 		return prev, s.raviente.support[index]
-	case 6:
+	case 0x60000:
 		prev = s.raviente.register[index]
 		if prev != 0 && !update {
 			return prev, prev
@@ -395,15 +402,16 @@ func (s *Server) NextSemaphoreID() uint32 {
 	for {
 		exists := false
 		s.semaphoreIndex = s.semaphoreIndex + 1
-		if s.semaphoreIndex == 0 {
-			s.semaphoreIndex = 7 // Skip reserved indexes
+		if s.semaphoreIndex > 0xFFFF {
+			s.semaphoreIndex = 1
 		}
 		for _, semaphore := range s.semaphore {
 			if semaphore.id == s.semaphoreIndex {
 				exists = true
+				break
 			}
 		}
-		if exists == false {
+		if !exists {
 			break
 		}
 	}

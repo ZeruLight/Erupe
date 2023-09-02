@@ -99,11 +99,11 @@ func handleMsgSysLoadRegister(s *Session, p mhfpacket.MHFPacket) {
 	bf.WriteUint8(pkt.Values)
 	for i := uint8(0); i < pkt.Values; i++ {
 		switch pkt.RegisterID {
-		case 4:
+		case 0x40000:
 			bf.WriteUint32(s.server.raviente.state[i])
-		case 5:
+		case 0x50000:
 			bf.WriteUint32(s.server.raviente.support[i])
-		case 6:
+		case 0x60000:
 			bf.WriteUint32(s.server.raviente.register[i])
 		}
 	}
@@ -117,13 +117,13 @@ func (s *Session) notifyRavi() {
 	}
 	var temp mhfpacket.MHFPacket
 	raviNotif := byteframe.NewByteFrame()
-	temp = &mhfpacket.MsgSysNotifyRegister{RegisterID: 4}
+	temp = &mhfpacket.MsgSysNotifyRegister{RegisterID: 0x40000}
 	raviNotif.WriteUint16(uint16(temp.Opcode()))
 	temp.Build(raviNotif, s.clientContext)
-	temp = &mhfpacket.MsgSysNotifyRegister{RegisterID: 5}
+	temp = &mhfpacket.MsgSysNotifyRegister{RegisterID: 0x50000}
 	raviNotif.WriteUint16(uint16(temp.Opcode()))
 	temp.Build(raviNotif, s.clientContext)
-	temp = &mhfpacket.MsgSysNotifyRegister{RegisterID: 6}
+	temp = &mhfpacket.MsgSysNotifyRegister{RegisterID: 0x60000}
 	raviNotif.WriteUint16(uint16(temp.Opcode()))
 	temp.Build(raviNotif, s.clientContext)
 	raviNotif.WriteUint16(0x0010) // End it.
@@ -142,7 +142,7 @@ func (s *Session) notifyRavi() {
 
 func (s *Server) getRaviSemaphore() *Semaphore {
 	for _, semaphore := range s.semaphore {
-		if strings.HasPrefix(semaphore.id_semaphore, "hs_l0") && strings.HasSuffix(semaphore.id_semaphore, "3") {
+		if strings.HasPrefix(semaphore.name, "hs_l0") && strings.HasSuffix(semaphore.name, "3") {
 			return semaphore
 		}
 	}

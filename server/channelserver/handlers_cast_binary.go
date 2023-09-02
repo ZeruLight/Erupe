@@ -420,8 +420,9 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 		}
 	case BroadcastTypeServer:
 		if pkt.MessageType == 1 {
-			if s.server.getRaviSemaphore() != nil {
-				s.server.BroadcastMHF(resp, s)
+			raviSema := s.server.getRaviSemaphore()
+			if raviSema != nil {
+				raviSema.BroadcastMHF(resp, s)
 			}
 		} else {
 			s.server.BroadcastMHF(resp, s)

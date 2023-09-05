@@ -22,7 +22,7 @@
     "MaxHexdumpLength": 256,
     "DivaEvent": 0,
     "FestaEvent": -1,
-    "TournamentEvent": 0,
+    "TournamentEvent": -1,
     "MezFesEvent": true,
     "MezFesAlt": false,
     "DisableTokenCheck": false,

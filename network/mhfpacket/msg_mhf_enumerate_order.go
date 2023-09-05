@@ -1,17 +1,17 @@
 package mhfpacket
 
-import ( 
- "errors" 
+import (
+	"errors"
 
- 	"erupe-ce/network/clientctx"
-	"erupe-ce/network"
 	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgMhfEnumerateOrder represents the MSG_MHF_ENUMERATE_ORDER
 type MsgMhfEnumerateOrder struct {
 	AckHandle uint32
-	Unk0      uint32
+	EventID   uint32
 	Unk1      uint32
 }
 
@@ -23,7 +23,7 @@ func (m *MsgMhfEnumerateOrder) Opcode() network.PacketID {
 // Parse parses the packet from binary
 func (m *MsgMhfEnumerateOrder) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
-	m.Unk0 = bf.ReadUint32()
+	m.EventID = bf.ReadUint32()
 	m.Unk1 = bf.ReadUint32()
 	return nil
 }

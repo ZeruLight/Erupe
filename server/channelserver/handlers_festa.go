@@ -33,62 +33,166 @@ func handleMsgMhfLoadMezfesData(s *Session, p mhfpacket.MHFPacket) {
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
+func generateTournamentTimestamps(start uint32, debug bool) []uint32 {
+	timestamps := make([]uint32, 4)
+	midnight := TimeMidnight()
+	if debug && start <= 3 {
+		midnight := uint32(midnight.Unix())
+		switch start {
+		case 1:
+			timestamps[0] = midnight
+			timestamps[1] = timestamps[0] + 259200
+			timestamps[2] = timestamps[1] + 766800
+			timestamps[3] = timestamps[2] + 604800
+		case 2:
+			timestamps[0] = midnight - 259200
+			timestamps[1] = midnight
+			timestamps[2] = timestamps[1] + 766800
+			timestamps[3] = timestamps[2] + 604800
+		case 3:
+			timestamps[0] = midnight - 1026000
+			timestamps[1] = midnight - 766800
+			timestamps[2] = midnight
+			timestamps[3] = timestamps[2] + 604800
+		}
+		return timestamps
+	}
+	timestamps[0] = start
+	timestamps[1] = timestamps[0] + 259200
+	timestamps[2] = timestamps[1] + 766800
+	timestamps[3] = timestamps[2] + 604800
+	return timestamps
+}
+
+type TournamentEvent struct {
+	ID        uint32
+	CupGroup  uint16
+	Limit     int16
+	QuestFile uint32
+	Name      string
+}
+
+type TournamentCup struct {
+	ID          uint32
+	CupGroup    uint16
+	Type        uint16
+	Unk2        uint16
+	Name        string
+	Description string
+}
+
 func handleMsgMhfEnumerateRanking(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateRanking)
 	bf := byteframe.NewByteFrame()
-	state := s.server.erupeConfig.DevModeOptions.TournamentEvent
-	// Unk
-	// Unk
-	// Start?
-	// End?
-	midnight := TimeMidnight()
-	switch state {
-	case 1:
-		bf.WriteUint32(uint32(midnight.Unix()))
-		bf.WriteUint32(uint32(midnight.Add(3 * 24 * time.Hour).Unix()))
-		bf.WriteUint32(uint32(midnight.Add(13 * 24 * time.Hour).Unix()))
-		bf.WriteUint32(uint32(midnight.Add(20 * 24 * time.Hour).Unix()))
-	case 2:
-		bf.WriteUint32(uint32(midnight.Add(-3 * 24 * time.Hour).Unix()))
-		bf.WriteUint32(uint32(midnight.Unix()))
-		bf.WriteUint32(uint32(midnight.Add(10 * 24 * time.Hour).Unix()))
-		bf.WriteUint32(uint32(midnight.Add(17 * 24 * time.Hour).Unix()))
-	case 3:
-		bf.WriteUint32(uint32(midnight.Add(-13 * 24 * time.Hour).Unix()))
-		bf.WriteUint32(uint32(midnight.Add(-10 * 24 * time.Hour).Unix()))
-		bf.WriteUint32(uint32(midnight.Unix()))
-		bf.WriteUint32(uint32(midnight.Add(7 * 24 * time.Hour).Unix()))
-	default:
+
+	id, start := uint32(0xBEEFDEAD), uint32(0)
+	rows, _ := s.server.db.Queryx("SELECT id, (EXTRACT(epoch FROM start_time)::int) as start_time FROM events WHERE event_type='festa'")
+	for rows.Next() {
+		rows.Scan(&id, &start)
+	}
+
+	var timestamps []uint32
+	if s.server.erupeConfig.DevMode && s.server.erupeConfig.DevModeOptions.TournamentEvent >= 0 {
+		if s.server.erupeConfig.DevModeOptions.TournamentEvent == 0 {
+			bf.WriteBytes(make([]byte, 16))
+			bf.WriteUint32(uint32(TimeAdjusted().Unix()))
+			bf.WriteUint8(0)
+			ps.Uint8(bf, "", true)
+			bf.WriteUint16(0)
+			bf.WriteUint8(0)
+			doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+			return
+		}
+		timestamps = generateTournamentTimestamps(uint32(s.server.erupeConfig.DevModeOptions.TournamentEvent), true)
+	} else {
+		timestamps = generateTournamentTimestamps(start, false)
+	}
+
+	if timestamps[0] > uint32(TimeAdjusted().Unix()) {
 		bf.WriteBytes(make([]byte, 16))
-		bf.WriteUint32(uint32(TimeAdjusted().Unix())) // TS Current Time
-		bf.WriteUint8(3)
-		bf.WriteBytes(make([]byte, 4))
+		bf.WriteUint32(uint32(TimeAdjusted().Unix()))
+		bf.WriteUint8(0)
+		ps.Uint8(bf, "", true)
+		bf.WriteUint16(0)
+		bf.WriteUint8(0)
 		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 		return
 	}
-	bf.WriteUint32(uint32(TimeAdjusted().Unix())) // TS Current Time
-	bf.WriteUint8(3)
-	ps.Uint8(bf, "", false)
-	bf.WriteUint16(0) // numEvents
-	bf.WriteUint8(0)  // numCups
 
-	/*
-		struct event
-		uint32 eventID
-		uint16 unk
-		uint16 unk
-		uint32 unk
-		psUint8 name
+	for _, timestamp := range timestamps {
+		bf.WriteUint32(timestamp)
+	}
+	bf.WriteUint32(uint32(TimeAdjusted().Unix()))
+	bf.WriteUint8(1) // TODO: Make this dynamic depending on timestamp
+	ps.Uint8(bf, "", true)
 
-		struct cup
-		uint32 cupID
-		uint16 unk
-		uint16 unk
-		uint16 unk
-		psUint8 name
-		psUint16 desc
-	*/
+	// Temp direct port
+	tournamentEvents := []TournamentEvent{
+		{2644, 16, 0, 62151, ""},
+		{2645, 16, 1, 62151, ""},
+		{2646, 16, 2, 62151, ""},
+		{2647, 16, 3, 62151, ""},
+		{2648, 16, 4, 62151, ""},
+		{2649, 16, 5, 62151, ""},
+		{2650, 16, 6, 62151, ""},
+		{2651, 16, 7, 62151, ""},
+		{2652, 16, 8, 62151, ""},
+		{2653, 16, 9, 62151, ""},
+		{2654, 16, 10, 62151, ""},
+		{2655, 16, 11, 62151, ""},
+		{2656, 16, 12, 62151, ""},
+		{2657, 16, 13, 62151, ""},
+		{2658, 17, -1, 62150, ""},
+		{2659, 6, 234, 0, ""},
+		{2660, 6, 237, 0, ""},
+		{2661, 6, 239, 0, ""},
+	}
+	tournamentCups := []TournamentCup{
+		{569, 6, 6, 0, "", ""},
+		{570, 17, 7, 0, "", ""},
+		{571, 16, 7, 0, "", ""},
+	}
 
+	bf.WriteUint16(uint16(len(tournamentEvents)))
+	for _, event := range tournamentEvents {
+		bf.WriteUint32(event.ID)
+		bf.WriteUint16(event.CupGroup)
+		bf.WriteInt16(event.Limit)
+		bf.WriteUint32(event.QuestFile)
+		ps.Uint8(bf, event.Name, true)
+	}
+	bf.WriteUint8(uint8(len(tournamentCups)))
+	for _, cup := range tournamentCups {
+		bf.WriteUint32(cup.ID)
+		bf.WriteUint16(cup.CupGroup)
+		bf.WriteUint16(cup.Type)
+		bf.WriteUint16(cup.Unk2)
+		ps.Uint8(bf, cup.Name, true)
+		ps.Uint16(bf, cup.Description, true)
+	}
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+}
+
+type TournamentRanking struct {
+	Unk0 uint32
+	Unk1 uint32
+	Unk2 uint16
+	Unk3 uint16 // Unused
+	Unk4 uint16
+	Unk5 uint16
+	Unk6 uint16
+	Unk7 uint8
+	Unk8 string
+	Unk9 string
+}
+
+func handleMsgMhfEnumerateOrder(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfEnumerateOrder)
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint32(0)
+	bf.WriteUint32(0)
+	bf.WriteUint16(0)
+	bf.WriteUint16(0)
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
@@ -126,10 +230,10 @@ func generateFestaTimestamps(s *Session, start uint32, debug bool) []uint32 {
 		}
 		return timestamps
 	}
-	if start == 0 || TimeAdjusted().Unix() > int64(start)+2977200 {
+	if start == 0 || TimeAdjusted().Unix() > int64(start)+3024000 {
 		cleanupFesta(s)
-		// Generate a new festa, starting midnight tomorrow
-		start = uint32(midnight.Add(24 * time.Hour).Unix())
+		// Generate a new festa, starting 11am tomorrow
+		start = uint32(midnight.Add(35 * time.Hour).Unix())
 		s.server.db.Exec("INSERT INTO events (event_type, start_time) VALUES ('festa', to_timestamp($1)::timestamp without time zone)", start)
 	}
 	timestamps[0] = start

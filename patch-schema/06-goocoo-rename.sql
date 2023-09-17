@@ -1,0 +1,11 @@
+BEGIN;
+
+ALTER TABLE gook RENAME TO goocoo;
+
+ALTER TABLE goocoo RENAME COLUMN gook0 TO goocoo0;
+ALTER TABLE goocoo RENAME COLUMN gook1 TO goocoo1;
+ALTER TABLE goocoo RENAME COLUMN gook2 TO goocoo2;
+ALTER TABLE goocoo RENAME COLUMN gook3 TO goocoo3;
+ALTER TABLE goocoo RENAME COLUMN gook4 TO goocoo4;
+
+END;

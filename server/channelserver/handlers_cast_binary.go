@@ -246,35 +246,42 @@ func parseChatCommand(s *Session, command string) {
 	case commands["Raviente"].Prefix:
 		if commands["Raviente"].Enabled {
 			if len(args) > 1 {
-				if getRaviSemaphore(s.server) != nil {
+				if s.server.getRaviSemaphore() != nil {
 					switch args[1] {
 					case "start":
-						if s.server.raviente.register.startTime == 0 {
-							s.server.raviente.register.startTime = s.server.raviente.register.postTime
+						if s.server.raviente.register[1] == 0 {
+							s.server.raviente.register[1] = s.server.raviente.register[3]
 							sendServerChatMessage(s, s.server.dict["commandRaviStartSuccess"])
 							s.notifyRavi()
 						} else {
 							sendServerChatMessage(s, s.server.dict["commandRaviStartError"])
 						}
 					case "cm", "check", "checkmultiplier", "multiplier":
-						sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandRaviMultiplier"], s.server.raviente.GetRaviMultiplier(s.server)))
-					case "sr", "sendres", "resurrection":
-						if s.server.raviente.state.stateData[28] > 0 {
-							sendServerChatMessage(s, s.server.dict["commandRaviResSuccess"])
-							s.server.raviente.state.stateData[28] = 0
+						sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandRaviMultiplier"], s.server.GetRaviMultiplier()))
+					case "sr", "sendres", "resurrection", "ss", "sendsed", "rs", "reqsed":
+						if s.server.erupeConfig.RealClientMode == _config.ZZ {
+							switch args[1] {
+							case "sr", "sendres", "resurrection":
+								if s.server.raviente.state[28] > 0 {
+									sendServerChatMessage(s, s.server.dict["commandRaviResSuccess"])
+									s.server.raviente.state[28] = 0
+								} else {
+									sendServerChatMessage(s, s.server.dict["commandRaviResError"])
+								}
+							case "ss", "sendsed":
+								sendServerChatMessage(s, s.server.dict["commandRaviSedSuccess"])
+								// Total BerRavi HP
+								HP := s.server.raviente.state[0] + s.server.raviente.state[1] + s.server.raviente.state[2] + s.server.raviente.state[3] + s.server.raviente.state[4]
+								s.server.raviente.support[1] = HP
+							case "rs", "reqsed":
+								sendServerChatMessage(s, s.server.dict["commandRaviRequest"])
+								// Total BerRavi HP
+								HP := s.server.raviente.state[0] + s.server.raviente.state[1] + s.server.raviente.state[2] + s.server.raviente.state[3] + s.server.raviente.state[4]
+								s.server.raviente.support[1] = HP + 1
+							}
 						} else {
-							sendServerChatMessage(s, s.server.dict["commandRaviResError"])
+							sendServerChatMessage(s, s.server.dict["commandRaviVersion"])
 						}
-					case "ss", "sendsed":
-						sendServerChatMessage(s, s.server.dict["commandRaviSedSuccess"])
-						// Total BerRavi HP
-						HP := s.server.raviente.state.stateData[0] + s.server.raviente.state.stateData[1] + s.server.raviente.state.stateData[2] + s.server.raviente.state.stateData[3] + s.server.raviente.state.stateData[4]
-						s.server.raviente.support.supportData[1] = HP
-					case "rs", "reqsed":
-						sendServerChatMessage(s, s.server.dict["commandRaviRequest"])
-						// Total BerRavi HP
-						HP := s.server.raviente.state.stateData[0] + s.server.raviente.state.stateData[1] + s.server.raviente.state.stateData[2] + s.server.raviente.state.stateData[3] + s.server.raviente.state.stateData[4]
-						s.server.raviente.support.supportData[1] = HP + 12
 					default:
 						sendServerChatMessage(s, s.server.dict["commandRaviError"])
 					}
@@ -413,8 +420,9 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 		}
 	case BroadcastTypeServer:
 		if pkt.MessageType == 1 {
-			if getRaviSemaphore(s.server) != nil {
-				s.server.BroadcastMHF(resp, s)
+			raviSema := s.server.getRaviSemaphore()
+			if raviSema != nil {
+				raviSema.BroadcastMHF(resp, s)
 			}
 		} else {
 			s.server.BroadcastMHF(resp, s)

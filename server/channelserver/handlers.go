@@ -822,21 +822,25 @@ func handleMsgMhfEnumerateGuacot(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfUpdateGuacot(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfUpdateGuacot)
-	for _, gook := range pkt.Gooks {
-		if !gook.Exists {
-			s.server.db.Exec(fmt.Sprintf("UPDATE gook SET gook%d=NULL WHERE id=$1", gook.Index), s.charID)
+	for _, goocoo := range pkt.Goocoos {
+		if goocoo.Data1[0] == 0 {
+			s.server.db.Exec(fmt.Sprintf("UPDATE goocoo SET goocoo%d=NULL WHERE id=$1", goocoo.Index), s.charID)
 		} else {
 			bf := byteframe.NewByteFrame()
-			bf.WriteUint32(gook.Index)
-			bf.WriteUint16(gook.Type)
-			bf.WriteBytes(gook.Data)
-			bf.WriteUint8(gook.NameLen)
-			bf.WriteBytes(gook.Name)
-			s.server.db.Exec(fmt.Sprintf("UPDATE gook SET gook%d=$1 WHERE id=$2", gook.Index), bf.Data(), s.charID)
-			dumpSaveData(s, bf.Data(), fmt.Sprintf("goocoo-%d", gook.Index))
+			bf.WriteUint32(goocoo.Index)
+			for i := range goocoo.Data1 {
+				bf.WriteUint16(goocoo.Data1[i])
+			}
+			for i := range goocoo.Data2 {
+				bf.WriteUint32(goocoo.Data2[i])
+			}
+			bf.WriteUint8(uint8(len(goocoo.Name)))
+			bf.WriteBytes(goocoo.Name)
+			s.server.db.Exec(fmt.Sprintf("UPDATE goocoo SET goocoo%d=$1 WHERE id=$2", goocoo.Index), bf.Data(), s.charID)
+			dumpSaveData(s, bf.Data(), fmt.Sprintf("goocoo-%d", goocoo.Index))
 		}
 	}
-	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfInfoScenarioCounter(s *Session, p mhfpacket.MHFPacket) {

@@ -190,6 +190,8 @@ func (save *CharacterSaveData) updateSaveDataWithStruct() {
 	if _config.ErupeConfig.RealClientMode >= _config.G10 {
 		copy(save.decompSave[save.Pointers[pRP]:save.Pointers[pRP]+2], rpBytes)
 		copy(save.decompSave[save.Pointers[pKQF]:save.Pointers[pKQF]+8], save.KQF)
+	} else if _config.ErupeConfig.RealClientMode == _config.F5{
+		copy(save.decompSave[save.Pointers[pRP]:save.Pointers[pRP]+2], rpBytes)
 	}
 }
 

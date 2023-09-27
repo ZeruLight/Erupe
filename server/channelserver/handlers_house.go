@@ -119,7 +119,10 @@ func handleMsgMhfEnumerateHouse(s *Session, p mhfpacket.MHFPacket) {
 			bf.WriteUint8(0)
 		}
 		bf.WriteUint16(house.HRP)
-		bf.WriteUint16(house.GR)
+		//to skip GR for client below G1
+		if _config.ErupeConfig.RealClientMode >= _config.G1{
+			bf.WriteUint16(house.GR)
+		}
 		ps.Uint8(bf, house.Name, true)
 	}
 	bf.Seek(0, 0)

@@ -162,6 +162,14 @@ type FestaReward struct {
 	Unk7     uint8
 }
 
+type FestaRewardF5 struct {
+	Unk0     uint8
+	Unk1     uint8
+	ItemType uint16
+	Quantity uint16
+	ItemID   uint16
+}
+
 func handleMsgMhfInfoFesta(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfInfoFesta)
 	bf := byteframe.NewByteFrame()
@@ -254,18 +262,37 @@ func handleMsgMhfInfoFesta(s *Session, p mhfpacket.MHFPacket) {
 		{5, 0, 13, 0, 0, 0, 0, 0},
 		//{5, 0, 1, 0, 0, 0, 0, 0},
 	}
-	bf.WriteUint16(uint16(len(rewards)))
-	for _, reward := range rewards {
-		bf.WriteUint8(reward.Unk0)
-		bf.WriteUint8(reward.Unk1)
-		bf.WriteUint16(reward.ItemType)
-		bf.WriteUint16(reward.Quantity)
-		bf.WriteUint16(reward.ItemID)
-		bf.WriteUint16(reward.Unk5)
-		bf.WriteUint16(reward.Unk6)
-		bf.WriteUint8(reward.Unk7)
+
+	rewardsF5 := []FestaRewardF5{
+		{1, 0, 7, 250, 1520},
+		{1, 0, 12, 250, 0},
+		{1, 0, 12, 250, 0},
+		{1, 0, 12, 250, 0},
+		{1, 0, 12, 250, 0},
 	}
 
+	if _config.ErupeConfig.RealClientMode >= _config.G1 {
+		bf.WriteUint16(uint16(len(rewards)))
+		for _, reward := range rewards {
+				bf.WriteUint8(reward.Unk0)
+				bf.WriteUint8(reward.Unk1)
+				bf.WriteUint16(reward.ItemType)
+				bf.WriteUint16(reward.Quantity)
+				bf.WriteUint16(reward.ItemID)
+				bf.WriteUint16(reward.Unk5)
+				bf.WriteUint16(reward.Unk6)
+				bf.WriteUint8(reward.Unk7)
+		}
+	} else if _config.ErupeConfig.RealClientMode == _config.F5{
+			bf.WriteUint16(uint16(len(rewardsF5)))
+			for _, reward := range rewardsF5 {
+				bf.WriteUint8(reward.Unk0)
+				bf.WriteUint8(reward.Unk1)
+				bf.WriteUint16(reward.ItemType)
+				bf.WriteUint16(reward.Quantity)
+				bf.WriteUint16(reward.ItemID)
+		}
+	}
 	if _config.ErupeConfig.RealClientMode <= _config.G61 {
 		if s.server.erupeConfig.GameplayOptions.MaximumFP > 0xFFFF {
 			s.server.erupeConfig.GameplayOptions.MaximumFP = 0xFFFF

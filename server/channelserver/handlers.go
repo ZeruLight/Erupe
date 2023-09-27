@@ -789,20 +789,20 @@ func getGookData(s *Session, cid uint32) (uint16, []byte) {
 	var count uint16
 	bf := byteframe.NewByteFrame()
 	for i := 0; i < 5; i++ {
-		err := s.server.db.QueryRow(fmt.Sprintf("SELECT gook%d FROM gook WHERE id=$1", i), cid).Scan(&data)
+		err := s.server.db.QueryRow(fmt.Sprintf("SELECT goocoo%d FROM goocoo WHERE id=$1", i), cid).Scan(&data)
 		if err != nil {
-			s.server.db.Exec("INSERT INTO gook (id) VALUES ($1)", s.charID)
+			s.server.db.Exec("INSERT INTO goocoo (id) VALUES ($1)", s.charID)
 			return 0, bf.Data()
 		}
 		if err == nil && data != nil {
 			count++
 			if s.charID == cid && count == 1 {
-				gook := byteframe.NewByteFrameFromBytes(data)
-				bf.WriteBytes(gook.ReadBytes(4))
-				d := gook.ReadBytes(2)
+				goocoo := byteframe.NewByteFrameFromBytes(data)
+				bf.WriteBytes(goocoo.ReadBytes(4))
+				d := goocoo.ReadBytes(2)
 				bf.WriteBytes(d)
 				bf.WriteBytes(d)
-				bf.WriteBytes(gook.DataFromCurrent())
+				bf.WriteBytes(goocoo.DataFromCurrent())
 			} else {
 				bf.WriteBytes(data)
 			}

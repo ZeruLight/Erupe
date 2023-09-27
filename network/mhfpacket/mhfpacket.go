@@ -1,18 +1,19 @@
 package mhfpacket
 
 import (
-	"github.com/Andoryuuta/Erupe/network"
-	"github.com/Andoryuuta/byteframe"
+	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // Parser is the interface that wraps the Parse method.
 type Parser interface {
-	Parse(bf *byteframe.ByteFrame) error
+	Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error
 }
 
 // Builder is the interface that wraps the Build method.
 type Builder interface {
-	Build(bf *byteframe.ByteFrame) error
+	Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error
 }
 
 // Opcoder is the interface that wraps the Opcode method.

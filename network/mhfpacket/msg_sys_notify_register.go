@@ -1,12 +1,15 @@
 package mhfpacket
 
 import (
-	"github.com/Andoryuuta/Erupe/network"
-	"github.com/Andoryuuta/byteframe"
+	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgSysNotifyRegister represents the MSG_SYS_NOTIFY_REGISTER
-type MsgSysNotifyRegister struct{}
+type MsgSysNotifyRegister struct {
+	RegisterID uint32
+}
 
 // Opcode returns the ID associated with this packet type.
 func (m *MsgSysNotifyRegister) Opcode() network.PacketID {
@@ -14,11 +17,13 @@ func (m *MsgSysNotifyRegister) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgSysNotifyRegister) Parse(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+func (m *MsgSysNotifyRegister) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+	m.RegisterID = bf.ReadUint32()
+	return nil
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgSysNotifyRegister) Build(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+func (m *MsgSysNotifyRegister) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+	bf.WriteUint32(m.RegisterID)
+	return nil
 }

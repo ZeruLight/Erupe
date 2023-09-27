@@ -2,6 +2,7 @@ package deltacomp
 
 import (
 	"bytes"
+	"fmt"
 	"io"
 )
 
@@ -73,6 +74,18 @@ func ApplyDataDiff(diff []byte, baseData []byte) []byte {
 			break
 		}
 		differentCount--
+
+		// Grow slice if it's required
+		if len(baseCopy) < dataOffset {
+			fmt.Printf("Slice smaller than data offset, growing slice...")
+			baseCopy = append(baseCopy, make([]byte, (dataOffset+differentCount)-len(baseData))...)
+		} else {
+			length := len(baseCopy[dataOffset:])
+			if length < differentCount {
+				length -= differentCount
+				baseCopy = append(baseCopy, make([]byte, length)...)
+			}
+		}
 
 		// Apply the patch bytes.
 		for i := 0; i < differentCount; i++ {

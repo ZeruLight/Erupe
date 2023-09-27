@@ -1,8 +1,9 @@
 package mhfpacket
 
 import (
-	"github.com/Andoryuuta/Erupe/network"
-	"github.com/Andoryuuta/byteframe"
+	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgSysNotifyUserBinary represents the MSG_SYS_NOTIFY_USER_BINARY
@@ -17,12 +18,14 @@ func (m *MsgSysNotifyUserBinary) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgSysNotifyUserBinary) Parse(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+func (m *MsgSysNotifyUserBinary) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+	m.CharID = bf.ReadUint32()
+	m.BinaryType = bf.ReadUint8()
+	return nil
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgSysNotifyUserBinary) Build(bf *byteframe.ByteFrame) error {
+func (m *MsgSysNotifyUserBinary) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	bf.WriteUint32(m.CharID)
 	bf.WriteUint8(m.BinaryType)
 	return nil

@@ -1,8 +1,9 @@
 package mhfpacket
 
 import (
-	"github.com/Andoryuuta/Erupe/network"
-	"github.com/Andoryuuta/byteframe"
+	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgSysCleanupObject represents the MSG_SYS_CLEANUP_OBJECT
@@ -14,12 +15,13 @@ func (m *MsgSysCleanupObject) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgSysCleanupObject) Parse(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+func (m *MsgSysCleanupObject) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+	// This packet has no data.
+	return nil
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgSysCleanupObject) Build(bf *byteframe.ByteFrame) error {
+func (m *MsgSysCleanupObject) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	// This packet has no data.
 	return nil
 }

@@ -1,8 +1,11 @@
 package mhfpacket
 
 import (
-	"github.com/Andoryuuta/Erupe/network"
-	"github.com/Andoryuuta/byteframe"
+	"errors"
+
+	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgMhfGetUdMyRanking represents the MSG_MHF_GET_UD_MY_RANKING
@@ -16,12 +19,12 @@ func (m *MsgMhfGetUdMyRanking) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgMhfGetUdMyRanking) Parse(bf *byteframe.ByteFrame) error {
+func (m *MsgMhfGetUdMyRanking) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
 	return nil
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgMhfGetUdMyRanking) Build(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+func (m *MsgMhfGetUdMyRanking) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+	return errors.New("NOT IMPLEMENTED")
 }

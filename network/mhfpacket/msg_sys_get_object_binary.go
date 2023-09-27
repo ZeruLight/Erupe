@@ -1,8 +1,11 @@
 package mhfpacket
 
 import (
-	"github.com/Andoryuuta/Erupe/network"
-	"github.com/Andoryuuta/byteframe"
+	"errors"
+
+	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgSysGetObjectBinary represents the MSG_SYS_GET_OBJECT_BINARY
@@ -14,11 +17,11 @@ func (m *MsgSysGetObjectBinary) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgSysGetObjectBinary) Parse(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+func (m *MsgSysGetObjectBinary) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+	return errors.New("NOT IMPLEMENTED")
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgSysGetObjectBinary) Build(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+func (m *MsgSysGetObjectBinary) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+	return errors.New("NOT IMPLEMENTED")
 }

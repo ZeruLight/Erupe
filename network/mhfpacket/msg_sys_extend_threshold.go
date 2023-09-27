@@ -1,8 +1,9 @@
 package mhfpacket
 
 import (
-	"github.com/Andoryuuta/Erupe/network"
-	"github.com/Andoryuuta/byteframe"
+	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgSysExtendThreshold represents the MSG_SYS_EXTEND_THRESHOLD
@@ -14,13 +15,13 @@ func (m *MsgSysExtendThreshold) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgSysExtendThreshold) Parse(bf *byteframe.ByteFrame) error {
+func (m *MsgSysExtendThreshold) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	// No data aside from opcode.
 	return nil
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgSysExtendThreshold) Build(bf *byteframe.ByteFrame) error {
+func (m *MsgSysExtendThreshold) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	// No data aside from opcode.
 	return nil
 }

@@ -1,8 +1,9 @@
 package mhfpacket
 
 import (
-	"github.com/Andoryuuta/Erupe/network"
-	"github.com/Andoryuuta/byteframe"
+	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgSysStageDestruct represents the MSG_SYS_STAGE_DESTRUCT
@@ -14,11 +15,13 @@ func (m *MsgSysStageDestruct) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgSysStageDestruct) Parse(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+func (m *MsgSysStageDestruct) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+	// No data other than opcode
+	return nil
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgSysStageDestruct) Build(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+func (m *MsgSysStageDestruct) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+	// No data other than opcode
+	return nil
 }

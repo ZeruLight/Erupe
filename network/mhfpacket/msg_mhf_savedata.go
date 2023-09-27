@@ -1,8 +1,12 @@
 package mhfpacket
 
 import (
-	"github.com/Andoryuuta/Erupe/network"
-	"github.com/Andoryuuta/byteframe"
+	"errors"
+	_config "erupe-ce/config"
+
+	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgMhfSavedata represents the MSG_MHF_SAVEDATA
@@ -21,21 +25,23 @@ func (m *MsgMhfSavedata) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgMhfSavedata) Parse(bf *byteframe.ByteFrame) error {
+func (m *MsgMhfSavedata) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
 	m.AllocMemSize = bf.ReadUint32()
 	m.SaveType = bf.ReadUint8()
 	m.Unk1 = bf.ReadUint32()
-	m.DataSize = bf.ReadUint32()
-	if m.SaveType == 1 {
+	if _config.ErupeConfig.RealClientMode >= _config.G1 {
+		m.DataSize = bf.ReadUint32()
+	}
+	if m.DataSize == 0 { // seems to be used when DataSize = 0 rather than on savetype?
 		m.RawDataPayload = bf.ReadBytes(uint(m.AllocMemSize))
-	} else if m.SaveType == 2 {
+	} else {
 		m.RawDataPayload = bf.ReadBytes(uint(m.DataSize))
 	}
 	return nil
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgMhfSavedata) Build(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+func (m *MsgMhfSavedata) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+	return errors.New("NOT IMPLEMENTED")
 }

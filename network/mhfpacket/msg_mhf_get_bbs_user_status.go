@@ -1,12 +1,18 @@
 package mhfpacket
 
 import (
-	"github.com/Andoryuuta/Erupe/network"
-	"github.com/Andoryuuta/byteframe"
+	"errors"
+
+	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgMhfGetBbsUserStatus represents the MSG_MHF_GET_BBS_USER_STATUS
-type MsgMhfGetBbsUserStatus struct{}
+type MsgMhfGetBbsUserStatus struct {
+	AckHandle uint32
+	Unk       []byte
+}
 
 // Opcode returns the ID associated with this packet type.
 func (m *MsgMhfGetBbsUserStatus) Opcode() network.PacketID {
@@ -14,11 +20,13 @@ func (m *MsgMhfGetBbsUserStatus) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgMhfGetBbsUserStatus) Parse(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+func (m *MsgMhfGetBbsUserStatus) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+	m.AckHandle = bf.ReadUint32()
+	m.Unk = bf.ReadBytes(12)
+	return nil
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgMhfGetBbsUserStatus) Build(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+func (m *MsgMhfGetBbsUserStatus) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+	return errors.New("NOT IMPLEMENTED")
 }

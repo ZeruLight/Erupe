@@ -1,8 +1,11 @@
 package mhfpacket
 
 import (
-	"github.com/Andoryuuta/Erupe/network"
-	"github.com/Andoryuuta/byteframe"
+	"errors"
+
+	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgMhfSetEnhancedMinidata represents the MSG_MHF_SET_ENHANCED_MINIDATA
@@ -18,7 +21,7 @@ func (m *MsgMhfSetEnhancedMinidata) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgMhfSetEnhancedMinidata) Parse(bf *byteframe.ByteFrame) error {
+func (m *MsgMhfSetEnhancedMinidata) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
 	m.Unk0 = bf.ReadUint16()
 	m.RawDataPayload = bf.ReadBytes(0x400)
@@ -26,6 +29,6 @@ func (m *MsgMhfSetEnhancedMinidata) Parse(bf *byteframe.ByteFrame) error {
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgMhfSetEnhancedMinidata) Build(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+func (m *MsgMhfSetEnhancedMinidata) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+	return errors.New("NOT IMPLEMENTED")
 }

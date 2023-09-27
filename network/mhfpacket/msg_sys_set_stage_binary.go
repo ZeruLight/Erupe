@@ -1,16 +1,16 @@
 package mhfpacket
 
 import (
-	"github.com/Andoryuuta/Erupe/network"
-	"github.com/Andoryuuta/byteframe"
+	"erupe-ce/common/bfutil"
+	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgSysSetStageBinary represents the MSG_SYS_SET_STAGE_BINARY
 type MsgSysSetStageBinary struct {
 	BinaryType0    uint8
-	BinaryType1    uint8  // Index
-	StageIDLength  uint8  // <= 0x20
-	DataSize       uint16 // <= 0x400
+	BinaryType1    uint8 // Index
 	StageID        string
 	RawDataPayload []byte
 }
@@ -21,17 +21,17 @@ func (m *MsgSysSetStageBinary) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgSysSetStageBinary) Parse(bf *byteframe.ByteFrame) error {
+func (m *MsgSysSetStageBinary) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.BinaryType0 = bf.ReadUint8()
 	m.BinaryType1 = bf.ReadUint8()
-	m.StageIDLength = bf.ReadUint8()
-	m.DataSize = bf.ReadUint16()
-	m.StageID = string(bf.ReadBytes(uint(m.StageIDLength)))
-	m.RawDataPayload = bf.ReadBytes(uint(m.DataSize))
+	stageIDLength := bf.ReadUint8() // <= 0x20
+	dataSize := bf.ReadUint16()     // <= 0x400
+	m.StageID = string(bfutil.UpToNull(bf.ReadBytes(uint(stageIDLength))))
+	m.RawDataPayload = bf.ReadBytes(uint(dataSize))
 	return nil
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgSysSetStageBinary) Build(bf *byteframe.ByteFrame) error {
+func (m *MsgSysSetStageBinary) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	panic("Not implemented")
 }

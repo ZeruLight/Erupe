@@ -1,8 +1,11 @@
 package mhfpacket
 
 import (
-	"github.com/Andoryuuta/Erupe/network"
-	"github.com/Andoryuuta/byteframe"
+	"errors"
+
+	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgMhfGetGuildWeeklyBonusActiveCount represents the MSG_MHF_GET_GUILD_WEEKLY_BONUS_ACTIVE_COUNT
@@ -16,12 +19,12 @@ func (m *MsgMhfGetGuildWeeklyBonusActiveCount) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgMhfGetGuildWeeklyBonusActiveCount) Parse(bf *byteframe.ByteFrame) error {
+func (m *MsgMhfGetGuildWeeklyBonusActiveCount) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
 	return nil
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgMhfGetGuildWeeklyBonusActiveCount) Build(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+func (m *MsgMhfGetGuildWeeklyBonusActiveCount) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+	return errors.New("NOT IMPLEMENTED")
 }

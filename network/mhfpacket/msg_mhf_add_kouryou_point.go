@@ -1,8 +1,9 @@
 package mhfpacket
 
 import (
-	"github.com/Andoryuuta/Erupe/network"
-	"github.com/Andoryuuta/byteframe"
+	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgMhfAddKouryouPoint represents the MSG_MHF_ADD_KOURYOU_POINT
@@ -17,13 +18,15 @@ func (m *MsgMhfAddKouryouPoint) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgMhfAddKouryouPoint) Parse(bf *byteframe.ByteFrame) error {
+func (m *MsgMhfAddKouryouPoint) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
 	m.KouryouPoints = bf.ReadUint32()
 	return nil
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgMhfAddKouryouPoint) Build(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+func (m *MsgMhfAddKouryouPoint) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+	bf.WriteUint32(m.AckHandle)
+	bf.WriteUint32(m.KouryouPoints)
+	return nil
 }

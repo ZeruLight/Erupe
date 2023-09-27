@@ -1,8 +1,11 @@
 package mhfpacket
 
 import (
-	"github.com/Andoryuuta/Erupe/network"
-	"github.com/Andoryuuta/byteframe"
+	"errors"
+
+	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgMhfGetEarthValue represents the MSG_MHF_GET_EARTH_VALUE
@@ -10,7 +13,7 @@ type MsgMhfGetEarthValue struct {
 	AckHandle uint32
 	Unk0      uint32
 	Unk1      uint32
-	ReqType      uint32
+	ReqType   uint32
 	Unk3      uint32
 	Unk4      uint32
 	Unk5      uint32
@@ -23,7 +26,7 @@ func (m *MsgMhfGetEarthValue) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgMhfGetEarthValue) Parse(bf *byteframe.ByteFrame) error {
+func (m *MsgMhfGetEarthValue) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
 	m.Unk0 = bf.ReadUint32()
 	m.Unk1 = bf.ReadUint32()
@@ -36,6 +39,6 @@ func (m *MsgMhfGetEarthValue) Parse(bf *byteframe.ByteFrame) error {
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgMhfGetEarthValue) Build(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+func (m *MsgMhfGetEarthValue) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+	return errors.New("NOT IMPLEMENTED")
 }

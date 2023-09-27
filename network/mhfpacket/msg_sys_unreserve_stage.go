@@ -1,8 +1,9 @@
 package mhfpacket
 
 import (
-	"github.com/Andoryuuta/Erupe/network"
-	"github.com/Andoryuuta/byteframe"
+	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgSysUnreserveStage represents the MSG_SYS_UNRESERVE_STAGE
@@ -16,11 +17,11 @@ func (m *MsgSysUnreserveStage) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgSysUnreserveStage) Parse(bf *byteframe.ByteFrame) error {
+func (m *MsgSysUnreserveStage) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	return nil
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgSysUnreserveStage) Build(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+func (m *MsgSysUnreserveStage) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+	return nil
 }

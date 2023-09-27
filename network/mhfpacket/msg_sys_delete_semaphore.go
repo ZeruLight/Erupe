@@ -1,12 +1,17 @@
 package mhfpacket
 
 import (
-	"github.com/Andoryuuta/Erupe/network"
-	"github.com/Andoryuuta/byteframe"
+	"errors"
+
+	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgSysDeleteSemaphore represents the MSG_SYS_DELETE_SEMAPHORE
-type MsgSysDeleteSemaphore struct{}
+type MsgSysDeleteSemaphore struct {
+	SemaphoreID uint32
+}
 
 // Opcode returns the ID associated with this packet type.
 func (m *MsgSysDeleteSemaphore) Opcode() network.PacketID {
@@ -14,11 +19,12 @@ func (m *MsgSysDeleteSemaphore) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgSysDeleteSemaphore) Parse(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+func (m *MsgSysDeleteSemaphore) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+	m.SemaphoreID = bf.ReadUint32()
+	return nil
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgSysDeleteSemaphore) Build(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+func (m *MsgSysDeleteSemaphore) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+	return errors.New("NOT IMPLEMENTED")
 }

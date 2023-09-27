@@ -1,8 +1,11 @@
 package mhfpacket
 
 import (
-	"github.com/Andoryuuta/Erupe/network"
-	"github.com/Andoryuuta/byteframe"
+	"errors"
+
+	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgMhfSaveHunterNavi represents the MSG_MHF_SAVE_HUNTER_NAVI
@@ -19,7 +22,7 @@ func (m *MsgMhfSaveHunterNavi) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgMhfSaveHunterNavi) Parse(bf *byteframe.ByteFrame) error {
+func (m *MsgMhfSaveHunterNavi) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
 	m.DataSize = bf.ReadUint32()
 	m.IsDataDiff = bf.ReadBool()
@@ -28,6 +31,6 @@ func (m *MsgMhfSaveHunterNavi) Parse(bf *byteframe.ByteFrame) error {
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgMhfSaveHunterNavi) Build(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+func (m *MsgMhfSaveHunterNavi) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+	return errors.New("NOT IMPLEMENTED")
 }

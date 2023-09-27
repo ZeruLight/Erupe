@@ -1,8 +1,9 @@
 package mhfpacket
 
 import (
-	"github.com/Andoryuuta/Erupe/network"
-	"github.com/Andoryuuta/byteframe"
+	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgSysPositionObject represents the MSG_SYS_POSITION_OBJECT
@@ -17,7 +18,7 @@ func (m *MsgSysPositionObject) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgSysPositionObject) Parse(bf *byteframe.ByteFrame) error {
+func (m *MsgSysPositionObject) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.ObjID = bf.ReadUint32()
 	m.X = bf.ReadFloat32()
 	m.Y = bf.ReadFloat32()
@@ -26,7 +27,7 @@ func (m *MsgSysPositionObject) Parse(bf *byteframe.ByteFrame) error {
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgSysPositionObject) Build(bf *byteframe.ByteFrame) error {
+func (m *MsgSysPositionObject) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	bf.WriteUint32(m.ObjID)
 	bf.WriteFloat32(m.X)
 	bf.WriteFloat32(m.Y)

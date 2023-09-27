@@ -1,12 +1,18 @@
 package mhfpacket
 
 import (
-	"github.com/Andoryuuta/Erupe/network"
-	"github.com/Andoryuuta/byteframe"
+	"errors"
+
+	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgMhfResetBoxGachaInfo represents the MSG_MHF_RESET_BOX_GACHA_INFO
-type MsgMhfResetBoxGachaInfo struct{}
+type MsgMhfResetBoxGachaInfo struct {
+	AckHandle uint32
+	GachaID   uint32
+}
 
 // Opcode returns the ID associated with this packet type.
 func (m *MsgMhfResetBoxGachaInfo) Opcode() network.PacketID {
@@ -14,11 +20,13 @@ func (m *MsgMhfResetBoxGachaInfo) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgMhfResetBoxGachaInfo) Parse(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+func (m *MsgMhfResetBoxGachaInfo) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+	m.AckHandle = bf.ReadUint32()
+	m.GachaID = bf.ReadUint32()
+	return nil
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgMhfResetBoxGachaInfo) Build(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+func (m *MsgMhfResetBoxGachaInfo) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+	return errors.New("NOT IMPLEMENTED")
 }

@@ -1,8 +1,12 @@
 package mhfpacket
 
 import (
-	"github.com/Andoryuuta/Erupe/network"
-	"github.com/Andoryuuta/byteframe"
+	"errors"
+
+	"erupe-ce/common/bfutil"
+	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 type scenarioFileIdentifer struct {
@@ -11,7 +15,6 @@ type scenarioFileIdentifer struct {
 	ChapterID  uint8
 	/*
 		Flags represent the following bit flags:
-
 		11111111 -> Least significant bit on the right.
 		||||||||
 		|||||||0x1: Chunk0-type, recursive chunks, quest name/description + 0x14 byte unk info
@@ -30,7 +33,6 @@ type scenarioFileIdentifer struct {
 type MsgSysGetFile struct {
 	AckHandle         uint32
 	IsScenario        bool
-	FilenameLength    uint8
 	Filename          string
 	ScenarioIdentifer scenarioFileIdentifer
 }
@@ -41,12 +43,12 @@ func (m *MsgSysGetFile) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgSysGetFile) Parse(bf *byteframe.ByteFrame) error {
+func (m *MsgSysGetFile) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
 	m.IsScenario = bf.ReadBool()
-	m.FilenameLength = bf.ReadUint8()
-	if m.FilenameLength > 0 {
-		m.Filename = string(bf.ReadBytes(uint(m.FilenameLength)))
+	filenameLength := bf.ReadUint8()
+	if filenameLength > 0 {
+		m.Filename = string(bfutil.UpToNull(bf.ReadBytes(uint(filenameLength))))
 	}
 
 	if m.IsScenario {
@@ -61,6 +63,6 @@ func (m *MsgSysGetFile) Parse(bf *byteframe.ByteFrame) error {
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgSysGetFile) Build(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+func (m *MsgSysGetFile) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+	return errors.New("NOT IMPLEMENTED")
 }

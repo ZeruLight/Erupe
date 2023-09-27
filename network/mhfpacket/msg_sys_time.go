@@ -1,8 +1,9 @@
 package mhfpacket
 
 import (
-	"github.com/Andoryuuta/Erupe/network"
-	"github.com/Andoryuuta/byteframe"
+	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgSysTime represents the MSG_SYS_TIME
@@ -17,14 +18,14 @@ func (m *MsgSysTime) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgSysTime) Parse(bf *byteframe.ByteFrame) error {
+func (m *MsgSysTime) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.GetRemoteTime = bf.ReadBool()
 	m.Timestamp = bf.ReadUint32()
 	return nil
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgSysTime) Build(bf *byteframe.ByteFrame) error {
+func (m *MsgSysTime) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	bf.WriteBool(m.GetRemoteTime)
 	bf.WriteUint32(m.Timestamp)
 	return nil

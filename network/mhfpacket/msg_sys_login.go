@@ -1,8 +1,11 @@
 package mhfpacket
 
 import (
-	"github.com/Andoryuuta/Erupe/network"
-	"github.com/Andoryuuta/byteframe"
+	"errors"
+
+	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgSysLogin represents the MSG_SYS_LOGIN
@@ -24,7 +27,7 @@ func (m *MsgSysLogin) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgSysLogin) Parse(bf *byteframe.ByteFrame) error {
+func (m *MsgSysLogin) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
 	m.CharID0 = bf.ReadUint32()
 	m.LoginTokenNumber = bf.ReadUint32()
@@ -33,12 +36,11 @@ func (m *MsgSysLogin) Parse(bf *byteframe.ByteFrame) error {
 	m.CharID1 = bf.ReadUint32()
 	m.HardcodedZero1 = bf.ReadUint16()
 	m.LoginTokenStringLength = bf.ReadUint16()
-	m.LoginTokenString = string(bf.ReadBytes(17)) // TODO(Andoryuuta): What encoding is this string?
-
+	m.LoginTokenString = string(bf.ReadNullTerminatedBytes())
 	return nil
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgSysLogin) Build(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+func (m *MsgSysLogin) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+	return errors.New("NOT IMPLEMENTED")
 }

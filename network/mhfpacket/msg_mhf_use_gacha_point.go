@@ -1,12 +1,20 @@
 package mhfpacket
 
 import (
-	"github.com/Andoryuuta/Erupe/network"
-	"github.com/Andoryuuta/byteframe"
+	"errors"
+
+	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgMhfUseGachaPoint represents the MSG_MHF_USE_GACHA_POINT
-type MsgMhfUseGachaPoint struct{}
+type MsgMhfUseGachaPoint struct {
+	AckHandle    uint32
+	Unk0         uint16 // padding?
+	TrialCoins   uint32
+	PremiumCoins uint32
+}
 
 // Opcode returns the ID associated with this packet type.
 func (m *MsgMhfUseGachaPoint) Opcode() network.PacketID {
@@ -14,11 +22,15 @@ func (m *MsgMhfUseGachaPoint) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgMhfUseGachaPoint) Parse(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+func (m *MsgMhfUseGachaPoint) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+	m.AckHandle = bf.ReadUint32()
+	m.Unk0 = bf.ReadUint16()
+	m.TrialCoins = bf.ReadUint32()
+	m.PremiumCoins = bf.ReadUint32()
+	return nil
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgMhfUseGachaPoint) Build(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+func (m *MsgMhfUseGachaPoint) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+	return errors.New("NOT IMPLEMENTED")
 }

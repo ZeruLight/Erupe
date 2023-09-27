@@ -1,8 +1,11 @@
 package mhfpacket
 
 import (
-	"github.com/Andoryuuta/Erupe/network"
-	"github.com/Andoryuuta/byteframe"
+	"errors"
+
+	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgSysReserve188 represents the MSG_SYS_reserve188
@@ -16,12 +19,12 @@ func (m *MsgSysReserve188) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgSysReserve188) Parse(bf *byteframe.ByteFrame) error {
+func (m *MsgSysReserve188) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
 	return nil
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgSysReserve188) Build(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+func (m *MsgSysReserve188) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+	return errors.New("NOT IMPLEMENTED")
 }

@@ -6,8 +6,8 @@ import (
 	"net"
 	"sync"
 
-	"github.com/Andoryuuta/Erupe/config"
-	"github.com/Andoryuuta/Erupe/network"
+	"erupe-ce/network"
+
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )
@@ -16,15 +16,14 @@ import (
 type Config struct {
 	Logger      *zap.Logger
 	DB          *sqlx.DB
-	ErupeConfig *config.Config
+	ErupeConfig *_config.Config
 }
 
 // Server is a MHF sign server.
 type Server struct {
 	sync.Mutex
 	logger         *zap.Logger
-	erupeConfig    *config.Config
-	sid            int
+	erupeConfig    *_config.Config
 	sessions       map[int]*Session
 	db             *sqlx.DB
 	listener       net.Listener
@@ -36,8 +35,6 @@ func NewServer(config *Config) *Server {
 	s := &Server{
 		logger:      config.Logger,
 		erupeConfig: config.ErupeConfig,
-		sid:         0,
-		sessions:    make(map[int]*Session),
 		db:          config.DB,
 	}
 	return s
@@ -58,7 +55,7 @@ func (s *Server) Start() error {
 
 // Shutdown exits the server gracefully.
 func (s *Server) Shutdown() {
-	s.logger.Debug("Shutting down")
+	s.logger.Debug("Shutting down...")
 
 	s.Lock()
 	s.isShuttingDown = true
@@ -84,20 +81,19 @@ func (s *Server) acceptClients() {
 			}
 		}
 
-		go s.handleConnection(s.sid, conn)
-		s.sid++
+		go s.handleConnection(conn)
 	}
 }
 
-func (s *Server) handleConnection(sid int, conn net.Conn) {
-	s.logger.Info("Got connection to sign server", zap.String("remoteaddr", conn.RemoteAddr().String()))
+func (s *Server) handleConnection(conn net.Conn) {
+	s.logger.Debug("New connection", zap.String("RemoteAddr", conn.RemoteAddr().String()))
+	defer conn.Close()
 
 	// Client initalizes the connection with a one-time buffer of 8 NULL bytes.
 	nullInit := make([]byte, 8)
 	_, err := io.ReadFull(conn, nullInit)
 	if err != nil {
-		fmt.Println(err)
-		conn.Close()
+		s.logger.Error("Error initializing connection", zap.Error(err))
 		return
 	}
 
@@ -105,14 +101,9 @@ func (s *Server) handleConnection(sid int, conn net.Conn) {
 	session := &Session{
 		logger:    s.logger,
 		server:    s,
-		rawConn:   &conn,
+		rawConn:   conn,
 		cryptConn: network.NewCryptConn(conn),
 	}
-
-	// Add the session to the server's sessions map.
-	s.Lock()
-	s.sessions[sid] = session
-	s.Unlock()
 
 	// Do the session's work.
 	session.work()

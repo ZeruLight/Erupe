@@ -1,8 +1,9 @@
 package mhfpacket
 
 import (
-	"github.com/Andoryuuta/Erupe/network"
-	"github.com/Andoryuuta/byteframe"
+	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgSysUnlockStage represents the MSG_SYS_UNLOCK_STAGE
@@ -16,12 +17,13 @@ func (m *MsgSysUnlockStage) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgSysUnlockStage) Parse(bf *byteframe.ByteFrame) error {
+func (m *MsgSysUnlockStage) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.Unk0 = bf.ReadUint16()
 	return nil
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgSysUnlockStage) Build(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+func (m *MsgSysUnlockStage) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+	bf.WriteUint16(m.Unk0)
+	return nil
 }

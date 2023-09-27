@@ -1,17 +1,21 @@
 package mhfpacket
 
 import (
-	"github.com/Andoryuuta/Erupe/network"
-	"github.com/Andoryuuta/byteframe"
+	"errors"
+
+	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgMhfGetTenrouirai represents the MSG_MHF_GET_TENROUIRAI
 type MsgMhfGetTenrouirai struct {
-	// Communicator type, multi-format. This might be valid for only one type.
 	AckHandle uint32
-	Unk0      uint16
-	Unk1      uint32
-	Unk2      uint16
+	Unk0      uint8
+	Unk1      uint8
+	GuildID   uint32
+	Unk3      uint8
+	Unk4      uint8
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -20,15 +24,17 @@ func (m *MsgMhfGetTenrouirai) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgMhfGetTenrouirai) Parse(bf *byteframe.ByteFrame) error {
+func (m *MsgMhfGetTenrouirai) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
-	m.Unk0 = bf.ReadUint16()
-	m.Unk1 = bf.ReadUint32()
-	m.Unk2 = bf.ReadUint16()
+	m.Unk0 = bf.ReadUint8()
+	m.Unk1 = bf.ReadUint8()
+	m.GuildID = bf.ReadUint32()
+	m.Unk3 = bf.ReadUint8()
+	m.Unk4 = bf.ReadUint8()
 	return nil
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgMhfGetTenrouirai) Build(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+func (m *MsgMhfGetTenrouirai) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+	return errors.New("NOT IMPLEMENTED")
 }

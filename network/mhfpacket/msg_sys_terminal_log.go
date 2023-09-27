@@ -1,14 +1,24 @@
 package mhfpacket
 
 import (
-	"github.com/Andoryuuta/Erupe/network"
-	"github.com/Andoryuuta/byteframe"
+	"errors"
+	_config "erupe-ce/config"
+
+	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // TerminalLogEntry represents an entry in the MSG_SYS_TERMINAL_LOG packet.
 type TerminalLogEntry struct {
-	// Unknown fields
-	U0, U1, U2, U3, U4, U5, U6, U7, U8 uint32
+	Index uint32
+	Type1 uint8
+	Type2 uint8
+	Unk0  int16
+	Unk1  int32
+	Unk2  int32
+	Unk3  int32
+	Unk4  []int32
 }
 
 // MsgSysTerminalLog represents the MSG_SYS_TERMINAL_LOG
@@ -26,7 +36,7 @@ func (m *MsgSysTerminalLog) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgSysTerminalLog) Parse(bf *byteframe.ByteFrame) error {
+func (m *MsgSysTerminalLog) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
 	m.LogID = bf.ReadUint32()
 	m.EntryCount = bf.ReadUint16()
@@ -34,15 +44,18 @@ func (m *MsgSysTerminalLog) Parse(bf *byteframe.ByteFrame) error {
 
 	for i := 0; i < int(m.EntryCount); i++ {
 		e := &TerminalLogEntry{}
-		e.U0 = bf.ReadUint32()
-		e.U1 = bf.ReadUint32()
-		e.U2 = bf.ReadUint32()
-		e.U3 = bf.ReadUint32()
-		e.U4 = bf.ReadUint32()
-		e.U5 = bf.ReadUint32()
-		e.U6 = bf.ReadUint32()
-		e.U7 = bf.ReadUint32()
-		e.U8 = bf.ReadUint32()
+		e.Index = bf.ReadUint32()
+		e.Type1 = bf.ReadUint8()
+		e.Type2 = bf.ReadUint8()
+		e.Unk0 = bf.ReadInt16()
+		e.Unk1 = bf.ReadInt32()
+		e.Unk2 = bf.ReadInt32()
+		e.Unk3 = bf.ReadInt32()
+		if _config.ErupeConfig.RealClientMode >= _config.G1 {
+			for j := 0; j < 4; j++ {
+				e.Unk4 = append(e.Unk4, bf.ReadInt32())
+			}
+		}
 		m.Entries = append(m.Entries, e)
 	}
 
@@ -50,6 +63,6 @@ func (m *MsgSysTerminalLog) Parse(bf *byteframe.ByteFrame) error {
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgSysTerminalLog) Build(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+func (m *MsgSysTerminalLog) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+	return errors.New("NOT IMPLEMENTED")
 }

@@ -1,8 +1,10 @@
 package mhfpacket
 
 import (
-	"github.com/Andoryuuta/Erupe/network"
-	"github.com/Andoryuuta/byteframe"
+	"erupe-ce/common/bfutil"
+	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgSysMoveStage represents the MSG_SYS_MOVE_STAGE
@@ -19,15 +21,15 @@ func (m *MsgSysMoveStage) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgSysMoveStage) Parse(bf *byteframe.ByteFrame) error {
+func (m *MsgSysMoveStage) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
 	m.UnkBool = bf.ReadUint8()
-	m.StageIDLength = bf.ReadUint8()
-	m.StageID = string(bf.ReadBytes(uint(m.StageIDLength)))
+	stageIDLength := bf.ReadUint8()
+	m.StageID = string(bfutil.UpToNull(bf.ReadBytes(uint(stageIDLength))))
 	return nil
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgSysMoveStage) Build(bf *byteframe.ByteFrame) error {
+func (m *MsgSysMoveStage) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	panic("Not implemented")
 }

@@ -1,15 +1,18 @@
 package mhfpacket
 
 import (
-	"github.com/Andoryuuta/Erupe/network"
-	"github.com/Andoryuuta/byteframe"
+	"errors"
+
+	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgMhfUpdateUseTrendWeaponLog represents the MSG_MHF_UPDATE_USE_TREND_WEAPON_LOG
 type MsgMhfUpdateUseTrendWeaponLog struct {
-	AckHandle uint32
-	Unk0      uint8
-	Unk1      uint16 // Weapon/item ID probably?
+	AckHandle  uint32
+	WeaponType uint8
+	WeaponID   uint16
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -18,14 +21,14 @@ func (m *MsgMhfUpdateUseTrendWeaponLog) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgMhfUpdateUseTrendWeaponLog) Parse(bf *byteframe.ByteFrame) error {
+func (m *MsgMhfUpdateUseTrendWeaponLog) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
-	m.Unk0 = bf.ReadUint8()
-	m.Unk1 = bf.ReadUint16()
+	m.WeaponType = bf.ReadUint8()
+	m.WeaponID = bf.ReadUint16()
 	return nil
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgMhfUpdateUseTrendWeaponLog) Build(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+func (m *MsgMhfUpdateUseTrendWeaponLog) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+	return errors.New("NOT IMPLEMENTED")
 }

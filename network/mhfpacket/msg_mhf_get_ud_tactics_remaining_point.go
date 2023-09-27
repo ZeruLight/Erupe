@@ -1,12 +1,20 @@
 package mhfpacket
 
 import (
-	"github.com/Andoryuuta/Erupe/network"
-	"github.com/Andoryuuta/byteframe"
+	"errors"
+
+	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgMhfGetUdTacticsRemainingPoint represents the MSG_MHF_GET_UD_TACTICS_REMAINING_POINT
-type MsgMhfGetUdTacticsRemainingPoint struct{}
+type MsgMhfGetUdTacticsRemainingPoint struct {
+	AckHandle uint32
+	Unk0      uint32 // GuildID?
+	Unk1      uint32
+	Unk2      uint32
+}
 
 // Opcode returns the ID associated with this packet type.
 func (m *MsgMhfGetUdTacticsRemainingPoint) Opcode() network.PacketID {
@@ -14,11 +22,15 @@ func (m *MsgMhfGetUdTacticsRemainingPoint) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgMhfGetUdTacticsRemainingPoint) Parse(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+func (m *MsgMhfGetUdTacticsRemainingPoint) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+	m.AckHandle = bf.ReadUint32()
+	m.Unk0 = bf.ReadUint32()
+	m.Unk1 = bf.ReadUint32()
+	m.Unk2 = bf.ReadUint32()
+	return nil
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgMhfGetUdTacticsRemainingPoint) Build(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+func (m *MsgMhfGetUdTacticsRemainingPoint) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+	return errors.New("NOT IMPLEMENTED")
 }

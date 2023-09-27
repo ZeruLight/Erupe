@@ -1,86 +1,177 @@
 {
-    "host_ip": "127.0.0.1",
-    "bin_path": "bin",
-
-    "devmode": true,
-    "devmodeoptions": {
-        "cleandb": false,
-        "maxlauncherhr": true,
-        "fixedstageid": true
-    },
-
-    "database": {
-        "host": "localhost",
-        "port": 5432,
-        "user": "postgres",
-        "password": "admin",
-        "database": "erupe"
-    },
-    "launcher": {
-        "port": 80,
-        "UseOriginalLauncherFiles": false
-    },
-    "sign": {
-        "port": 53312
-    },
-    "channel": {
-        "port": 54001
-    },
-    "entrance": {
-        "port": 53310,
-        "entries": [
-            {
-                "name": "AErupe server noob",
-                "ip": "127.0.0.1",
-                "unk2": 0,
-                "type": 3,
-                "season": 0,
-                "unk6": 0,
-                "allowedclientflags": "4096",
-                "channels": [
-                    {
-                        "port": 54001,
-                        "MaxPlayers": 10,
-                        "CurrentPlayers": 0,
-                        "Unk4": 0,
-                        "Unk5": 0,
-                        "Unk6": 0,
-                        "Unk7": 0,
-                        "Unk8": 0,
-                        "Unk9": 0,
-                        "Unk10": 319,
-                        "Unk11": 248,
-                        "Unk12": 159,
-                        "Unk13": 12345
-                    }
-                ]
-            },
-            {
-                "name": "AErupe server open",
-                "ip": "127.0.0.1",
-                "unk2": 0,
-                "type": 1,
-                "season": 0,
-                "unk6": 0,
-                "allowedclientflags": 0,
-                "channels": [
-                    {
-                        "port": 54001,
-                        "MaxPlayers": 10,
-                        "CurrentPlayers": 0,
-                        "Unk4": 0,
-                        "Unk5": 0,
-                        "Unk6": 0,
-                        "Unk7": 0,
-                        "Unk8": 0,
-                        "Unk9": 0,
-                        "Unk10": 318,
-                        "Unk11": 251,
-                        "Unk12": 155,
-                        "Unk13": 12345
-                    }
-                ]
-            }
-        ]
+  "Host": "127.0.0.1",
+  "BinPath": "bin",
+  "Language": "en",
+  "DisableSoftCrash": false,
+  "HideLoginNotice": true,
+  "LoginNotices": [
+    "<BODY><CENTER><SIZE_3><C_4>Welcome to Erupe SU9.3!<BR><BODY><LEFT><SIZE_2><C_5>Erupe is experimental software<C_7>, we are not liable for any<BR><BODY>issues caused by installing the software!<BR><BODY><BR><BODY><C_4>■Report bugs on Discord!<C_7><BR><BODY><BR><BODY><C_4>■Test everything!<C_7><BR><BODY><BR><BODY><C_4>■Don't talk to softlocking NPCs!<C_7><BR><BODY><BR><BODY><C_4>■Fork the code on GitHub!<C_7><BR><BODY><BR><BODY>Thank you to all of the contributors,<BR><BODY><BR><BODY>this wouldn't exist without you."
+  ],
+  "PatchServerManifest": "",
+  "PatchServerFile": "",
+  "ScreenshotAPIURL": "",
+  "DeleteOnSaveCorruption": false,
+  "ClientMode": "ZZ",
+  "DevMode": true,
+  "DevModeOptions": {
+    "AutoCreateAccount": true,
+    "CleanDB": false,
+    "MaxLauncherHR": false,
+    "LogInboundMessages": true,
+    "LogOutboundMessages": true,
+    "MaxHexdumpLength": 256,
+    "DivaEvent": 0,
+    "FestaEvent": -1,
+    "TournamentEvent": 0,
+    "MezFesEvent": true,
+    "MezFesAlt": false,
+    "DisableTokenCheck": false,
+    "QuestDebugTools": false,
+    "EarthStatusOverride": 0,
+    "EarthIDOverride": 0,
+    "EarthMonsterOverride": 0,
+    "SaveDumps": {
+      "Enabled": true,
+      "OutputDir": "save-backups"
     }
+  },
+  "GameplayOptions": {
+    "FeaturedWeapons": 1,
+    "MaximumNP": 100000,
+    "MaximumRP": 50000,
+    "MaximumFP": 120000,
+    "DisableLoginBoost": false,
+    "DisableBoostTime": false,
+    "BoostTimeDuration": 120,
+    "GuildMealDuration": 60,
+    "BonusQuestAllowance": 3,
+    "DailyQuestAllowance": 1,
+    "MezfesSoloTickets": 10,
+    "MezfesGroupTickets": 4,
+    "LowLatencyRaviente": false,
+    "RegularRavienteMaxPlayers": 8,
+    "ViolentRavienteMaxPlayers": 8,
+    "BerserkRavienteMaxPlayers": 32,
+    "ExtremeRavienteMaxPlayers": 32,
+    "SmallBerserkRavienteMaxPlayers": 8,
+    "GUrgentRate": 10,
+    "GCPMultiplier": 1.00,
+    "GRPMultiplier": 1.00,
+    "GSRPMultiplier": 1.00,
+    "GZennyMultiplier": 1.00,
+    "MaterialMultiplier": 1.00,
+    "ExtraCarves": 0,
+    "DisableHunterNavi": false,
+    "EnableKaijiEvent": false,
+    "EnableHiganjimaEvent": false,
+    "EnableNierEvent": false,
+    "DisableRoad": false,
+    "SeasonOverride": false
+  },
+  "Discord": {
+    "Enabled": false,
+    "BotToken": "",
+    "RealtimeChannelID": ""
+  },
+  "Commands": [
+    {
+      "Name": "Rights",
+      "Enabled": false,
+      "Prefix": "rights"
+    }, {
+      "Name": "Raviente",
+      "Enabled": true,
+      "Prefix": "ravi"
+    }, {
+      "Name": "Teleport",
+      "Enabled": false,
+      "Prefix": "tele"
+    }, {
+      "Name": "Reload",
+      "Enabled": true,
+      "Prefix": "reload"
+    }, {
+      "Name": "KeyQuest",
+      "Enabled": false,
+      "Prefix": "kqf"
+    }, {
+      "Name": "Course",
+      "Enabled": true,
+      "Prefix": "course"
+    }, {
+      "Name": "PSN",
+      "Enabled": true,
+      "Prefix": "psn"
+    }
+  ],
+  "Courses": [
+    {"Name": "HunterLife", "Enabled": true},
+    {"Name": "Extra", "Enabled": true},
+    {"Name": "Premium", "Enabled": true},
+    {"Name": "Assist", "Enabled": false},
+    {"Name": "N", "Enabled": false},
+    {"Name": "Hiden", "Enabled": false},
+    {"Name": "HunterSupport", "Enabled": false},
+    {"Name": "NBoost", "Enabled": false},
+    {"Name": "NetCafe", "Enabled": true},
+    {"Name": "HLRenewing", "Enabled": true},
+    {"Name": "EXRenewing", "Enabled": true}
+  ],
+  "Database": {
+    "Host": "localhost",
+    "Port": 5432,
+    "User": "postgres",
+    "Password": "",
+    "Database": "erupe"
+  },
+  "Sign": {
+    "Enabled": true,
+    "Port": 53312
+  },
+  "SignV2": {
+    "Enabled": false,
+    "Port": 8080
+  },
+  "Channel": {
+    "Enabled": true
+  },
+  "Entrance": {
+    "Enabled": true,
+    "Port": 53310,
+    "Entries": [
+      {
+        "Name": "Newbie", "Description": "", "IP": "", "Type": 3, "Recommended": 2, "AllowedClientFlags": 0,
+        "Channels": [
+          { "Port": 54001, "MaxPlayers": 100 },
+          { "Port": 54002, "MaxPlayers": 100 }
+        ]
+      }, {
+        "Name": "Normal", "Description": "", "IP": "", "Type": 1, "Recommended": 0, "AllowedClientFlags": 0,
+        "Channels": [
+          { "Port": 54003, "MaxPlayers": 100 },
+          { "Port": 54004, "MaxPlayers": 100 }
+        ]
+      }, {
+        "Name": "Cities", "Description": "", "IP": "", "Type": 2, "Recommended": 0, "AllowedClientFlags": 0,
+        "Channels": [
+          { "Port": 54005, "MaxPlayers": 100 }
+        ]
+      }, {
+        "Name": "Tavern", "Description": "", "IP": "", "Type": 4, "Recommended": 0, "AllowedClientFlags": 0,
+        "Channels": [
+          { "Port": 54006, "MaxPlayers": 100 }
+        ]
+      }, {
+        "Name": "Return", "Description": "", "IP": "", "Type": 5, "Recommended": 0, "AllowedClientFlags": 0,
+        "Channels": [
+          { "Port": 54007, "MaxPlayers": 100 }
+        ]
+      }, {
+        "Name": "MezFes", "Description": "", "IP": "", "Type": 6, "Recommended": 6, "AllowedClientFlags": 0,
+        "Channels": [
+          { "Port": 54008, "MaxPlayers": 100 }
+        ]
+      }
+    ]
+  }
 }

@@ -1,12 +1,19 @@
 package mhfpacket
 
 import (
-	"github.com/Andoryuuta/Erupe/network"
-	"github.com/Andoryuuta/byteframe"
+	"errors"
+	"erupe-ce/network/clientctx"
+
+	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
 )
 
 // MsgMhfStateCampaign represents the MSG_MHF_STATE_CAMPAIGN
-type MsgMhfStateCampaign struct{}
+type MsgMhfStateCampaign struct {
+	AckHandle  uint32
+	CampaignID uint32
+	Unk1       uint16
+}
 
 // Opcode returns the ID associated with this packet type.
 func (m *MsgMhfStateCampaign) Opcode() network.PacketID {
@@ -14,11 +21,14 @@ func (m *MsgMhfStateCampaign) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgMhfStateCampaign) Parse(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+func (m *MsgMhfStateCampaign) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+	m.AckHandle = bf.ReadUint32()
+	m.CampaignID = bf.ReadUint32()
+	m.Unk1 = bf.ReadUint16()
+	return nil
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgMhfStateCampaign) Build(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+func (m *MsgMhfStateCampaign) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+	return errors.New("NOT IMPLEMENTED")
 }

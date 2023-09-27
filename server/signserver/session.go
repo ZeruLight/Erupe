@@ -3,137 +3,202 @@ package signserver
 import (
 	"database/sql"
 	"encoding/hex"
+	"erupe-ce/common/stringsupport"
+	"fmt"
 	"net"
+	"strings"
 	"sync"
 
-	"github.com/Andoryuuta/Erupe/network"
-	"github.com/Andoryuuta/byteframe"
+	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+
 	"go.uber.org/zap"
+)
+
+type client int
+
+const (
+	PC100 client = iota
+	VITA
+	PS3
+	WIIU
 )
 
 // Session holds state for the sign server connection.
 type Session struct {
 	sync.Mutex
 	logger    *zap.Logger
-	sid       int
 	server    *Server
-	rawConn   *net.Conn
+	rawConn   net.Conn
 	cryptConn *network.CryptConn
-}
-
-func (s *Session) fail() {
-	s.server.Lock()
-	delete(s.server.sessions, s.sid)
-	s.server.Unlock()
-
+	client    client
+	psn       string
 }
 
 func (s *Session) work() {
-	for {
-		pkt, err := s.cryptConn.ReadPacket()
-		if err != nil {
-			s.fail()
-			return
-		}
+	pkt, err := s.cryptConn.ReadPacket()
 
-		err = s.handlePacket(pkt)
-		if err != nil {
-			s.fail()
-			return
-		}
+	if s.server.erupeConfig.DevMode && s.server.erupeConfig.DevModeOptions.LogInboundMessages {
+		fmt.Printf("\n[Client] -> [Server]\nData [%d bytes]:\n%s\n", len(pkt), hex.Dump(pkt))
+	}
+
+	if err != nil {
+		return
+	}
+	err = s.handlePacket(pkt)
+	if err != nil {
+		return
 	}
 }
 
 func (s *Session) handlePacket(pkt []byte) error {
-	sugar := s.logger.Sugar()
-
 	bf := byteframe.NewByteFrameFromBytes(pkt)
 	reqType := string(bf.ReadNullTerminatedBytes())
-	switch reqType {
-	case "DLTSKEYSIGN:100":
-		fallthrough
-	case "DSGN:100":
-		err := s.handleDSGNRequest(bf)
-		if err != nil {
-			return nil
+	switch reqType[:len(reqType)-3] {
+	case "DLTSKEYSIGN:", "DSGN:":
+		s.handleDSGN(bf)
+	case "PS3SGN:":
+		s.client = PS3
+		s.handlePSSGN(bf)
+	case "VITASGN:":
+		s.client = VITA
+		s.handlePSSGN(bf)
+	case "WIIUSGN:":
+		s.client = WIIU
+		s.handleWIIUSGN(bf)
+	case "VITACOGLNK:", "COGLNK:":
+		s.handlePSNLink(bf)
+	case "DELETE:":
+		token := string(bf.ReadNullTerminatedBytes())
+		characterID := int(bf.ReadUint32())
+		tokenID := bf.ReadUint32()
+		err := s.server.deleteCharacter(characterID, token, tokenID)
+		if err == nil {
+			s.logger.Info("Deleted character", zap.Int("CharacterID", characterID))
+			s.cryptConn.SendPacket([]byte{0x01}) // DEL_SUCCESS
 		}
-	case "DELETE:100":
-		loginTokenString := string(bf.ReadNullTerminatedBytes())
-		_ = loginTokenString
-		characterID := bf.ReadUint32()
-
-		sugar.Infof("Got delete request for character ID: %v\n", characterID)
-		sugar.Infof("remaining unknown data:\n%s\n", hex.Dump(bf.DataFromCurrent()))
 	default:
-		sugar.Infof("Got unknown request type %s, data:\n%s\n", reqType, hex.Dump(bf.DataFromCurrent()))
+		s.logger.Warn("Unknown request", zap.String("reqType", reqType))
+		if s.server.erupeConfig.DevMode && s.server.erupeConfig.DevModeOptions.LogInboundMessages {
+			fmt.Printf("\n[Client] -> [Server]\nData [%d bytes]:\n%s\n", len(pkt), hex.Dump(pkt))
+		}
 	}
-
 	return nil
 }
 
-func (s *Session) handleDSGNRequest(bf *byteframe.ByteFrame) error {
-
-	reqUsername := string(bf.ReadNullTerminatedBytes())
-	reqPassword := string(bf.ReadNullTerminatedBytes())
-	reqUnk := string(bf.ReadNullTerminatedBytes())
-
-	s.server.logger.Info(
-		"Got sign in request",
-		zap.String("reqUsername", reqUsername),
-		zap.String("reqPassword", reqPassword),
-		zap.String("reqUnk", reqUnk),
-	)
-
-	// TODO(Andoryuuta): remove plaintext password storage if this ever becomes more than a toy project.
-	var (
-		id       int
-		password string
-	)
-	err := s.server.db.QueryRow("SELECT id, password FROM users WHERE username = $1", reqUsername).Scan(&id, &password)
-	var serverRespBytes []byte
-	switch {
-	case err == sql.ErrNoRows:
-		s.logger.Info("Account not found", zap.String("reqUsername", reqUsername))
-		serverRespBytes = makeSignInFailureResp(SIGN_EAUTH)
-
-		// HACK(Andoryuuta): Create a new account if it doesn't exit.
-		s.logger.Info("Creating account", zap.String("reqUsername", reqUsername), zap.String("reqPassword", reqPassword))
-		err = s.server.registerDBAccount(reqUsername, reqPassword)
-		if err != nil {
-			s.logger.Info("Error on creating new account", zap.Error(err))
-			serverRespBytes = makeSignInFailureResp(SIGN_EABORT)
-			break
+func (s *Session) authenticate(username string, password string) {
+	newCharaReq := false
+	if username[len(username)-1] == 43 { // '+'
+		username = username[:len(username)-1]
+		newCharaReq = true
+	}
+	bf := byteframe.NewByteFrame()
+	uid, resp := s.server.validateLogin(username, password)
+	switch resp {
+	case SIGN_SUCCESS:
+		if newCharaReq {
+			_ = s.server.newUserChara(uid)
 		}
-
-		var id int
-		err = s.server.db.QueryRow("SELECT id FROM users WHERE username = $1", reqUsername).Scan(&id)
-		if err != nil {
-			s.logger.Info("Error on querying account id", zap.Error(err))
-			serverRespBytes = makeSignInFailureResp(SIGN_EABORT)
-			break
-		}
-
-		serverRespBytes = s.makeSignInResp(id)
-		break
-	case err != nil:
-		serverRespBytes = makeSignInFailureResp(SIGN_EABORT)
-		s.logger.Warn("Got error on SQL query", zap.Error(err))
-		break
+		bf.WriteBytes(s.makeSignResponse(uid))
 	default:
-		if reqPassword == password {
-			s.logger.Info("Passwords match!")
-			serverRespBytes = s.makeSignInResp(id)
-		} else {
-			s.logger.Info("Passwords don't match!")
-			serverRespBytes = makeSignInFailureResp(SIGN_EPASS)
+		bf.WriteUint8(uint8(resp))
+	}
+	if s.server.erupeConfig.DevMode && s.server.erupeConfig.DevModeOptions.LogOutboundMessages {
+		fmt.Printf("\n[Server] -> [Client]\nData [%d bytes]:\n%s\n", len(bf.Data()), hex.Dump(bf.Data()))
+	}
+	_ = s.cryptConn.SendPacket(bf.Data())
+}
+
+func (s *Session) handleWIIUSGN(bf *byteframe.ByteFrame) {
+	_ = bf.ReadBytes(1)
+	wiiuKey := string(bf.ReadBytes(64))
+	var uid uint32
+	err := s.server.db.QueryRow(`SELECT id FROM users WHERE wiiu_key = $1`, wiiuKey).Scan(&uid)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			s.logger.Info("Unlinked Wii U attempted to authenticate", zap.String("Key", wiiuKey))
+			s.sendCode(SIGN_ECOGLINK)
+			return
+		}
+		s.sendCode(SIGN_EABORT)
+		return
+	}
+	s.cryptConn.SendPacket(s.makeSignResponse(uid))
+}
+
+func (s *Session) handlePSSGN(bf *byteframe.ByteFrame) {
+	// Prevent reading malformed request
+	if len(bf.DataFromCurrent()) < 128 {
+		s.sendCode(SIGN_EABORT)
+		return
+	}
+	_ = bf.ReadNullTerminatedBytes() // VITA = 0000000256, PS3 = 0000000255
+	_ = bf.ReadBytes(2)              // VITA = 1, PS3 = !
+	_ = bf.ReadBytes(82)
+	s.psn = string(bf.ReadNullTerminatedBytes())
+	var uid uint32
+	err := s.server.db.QueryRow(`SELECT id FROM users WHERE psn_id = $1`, s.psn).Scan(&uid)
+	if err != nil {
+		if err == sql.ErrNoRows {
+			s.cryptConn.SendPacket(s.makeSignResponse(0))
+			return
+		}
+		s.sendCode(SIGN_EABORT)
+		return
+	}
+	s.cryptConn.SendPacket(s.makeSignResponse(uid))
+}
+
+func (s *Session) handlePSNLink(bf *byteframe.ByteFrame) {
+	_ = bf.ReadNullTerminatedBytes() // Client ID
+	credentials := strings.Split(stringsupport.SJISToUTF8(bf.ReadNullTerminatedBytes()), "\n")
+	token := string(bf.ReadNullTerminatedBytes())
+	uid, resp := s.server.validateLogin(credentials[0], credentials[1])
+	if resp == SIGN_SUCCESS && uid > 0 {
+		var psn string
+		err := s.server.db.QueryRow(`SELECT psn_id FROM sign_sessions WHERE token = $1`, token).Scan(&psn)
+		if err != nil {
+			s.sendCode(SIGN_ECOGLINK)
+			return
 		}
 
-	}
+		// Since we check for the psn_id, this will never run
+		var exists int
+		err = s.server.db.QueryRow(`SELECT count(*) FROM users WHERE psn_id = $1`, psn).Scan(&exists)
+		if err != nil {
+			s.sendCode(SIGN_ECOGLINK)
+			return
+		} else if exists > 0 {
+			s.sendCode(SIGN_EPSI)
+			return
+		}
 
-	err = s.cryptConn.SendPacket(serverRespBytes)
-	if err != nil {
-		return err
-	}
+		var currentPSN string
+		err = s.server.db.QueryRow(`SELECT COALESCE(psn_id, '') FROM users WHERE username = $1`, credentials[0]).Scan(&currentPSN)
+		if err != nil {
+			s.sendCode(SIGN_ECOGLINK)
+			return
+		} else if currentPSN != "" {
+			s.sendCode(SIGN_EMBID)
+			return
+		}
 
-	return nil
+		_, err = s.server.db.Exec(`UPDATE users SET psn_id = $1 WHERE username = $2`, psn, credentials[0])
+		if err == nil {
+			s.sendCode(SIGN_SUCCESS)
+			return
+		}
+	}
+	s.sendCode(SIGN_ECOGLINK)
+}
+
+func (s *Session) handleDSGN(bf *byteframe.ByteFrame) {
+	user := stringsupport.SJISToUTF8(bf.ReadNullTerminatedBytes())
+	pass := stringsupport.SJISToUTF8(bf.ReadNullTerminatedBytes())
+	_ = string(bf.ReadNullTerminatedBytes()) // Unk
+	s.authenticate(user, pass)
+}
+
+func (s *Session) sendCode(id RespID) {
+	s.cryptConn.SendPacket([]byte{byte(id)})
 }

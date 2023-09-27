@@ -1,8 +1,9 @@
 package mhfpacket
 
 import (
-	"github.com/Andoryuuta/Erupe/network"
-	"github.com/Andoryuuta/byteframe"
+	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgSysEnd represents the MSG_SYS_END
@@ -14,13 +15,13 @@ func (m *MsgSysEnd) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgSysEnd) Parse(bf *byteframe.ByteFrame) error {
+func (m *MsgSysEnd) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	// No data aside from opcode.
 	return nil
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgSysEnd) Build(bf *byteframe.ByteFrame) error {
+func (m *MsgSysEnd) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	// No data aside from opcode.
 	return nil
 }

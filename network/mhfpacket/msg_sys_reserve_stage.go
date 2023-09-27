@@ -1,16 +1,18 @@
 package mhfpacket
 
 import (
-	"github.com/Andoryuuta/Erupe/network"
-	"github.com/Andoryuuta/byteframe"
+	"errors"
+	"erupe-ce/common/bfutil"
+	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgSysReserveStage represents the MSG_SYS_RESERVE_STAGE
 type MsgSysReserveStage struct {
-	AckHandle     uint32
-	Unk0          uint8 // Made with: `16 * x | 1;`, unknown `x` values.
-	StageIDLength uint8
-	StageID       string // NULL terminated string.
+	AckHandle uint32
+	Ready     uint8  // Bitfield but hex (0x11 or 0x01)
+	StageID   string // NULL terminated string.
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -19,15 +21,15 @@ func (m *MsgSysReserveStage) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgSysReserveStage) Parse(bf *byteframe.ByteFrame) error {
+func (m *MsgSysReserveStage) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
-	m.Unk0 = bf.ReadUint8()
-	m.StageIDLength = bf.ReadUint8()
-	m.StageID = string(bf.ReadBytes(uint(m.StageIDLength)))
+	m.Ready = bf.ReadUint8()
+	stageIDLength := bf.ReadUint8()
+	m.StageID = string(bfutil.UpToNull(bf.ReadBytes(uint(stageIDLength))))
 	return nil
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgSysReserveStage) Build(bf *byteframe.ByteFrame) error {
-	panic("Not implemented")
+func (m *MsgSysReserveStage) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+	return errors.New("NOT IMPLEMENTED")
 }

@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"erupe-ce/common/mhfcourse"
+	"erupe-ce/common/mhfitem"
 	ps "erupe-ce/common/pascalstring"
 	"erupe-ce/common/stringsupport"
 	_config "erupe-ce/config"
@@ -762,19 +763,19 @@ func handleMsgMhfCheckWeeklyStamp(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfExchangeWeeklyStamp(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfExchangeWeeklyStamp)
 	var total, redeemed uint16
-	var tktStack mhfpacket.WarehouseStack
+	var tktStack mhfitem.MHFItemStack
 	if pkt.Unk1 == 0xA { // Yearly Sub Ex
 		s.server.db.QueryRow("UPDATE stamps SET hl_total=hl_total-48, hl_redeemed=hl_redeemed-48 WHERE character_id=$1 RETURNING hl_total, hl_redeemed", s.charID).Scan(&total, &redeemed)
-		tktStack = mhfpacket.WarehouseStack{ItemID: 0x08A2, Quantity: 1}
+		tktStack = mhfitem.MHFItemStack{Item: mhfitem.MHFItem{ItemID: 2210}, Quantity: 1}
 	} else {
 		s.server.db.QueryRow(fmt.Sprintf("UPDATE stamps SET %s_redeemed=%s_redeemed+8 WHERE character_id=$1 RETURNING %s_total, %s_redeemed", pkt.StampType, pkt.StampType, pkt.StampType, pkt.StampType), s.charID).Scan(&total, &redeemed)
 		if pkt.StampType == "hl" {
-			tktStack = mhfpacket.WarehouseStack{ItemID: 0x065E, Quantity: 5}
+			tktStack = mhfitem.MHFItemStack{Item: mhfitem.MHFItem{ItemID: 1630}, Quantity: 5}
 		} else {
-			tktStack = mhfpacket.WarehouseStack{ItemID: 0x065F, Quantity: 5}
+			tktStack = mhfitem.MHFItemStack{Item: mhfitem.MHFItem{ItemID: 1631}, Quantity: 5}
 		}
 	}
-	addWarehouseGift(s, "item", tktStack)
+	addWarehouseItem(s, tktStack)
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint16(total)
 	bf.WriteUint16(redeemed)
@@ -1626,13 +1627,13 @@ func handleMsgMhfStampcardStamp(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint16(pkt.Reward2)
 		bf.WriteUint16(pkt.Item2)
 		bf.WriteUint16(pkt.Quantity2)
-		addWarehouseGift(s, "item", mhfpacket.WarehouseStack{ItemID: pkt.Item2, Quantity: pkt.Quantity2})
+		addWarehouseItem(s, mhfitem.MHFItemStack{Item: mhfitem.MHFItem{ItemID: pkt.Item2}, Quantity: pkt.Quantity2})
 	} else if stamps%15 == 0 {
 		bf.WriteUint16(1)
 		bf.WriteUint16(pkt.Reward1)
 		bf.WriteUint16(pkt.Item1)
 		bf.WriteUint16(pkt.Quantity1)
-		addWarehouseGift(s, "item", mhfpacket.WarehouseStack{ItemID: pkt.Item1, Quantity: pkt.Quantity1})
+		addWarehouseItem(s, mhfitem.MHFItemStack{Item: mhfitem.MHFItem{ItemID: pkt.Item1}, Quantity: pkt.Quantity1})
 	} else {
 		bf.WriteBytes(make([]byte, 8))
 	}

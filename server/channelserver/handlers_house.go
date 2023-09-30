@@ -1,7 +1,9 @@
 package channelserver
 
 import (
+	"crypto/rand"
 	"erupe-ce/common/byteframe"
+	"erupe-ce/common/mhfitem"
 	ps "erupe-ce/common/pascalstring"
 	"erupe-ce/common/stringsupport"
 	_config "erupe-ce/config"
@@ -406,7 +408,12 @@ func handleMsgMhfOperateWarehouse(s *Session, p mhfpacket.MHFPacket) {
 	case 1:
 		bf.WriteUint8(0)
 	case 2:
-		s.server.db.Exec(fmt.Sprintf("UPDATE warehouse SET %s%dname=$1 WHERE character_id=$2", pkt.BoxType, pkt.BoxIndex), pkt.Name, s.charID)
+		switch pkt.BoxType {
+		case 0:
+			s.server.db.Exec(fmt.Sprintf("UPDATE warehouse SET item%dname=$1 WHERE character_id=$2", pkt.BoxIndex), pkt.Name, s.charID)
+		case 1:
+			s.server.db.Exec(fmt.Sprintf("UPDATE warehouse SET equip%dname=$1 WHERE character_id=$2", pkt.BoxIndex), pkt.Name, s.charID)
+		}
 	case 3:
 		bf.WriteUint32(0)     // Usage renewal time, >1 = disabled
 		bf.WriteUint16(10000) // Usages
@@ -424,81 +431,74 @@ func handleMsgMhfOperateWarehouse(s *Session, p mhfpacket.MHFPacket) {
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
-func addWarehouseGift(s *Session, boxType string, giftStack mhfpacket.WarehouseStack) {
-	giftBox := getWarehouseBox(s, boxType, 10)
-	if boxType == "item" {
-		exists := false
-		for i, stack := range giftBox {
-			if stack.ItemID == giftStack.ItemID {
-				exists = true
-				giftBox[i].Quantity += giftStack.Quantity
-				break
-			}
+func addWarehouseItem(s *Session, item mhfitem.MHFItemStack) {
+	giftBox := warehouseGetItems(s, 10)
+	exists := false
+	for i, stack := range giftBox {
+		if stack.Item.ItemID == item.Item.ItemID {
+			exists = true
+			giftBox[i].Quantity += item.Quantity
+			break
 		}
-		if exists == false {
-			giftBox = append(giftBox, giftStack)
-		}
-	} else {
-		giftBox = append(giftBox, giftStack)
 	}
-	s.server.db.Exec(fmt.Sprintf("UPDATE warehouse SET %s10=$1 WHERE character_id=$2", boxType), boxToBytes(giftBox, boxType), s.charID)
+	if !exists {
+		giftBox = append(giftBox, item)
+	}
+	s.server.db.Exec("UPDATE warehouse SET item10=$1 WHERE character_id=$2", mhfitem.SerializeWarehouseItems(giftBox), s.charID)
 }
 
-func getWarehouseBox(s *Session, boxType string, boxIndex uint8) []mhfpacket.WarehouseStack {
+func addWarehouseEquipment(s *Session, equipment mhfitem.MHFEquipment) {
+	giftBox := warehouseGetEquipment(s, 10)
+	giftBox = append(giftBox, equipment)
+	s.server.db.Exec("UPDATE warehouse SET equip10=$1 WHERE character_id=$2", mhfitem.SerializeWarehouseEquipment(giftBox), s.charID)
+}
+
+func warehouseGetItems(s *Session, index uint8) []mhfitem.MHFItemStack {
 	var data []byte
-	s.server.db.QueryRow(fmt.Sprintf("SELECT %s%d FROM warehouse WHERE character_id=$1", boxType, boxIndex), s.charID).Scan(&data)
+	var items []mhfitem.MHFItemStack
+	s.server.db.QueryRow(fmt.Sprintf(`SELECT item%d FROM warehouse WHERE character_id=$1`, index), s.charID).Scan(&data)
 	if len(data) > 0 {
 		box := byteframe.NewByteFrameFromBytes(data)
 		numStacks := box.ReadUint16()
-		stacks := make([]mhfpacket.WarehouseStack, numStacks)
+		box.ReadUint16() // Unused
 		for i := 0; i < int(numStacks); i++ {
-			if boxType == "item" {
-				stacks[i].ID = box.ReadUint32()
-				stacks[i].Index = box.ReadUint16()
-				stacks[i].ItemID = box.ReadUint16()
-				stacks[i].Quantity = box.ReadUint16()
-				box.ReadUint16()
-			} else {
-				stacks[i].ID = box.ReadUint32()
-				stacks[i].Index = box.ReadUint16()
-				stacks[i].EquipType = box.ReadUint16()
-				stacks[i].ItemID = box.ReadUint16()
-				stacks[i].Data = box.ReadBytes(56)
-			}
+			items = append(items, mhfitem.ReadWarehouseItem(box))
 		}
-		return stacks
-	} else {
-		return make([]mhfpacket.WarehouseStack, 0)
 	}
+	return items
 }
 
-func boxToBytes(stacks []mhfpacket.WarehouseStack, boxType string) []byte {
-	bf := byteframe.NewByteFrame()
-	bf.WriteUint16(uint16(len(stacks)))
-	for i, stack := range stacks {
-		if boxType == "item" {
-			bf.WriteUint32(stack.ID)
-			bf.WriteUint16(uint16(i + 1))
-			bf.WriteUint16(stack.ItemID)
-			bf.WriteUint16(stack.Quantity)
-			bf.WriteUint16(0)
-		} else {
-			bf.WriteUint32(stack.ID)
-			bf.WriteUint16(uint16(i + 1))
-			bf.WriteUint16(stack.EquipType)
-			bf.WriteUint16(stack.ItemID)
-			bf.WriteBytes(stack.Data)
+func warehouseGetEquipment(s *Session, index uint8) []mhfitem.MHFEquipment {
+	var data []byte
+	var equipment []mhfitem.MHFEquipment
+	s.server.db.QueryRow(fmt.Sprintf(`SELECT equip%d FROM warehouse WHERE character_id=$1`, index), s.charID).Scan(&data)
+	if len(data) > 0 {
+		box := byteframe.NewByteFrameFromBytes(data)
+		numStacks := box.ReadUint16()
+		box.ReadUint16() // Unused
+		for i := 0; i < int(numStacks); i++ {
+			temp := mhfitem.ReadWarehouseEquipment(box)
+			if !temp.Deleted {
+				equipment = append(equipment, temp)
+			}
 		}
 	}
-	bf.WriteUint16(0)
-	return bf.Data()
+	return equipment
 }
 
 func handleMsgMhfEnumerateWarehouse(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateWarehouse)
-	box := getWarehouseBox(s, pkt.BoxType, pkt.BoxIndex)
-	if len(box) > 0 {
-		doAckBufSucceed(s, pkt.AckHandle, boxToBytes(box, pkt.BoxType))
+	bf := byteframe.NewByteFrame()
+	switch pkt.BoxType {
+	case 0:
+		items := warehouseGetItems(s, pkt.BoxIndex)
+		bf.WriteBytes(mhfitem.SerializeWarehouseItems(items))
+	case 1:
+		equipment := warehouseGetEquipment(s, pkt.BoxIndex)
+		bf.WriteBytes(mhfitem.SerializeWarehouseEquipment(equipment))
+	}
+	if bf.Index() > 0 {
+		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 	} else {
 		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
 	}
@@ -506,49 +506,58 @@ func handleMsgMhfEnumerateWarehouse(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfUpdateWarehouse(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfUpdateWarehouse)
-	box := getWarehouseBox(s, pkt.BoxType, pkt.BoxIndex)
-	// Update existing stacks
-	var newStacks []mhfpacket.WarehouseStack
-	for _, update := range pkt.Updates {
-		exists := false
-		if pkt.BoxType == "item" {
-			for i, stack := range box {
-				if stack.Index == update.Index {
+	// o = old, u = update, f = final
+	var fItems []mhfitem.MHFItemStack
+	var fEquip []mhfitem.MHFEquipment
+	switch pkt.BoxType {
+	case 0:
+		oItems := warehouseGetItems(s, pkt.BoxIndex)
+		for _, uItem := range pkt.UpdatedItems {
+			exists := false
+			for _, oItem := range oItems {
+				if uItem.Item.ItemID == oItem.Item.ItemID {
+					if uItem.Quantity > 0 {
+						fItems = append(fItems, uItem)
+					}
 					exists = true
-					box[i].Quantity = update.Quantity
 					break
 				}
 			}
-		} else {
-			for i, stack := range box {
-				if stack.Index == update.Index {
+			if !exists {
+				newID := make([]byte, 4)
+				_, _ = rand.Read(newID)
+				bf := byteframe.NewByteFrameFromBytes(newID)
+				uItem.WarehouseID = bf.ReadUint32()
+				fItems = append(fItems, uItem)
+			}
+		}
+		s.server.db.Exec(fmt.Sprintf(`UPDATE warehouse SET item%d=$1 WHERE character_id=$2`, pkt.BoxIndex), mhfitem.SerializeWarehouseItems(fItems), s.charID)
+	case 1:
+		oEquips := warehouseGetEquipment(s, pkt.BoxIndex)
+		for _, uEquip := range pkt.UpdatedEquipment {
+			exists := false
+			for _, oEquip := range oEquips {
+				if oEquip.WarehouseID == uEquip.WarehouseID {
 					exists = true
-					box[i].ItemID = update.ItemID
+					// Will set removed items to 0
+					oEquip.ItemID = uEquip.ItemID
 					break
 				}
 			}
-		}
-		if exists == false {
-			newStacks = append(newStacks, update)
-		}
-	}
-	// Append new stacks
-	for _, stack := range newStacks {
-		box = append(box, stack)
-	}
-	// Slice empty stacks
-	var cleanedBox []mhfpacket.WarehouseStack
-	for _, stack := range box {
-		if pkt.BoxType == "item" {
-			if stack.Quantity > 0 {
-				cleanedBox = append(cleanedBox, stack)
-			}
-		} else {
-			if stack.ItemID != 0 {
-				cleanedBox = append(cleanedBox, stack)
+			if !exists {
+				newID := make([]byte, 4)
+				_, _ = rand.Read(newID)
+				bf := byteframe.NewByteFrameFromBytes(newID)
+				uEquip.WarehouseID = bf.ReadUint32()
+				fEquip = append(fEquip, uEquip)
 			}
 		}
+		for _, oEquip := range oEquips {
+			if oEquip.ItemID > 0 {
+				fEquip = append(fEquip, oEquip)
+			}
+		}
+		s.server.db.Exec(fmt.Sprintf(`UPDATE warehouse SET equip%d=$1 WHERE character_id=$2`, pkt.BoxIndex), mhfitem.SerializeWarehouseEquipment(fEquip), s.charID)
 	}
-	s.server.db.Exec(fmt.Sprintf("UPDATE warehouse SET %s%d=$1 WHERE character_id=$2", pkt.BoxType, pkt.BoxIndex), boxToBytes(cleanedBox, pkt.BoxType), s.charID)
 	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }

@@ -162,14 +162,6 @@ type FestaReward struct {
 	Unk7     uint8
 }
 
-type FestaRewardF5 struct {
-	Unk0     uint8
-	Unk1     uint8
-	ItemType uint16
-	Quantity uint16
-	ItemID   uint16
-}
-
 func handleMsgMhfInfoFesta(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfInfoFesta)
 	bf := byteframe.NewByteFrame()
@@ -235,6 +227,7 @@ func handleMsgMhfInfoFesta(s *Session, p mhfpacket.MHFPacket) {
 	}
 
 	// The Winner and Loser Armor IDs are missing
+	// Item 7011 may not exist in older versions, remove to prevent crashes
 	rewards := []FestaReward{
 		{1, 0, 7, 350, 1520, 0, 0, 0},
 		{1, 0, 7, 1000, 7011, 0, 0, 1},
@@ -263,34 +256,18 @@ func handleMsgMhfInfoFesta(s *Session, p mhfpacket.MHFPacket) {
 		//{5, 0, 1, 0, 0, 0, 0, 0},
 	}
 
-	rewardsF5 := []FestaRewardF5{
-		{1, 0, 7, 250, 1520},
-		{1, 0, 12, 250, 0},
-		{1, 0, 12, 250, 0},
-		{1, 0, 12, 250, 0},
-		{1, 0, 12, 250, 0},
-	}
-
-	if _config.ErupeConfig.RealClientMode >= _config.G1 {
-		bf.WriteUint16(uint16(len(rewards)))
-		for _, reward := range rewards {
-				bf.WriteUint8(reward.Unk0)
-				bf.WriteUint8(reward.Unk1)
-				bf.WriteUint16(reward.ItemType)
-				bf.WriteUint16(reward.Quantity)
-				bf.WriteUint16(reward.ItemID)
-				bf.WriteUint16(reward.Unk5)
-				bf.WriteUint16(reward.Unk6)
-				bf.WriteUint8(reward.Unk7)
-		}
-	} else if _config.ErupeConfig.RealClientMode == _config.F5{
-			bf.WriteUint16(uint16(len(rewardsF5)))
-			for _, reward := range rewardsF5 {
-				bf.WriteUint8(reward.Unk0)
-				bf.WriteUint8(reward.Unk1)
-				bf.WriteUint16(reward.ItemType)
-				bf.WriteUint16(reward.Quantity)
-				bf.WriteUint16(reward.ItemID)
+	bf.WriteUint16(uint16(len(rewards)))
+	for _, reward := range rewards {
+		bf.WriteUint8(reward.Unk0)
+		bf.WriteUint8(reward.Unk1)
+		bf.WriteUint16(reward.ItemType)
+		bf.WriteUint16(reward.Quantity)
+		bf.WriteUint16(reward.ItemID)
+		// Not confirmed to be G1 but exists in G3
+		if _config.ErupeConfig.RealClientMode >= _config.G1 {
+			bf.WriteUint16(reward.Unk5)
+			bf.WriteUint16(reward.Unk6)
+			bf.WriteUint8(reward.Unk7)
 		}
 	}
 	if _config.ErupeConfig.RealClientMode <= _config.G61 {

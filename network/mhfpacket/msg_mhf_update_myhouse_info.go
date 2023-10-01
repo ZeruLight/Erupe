@@ -6,6 +6,7 @@ import (
  	"erupe-ce/network/clientctx"
 	"erupe-ce/network"
 	"erupe-ce/common/byteframe"
+	_config "erupe-ce/config"
 )
 
 // MsgMhfUpdateMyhouseInfo represents the MSG_MHF_UPDATE_MYHOUSE_INFO
@@ -22,7 +23,11 @@ func (m *MsgMhfUpdateMyhouseInfo) Opcode() network.PacketID {
 // Parse parses the packet from binary
 func (m *MsgMhfUpdateMyhouseInfo) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
-	m.Unk0 = bf.ReadBytes(0x16A)
+	if _config.ErupeConfig.RealClientMode == _config.F5 {
+		m.Unk0 = bf.ReadBytes(0x122)
+	} else {
+		m.Unk0 = bf.ReadBytes(0x16A)
+	}
 	return nil
 }
 

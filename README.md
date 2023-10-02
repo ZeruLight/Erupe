@@ -6,10 +6,13 @@
 - PlayStation 3
 - PlayStation Vita
 - Wii U (Up to Z2)
-### Versions
-- ZZ
-- Z2
-- Z1
+### Versions (ClientMode)
+All versions after HR compression (G10-ZZ) have been tested extensively and have great functionality.
+All versions available on Wii U (G3-Z2) have been tested and should have good functionality.
+The second oldest found version is Forward.4 (FW.4), this version has basic functionality.
+The oldest found version is Season 6.0 (S6.0), however functionality is very limited.
+
+If you have an **installed** copy of Monster Hunter Frontier on an old hard drive, **please** get in contact so we can archive it!
 
 ## Setup
 
@@ -32,50 +35,50 @@ If you want to modify or compile Erupe yourself, please read on.
 ## Resources
 
 - [Quest and Scenario Binary Files](https://files.catbox.moe/xf0l7w.7z)
-- [PewPewDojo Discord](https://discord.gg/CFnzbhQ)
+- [Mezeporta Square Discord](https://discord.gg/DnwcpXM488)
 
 ## Configuration
 This portion of the documentation goes over the `config.json` file.
 
 ### General Configuration
 
-| Variable               | Description                                                                                                                                           | Default   | Options                         |
-|------------------------|-------------------------------------------------------------------------------------------------------------------------------------------------------|-----------|---------------------------------|
-| Host                   | The IP or host address the server is running from                                                                                                     | 127.0.0.1 |                                 |
-| BinPath                | The bin path folder is where you place files needed for various parts of the game such as scenario and quest files                                    | bin       |                                 |
-| Language               | This is the language the server will run in. Only English `en` and Japanese `ja` are available, if you wish to contribute to tranlation, get in touch | en        | en/jp                           |
-| DisableSoftCrash       |                                                                                                                                                       | false     |                                 |
-| HideLoginNotice        | This hides the notices that appear on login from `LoginNotices`                                                                                       | true      |                                 |
-| LoginNotices           | This is where you place notices for users, you can have multiple notices                                                                              |           |                                 |
-| PatchServerManifest    |                                                                                                                                                       |           |                                 |
-| PatchServerFile        |                                                                                                                                                       |           |                                 |
-| ScreenshotAPIURL       | This is the URL you want user sreenshots to go to                                                                                                     |           |                                 |
-| DeleteOnSaveCorruption | This option deletes a users save from the database if they corrupt it, can be used as punishment for cheaters                                         | false     |                                 |
-| ClientMode             | This tells the server what client version it should target                                                                                            | ZZ        | Check compatible versions above |
-| DevMode                | This enables DevModeOptions to be configured                                                                                                          | true      |                                 |
+| Variable               | Description                                                                                                           | Default   | Options                         |
+|------------------------|-----------------------------------------------------------------------------------------------------------------------|-----------|---------------------------------|
+| Host                   | The IP or host address the server is running from                                                                     | 127.0.0.1 |                                 |
+| BinPath                | The bin path folder is where you place files needed for various parts of the game such as scenario and quest files    | bin       |                                 |
+| Language               | This is the language the server will run in. Only English `en` and Japanese `jp` are available, contributions welcome | en        | en/jp                           |
+| DisableSoftCrash       |                                                                                                                       | false     |                                 |
+| HideLoginNotice        | This hides the notices that appear on login from `LoginNotices`                                                       | true      |                                 |
+| LoginNotices           | This is where you place notices for users, you can have multiple notices                                              |           |                                 |
+| PatchServerManifest    |                                                                                                                       |           |                                 |
+| PatchServerFile        |                                                                                                                       |           |                                 |
+| ScreenshotAPIURL       | This is the URL you want user sreenshots to go to                                                                     |           |                                 |
+| DeleteOnSaveCorruption | This option flags a character as deleted if they corrupt it, can be used as punishment for cheaters                   | false     |                                 |
+| ClientMode             | This tells the server what client version it should target                                                            | ZZ        | Check compatible versions above |
+| DevMode                | This enables DevModeOptions to be configured                                                                          | true      |                                 |
 
 ### `DevModeOptions` Configuraiton
 
-| Variable             | Description                                                                                 | Default  | Options                          |
-|----------------------|---------------------------------------------------------------------------------------------|----------|----------------------------------|
-| AutoCreateAccount    | This allows users that don't exist to auto create there account from initial login          | true     |                                  |
-| CleanDB              | This cleans the database down                                                               | false    |                                  |
-| MaxLauncherHR        | This sets the launcher value to HR7 to allow you to break World HR requirements             | false    |                                  |
-| LogInboundMessages   | This will allow inbound messages to be logged to stdout                                     | false    |                                  |
-| LogOutboundMessages  | This will allow outbound messages to be logged to stdout                                    | false    |                                  |
-| MaxHexdumpLength     | This is the maximum amount of hex bytes that will be dumped to stdout                       | 0        |                                  |
-| DivaEvent            | This overrides the Diva event stage in game                                                 | 2        | 0/1/2/3/-1                       |
-| FestaEvent           | This overrides the Hunter Festival event stage in game                                      | 2        | 0/1/2/3/-1                       |
-| TournamentEvent      | This overrides the Hunter Tournament event stage in game                                    | 2        | 0/1/2/3/-1                       |
-| MezFesEvent          | Enables whether the MezFes event & World are active                                         | true     |                                  |
-| MezFesAlt            | Switches the multiplayer MezFes event                                                       | false    |                                  |
-| DisableTokenCheck    | This disables the random token that is generated at login from being checked, very insecure | false    |                                  |
-| QuestDebugTools      | Enable various quest debug logs                                                             | false    |                                  |
-| EarthStatusOverride  | Enables Pallone Fest, Tower and Conquest War events                                         | 0        | 2=Conquest, 11=Pallone, 21=Tower |
-| EarthIDOverride      | A random event ID                                                                           | 0        |                                  |
-| EarthMonsterOverride | Sets the ID of the monster targeted in the Conquest War                                     | 0        |                                  |
-| SaveDumps.Enables    | Enables save dumps to a folder that is set at `SaveDumps.OutputDir`                         | true     |                                  |
-| SaveDumps.OutputDir  | The folder that save dumps are saved to                                                     | savedata |                                  |
+| Variable             | Description                                                                                 | Default      | Options                          |
+|----------------------|---------------------------------------------------------------------------------------------|--------------|----------------------------------|
+| AutoCreateAccount    | This allows users that don't exist to auto create their account from initial login          | true         |                                  |
+| CleanDB              | This cleans the database down                                                               | false        |                                  |
+| MaxLauncherHR        | This sets the launcher value to HR7 to allow you to break World HR requirements             | false        |                                  |
+| LogInboundMessages   | This will allow inbound messages to be logged to stdout                                     | false        |                                  |
+| LogOutboundMessages  | This will allow outbound messages to be logged to stdout                                    | false        |                                  |
+| MaxHexdumpLength     | This is the maximum amount of hex bytes that will be dumped to stdout                       | 0            |                                  |
+| DivaEvent            | This overrides the Diva event stage in game                                                 | 0            | 0/1/2/3/-1                       |
+| FestaEvent           | This overrides the Hunter Festival event stage in game                                      | -1           | 0/1/2/3/-1                       |
+| TournamentEvent      | This overrides the Hunter Tournament event stage in game                                    | 0            | 0/1/2/3/-1                       |
+| MezFesEvent          | Enables whether the MezFes event & World are active                                         | true         |                                  |
+| MezFesAlt            | Switches the multiplayer MezFes minigame                                                    | false        |                                  |
+| DisableTokenCheck    | This disables the random token that is generated at login from being checked, very insecure | false        |                                  |
+| QuestDebugTools      | Enable various quest debug logs                                                             | false        |                                  |
+| EarthStatusOverride  | Enables Pallone Fest, Tower and Conquest War events                                         | 0            | 2=Conquest, 11=Pallone, 21=Tower |
+| EarthIDOverride      | A random event ID                                                                           | 0            |                                  |
+| EarthMonsterOverride | Sets the ID of the monster targeted in the Conquest War                                     | 0            |                                  |
+| SaveDumps.Enables    | Enables save dumps to a folder that is set at `SaveDumps.OutputDir`                         | true         |                                  |
+| SaveDumps.OutputDir  | The folder that save dumps are saved to                                                     | save-backups |                                  |
 
 ### `GameplayOptions` Configuraiton
 
@@ -111,14 +114,14 @@ This may be either be removed or revamped in a future version.
 ### Commands
 There are several chat commands that can be turned on and off. Most of them are really for admins or debugging purposes.
 
-| Name     | command        | Description                                | Options             |
-|----------|----------------|--------------------------------------------|---------------------|
-| Rights   | !rights VALUE  | Sets the rights integer for your account   |                     |
-| Teleport | !tele X,Y      | Teleports user to specific x,y coordinate  |                     |
-| Reload   | !reload        | Reloads all users and character objects    |                     |
-| KeyQuest | !kqf FLAGS     | Sets the Key Quest Flag for your character |                     |
-| Course   | !course OPTION | Enables/Disables a course for your account | HL,EX,Premium,Boost |
-| PSN      | !psn  USERNAME | Links the specified PSN to your account    |                     |
+| Name     | command        | Description                                | Default  | Options             |
+|----------|----------------|--------------------------------------------|----------|---------------------|
+| Rights   | !rights VALUE  | Sets the rights integer for your account   | disabled |                     |
+| Teleport | !tele X,Y      | Teleports user to specific x,y coordinate  | disabled |                     |
+| Reload   | !reload        | Reloads all users and character objects    | enabled  |                     |
+| KeyQuest | !kqf FLAGS     | Sets the Key Quest Flag for your character | disabled |                     |
+| Course   | !course OPTION | Enables/Disables a course for your account | enabled  | HL,EX,Premium,Boost |
+| PSN      | !psn  USERNAME | Links the specified PSN to your account    | enabled  |                     |
 
 ### Ravi Sub Commands
 | Name     | command                          | Description                   |
@@ -132,16 +135,16 @@ There are several chat commands that can be turned on and off. Most of them are 
 
 ## World `Entries` config
 
-| Config Item | Description      | Options                                                    |
-|-------------|------------------|------------------------------------------------------------|
-| Type        | Server type.     | 1=Normal, 2=Cities, 3=Newbie, 4=Tavern, 5=Return, 6=MezFes |
-| Season      | Server activity. | 0=Green/Breeding, 1=Orange/Warm, 2=Blue/Cold               |
+| Config Item | Description   | Options                                                    |
+|-------------|---------------|------------------------------------------------------------|
+| Type        | Server type   | 1=Normal, 2=Cities, 3=Newbie, 4=Tavern, 5=Return, 6=MezFes |
+| Season      | Server season | 0=Green/Breeding, 1=Orange/Warm, 2=Blue/Cold               |
 
 ### `Recommend` 
-This sets the types of quest that can be ordered from a world.
+This sets the types of Quests that can be ordered from a World.
 * 0 = All quests
-* 1 = Up to 2 star quests  
-* 2 = Up to 4 star quests 
+* 1 = Up to 2 star Quests  
+* 2 = Up to 4 star Quests 
 * 4 = All Quests in HR (Enables G Experience Tab) 
-* 5 = Only G rank quests 
-* 6 = Mini games world there is no place to order quests 
+* 5 = Only G Rank Quests 
+* 6 = Minigame World

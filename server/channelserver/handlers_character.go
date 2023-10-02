@@ -84,14 +84,14 @@ func getPointers() map[SavePointer]int {
 		pointers[pGardenData] = 106424
 		pointers[pRP] = 106614
 		pointers[pKQF] = 110720
-	case _config.F5:
+	case _config.F5, _config.F4:
 		pointers[pWeaponID] = 60522
 		pointers[pWeaponType] = 60789
 		pointers[pHouseTier] = 61900
-		pointers[pToreData] = 60550
+		pointers[pToreData] = 62228
 		pointers[pHRP] = 62550
-		pointers[pHouseData] = 62651
-		pointers[pBookshelfData] = 71928
+		pointers[pHouseData] = 62561
+		pointers[pBookshelfData] = 56830
 		pointers[pGalleryData] = 72064
 		pointers[pGardenData] = 74424
 		pointers[pRP] = 74614
@@ -196,7 +196,7 @@ func (save *CharacterSaveData) updateSaveDataWithStruct() {
 	if _config.ErupeConfig.RealClientMode >= _config.G10 {
 		copy(save.decompSave[save.Pointers[pRP]:save.Pointers[pRP]+2], rpBytes)
 		copy(save.decompSave[save.Pointers[pKQF]:save.Pointers[pKQF]+8], save.KQF)
-	} else if _config.ErupeConfig.RealClientMode == _config.F5 {
+	} else if _config.ErupeConfig.RealClientMode == _config.F5 || _config.ErupeConfig.RealClientMode == _config.F4 {
 		copy(save.decompSave[save.Pointers[pRP]:save.Pointers[pRP]+2], rpBytes)
 	}
 }
@@ -225,7 +225,7 @@ func (save *CharacterSaveData) updateStructWithSaveData() {
 				save.GR = grpToGR(binary.LittleEndian.Uint32(save.decompSave[save.Pointers[pGRP] : save.Pointers[pGRP]+4]))
 			}
 			save.KQF = save.decompSave[save.Pointers[pKQF] : save.Pointers[pKQF]+8]
-		} else if _config.ErupeConfig.RealClientMode == _config.F5 {
+		} else if _config.ErupeConfig.RealClientMode == _config.F5 || _config.ErupeConfig.RealClientMode == _config.F4 {
 			save.RP = binary.LittleEndian.Uint16(save.decompSave[save.Pointers[pRP] : save.Pointers[pRP]+2])
 			save.HouseTier = save.decompSave[save.Pointers[pHouseTier] : save.Pointers[pHouseTier]+5]
 			save.HouseData = save.decompSave[save.Pointers[pHouseData] : save.Pointers[pHouseData]+195]

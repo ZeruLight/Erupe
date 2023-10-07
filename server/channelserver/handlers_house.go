@@ -119,7 +119,9 @@ func handleMsgMhfEnumerateHouse(s *Session, p mhfpacket.MHFPacket) {
 			bf.WriteUint8(0)
 		}
 		bf.WriteUint16(house.HRP)
-		bf.WriteUint16(house.GR)
+		if _config.ErupeConfig.RealClientMode >= _config.G10 {
+			bf.WriteUint16(house.GR)
+		}
 		ps.Uint8(bf, house.Name, true)
 	}
 	bf.Seek(0, 0)
@@ -238,8 +240,8 @@ func handleMsgMhfGetMyhouseInfo(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfUpdateMyhouseInfo(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfUpdateMyhouseInfo)
-	s.server.db.Exec("UPDATE user_binary SET mission=$1 WHERE id=$2", pkt.Unk0, s.charID)
-	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+	s.server.db.Exec("UPDATE user_binary SET mission=$1 WHERE id=$2", pkt.Data, s.charID)
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfLoadDecoMyset(s *Session, p mhfpacket.MHFPacket) {

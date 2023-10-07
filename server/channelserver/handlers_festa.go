@@ -227,6 +227,7 @@ func handleMsgMhfInfoFesta(s *Session, p mhfpacket.MHFPacket) {
 	}
 
 	// The Winner and Loser Armor IDs are missing
+	// Item 7011 may not exist in older versions, remove to prevent crashes
 	rewards := []FestaReward{
 		{1, 0, 7, 350, 1520, 0, 0, 0},
 		{1, 0, 7, 1000, 7011, 0, 0, 1},
@@ -254,6 +255,7 @@ func handleMsgMhfInfoFesta(s *Session, p mhfpacket.MHFPacket) {
 		{5, 0, 13, 0, 0, 0, 0, 0},
 		//{5, 0, 1, 0, 0, 0, 0, 0},
 	}
+
 	bf.WriteUint16(uint16(len(rewards)))
 	for _, reward := range rewards {
 		bf.WriteUint8(reward.Unk0)
@@ -261,11 +263,13 @@ func handleMsgMhfInfoFesta(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint16(reward.ItemType)
 		bf.WriteUint16(reward.Quantity)
 		bf.WriteUint16(reward.ItemID)
-		bf.WriteUint16(reward.Unk5)
-		bf.WriteUint16(reward.Unk6)
-		bf.WriteUint8(reward.Unk7)
+		// Not confirmed to be G1 but exists in G3
+		if _config.ErupeConfig.RealClientMode >= _config.G1 {
+			bf.WriteUint16(reward.Unk5)
+			bf.WriteUint16(reward.Unk6)
+			bf.WriteUint8(reward.Unk7)
+		}
 	}
-
 	if _config.ErupeConfig.RealClientMode <= _config.G61 {
 		if s.server.erupeConfig.GameplayOptions.MaximumFP > 0xFFFF {
 			s.server.erupeConfig.GameplayOptions.MaximumFP = 0xFFFF

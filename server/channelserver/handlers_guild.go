@@ -1851,14 +1851,14 @@ func handleMsgMhfGetGuildWeeklyBonusMaster(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetGuildWeeklyBonusMaster)
 
 	// Values taken from brand new guild capture
-	doAckBufSucceed(s, pkt.AckHandle, make([]byte, 0x28))
+	doAckBufSucceed(s, pkt.AckHandle, make([]byte, 40))
 }
 func handleMsgMhfGetGuildWeeklyBonusActiveCount(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetGuildWeeklyBonusActiveCount)
 	bf := byteframe.NewByteFrame()
-	bf.WriteUint8(0x3C) // Active count
-	bf.WriteUint8(0x3C) // Current active count
-	bf.WriteUint8(0x00) // New active count
+	bf.WriteUint8(60) // Active count
+	bf.WriteUint8(60) // Current active count
+	bf.WriteUint8(0)  // New active count
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
@@ -1866,18 +1866,18 @@ func handleMsgMhfGuildHuntdata(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGuildHuntdata)
 	bf := byteframe.NewByteFrame()
 	switch pkt.Operation {
-	case 0: // Unk
-		doAckBufSucceed(s, pkt.AckHandle, []byte{})
-	case 1: // Get Huntdata
+	case 0: // Acquire
+		// Probably mark everything as claimed
+	case 1: // Enumerate
 		bf.WriteUint8(0) // Entries
 		/* Entry format
 		uint32 UnkID
 		uint32 MonID
 		*/
-		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
-	case 2: // Unk, controls glow
-		doAckBufSucceed(s, pkt.AckHandle, []byte{0x00, 0x00})
+	case 2: // Check
+		bf.WriteBool(false)
 	}
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 type MessageBoardPost struct {

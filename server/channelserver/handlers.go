@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"erupe-ce/common/mhfcourse"
+	"erupe-ce/common/mhfmon"
 	ps "erupe-ce/common/pascalstring"
 	"erupe-ce/common/stringsupport"
 	_config "erupe-ce/config"
@@ -305,9 +306,20 @@ func handleMsgSysIssueLogkey(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgSysRecordLog(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysRecordLog)
+	if _config.ErupeConfig.RealClientMode == _config.ZZ {
+		bf := byteframe.NewByteFrameFromBytes(pkt.Data)
+		bf.Seek(32, 0)
+		var val uint8
+		for i := 0; i < 176; i++ {
+			val = bf.ReadUint8()
+			if val > 0 && mhfmon.Monsters[i].Large {
+				s.server.db.Exec(`INSERT INTO kill_logs (character_id, monster, quantity, timestamp) VALUES ($1, $2, $3, $4)`, s.charID, i, val, TimeAdjusted())
+			}
+		}
+	}
 	// remove a client returning to town from reserved slots to make sure the stage is hidden from board
 	delete(s.stage.reservedClientSlots, s.charID)
-	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgSysEcho(s *Session, p mhfpacket.MHFPacket) {}

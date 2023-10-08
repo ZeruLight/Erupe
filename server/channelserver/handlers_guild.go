@@ -1867,15 +1867,51 @@ func handleMsgMhfGuildHuntdata(s *Session, p mhfpacket.MHFPacket) {
 	bf := byteframe.NewByteFrame()
 	switch pkt.Operation {
 	case 0: // Acquire
-		// Probably mark everything as claimed
+		s.server.db.Exec(`UPDATE guild_characters SET box_claimed=$1 WHERE character_id=$2`, TimeAdjusted(), s.charID)
 	case 1: // Enumerate
 		bf.WriteUint8(0) // Entries
-		/* Entry format
-		uint32 UnkID
-		uint32 MonID
-		*/
+		rows, err := s.server.db.Query(`SELECT kl.id, kl.monster FROM kill_logs kl
+			INNER JOIN guild_characters gc ON kl.character_id = gc.character_id
+			WHERE gc.guild_id=$1
+			AND kl.timestamp >= (SELECT box_claimed FROM guild_characters WHERE character_id=$2)
+		`, pkt.GuildID, s.charID)
+		if err == nil {
+			var count uint8
+			var huntID, monID uint32
+			for rows.Next() {
+				err = rows.Scan(&huntID, &monID)
+				if err != nil {
+					continue
+				}
+				count++
+				if count > 255 {
+					count = 255
+					rows.Close()
+					break
+				}
+				bf.WriteUint32(huntID)
+				bf.WriteUint32(monID)
+			}
+			bf.Seek(0, 0)
+			bf.WriteUint8(count)
+		}
 	case 2: // Check
-		bf.WriteBool(false)
+		guild, err := GetGuildInfoByCharacterId(s, s.charID)
+		if err == nil {
+			var count uint8
+			err = s.server.db.QueryRow(`SELECT COUNT(*) FROM kill_logs kl
+			INNER JOIN guild_characters gc ON kl.character_id = gc.character_id
+			WHERE gc.guild_id=$1
+			AND kl.timestamp >= (SELECT box_claimed FROM guild_characters WHERE character_id=$2)
+		`, guild.ID, s.charID).Scan(&count)
+			if err == nil && count > 0 {
+				bf.WriteBool(true)
+			} else {
+				bf.WriteBool(false)
+			}
+		} else {
+			bf.WriteBool(false)
+		}
 	}
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }

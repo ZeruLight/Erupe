@@ -1900,10 +1900,10 @@ func handleMsgMhfGuildHuntdata(s *Session, p mhfpacket.MHFPacket) {
 		if err == nil {
 			var count uint8
 			err = s.server.db.QueryRow(`SELECT COUNT(*) FROM kill_logs kl
-			INNER JOIN guild_characters gc ON kl.character_id = gc.character_id
-			WHERE gc.guild_id=$1
-			AND kl.timestamp >= (SELECT box_claimed FROM guild_characters WHERE character_id=$2)
-		`, guild.ID, s.charID).Scan(&count)
+				INNER JOIN guild_characters gc ON kl.character_id = gc.character_id
+				WHERE gc.guild_id=$1
+				AND kl.timestamp >= (SELECT box_claimed FROM guild_characters WHERE character_id=$2)
+			`, guild.ID, s.charID).Scan(&count)
 			if err == nil && count > 0 {
 				bf.WriteBool(true)
 			} else {

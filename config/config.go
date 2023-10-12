@@ -139,7 +139,7 @@ type GameplayOptions struct {
 	BerserkRavienteMaxPlayers      uint8
 	ExtremeRavienteMaxPlayers      uint8
 	SmallBerserkRavienteMaxPlayers uint8
-	GUrgentRate                    uint16  // Adjusts the rate of G Urgent quests spawning
+	GUrgentRate                    float32 // Adjusts the rate of G Urgent quests spawning
 	GCPMultiplier                  float32 // Adjusts the multiplier of GCP rewarded for quest completion
 	GRPMultiplier                  float32 // Adjusts the multiplier of G Rank Points rewarded for quest completion
 	GSRPMultiplier                 float32 // Adjusts the multiplier of G Skill Rank Points rewarded for quest completion

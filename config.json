@@ -54,7 +54,7 @@
     "BerserkRavienteMaxPlayers": 32,
     "ExtremeRavienteMaxPlayers": 32,
     "SmallBerserkRavienteMaxPlayers": 8,
-    "GUrgentRate": 10,
+    "GUrgentRate": 0.10,
     "GCPMultiplier": 1.00,
     "GRPMultiplier": 1.00,
     "GSRPMultiplier": 1.00,

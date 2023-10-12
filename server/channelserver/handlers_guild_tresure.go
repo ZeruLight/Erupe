@@ -92,8 +92,8 @@ func handleMsgMhfRegistGuildTresure(s *Session, p mhfpacket.MHFPacket) {
 		if catID > 0 {
 			catsUsed = stringsupport.CSVAdd(catsUsed, int(catID))
 			for _, cat := range guildCats {
-				if cat.CatID == catID {
-					huntData.WriteBytes(cat.CatName)
+				if cat.ID == catID {
+					huntData.WriteBytes(cat.Name)
 					break
 				}
 			}

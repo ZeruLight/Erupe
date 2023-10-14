@@ -108,27 +108,8 @@ func handleMsgMhfRegistGuildTresure(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfAcquireGuildTresure(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfAcquireGuildTresure)
-	s.server.db.Exec("UPDATE guild_hunts SET acquired=true WHERE id=$1", pkt.HuntID)
+	s.server.db.Exec(`UPDATE guild_hunts SET acquired=true WHERE id=$1`, pkt.HuntID)
 	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
-}
-
-func treasureHuntUnregister(s *Session) {
-	guild, err := GetGuildInfoByCharacterId(s, s.charID)
-	if err != nil || guild == nil {
-		return
-	}
-	var huntID int
-	var hunters string
-	rows, err := s.server.db.Queryx("SELECT id, hunters FROM guild_hunts WHERE guild_id=$1", guild.ID)
-	if err != nil {
-		rows.Close()
-		return
-	}
-	for rows.Next() {
-		rows.Scan(&huntID, &hunters)
-		hunters = stringsupport.CSVRemove(hunters, int(s.charID))
-		s.server.db.Exec("UPDATE guild_hunts SET hunters=$1 WHERE id=$2", hunters, huntID)
-	}
 }
 
 func handleMsgMhfOperateGuildTresureReport(s *Session, p mhfpacket.MHFPacket) {
@@ -136,28 +117,15 @@ func handleMsgMhfOperateGuildTresureReport(s *Session, p mhfpacket.MHFPacket) {
 	var csv string
 	switch pkt.State {
 	case 0: // Report registration
-		// Unregister from all other hunts
-		treasureHuntUnregister(s)
-		if pkt.HuntID != 0 {
-			// Register to selected hunt
-			err := s.server.db.QueryRow("SELECT hunters FROM guild_hunts WHERE id=$1", pkt.HuntID).Scan(&csv)
-			if err != nil {
-				doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
-				return
-			}
-			csv = stringsupport.CSVAdd(csv, int(s.charID))
-			s.server.db.Exec("UPDATE guild_hunts SET hunters=$1 WHERE id=$2", csv, pkt.HuntID)
-		}
+		s.server.db.Exec(`UPDATE guild_characters SET treasure_hunt=$1 WHERE character_id=$2`, pkt.HuntID, s.charID)
 	case 1: // Collected by hunter
-		s.server.db.Exec("UPDATE guild_hunts SET hunters='', claimed=true WHERE id=$1", pkt.HuntID)
+		s.server.db.Exec(`UPDATE guild_hunts SET claimed=true WHERE id=$1;UPDATE guild_characters SET treasure_hunt=NULL WHERE treasure_hunt=$1`, pkt.HuntID)
 	case 2: // Claim treasure
-		err := s.server.db.QueryRow("SELECT treasure FROM guild_hunts WHERE id=$1", pkt.HuntID).Scan(&csv)
-		if err != nil {
-			doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
-			return
+		err := s.server.db.QueryRow(`SELECT treasure FROM guild_hunts WHERE id=$1`, pkt.HuntID).Scan(&csv)
+		if err == nil {
+			csv = stringsupport.CSVAdd(csv, int(s.charID))
+			s.server.db.Exec(`UPDATE guild_hunts SET treasure=$1 WHERE id=$2`, csv, pkt.HuntID)
 		}
-		csv = stringsupport.CSVAdd(csv, int(s.charID))
-		s.server.db.Exec("UPDATE guild_hunts SET treasure=$1 WHERE id=$2", csv, pkt.HuntID)
 	}
 	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }

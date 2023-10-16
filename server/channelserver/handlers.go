@@ -2,7 +2,7 @@ package channelserver
 
 import (
 	"encoding/binary"
-	"encoding/hex"
+	"erupe-ce/common/mhf"
 	"erupe-ce/common/mhfcourse"
 	"erupe-ce/common/mhfmon"
 	ps "erupe-ce/common/pascalstring"
@@ -644,8 +644,138 @@ func handleMsgMhfEnumeratePrice(s *Session, p mhfpacket.MHFPacket) {
 	//resp.WriteUint16(0) // Entry type 1 count
 	//resp.WriteUint16(0) // Entry type 2 count
 	// directly lifted for now because lacking it crashes the counter on having actual events present
-	data, _ := hex.DecodeString("0000000066000003E800000000007300640100000320000000000006006401000003200000000000300064010000044C00000000007200640100000384000000000034006401000003840000000000140064010000051400000000006E006401000003E8000000000016006401000003E8000000000001006401000003200000000000430064010000057800000000006F006401000003840000000000330064010000044C00000000000B006401000003E800000000000F006401000006400000000000700064010000044C0000000000110064010000057800000000004C006401000003E8000000000059006401000006A400000000006D006401000005DC00000000004B006401000005DC000000000050006401000006400000000000350064010000070800000000006C0064010000044C000000000028006401000005DC00000000005300640100000640000000000060006401000005DC00000000005E0064010000051400000000007B006401000003E80000000000740064010000070800000000006B0064010000025800000000001B0064010000025800000000001C006401000002BC00000000001F006401000006A400000000007900640100000320000000000008006401000003E80000000000150064010000070800000000007A0064010000044C00000000000E00640100000640000000000055006401000007D0000000000002006401000005DC00000000002F0064010000064000000000002A0064010000076C00000000007E006401000002BC0000000000440064010000038400000000005C0064010000064000000000005B006401000006A400000000007D0064010000076C00000000007F006401000005DC0000000000540064010000064000000000002900640100000960000000000024006401000007D0000000000081006401000008340000000000800064010000038400000000001A006401000003E800000000002D0064010000038400000000004A006401000006A400000000005A00640100000384000000000027006401000007080000000000830064010000076C000000000040006401000006400000000000690064010000044C000000000025006401000004B000000000003100640100000708000000000082006401000003E800000000006500640100000640000000000051006401000007D000000000008C0064010000070800000000004D0064010000038400000000004E0064010000089800000000008B006401000004B000000000002E006401000009600000000000920064010000076C00000000008E00640100000514000000000068006401000004B000000000002B006401000003E800000000002C00640100000BB8000000000093006401000008FC00000000009000640100000AF0000000000094006401000006A400000000008D0064010000044C000000000052006401000005DC00000000004F006401000008980000000000970064010000070800000000006A0064010000064000000000005F00640100000384000000000026006401000008FC000000000096006401000007D00000000000980064010000076C000000000041006401000006A400000000003B006401000007080000000000360064010000083400000000009F00640100000A2800000000009A0064010000076C000000000021006401000007D000000000006300640100000A8C0000000000990064010000089800000000009E006401000007080000000000A100640100000C1C0000000000A200640100000C800000000000A400640100000DAC0000000000A600640100000C800000000000A50064010010")
-	doAckBufSucceed(s, pkt.AckHandle, data)
+	var data []*byteframe.ByteFrame
+
+	type PriceStruct struct {
+		Unk0    uint16
+		Price   uint16
+		Unk1    uint32
+		Monster uint16
+		Unk2    uint16
+		Unk3    uint8
+	}
+
+	var priceData = []PriceStruct{
+		{0, 1000, 0, uint16(mhf.Ceanataur), 100, 1},
+		{0, 800, 0, uint16(mhf.YianKutKu), 100, 1},
+		{0, 800, 0, uint16(mhf.DaimyoHermitaur), 100, 1},
+		{0, 1100, 0, uint16(mhf.Farunokku), 100, 1},
+		{0, 900, 0, uint16(mhf.Congalala), 100, 1},
+		{0, 900, 0, uint16(mhf.Gypceros), 100, 1},
+		{0, 1300, 0, uint16(mhf.Hyujikiki), 100, 1},
+		{0, 1000, 0, uint16(mhf.Basarios), 100, 1},
+		{0, 1000, 0, uint16(mhf.Rathian), 100, 1},
+		{0, 800, 0, uint16(mhf.ShogunCeanataur), 100, 1},
+		{0, 1400, 0, uint16(mhf.Midogaron), 100, 1},
+		{0, 900, 0, uint16(mhf.Blangonga), 100, 1},
+		{0, 1100, 0, uint16(mhf.Rathalos), 100, 1},
+		{0, 1000, 0, uint16(mhf.Khezu), 100, 1},
+		{0, 1600, 0, uint16(mhf.Giaorugu), 100, 1},
+		{0, 1100, 0, uint16(mhf.Gravios), 100, 1},
+		{0, 1400, 0, uint16(mhf.Tigrex), 100, 1},
+		{0, 1000, 0, uint16(mhf.Pariapuria), 100, 1},
+		{0, 1700, 0, uint16(mhf.Anorupatisu), 100, 1},
+		{0, 1500, 0, uint16(mhf.Lavasioth), 100, 1},
+		{0, 1500, 0, uint16(mhf.Espinas), 100, 1},
+		{0, 1600, 0, uint16(mhf.Rajang), 100, 1},
+		{0, 1800, 0, uint16(mhf.Rebidiora), 100, 1},
+		{0, 1100, 0, uint16(mhf.YianGaruga), 100, 1},
+		{0, 1500, 0, uint16(mhf.AkuraVashimu), 100, 1},
+		{0, 1600, 0, uint16(mhf.Gurenzeburu), 100, 1},
+		{0, 1500, 0, uint16(mhf.Dyuragaua), 100, 1},
+		{0, 1300, 0, uint16(mhf.Gougarf), 100, 1},
+		{0, 1000, 0, uint16(mhf.Shantien), 100, 1},
+		{0, 1800, 0, uint16(mhf.Disufiroa), 100, 1},
+		{0, 600, 0, uint16(mhf.Velocidrome), 100, 1},
+		{0, 600, 0, uint16(mhf.Gendrome), 100, 1},
+		{0, 700, 0, uint16(mhf.Iodrome), 100, 1},
+		{0, 1700, 0, uint16(mhf.Baruragaru), 100, 1},
+		{0, 800, 0, uint16(mhf.Cephadrome), 100, 1},
+		{0, 1000, 0, uint16(mhf.Plesioth), 100, 1},
+		{0, 1800, 0, uint16(mhf.Zerureusu), 100, 1},
+		{0, 1100, 0, uint16(mhf.Diablos), 100, 1},
+		{0, 1600, 0, uint16(mhf.Berukyurosu), 100, 1},
+		{0, 2000, 0, uint16(mhf.Fatalis), 100, 1},
+		{0, 1500, 0, uint16(mhf.BlackGravios), 100, 1},
+		{0, 1600, 0, uint16(mhf.GoldRathian), 100, 1},
+		{0, 1900, 0, uint16(mhf.Meraginasu), 100, 1},
+		{0, 700, 0, uint16(mhf.Bulldrome), 100, 1},
+		{0, 900, 0, uint16(mhf.NonoOrugaron), 100, 1},
+		{0, 1600, 0, uint16(mhf.KamuOrugaron), 100, 1},
+		{0, 1700, 0, uint16(mhf.Forokururu), 100, 1},
+		{0, 1900, 0, uint16(mhf.Diorekkusu), 100, 1},
+		{0, 1500, 0, uint16(mhf.AkuraJebia), 100, 1},
+		{0, 1600, 0, uint16(mhf.SilverRathalos), 100, 1},
+		{0, 2400, 0, uint16(mhf.CrimsonFatalis), 100, 1},
+		{0, 2000, 0, uint16(mhf.Inagami), 100, 1},
+		{0, 2100, 0, uint16(mhf.GarubaDaora), 100, 1},
+		{0, 900, 0, uint16(mhf.Monoblos), 100, 1},
+		{0, 1000, 0, uint16(mhf.RedKhezu), 100, 1},
+		{0, 900, 0, uint16(mhf.Hypnocatrice), 100, 1},
+		{0, 1700, 0, uint16(mhf.WhiteEspinas), 100, 1},
+		{0, 900, 0, uint16(mhf.PurpleGypceros), 100, 1},
+		{0, 1800, 0, uint16(mhf.Poborubarumu), 100, 1},
+		{0, 1900, 0, uint16(mhf.Lunastra), 100, 1},
+		{0, 1600, 0, uint16(mhf.Kuarusepusu), 100, 1},
+		{0, 1100, 0, uint16(mhf.PinkRathian), 100, 1},
+		{0, 1200, 0, uint16(mhf.AzureRathalos), 100, 1},
+		{0, 1800, 0, uint16(mhf.Varusaburosu), 100, 1},
+		{0, 1000, 0, uint16(mhf.Gogomoa), 100, 1},
+		{0, 1600, 0, uint16(mhf.OrangeEspinas), 100, 1},
+		{0, 2000, 0, uint16(mhf.Harudomerugu), 100, 1},
+		{0, 1800, 0, uint16(mhf.Akantor), 100, 1},
+		{0, 900, 0, uint16(mhf.BrightHypnoc), 100, 1},
+		{0, 2200, 0, uint16(mhf.Gureadomosu), 100, 1},
+		{0, 1200, 0, uint16(mhf.GreenPlesioth), 100, 1},
+		{0, 2400, 0, uint16(mhf.Zinogre), 100, 1},
+		{0, 1900, 0, uint16(mhf.Gasurabazura), 100, 1},
+		{0, 1300, 0, uint16(mhf.Abiorugu), 100, 1},
+		{0, 1200, 0, uint16(mhf.BlackDiablos), 100, 1},
+		{0, 1000, 0, uint16(mhf.WhiteMonoblos), 100, 1},
+		{0, 3000, 0, uint16(mhf.Deviljho0), 100, 1},
+		{0, 2300, 0, uint16(mhf.YamaKurai), 100, 1},
+		{0, 2800, 0, uint16(mhf.Brachydios), 100, 1},
+		{0, 1700, 0, uint16(mhf.Toridcless), 100, 1},
+		{0, 1100, 0, uint16(mhf.WhiteHypnoc), 100, 1},
+		{0, 1500, 0, uint16(mhf.LavasiothSubspecies), 100, 1},
+		{0, 2200, 0, uint16(mhf.Barioth), 100, 1},
+		{0, 1800, 0, uint16(mhf.Odibatorasu), 100, 1},
+		{0, 1600, 0, uint16(mhf.Doragyurosu), 100, 1},
+		{0, 900, 0, uint16(mhf.BlueYianKutKu), 100, 1},
+		{0, 2300, 0, uint16(mhf.ToaTesukatora), 100, 1},
+		{0, 2000, 0, uint16(mhf.Uragaan), 100, 1},
+		{0, 1900, 0, uint16(mhf.Teostra), 100, 1},
+		{0, 1700, 0, uint16(mhf.Chameleos), 100, 1},
+		{0, 1800, 0, uint16(mhf.KushalaDaora), 100, 1},
+		{0, 2100, 0, uint16(mhf.Nargacuga), 100, 1},
+		{0, 2600, 0, uint16(mhf.Guanzorumu), 100, 1},
+		{0, 1900, 0, uint16(mhf.Kirin), 100, 1},
+		{0, 2000, 0, uint16(mhf.Rukodiora), 100, 1},
+		{0, 2700, 0, uint16(mhf.StygianZinogre), 100, 1},
+		{0, 2200, 0, uint16(mhf.Voljang), 100, 1},
+		{0, 1800, 0, uint16(mhf.Zenaserisu), 100, 1},
+		{0, 3100, 0, uint16(mhf.GoreMagala), 100, 1},
+		{0, 3200, 0, uint16(mhf.ShagaruMagala), 100, 1},
+		{0, 3500, 0, uint16(mhf.Eruzerion), 100, 1},
+		{0, 3200, 0, uint16(mhf.Amatsu), 100, 1},
+	}
+	bf := byteframe.NewByteFrame()
+	bf.WriteBytes(make([]byte, 4))
+	bf.WriteUint8(uint8(len(priceData)))
+	for _, priceLine := range priceData {
+		bf := byteframe.NewByteFrame()
+		bf.WriteUint16(priceLine.Unk0)
+		bf.WriteUint16(priceLine.Price)
+		bf.WriteUint32(priceLine.Unk1)
+		bf.WriteUint16(priceLine.Monster)
+		bf.WriteUint16(priceLine.Unk2)
+		bf.WriteUint8(priceLine.Unk3)
+		data = append(data, bf)
+	}
+	for i := range data {
+		bf.WriteBytes(data[i].Data())
+	}
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfEnumerateOrder(s *Session, p mhfpacket.MHFPacket) {

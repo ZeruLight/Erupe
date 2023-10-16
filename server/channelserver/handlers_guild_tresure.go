@@ -14,7 +14,7 @@ type TreasureHunt struct {
 	Return      uint32 `db:"return"`
 	Acquired    bool   `db:"acquired"`
 	Claimed     bool   `db:"claimed"`
-	Hunters     string `db:"hunters"`
+	Hunters     uint32 `db:"hunters"`
 	Treasure    string `db:"treasure"`
 	HuntData    []byte `db:"hunt_data"`
 }
@@ -28,8 +28,10 @@ func handleMsgMhfEnumerateGuildTresure(s *Session, p mhfpacket.MHFPacket) {
 	}
 	var hunts []TreasureHunt
 	var hunt TreasureHunt
-	rows, err := s.server.db.Queryx(`SELECT id, host_id, destination, level, return, acquired, claimed, hunters, treasure, hunt_data FROM guild_hunts WHERE guild_id=$1 AND $2 < return+$3
-		`, guild.ID, TimeAdjusted().Unix(), s.server.erupeConfig.GameplayOptions.TreasureHuntExpiry)
+	rows, err := s.server.db.Queryx(`SELECT gh.id, gh.host_id, gh.destination, gh.level, gh.return, gh.acquired, gh.claimed, gh.treasure, gh.hunt_data,
+		(SELECT COUNT(*) FROM guild_characters gc WHERE gc.treasure_hunt = gh.id AND gc.character_id <> $1) AS hunters
+		FROM guild_hunts gh WHERE gh.guild_id=$2 AND $3 < gh.return+$4
+	`, s.charID, guild.ID, TimeAdjusted().Unix(), s.server.erupeConfig.GameplayOptions.TreasureHuntExpiry)
 	if err != nil {
 		rows.Close()
 		return
@@ -39,8 +41,6 @@ func handleMsgMhfEnumerateGuildTresure(s *Session, p mhfpacket.MHFPacket) {
 		if err != nil {
 			continue
 		}
-		// Remove self from other hunter count
-		hunt.Hunters = stringsupport.CSVRemove(hunt.Hunters, int(s.charID))
 		if pkt.MaxHunts == 1 {
 			if hunt.HostID != s.charID || hunt.Acquired {
 				continue
@@ -63,7 +63,7 @@ func handleMsgMhfEnumerateGuildTresure(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint32(h.HuntID)
 		bf.WriteUint32(h.Destination)
 		bf.WriteUint32(h.Level)
-		bf.WriteUint32(uint32(stringsupport.CSVLength(h.Hunters)))
+		bf.WriteUint32(h.Hunters)
 		bf.WriteUint32(h.Return)
 		bf.WriteBool(h.Claimed)
 		bf.WriteBool(stringsupport.CSVContains(h.Treasure, int(s.charID)))

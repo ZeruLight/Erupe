@@ -125,6 +125,8 @@ type GameplayOptions struct {
 	MaximumNP                      int    // Maximum number of NP held by a player
 	MaximumRP                      uint16 // Maximum number of RP held by a player
 	MaximumFP                      uint32 // Maximum number of FP held by a player
+	TreasureHuntExpiry             uint32 // Seconds until a Clan Treasure Hunt will expire
+	TreasureHuntPartnyaCooldown    uint32 // Seconds until a Partnya can be assigned to another Clan Treasure Hunt
 	DisableLoginBoost              bool   // Disables the Login Boost system
 	DisableBoostTime               bool   // Disables the daily NetCafe Boost Time
 	BoostTimeDuration              int    // The number of minutes NetCafe Boost Time lasts for

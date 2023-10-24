@@ -5,11 +5,11 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"erupe-ce/common/stringsupport"
+	_config "erupe-ce/config"
 	"fmt"
 	"go.uber.org/zap"
 	"golang.org/x/exp/slices"
 	"math/rand"
-	_config "erupe-ce/config"
 	"time"
 
 	"erupe-ce/common/byteframe"
@@ -102,7 +102,7 @@ func handleMsgMhfGetUdSchedule(s *Session, p mhfpacket.MHFPacket) {
 		timestamps = generateDivaTimestamps(s, start, false)
 	}
 
-	if s.server.erupeConfig.RealClientMode <= _config.Z1 {
+	if s.server.erupeConfig.RealClientMode > _config.Z1 {
 		bf.WriteUint32(id)
 	}
 	for i := range timestamps {

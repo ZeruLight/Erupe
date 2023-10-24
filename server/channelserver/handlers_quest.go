@@ -47,10 +47,6 @@ func handleMsgSysGetFile(s *Session, p mhfpacket.MHFPacket) {
 			)
 		}
 
-		if s.server.erupeConfig.GameplayOptions.SeasonOverride {
-			pkt.Filename = seasonConversion(s, pkt.Filename)
-		}
-
 		data, err := os.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("quests/%s.bin", pkt.Filename)))
 		if err != nil {
 			s.logger.Error(fmt.Sprintf("Failed to open file: %s/quests/%s.bin", s.server.erupeConfig.BinPath, pkt.Filename))
@@ -59,28 +55,6 @@ func handleMsgSysGetFile(s *Session, p mhfpacket.MHFPacket) {
 			return
 		}
 		doAckBufSucceed(s, pkt.AckHandle, data)
-	}
-}
-
-func questSuffix(s *Session) string {
-	// Determine the letter to append for day / night
-	var timeSet string
-	if TimeGameAbsolute() > 2880 {
-		timeSet = "d"
-	} else {
-		timeSet = "n"
-	}
-	return fmt.Sprintf("%s%d", timeSet, s.server.Season())
-}
-
-func seasonConversion(s *Session, questFile string) string {
-	filename := fmt.Sprintf("%s%s", questFile[:5], questSuffix(s))
-
-	// Return original file if file doesn't exist
-	if _, err := os.Stat(filename); err == nil {
-		return filename
-	} else {
-		return questFile
 	}
 }
 
@@ -145,8 +119,9 @@ func loadQuestFile(s *Session, questId int) []byte {
 func makeEventQuest(s *Session, rows *sql.Rows) ([]byte, error) {
 	var id, mark uint32
 	var questId int
-	var maxPlayers, questType uint8
-	rows.Scan(&id, &maxPlayers, &questType, &questId, &mark)
+	var indexValue, maxPlayers, questType uint8
+	var questOption uint16
+	rows.Scan(&id, &indexValue, &maxPlayers, &questType, &questId, &mark, &questOption)
 
 	data := loadQuestFile(s, questId)
 	if data == nil {
@@ -155,8 +130,8 @@ func makeEventQuest(s *Session, rows *sql.Rows) ([]byte, error) {
 
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint32(id)
-	bf.WriteUint32(0)
-	bf.WriteUint8(0) // Indexer
+	bf.WriteUint32(0)         //unk
+	bf.WriteUint8(indexValue) // Indexer
 	switch questType {
 	case 16:
 		bf.WriteUint8(s.server.erupeConfig.GameplayOptions.RegularRavienteMaxPlayers)
@@ -177,16 +152,36 @@ func makeEventQuest(s *Session, rows *sql.Rows) ([]byte, error) {
 	} else {
 		bf.WriteBool(true)
 	}
-	bf.WriteUint16(0)
+	bf.WriteUint16(0) //unk counter id possibly?
 	if _config.ErupeConfig.RealClientMode >= _config.G1 {
 		bf.WriteUint32(mark)
 	}
-	bf.WriteUint16(0)
+	bf.WriteUint16(0) //possible padding
 	bf.WriteUint16(uint16(len(data)))
 	bf.WriteBytes(data)
-	ps.Uint8(bf, "", true) // What is this string for?
+	//Season/RequiredObject Flag Replacement
+	bf.Seek(0x18, 0)
+	// Bitset Structure: bit 8 unk, bit 7 required objective,bit 6 unk,bit 5 night,bit 4 day,bit 3 cold,bit 2 warm,bit 1 breeding
+	// if the byte is set to 0 the game choses the quest file corresponding to whatever season the game is on
+	if s.server.erupeConfig.GameplayOptions.SeasonOverride {
+		bf.WriteUint16(0)
+	} else {
+		bf.WriteUint16(questOption)
+	}
+
+	// Bitset Structure Quest Varient 1: bit 8 Hiden, bit 7 Fix HC,bit 6 HC to UL,bit 5 GRank,bit 4 Unk,bit 3 UNK,bit 2 UNK,bit 1 UNK
+	// Bitset Structure Quest Varient 2: bit 8 UNK, bit 7 No Halk Pots,bit 6 No halk/poogie,bit 5 Timer,bit 4 UNK,bit 3 Fixed Difficulty,bit 2 UNK,bit 1 UNK
+	// Bitset Structure Quest Varient 3: bit 8 Disable Reward Skill, bit 7 GSR to GR,bit 6 unk,bit 5 Musou?,bit 4 Zenith,bit 3 Inception,bit 2 UNK,bit 1 UNK
+	bf.Seek(0xAF, 0)
+	quest_variant_3 := bf.ReadUint8()
+	quest_variant_3 &= 0b11011111 //disables Inception flag at position 3 for any quests that dont have it set.
+	bf.Seek(0xAF, 0)
+	bf.WriteUint8(quest_variant_3)
+
+	ps.Uint8(bf, "", true) // Debug/Notes string for quest
 
 	return bf.Data(), nil
+
 }
 
 func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
@@ -195,7 +190,7 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint16(0)
 
-	rows, _ := s.server.db.Query("SELECT id, COALESCE(max_players, 4) AS max_players, quest_type, quest_id, COALESCE(mark, 0) AS mark FROM event_quests ORDER BY quest_id")
+	rows, _ := s.server.db.Query("SELECT id, COALESCE(max_players, 4) AS max_players, index_value,quest_type, quest_id,quest_option, COALESCE(mark, 0) AS mark FROM event_quests ORDER BY quest_id")
 	for rows.Next() {
 		data, err := makeEventQuest(s, rows)
 		if err != nil {

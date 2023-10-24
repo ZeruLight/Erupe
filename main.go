@@ -126,6 +126,7 @@ func main() {
 	// Clear stale data
 	_ = db.MustExec("DELETE FROM sign_sessions")
 	_ = db.MustExec("DELETE FROM servers")
+	_ = db.MustExec(`UPDATE guild_characters SET treasure_hunt=NULL`)
 
 	// Clean the DB if the option is on.
 	if config.DevMode && config.DevModeOptions.CleanDB {

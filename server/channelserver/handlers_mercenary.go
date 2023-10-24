@@ -325,44 +325,38 @@ type Airou struct {
 }
 
 func getGuildAirouList(s *Session) []Airou {
-	var guild *Guild
-	var err error
 	var guildCats []Airou
-
-	// returning 0 cats on any guild issues
-	// can probably optimise all of the guild queries pretty heavily
-	guild, err = GetGuildInfoByCharacterId(s, s.charID)
+	bannedCats := make(map[uint32]int)
+	guild, err := GetGuildInfoByCharacterId(s, s.charID)
 	if err != nil {
 		return guildCats
 	}
-
-	// Get cats used recently
-	// Retail reset at midday, 12 hours is a midpoint
-	tempBanDuration := 43200 - (1800) // Minus hunt time
-	bannedCats := make(map[uint32]int)
-	var csvTemp string
-	rows, err := s.server.db.Query(`SELECT cats_used
-	FROM guild_hunts gh
-	INNER JOIN characters c
-	ON gh.host_id = c.id
-	WHERE c.id=$1 AND gh.return+$2>$3`, s.charID, tempBanDuration, TimeAdjusted().Unix())
+	rows, err := s.server.db.Query(`SELECT cats_used FROM guild_hunts gh
+		INNER JOIN characters c ON gh.host_id = c.id WHERE c.id=$1
+	`, s.charID)
 	if err != nil {
 		s.logger.Warn("Failed to get recently used airous", zap.Error(err))
+		return guildCats
 	}
+
+	var csvTemp string
+	var startTemp time.Time
 	for rows.Next() {
-		rows.Scan(&csvTemp)
-		for i, j := range stringsupport.CSVElems(csvTemp) {
-			bannedCats[uint32(j)] = i
+		err = rows.Scan(&csvTemp, &startTemp)
+		if err != nil {
+			continue
+		}
+		if startTemp.Add(time.Second * time.Duration(s.server.erupeConfig.GameplayOptions.TreasureHuntPartnyaCooldown)).Before(TimeAdjusted()) {
+			for i, j := range stringsupport.CSVElems(csvTemp) {
+				bannedCats[uint32(j)] = i
+			}
 		}
 	}
 
-	rows, err = s.server.db.Query(`SELECT c.otomoairou
-	FROM characters c
-	INNER JOIN guild_characters gc
-	ON gc.character_id = c.id
+	rows, err = s.server.db.Query(`SELECT c.otomoairou FROM characters c
+	INNER JOIN guild_characters gc ON gc.character_id = c.id
 	WHERE gc.guild_id = $1 AND c.otomoairou IS NOT NULL
-	ORDER BY c.id ASC
-	LIMIT 60;`, guild.ID)
+	ORDER BY c.id LIMIT 60`, guild.ID)
 	if err != nil {
 		s.logger.Warn("Selecting otomoairou based on guild failed", zap.Error(err))
 		return guildCats

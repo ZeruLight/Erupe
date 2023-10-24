@@ -109,10 +109,11 @@ func handleMsgMhfGetUdSchedule(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint32(timestamps[i])
 	}
 
-	bf.WriteUint16(0x19) // Unk 00011001
-	bf.WriteUint16(0x2D) // Unk 00101101
-	bf.WriteUint16(0x02) // Unk 00000010
-	bf.WriteUint16(0x02) // Unk 00000010
+	// Apparently buff multipliers
+	bf.WriteUint16(22)
+	bf.WriteUint16(45)
+	bf.WriteUint16(2)
+	bf.WriteUint16(2)
 
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
@@ -185,30 +186,59 @@ func handleMsgMhfGetUdMyPoint(s *Session, p mhfpacket.MHFPacket) {
 	doAckBufSucceed(s, pkt.AckHandle, make([]byte, 145))
 }
 
+type UdPointTargets struct {
+	Type  uint8
+	Value uint64
+}
+
 func handleMsgMhfGetUdTotalPointInfo(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetUdTotalPointInfo)
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint8(0)
-	prayerUse := make([]uint64, 25)
-	prayerUseValues := []uint64{500000, 1000000, 2000000, 3000000, 4000000, 5000000, 6000000, 7000000, 8000000, 9000000, 10000000, 15000000, 20000000, 25000000, 30000000, 35000000, 40000000, 45000000, 50000000, 55000000, 60000000, 70000000, 80000000, 90000000, 100000000}
-	shopLevel := make([]uint64, 3)
-	shopLevelValues := []uint64{9000000, 30000000, 55000000}
-	for i := range prayerUseValues {
-		prayerUse[i] = prayerUseValues[i]
-	}
-	for i := range prayerUse {
-		bf.WriteUint64(prayerUse[i])
-	}
-	for i := range shopLevelValues {
-		shopLevel[i] = shopLevelValues[i]
-	}
-	for i := range shopLevel {
-		bf.WriteUint64(shopLevel[i])
+	targets := make([]UdPointTargets, 64)
+	defaultTargets := []UdPointTargets{
+		{0, 500000},
+		{0, 1000000},
+		{0, 2000000},
+		{0, 3000000},
+		{0, 4000000},
+		{0, 5000000},
+		{0, 6000000},
+		{0, 7000000},
+		{0, 8000000},
+		{0, 9000000},
+		{0, 10000000},
+		{0, 15000000},
+		{0, 20000000},
+		{0, 25000000},
+		{0, 30000000},
+		{0, 35000000},
+		{0, 40000000},
+		{0, 45000000},
+		{0, 50000000},
+		{0, 55000000},
+		{0, 60000000},
+		{0, 70000000},
+		{0, 80000000},
+		{0, 90000000},
+		{0, 100000000},
+		{1, 9000000},
+		{2, 30000000},
+		{3, 55000000},
 	}
 
-	bf.WriteBytes(make([]byte, 312))
-	bf.WriteUint32(0x00010203)
-	bf.WriteBytes(make([]byte, 36))
+	for i, target := range defaultTargets {
+		targets[i].Type = target.Type
+		targets[i].Value = target.Value
+	}
+
+	for _, target := range targets {
+		bf.WriteUint64(target.Value)
+	}
+	for _, target := range targets {
+		bf.WriteUint8(target.Type)
+	}
+
 	totalSouls := uint64(1000000000)
 	bf.WriteUint64(totalSouls)
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())

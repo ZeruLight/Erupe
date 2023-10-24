@@ -233,7 +233,7 @@ func logoutPlayer(s *Session) {
 
 	s.server.db.Exec("UPDATE characters SET time_played = $1 WHERE id = $2", timePlayed, s.charID)
 
-	treasureHuntUnregister(s)
+	s.server.db.Exec(`UPDATE guild_characters SET treasure_hunt=NULL WHERE character_id=$1`, s.charID)
 
 	if s.stage == nil {
 		return

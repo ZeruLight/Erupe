@@ -3,6 +3,7 @@ package channelserver
 import (
 	"fmt"
 	"net"
+	"strings"
 	"sync"
 
 	"erupe-ce/common/byteframe"
@@ -22,7 +23,7 @@ type Config struct {
 	Logger      *zap.Logger
 	DB          *sqlx.DB
 	DiscordBot  *discordbot.DiscordBot
-	ErupeConfig *config.Config
+	ErupeConfig *_config.Config
 	Name        string
 	Enable      bool
 }
@@ -43,10 +44,11 @@ type Server struct {
 	Port           uint16
 	logger         *zap.Logger
 	db             *sqlx.DB
-	erupeConfig    *config.Config
+	erupeConfig    *_config.Config
 	acceptConns    chan net.Conn
 	deleteConns    chan net.Conn
 	sessions       map[net.Conn]*Session
+	objectIDs      map[*Session]uint16
 	listener       net.Listener // Listener that is created when Server.Start is called.
 	isShuttingDown bool
 
@@ -75,61 +77,30 @@ type Server struct {
 
 type Raviente struct {
 	sync.Mutex
-
-	register *RavienteRegister
-	state    *RavienteState
-	support  *RavienteSupport
+	id       uint16
+	register []uint32
+	state    []uint32
+	support  []uint32
 }
 
-type RavienteRegister struct {
-	nextTime     uint32
-	startTime    uint32
-	postTime     uint32
-	killedTime   uint32
-	ravienteType uint32
-	maxPlayers   uint32
-	carveQuest   uint32
-	register     []uint32
-}
-
-type RavienteState struct {
-	stateData []uint32
-}
-
-type RavienteSupport struct {
-	supportData []uint32
-}
-
-// Set up the Raviente variables for the server
-func NewRaviente() *Raviente {
-	ravienteRegister := &RavienteRegister{
-		nextTime:     0,
-		startTime:    0,
-		killedTime:   0,
-		postTime:     0,
-		ravienteType: 0,
-		maxPlayers:   0,
-		carveQuest:   0,
+func (s *Server) resetRaviente() {
+	for _, semaphore := range s.semaphore {
+		if strings.HasPrefix(semaphore.name, "hs_l0") {
+			return
+		}
 	}
-	ravienteState := &RavienteState{}
-	ravienteSupport := &RavienteSupport{}
-	ravienteRegister.register = []uint32{0, 0, 0, 0, 0}
-	ravienteState.stateData = []uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-	ravienteSupport.supportData = []uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-
-	raviente := &Raviente{
-		register: ravienteRegister,
-		state:    ravienteState,
-		support:  ravienteSupport,
-	}
-	return raviente
+	s.logger.Debug("All Raviente Semaphores empty, resetting")
+	s.raviente.id = s.raviente.id + 1
+	s.raviente.register = make([]uint32, 30)
+	s.raviente.state = make([]uint32, 30)
+	s.raviente.support = make([]uint32, 30)
 }
 
-func (r *Raviente) GetRaviMultiplier(s *Server) float64 {
-	raviSema := getRaviSemaphore(s)
+func (s *Server) GetRaviMultiplier() float64 {
+	raviSema := s.getRaviSemaphore()
 	if raviSema != nil {
 		var minPlayers int
-		if r.register.maxPlayers > 8 {
+		if s.raviente.register[9] > 8 {
 			minPlayers = 24
 		} else {
 			minPlayers = 4
@@ -142,6 +113,33 @@ func (r *Raviente) GetRaviMultiplier(s *Server) float64 {
 	return 0
 }
 
+func (s *Server) UpdateRavi(semaID uint32, index uint8, value uint32, update bool) (uint32, uint32) {
+	var prev uint32
+	var dest *[]uint32
+	switch semaID {
+	case 0x40000:
+		switch index {
+		case 17, 28: // Ignore res and poison
+			break
+		default:
+			value = uint32(float64(value) * s.GetRaviMultiplier())
+		}
+		dest = &s.raviente.state
+	case 0x50000:
+		dest = &s.raviente.support
+	case 0x60000:
+		dest = &s.raviente.register
+	default:
+		return 0, 0
+	}
+	if update {
+		(*dest)[index] += value
+	} else {
+		(*dest)[index] = value
+	}
+	return prev, (*dest)[index]
+}
+
 // NewServer creates a new Server type.
 func NewServer(config *Config) *Server {
 	s := &Server{
@@ -152,13 +150,19 @@ func NewServer(config *Config) *Server {
 		acceptConns:     make(chan net.Conn),
 		deleteConns:     make(chan net.Conn),
 		sessions:        make(map[net.Conn]*Session),
+		objectIDs:       make(map[*Session]uint16),
 		stages:          make(map[string]*Stage),
 		userBinaryParts: make(map[userBinaryPartID][]byte),
 		semaphore:       make(map[string]*Semaphore),
 		semaphoreIndex:  7,
 		discordBot:      config.DiscordBot,
 		name:            config.Name,
-		raviente:        NewRaviente(),
+		raviente: &Raviente{
+			id:       1,
+			register: make([]uint32, 30),
+			state:    make([]uint32, 30),
+			support:  make([]uint32, 30),
+		},
 	}
 
 	// Mezeporta
@@ -391,17 +395,23 @@ func (s *Server) NextSemaphoreID() uint32 {
 	for {
 		exists := false
 		s.semaphoreIndex = s.semaphoreIndex + 1
-		if s.semaphoreIndex == 0 {
-			s.semaphoreIndex = 7 // Skip reserved indexes
+		if s.semaphoreIndex > 0xFFFF {
+			s.semaphoreIndex = 1
 		}
 		for _, semaphore := range s.semaphore {
 			if semaphore.id == s.semaphoreIndex {
 				exists = true
+				break
 			}
 		}
-		if exists == false {
+		if !exists {
 			break
 		}
 	}
 	return s.semaphoreIndex
+}
+
+func (s *Server) Season() uint8 {
+	sid := int64(((s.ID & 0xFF00) - 4096) / 256)
+	return uint8(((TimeAdjusted().Unix() / 86400) + sid) % 3)
 }

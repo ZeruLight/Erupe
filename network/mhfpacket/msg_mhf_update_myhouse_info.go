@@ -1,17 +1,18 @@
 package mhfpacket
 
-import ( 
- "errors" 
+import (
+	"errors"
 
- 	"erupe-ce/network/clientctx"
-	"erupe-ce/network"
 	"erupe-ce/common/byteframe"
+	_config "erupe-ce/config"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgMhfUpdateMyhouseInfo represents the MSG_MHF_UPDATE_MYHOUSE_INFO
 type MsgMhfUpdateMyhouseInfo struct {
 	AckHandle uint32
-	Unk0      []byte
+	Data      []byte
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -22,7 +23,16 @@ func (m *MsgMhfUpdateMyhouseInfo) Opcode() network.PacketID {
 // Parse parses the packet from binary
 func (m *MsgMhfUpdateMyhouseInfo) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
-	m.Unk0 = bf.ReadBytes(0x16A)
+	if _config.ErupeConfig.RealClientMode >= _config.G10 {
+		m.Data = bf.ReadBytes(362)
+	} else if _config.ErupeConfig.RealClientMode >= _config.GG {
+		m.Data = bf.ReadBytes(338)
+	} else if _config.ErupeConfig.RealClientMode >= _config.F5 {
+		// G1 is a guess
+		m.Data = bf.ReadBytes(314)
+	} else {
+		m.Data = bf.ReadBytes(290)
+	}
 	return nil
 }
 

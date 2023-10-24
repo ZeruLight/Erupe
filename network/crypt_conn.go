@@ -3,6 +3,7 @@ package network
 import (
 	"encoding/hex"
 	"errors"
+	_config "erupe-ce/config"
 	"fmt"
 	"io"
 	"net"
@@ -48,7 +49,14 @@ func (cc *CryptConn) ReadPacket() ([]byte, error) {
 	}
 
 	// Now read the encrypted packet body after getting its size from the header.
-	encryptedPacketBody := make([]byte, cph.DataSize)
+	var encryptedPacketBody []byte
+
+	// Don't know when support for this was added, works in Forward.4, doesn't work in Season 6.0
+	if _config.ErupeConfig.RealClientMode < _config.F1 {
+		encryptedPacketBody = make([]byte, cph.DataSize)
+	} else {
+		encryptedPacketBody = make([]byte, uint32(cph.DataSize)+(uint32(cph.Pf0-0x03)*0x1000))
+	}
 	_, err = io.ReadFull(cc.conn, encryptedPacketBody)
 	if err != nil {
 		return nil, err
@@ -56,7 +64,7 @@ func (cc *CryptConn) ReadPacket() ([]byte, error) {
 
 	// Update the key rotation before decrypting.
 	if cph.KeyRotDelta != 0 {
-		cc.readKeyRot = (uint32(cph.KeyRotDelta) * (cc.readKeyRot + 1))
+		cc.readKeyRot = uint32(cph.KeyRotDelta) * (cc.readKeyRot + 1)
 	}
 
 	out, combinedCheck, check0, check1, check2 := crypto.Decrypt(encryptedPacketBody, cc.readKeyRot, nil)
@@ -94,7 +102,7 @@ func (cc *CryptConn) SendPacket(data []byte) error {
 	keyRotDelta := byte(3)
 
 	if keyRotDelta != 0 {
-		cc.sendKeyRot = (uint32(keyRotDelta) * (cc.sendKeyRot + 1))
+		cc.sendKeyRot = uint32(keyRotDelta) * (cc.sendKeyRot + 1)
 	}
 
 	// Encrypt the data

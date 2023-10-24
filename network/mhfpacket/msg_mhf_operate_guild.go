@@ -11,33 +11,33 @@ import (
 type OperateGuildAction uint8
 
 const (
-	OPERATE_GUILD_DISBAND                    = 0x01
-	OPERATE_GUILD_APPLY                      = 0x02
-	OPERATE_GUILD_LEAVE                      = 0x03
-	OPERATE_GUILD_RESIGN                     = 0x04
-	OPERATE_GUILD_SET_APPLICATION_DENY       = 0x05
-	OPERATE_GUILD_SET_APPLICATION_ALLOW      = 0x06
-	OPERATE_GUILD_SET_AVOID_LEADERSHIP_TRUE  = 0x07
-	OPERATE_GUILD_SET_AVOID_LEADERSHIP_FALSE = 0x08
-	OPERATE_GUILD_UPDATE_COMMENT             = 0x09
-	OPERATE_GUILD_DONATE_RANK                = 0x0a
-	OPERATE_GUILD_UPDATE_MOTTO               = 0x0b
-	OPERATE_GUILD_RENAME_PUGI_1              = 0x0c
-	OPERATE_GUILD_RENAME_PUGI_2              = 0x0d
-	OPERATE_GUILD_RENAME_PUGI_3              = 0x0e
-	OPERATE_GUILD_CHANGE_PUGI_1              = 0x0f
-	OPERATE_GUILD_CHANGE_PUGI_2              = 0x10
-	OPERATE_GUILD_CHANGE_PUGI_3              = 0x11
-	OPERATE_GUILD_UNLOCK_OUTFIT              = 0x12
-	// 0x13 Unk
-	// 0x14 Unk
-	OPERATE_GUILD_DONATE_EVENT   = 0x15
-	OPERATE_GUILD_EVENT_EXCHANGE = 0x16
-	// 0x17 Unk
-	// 0x18 Unk
-	OPERATE_GUILD_CHANGE_DIVA_PUGI_1 = 0x19
-	OPERATE_GUILD_CHANGE_DIVA_PUGI_2 = 0x1a
-	OPERATE_GUILD_CHANGE_DIVA_PUGI_3 = 0x1b
+	OperateGuildDisband = iota + 1
+	OperateGuildApply
+	OperateGuildLeave
+	OperateGuildResign
+	OperateGuildSetApplicationDeny
+	OperateGuildSetApplicationAllow
+	OperateGuildSetAvoidLeadershipTrue
+	OperateGuildSetAvoidLeadershipFalse
+	OperateGuildUpdateComment
+	OperateGuildDonateRank
+	OperateGuildUpdateMotto
+	OperateGuildRenamePugi1
+	OperateGuildRenamePugi2
+	OperateGuildRenamePugi3
+	OperateGuildChangePugi1
+	OperateGuildChangePugi2
+	OperateGuildChangePugi3
+	OperateGuildUnlockOutfit
+	OperateGuildDonateRoom
+	OperateGuildGraduateRookie
+	OperateGuildDonateEvent
+	OperateGuildEventExchange
+	OperateGuildUnknown // I don't think this op exists
+	OperateGuildGraduateReturn
+	OperateGuildChangeDivaPugi1
+	OperateGuildChangeDivaPugi2
+	OperateGuildChangeDivaPugi3
 )
 
 // MsgMhfOperateGuild represents the MSG_MHF_OPERATE_GUILD

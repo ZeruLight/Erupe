@@ -270,6 +270,12 @@ func handleMsgMhfPostBoostTimeQuestReturn(s *Session, p mhfpacket.MHFPacket) {
 	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
-func handleMsgMhfPostBoostTime(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfPostBoostTime(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfPostBoostTime)
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+}
 
-func handleMsgMhfPostBoostTimeLimit(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfPostBoostTimeLimit(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfPostBoostTimeLimit)
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+}

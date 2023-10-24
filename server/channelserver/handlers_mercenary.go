@@ -3,13 +3,12 @@ package channelserver
 import (
 	"erupe-ce/common/byteframe"
 	"erupe-ce/common/stringsupport"
+	_config "erupe-ce/config"
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/server/channelserver/compression/deltacomp"
 	"erupe-ce/server/channelserver/compression/nullcomp"
 	"go.uber.org/zap"
 	"io"
-	"os"
-	"path/filepath"
 	"time"
 )
 
@@ -56,11 +55,15 @@ func handleMsgMhfLoadLegendDispatch(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfLoadHunterNavi(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfLoadHunterNavi)
+	naviLength := 552
+	if s.server.erupeConfig.RealClientMode <= _config.G7 {
+		naviLength = 280
+	}
 	var data []byte
 	err := s.server.db.QueryRow("SELECT hunternavi FROM characters WHERE id = $1", s.charID).Scan(&data)
 	if len(data) == 0 {
 		s.logger.Error("Failed to load hunternavi", zap.Error(err))
-		data = make([]byte, 0x226)
+		data = make([]byte, naviLength)
 	}
 	doAckBufSucceed(s, pkt.AckHandle, data)
 }
@@ -68,6 +71,10 @@ func handleMsgMhfLoadHunterNavi(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfSaveHunterNavi(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSaveHunterNavi)
 	if pkt.IsDataDiff {
+		naviLength := 552
+		if s.server.erupeConfig.RealClientMode <= _config.G7 {
+			naviLength = 280
+		}
 		var data []byte
 		// Load existing save
 		err := s.server.db.QueryRow("SELECT hunternavi FROM characters WHERE id = $1", s.charID).Scan(&data)
@@ -78,7 +85,7 @@ func handleMsgMhfSaveHunterNavi(s *Session, p mhfpacket.MHFPacket) {
 		// Check if we actually had any hunternavi data, using a blank buffer if not.
 		// This is requried as the client will try to send a diff after character creation without a prior MsgMhfSaveHunterNavi packet.
 		if len(data) == 0 {
-			data = make([]byte, 0x226)
+			data = make([]byte, naviLength)
 		}
 
 		// Perform diff and compress it to write back to db
@@ -222,8 +229,8 @@ func handleMsgMhfReadMercenaryM(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfContractMercenary(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfContractMercenary)
 	switch pkt.Op {
-	case 0:
-		s.server.db.Exec("UPDATE characters SET pact_id=$1 WHERE id=$2", pkt.PactMercID, s.charID)
+	case 0: // Form loan
+		s.server.db.Exec("UPDATE characters SET pact_id=$1 WHERE id=$2", pkt.PactMercID, pkt.CID)
 	case 1: // Cancel lend
 		s.server.db.Exec("UPDATE characters SET pact_id=0 WHERE id=$1", s.charID)
 	case 2: // Cancel loan
@@ -290,18 +297,12 @@ func handleMsgMhfSaveOtomoAirou(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfEnumerateAiroulist(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateAiroulist)
 	resp := byteframe.NewByteFrame()
-	if _, err := os.Stat(filepath.Join(s.server.erupeConfig.BinPath, "airoulist.bin")); err == nil {
-		data, _ := os.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, "airoulist.bin"))
-		resp.WriteBytes(data)
-		doAckBufSucceed(s, pkt.AckHandle, resp.Data())
-		return
-	}
 	airouList := getGuildAirouList(s)
 	resp.WriteUint16(uint16(len(airouList)))
 	resp.WriteUint16(uint16(len(airouList)))
 	for _, cat := range airouList {
-		resp.WriteUint32(cat.CatID)
-		resp.WriteBytes(cat.CatName)
+		resp.WriteUint32(cat.ID)
+		resp.WriteBytes(cat.Name)
 		resp.WriteUint32(cat.Experience)
 		resp.WriteUint8(cat.Personality)
 		resp.WriteUint8(cat.Class)
@@ -312,11 +313,10 @@ func handleMsgMhfEnumerateAiroulist(s *Session, p mhfpacket.MHFPacket) {
 	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
 }
 
-// CatDefinition holds values needed to populate the guild cat list
-type CatDefinition struct {
-	CatID       uint32
-	CatName     []byte
-	CurrentTask uint8
+type Airou struct {
+	ID          uint32
+	Name        []byte
+	Task        uint8
 	Personality uint8
 	Class       uint8
 	Experience  uint32
@@ -324,46 +324,39 @@ type CatDefinition struct {
 	WeaponID    uint16
 }
 
-func getGuildAirouList(s *Session) []CatDefinition {
-	var guild *Guild
-	var err error
-	var guildCats []CatDefinition
-
-	// returning 0 cats on any guild issues
-	// can probably optimise all of the guild queries pretty heavily
-	guild, err = GetGuildInfoByCharacterId(s, s.charID)
+func getGuildAirouList(s *Session) []Airou {
+	var guildCats []Airou
+	bannedCats := make(map[uint32]int)
+	guild, err := GetGuildInfoByCharacterId(s, s.charID)
 	if err != nil {
 		return guildCats
 	}
-
-	// Get cats used recently
-	// Retail reset at midday, 12 hours is a midpoint
-	tempBanDuration := 43200 - (1800) // Minus hunt time
-	bannedCats := make(map[uint32]int)
-	var csvTemp string
-	rows, err := s.server.db.Query(`SELECT cats_used
-	FROM guild_hunts gh
-	INNER JOIN characters c
-	ON gh.host_id = c.id
-	WHERE c.id=$1 AND gh.return+$2>$3`, s.charID, tempBanDuration, TimeAdjusted().Unix())
+	rows, err := s.server.db.Query(`SELECT cats_used FROM guild_hunts gh
+		INNER JOIN characters c ON gh.host_id = c.id WHERE c.id=$1
+	`, s.charID)
 	if err != nil {
 		s.logger.Warn("Failed to get recently used airous", zap.Error(err))
+		return guildCats
 	}
+
+	var csvTemp string
+	var startTemp time.Time
 	for rows.Next() {
-		rows.Scan(&csvTemp)
-		for i, j := range stringsupport.CSVElems(csvTemp) {
-			bannedCats[uint32(j)] = i
+		err = rows.Scan(&csvTemp, &startTemp)
+		if err != nil {
+			continue
+		}
+		if startTemp.Add(time.Second * time.Duration(s.server.erupeConfig.GameplayOptions.TreasureHuntPartnyaCooldown)).Before(TimeAdjusted()) {
+			for i, j := range stringsupport.CSVElems(csvTemp) {
+				bannedCats[uint32(j)] = i
+			}
 		}
 	}
 
-	// ellie's GetGuildMembers didn't seem to pull leader?
-	rows, err = s.server.db.Query(`SELECT c.otomoairou
-	FROM characters c
-	INNER JOIN guild_characters gc
-	ON gc.character_id = c.id
+	rows, err = s.server.db.Query(`SELECT c.otomoairou FROM characters c
+	INNER JOIN guild_characters gc ON gc.character_id = c.id
 	WHERE gc.guild_id = $1 AND c.otomoairou IS NOT NULL
-	ORDER BY c.id ASC
-	LIMIT 60;`, guild.ID)
+	ORDER BY c.id LIMIT 60`, guild.ID)
 	if err != nil {
 		s.logger.Warn("Selecting otomoairou based on guild failed", zap.Error(err))
 		return guildCats
@@ -372,11 +365,7 @@ func getGuildAirouList(s *Session) []CatDefinition {
 	for rows.Next() {
 		var data []byte
 		err = rows.Scan(&data)
-		if err != nil {
-			s.logger.Warn("select failure", zap.Error(err))
-			continue
-		} else if len(data) == 0 {
-			// non extant cats that aren't null in DB
+		if err != nil || len(data) == 0 {
 			continue
 		}
 		// first byte has cat existence in general, can skip if 0
@@ -387,10 +376,10 @@ func getGuildAirouList(s *Session) []CatDefinition {
 				continue
 			}
 			bf := byteframe.NewByteFrameFromBytes(decomp)
-			cats := GetCatDetails(bf)
+			cats := GetAirouDetails(bf)
 			for _, cat := range cats {
-				_, exists := bannedCats[cat.CatID]
-				if cat.CurrentTask == 4 && !exists {
+				_, exists := bannedCats[cat.ID]
+				if cat.Task == 4 && !exists {
 					guildCats = append(guildCats, cat)
 				}
 			}
@@ -399,20 +388,20 @@ func getGuildAirouList(s *Session) []CatDefinition {
 	return guildCats
 }
 
-func GetCatDetails(bf *byteframe.ByteFrame) []CatDefinition {
+func GetAirouDetails(bf *byteframe.ByteFrame) []Airou {
 	catCount := bf.ReadUint8()
-	cats := make([]CatDefinition, catCount)
+	cats := make([]Airou, catCount)
 	for x := 0; x < int(catCount); x++ {
-		var catDef CatDefinition
+		var catDef Airou
 		// cat sometimes has additional bytes for whatever reason, gift items? timestamp?
 		// until actual variance is known we can just seek to end based on start
 		catDefLen := bf.ReadUint32()
 		catStart, _ := bf.Seek(0, io.SeekCurrent)
 
-		catDef.CatID = bf.ReadUint32()
-		bf.Seek(1, io.SeekCurrent)        // unknown value, probably a bool
-		catDef.CatName = bf.ReadBytes(18) // always 18 len, reads first null terminated string out of section and discards rest
-		catDef.CurrentTask = bf.ReadUint8()
+		catDef.ID = bf.ReadUint32()
+		bf.Seek(1, io.SeekCurrent)     // unknown value, probably a bool
+		catDef.Name = bf.ReadBytes(18) // always 18 len, reads first null terminated string out of section and discards rest
+		catDef.Task = bf.ReadUint8()
 		bf.Seek(16, io.SeekCurrent) // appearance data and what is seemingly null bytes
 		catDef.Personality = bf.ReadUint8()
 		catDef.Class = bf.ReadUint8()

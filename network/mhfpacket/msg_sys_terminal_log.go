@@ -2,6 +2,7 @@ package mhfpacket
 
 import (
 	"errors"
+	_config "erupe-ce/config"
 
 	"erupe-ce/common/byteframe"
 	"erupe-ce/network"
@@ -13,7 +14,11 @@ type TerminalLogEntry struct {
 	Index uint32
 	Type1 uint8
 	Type2 uint8
-	Data  []int16
+	Unk0  int16
+	Unk1  int32
+	Unk2  int32
+	Unk3  int32
+	Unk4  []int32
 }
 
 // MsgSysTerminalLog represents the MSG_SYS_TERMINAL_LOG
@@ -42,8 +47,14 @@ func (m *MsgSysTerminalLog) Parse(bf *byteframe.ByteFrame, ctx *clientctx.Client
 		e.Index = bf.ReadUint32()
 		e.Type1 = bf.ReadUint8()
 		e.Type2 = bf.ReadUint8()
-		for j := 0; j < 15; j++ {
-			e.Data = append(e.Data, bf.ReadInt16())
+		e.Unk0 = bf.ReadInt16()
+		e.Unk1 = bf.ReadInt32()
+		e.Unk2 = bf.ReadInt32()
+		e.Unk3 = bf.ReadInt32()
+		if _config.ErupeConfig.RealClientMode >= _config.G1 {
+			for j := 0; j < 4; j++ {
+				e.Unk4 = append(e.Unk4, bf.ReadInt32())
+			}
 		}
 		m.Entries = append(m.Entries, e)
 	}

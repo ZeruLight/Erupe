@@ -1,10 +1,10 @@
 package channelserver
 
 import (
-	"encoding/hex"
 	"erupe-ce/common/byteframe"
 	ps "erupe-ce/common/pascalstring"
 	"erupe-ce/common/token"
+	_config "erupe-ce/config"
 	"erupe-ce/network/mhfpacket"
 	"sort"
 	"time"
@@ -140,13 +140,26 @@ func generateFestaTimestamps(s *Session, start uint32, debug bool) []uint32 {
 	return timestamps
 }
 
-type Trial struct {
+type FestaTrial struct {
 	ID        uint32 `db:"id"`
-	Objective uint8  `db:"objective"`
+	Objective uint16 `db:"objective"`
 	GoalID    uint32 `db:"goal_id"`
 	TimesReq  uint16 `db:"times_req"`
 	Locale    uint16 `db:"locale_req"`
 	Reward    uint16 `db:"reward"`
+	Monopoly  uint16
+	Unk       uint16
+}
+
+type FestaReward struct {
+	Unk0     uint8
+	Unk1     uint8
+	ItemType uint16
+	Quantity uint16
+	ItemID   uint16
+	Unk5     uint16
+	Unk6     uint16
+	Unk7     uint8
 }
 
 func handleMsgMhfInfoFesta(s *Session, p mhfpacket.MHFPacket) {
@@ -190,36 +203,82 @@ func handleMsgMhfInfoFesta(s *Session, p mhfpacket.MHFPacket) {
 	bf.WriteUint32(blueSouls)
 	bf.WriteUint32(redSouls)
 
+	var trials []FestaTrial
+	var trial FestaTrial
 	rows, _ = s.server.db.Queryx("SELECT * FROM festa_trials")
-	trialData := byteframe.NewByteFrame()
-	var count uint16
 	for rows.Next() {
-		trial := &Trial{}
 		err := rows.StructScan(&trial)
 		if err != nil {
 			continue
 		}
-		count++
-		trialData.WriteUint32(trial.ID)
-		trialData.WriteUint8(0) // Unk
-		trialData.WriteUint8(trial.Objective)
-		trialData.WriteUint32(trial.GoalID)
-		trialData.WriteUint16(trial.TimesReq)
-		trialData.WriteUint16(trial.Locale)
-		trialData.WriteUint16(trial.Reward)
-		trialData.WriteUint8(0xFF) // Unk
-		trialData.WriteUint8(0xFF) // MonopolyState
-		trialData.WriteUint16(0)   // Unk
+		trials = append(trials, trial)
 	}
-	bf.WriteUint16(count)
-	bf.WriteBytes(trialData.Data())
+	bf.WriteUint16(uint16(len(trials)))
+	for _, trial := range trials {
+		bf.WriteUint32(trial.ID)
+		bf.WriteUint16(trial.Objective)
+		bf.WriteUint32(trial.GoalID)
+		bf.WriteUint16(trial.TimesReq)
+		bf.WriteUint16(trial.Locale)
+		bf.WriteUint16(trial.Reward)
+		trial.Monopoly = 0xFFFF // NYI
+		bf.WriteUint16(trial.Monopoly)
+		bf.WriteUint16(trial.Unk)
+	}
 
-	// Static bonus rewards
-	rewards, _ := hex.DecodeString("001901000007015E05F000000000000100000703E81B6300000000010100000C03E8000000000000000100000D0000000000000000000100000100000000000000000002000007015E05F000000000000200000703E81B6300000000010200000C03E8000000000000000200000D0000000000000000000200000400000000000000000003000007015E05F000000000000300000703E81B6300000000010300000C03E8000000000000000300000D0000000000000000000300000100000000000000000004000007015E05F000000000000400000703E81B6300000000010400000C03E8000000000000000400000D0000000000000000000400000400000000000000000005000007015E05F000000000000500000703E81B6300000000010500000C03E8000000000000000500000D00000000000000000005000001000000000000000000")
-	bf.WriteBytes(rewards)
+	// The Winner and Loser Armor IDs are missing
+	// Item 7011 may not exist in older versions, remove to prevent crashes
+	rewards := []FestaReward{
+		{1, 0, 7, 350, 1520, 0, 0, 0},
+		{1, 0, 7, 1000, 7011, 0, 0, 1},
+		{1, 0, 12, 1000, 0, 0, 0, 0},
+		{1, 0, 13, 0, 0, 0, 0, 0},
+		//{1, 0, 1, 0, 0, 0, 0, 0},
+		{2, 0, 7, 350, 1520, 0, 0, 0},
+		{2, 0, 7, 1000, 7011, 0, 0, 1},
+		{2, 0, 12, 1000, 0, 0, 0, 0},
+		{2, 0, 13, 0, 0, 0, 0, 0},
+		//{2, 0, 4, 0, 0, 0, 0, 0},
+		{3, 0, 7, 350, 1520, 0, 0, 0},
+		{3, 0, 7, 1000, 7011, 0, 0, 1},
+		{3, 0, 12, 1000, 0, 0, 0, 0},
+		{3, 0, 13, 0, 0, 0, 0, 0},
+		//{3, 0, 1, 0, 0, 0, 0, 0},
+		{4, 0, 7, 350, 1520, 0, 0, 0},
+		{4, 0, 7, 1000, 7011, 0, 0, 1},
+		{4, 0, 12, 1000, 0, 0, 0, 0},
+		{4, 0, 13, 0, 0, 0, 0, 0},
+		//{4, 0, 4, 0, 0, 0, 0, 0},
+		{5, 0, 7, 350, 1520, 0, 0, 0},
+		{5, 0, 7, 1000, 7011, 0, 0, 1},
+		{5, 0, 12, 1000, 0, 0, 0, 0},
+		{5, 0, 13, 0, 0, 0, 0, 0},
+		//{5, 0, 1, 0, 0, 0, 0, 0},
+	}
 
-	bf.WriteUint16(0x0001)
-	bf.WriteUint32(0xD4C001F4)
+	bf.WriteUint16(uint16(len(rewards)))
+	for _, reward := range rewards {
+		bf.WriteUint8(reward.Unk0)
+		bf.WriteUint8(reward.Unk1)
+		bf.WriteUint16(reward.ItemType)
+		bf.WriteUint16(reward.Quantity)
+		bf.WriteUint16(reward.ItemID)
+		// Not confirmed to be G1 but exists in G3
+		if _config.ErupeConfig.RealClientMode >= _config.G1 {
+			bf.WriteUint16(reward.Unk5)
+			bf.WriteUint16(reward.Unk6)
+			bf.WriteUint8(reward.Unk7)
+		}
+	}
+	if _config.ErupeConfig.RealClientMode <= _config.G61 {
+		if s.server.erupeConfig.GameplayOptions.MaximumFP > 0xFFFF {
+			s.server.erupeConfig.GameplayOptions.MaximumFP = 0xFFFF
+		}
+		bf.WriteUint16(uint16(s.server.erupeConfig.GameplayOptions.MaximumFP))
+	} else {
+		bf.WriteUint32(s.server.erupeConfig.GameplayOptions.MaximumFP)
+	}
+	bf.WriteUint16(500)
 
 	categoryWinners := uint16(0) // NYI
 	bf.WriteUint16(categoryWinners)
@@ -239,8 +298,18 @@ func handleMsgMhfInfoFesta(s *Session, p mhfpacket.MHFPacket) {
 		ps.Uint8(bf, "", true) // Guild Name
 	}
 
-	d, _ := hex.DecodeString("000000000000000100001388000007D0000003E800000064012C00C8009600640032")
-	bf.WriteBytes(d)
+	// Unknown values
+	bf.WriteUint32(1)
+	bf.WriteUint32(5000)
+	bf.WriteUint32(2000)
+	bf.WriteUint32(1000)
+	bf.WriteUint32(100)
+	bf.WriteUint16(300)
+	bf.WriteUint16(200)
+	bf.WriteUint16(150)
+	bf.WriteUint16(100)
+	bf.WriteUint16(50)
+
 	ps.Uint16(bf, "", false)
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }

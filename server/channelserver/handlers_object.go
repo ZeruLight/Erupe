@@ -10,25 +10,9 @@ import (
 func handleMsgSysCreateObject(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysCreateObject)
 
-	// Prevent reusing an object index
-	var nextID uint32
-	for {
-		exists := false
-		nextID = s.stage.NextObjectID()
-		for _, object := range s.stage.objects {
-			if object.id == nextID {
-				exists = true
-				break
-			}
-		}
-		if exists == false {
-			break
-		}
-	}
-
 	s.stage.Lock()
 	newObj := &Object{
-		id:          nextID,
+		id:          s.NextObjectID(),
 		ownerCharID: s.charID,
 		x:           pkt.X,
 		y:           pkt.Y,
@@ -78,7 +62,8 @@ func handleMsgSysRotateObject(s *Session, p mhfpacket.MHFPacket) {}
 func handleMsgSysDuplicateObject(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgSysSetObjectBinary(s *Session, p mhfpacket.MHFPacket) {
-	pkt := p.(*mhfpacket.MsgSysSetObjectBinary)
+	_ = p.(*mhfpacket.MsgSysSetObjectBinary)
+	/* This causes issues with PS3 as this actually sends with endiness!
 	for _, session := range s.server.sessions {
 		if session.charID == s.charID {
 			s.server.userBinaryPartsLock.Lock()
@@ -91,6 +76,7 @@ func handleMsgSysSetObjectBinary(s *Session, p mhfpacket.MHFPacket) {
 			s.server.BroadcastMHF(msg, s)
 		}
 	}
+	*/
 }
 
 func handleMsgSysGetObjectBinary(s *Session, p mhfpacket.MHFPacket) {}

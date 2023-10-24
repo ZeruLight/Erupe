@@ -4,6 +4,7 @@ import (
 	"erupe-ce/common/byteframe"
 	ps "erupe-ce/common/pascalstring"
 	"erupe-ce/network/mhfpacket"
+
 	"go.uber.org/zap"
 )
 
@@ -66,10 +67,28 @@ func handleMsgMhfEnumerateDistItem(s *Session, p mhfpacket.MHFPacket) {
 			bf.WriteUint16(distData.MaxSR)
 			bf.WriteUint16(distData.MinGR)
 			bf.WriteUint16(distData.MaxGR)
-			bf.WriteUint32(0) // Unk
-			bf.WriteUint32(0) // Unk
-			ps.Uint16(bf, distData.EventName, true)
-			bf.WriteBytes(make([]byte, 391))
+			bf.WriteUint8(0)
+			bf.WriteUint16(0)
+			bf.WriteUint8(0)
+			bf.WriteUint16(0)
+			bf.WriteUint16(0)
+			bf.WriteUint8(0)
+			ps.Uint8(bf, distData.EventName, true)
+			for i := 0; i < 6; i++ {
+				for j := 0; j < 13; j++ {
+					bf.WriteUint8(0)
+					bf.WriteUint32(0)
+				}
+			}
+			i := uint8(0)
+			bf.WriteUint8(i)
+			if i <= 10 {
+				for j := uint8(0); j < i; j++ {
+					bf.WriteUint32(0)
+					bf.WriteUint32(0)
+					bf.WriteUint32(0)
+				}
+			}
 		}
 		resp := byteframe.NewByteFrame()
 		resp.WriteUint16(uint16(distCount))

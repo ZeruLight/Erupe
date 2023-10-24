@@ -1,14 +1,69 @@
-package config
+package _config
 
 import (
 	"fmt"
 	"log"
 	"net"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/spf13/viper"
 )
+
+type Mode int
+
+const (
+	S1 Mode = iota + 1
+	S15
+	S2
+	S25
+	S3
+	S35
+	S4
+	S5
+	S55
+	S6
+	S7
+	S8
+	S85
+	S9
+	S10
+	F1
+	F2
+	F3
+	F4
+	F5
+	G1
+	G2
+	G3
+	G31
+	G32
+	GG
+	G5
+	G51
+	G52
+	G6
+	G61
+	G7
+	G8
+	G81
+	G9
+	G91
+	G10
+	G101
+	Z1
+	Z2
+	ZZ
+)
+
+var versionStrings = []string{"S1.0", "S1.5", "S2.0", "S2.5", "S3.0", "S3.5", "S4.0", "S5.0", "S5.5", "S6.0", "S7.0",
+	"S8.0", "S8.5", "S9", "S10", "FW.1", "FW.2", "FW.3", "FW.4", "FW.5", "G1", "G2", "G3", "G3.1", "G3.2", "GG", "G5",
+	"G5.1", "G5.2", "G6", "G6.1", "G7", "G8", "G8.1", "G9", "G9.1", "G10", "G10.1", "Z1", "Z2", "ZZ"}
+
+func (m Mode) String() string {
+	return versionStrings[m]
+}
 
 // Config holds the global server-wide config.
 type Config struct {
@@ -22,6 +77,8 @@ type Config struct {
 	PatchServerFile        string   // File patch server override
 	ScreenshotAPIURL       string   // Destination for screenshots uploaded to BBS
 	DeleteOnSaveCorruption bool     // Attempts to save corrupted data will flag the save for deletion
+	ClientMode             string
+	RealClientMode         Mode
 	DevMode                bool
 
 	DevModeOptions  DevModeOptions
@@ -38,20 +95,23 @@ type Config struct {
 
 // DevModeOptions holds various debug/temporary options for use while developing Erupe.
 type DevModeOptions struct {
-	AutoCreateAccount   bool // Automatically create accounts if they don't exist
-	CleanDB             bool // Automatically wipes the DB on server reset.
-	MaxLauncherHR       bool // Sets the HR returned in the launcher to HR7 so that you can join non-beginner worlds.
-	LogInboundMessages  bool // Log all messages sent to the server
-	LogOutboundMessages bool // Log all messages sent to the clients
-	MaxHexdumpLength    int  // Maximum number of bytes printed when logs are enabled
-	DivaEvent           int  // Diva Defense event status
-	FestaEvent          int  // Hunter's Festa event status
-	TournamentEvent     int  // VS Tournament event status
-	MezFesEvent         bool // MezFes status
-	MezFesAlt           bool // Swaps out Volpakkun for Tokotoko
-	DisableTokenCheck   bool // Disables checking login token exists in the DB (security risk!)
-	QuestDebugTools     bool // Enable various quest debug logs
-	SaveDumps           SaveDumpOptions
+	AutoCreateAccount    bool // Automatically create accounts if they don't exist
+	CleanDB              bool // Automatically wipes the DB on server reset.
+	MaxLauncherHR        bool // Sets the HR returned in the launcher to HR7 so that you can join non-beginner worlds.
+	LogInboundMessages   bool // Log all messages sent to the server
+	LogOutboundMessages  bool // Log all messages sent to the clients
+	MaxHexdumpLength     int  // Maximum number of bytes printed when logs are enabled
+	DivaEvent            int  // Diva Defense event status
+	FestaEvent           int  // Hunter's Festa event status
+	TournamentEvent      int  // VS Tournament event status
+	MezFesEvent          bool // MezFes status
+	MezFesAlt            bool // Swaps out Volpakkun for Tokotoko
+	DisableTokenCheck    bool // Disables checking login token exists in the DB (security risk!)
+	QuestDebugTools      bool // Enable various quest debug logs
+	EarthStatusOverride  int32
+	EarthIDOverride      int32
+	EarthMonsterOverride int32
+	SaveDumps            SaveDumpOptions
 }
 
 type SaveDumpOptions struct {
@@ -61,15 +121,39 @@ type SaveDumpOptions struct {
 
 // GameplayOptions has various gameplay modifiers
 type GameplayOptions struct {
-	FeaturedWeapons     int    // Number of Active Feature weapons to generate daily
-	MaximumNP           int    // Maximum number of NP held by a player
-	MaximumRP           uint16 // Maximum number of RP held by a player
-	DisableLoginBoost   bool   // Disables the Login Boost system
-	DisableBoostTime    bool   // Disables the daily NetCafe Boost Time
-	BoostTimeDuration   int    // The number of minutes NetCafe Boost Time lasts for
-	GuildMealDuration   int    // The number of minutes a Guild Meal can be activated for after cooking
-	BonusQuestAllowance uint32 // Number of Bonus Point Quests to allow daily
-	DailyQuestAllowance uint32 // Number of Daily Quests to allow daily
+	FeaturedWeapons                int    // Number of Active Feature weapons to generate daily
+	MaximumNP                      int    // Maximum number of NP held by a player
+	MaximumRP                      uint16 // Maximum number of RP held by a player
+	MaximumFP                      uint32 // Maximum number of FP held by a player
+	TreasureHuntExpiry             uint32 // Seconds until a Clan Treasure Hunt will expire
+	TreasureHuntPartnyaCooldown    uint32 // Seconds until a Partnya can be assigned to another Clan Treasure Hunt
+	DisableLoginBoost              bool   // Disables the Login Boost system
+	DisableBoostTime               bool   // Disables the daily NetCafe Boost Time
+	BoostTimeDuration              int    // The number of minutes NetCafe Boost Time lasts for
+	GuildMealDuration              int    // The number of minutes a Guild Meal can be activated for after cooking
+	BonusQuestAllowance            uint32 // Number of Bonus Point Quests to allow daily
+	DailyQuestAllowance            uint32 // Number of Daily Quests to allow daily
+	MezfesSoloTickets              uint32 // Number of solo tickets given weekly
+	MezfesGroupTickets             uint32 // Number of group tickets given weekly
+	LowLatencyRaviente             bool   // Toggles low latency mode for Raviente, can be network intensive
+	RegularRavienteMaxPlayers      uint8
+	ViolentRavienteMaxPlayers      uint8
+	BerserkRavienteMaxPlayers      uint8
+	ExtremeRavienteMaxPlayers      uint8
+	SmallBerserkRavienteMaxPlayers uint8
+	GUrgentRate                    float32 // Adjusts the rate of G Urgent quests spawning
+	GCPMultiplier                  float32 // Adjusts the multiplier of GCP rewarded for quest completion
+	GRPMultiplier                  float32 // Adjusts the multiplier of G Rank Points rewarded for quest completion
+	GSRPMultiplier                 float32 // Adjusts the multiplier of G Skill Rank Points rewarded for quest completion
+	GZennyMultiplier               float32 // Adjusts the multiplier of G Zenny rewarded for quest completion
+	MaterialMultiplier             float32 // Adjusts the multiplier of Monster Materials rewarded for quest completion
+	ExtraCarves                    uint16  // Grant n extra chances to carve ALL carcasses
+	DisableHunterNavi              bool    // Disables the Hunter Navi
+	EnableKaijiEvent               bool    // Enables the Kaiji event in the Rasta Bar
+	EnableHiganjimaEvent           bool    // Enables the Higanjima event in the Rasta Bar
+	EnableNierEvent                bool    // Enables the Nier event in the Rasta Bar
+	DisableRoad                    bool    // Disables the Hunting Road
+	SeasonOverride                 bool    // Overrides the Quest Season with the current Mezeporta Season
 }
 
 // Discord holds the discord integration config.
@@ -154,7 +238,6 @@ func init() {
 	if err != nil {
 		preventClose(fmt.Sprintf("Failed to load config: %s", err.Error()))
 	}
-
 }
 
 // getOutboundIP4 gets the preferred outbound ip4 of this machine
@@ -177,8 +260,8 @@ func LoadConfig() (*Config, error) {
 	viper.AddConfigPath(".")
 
 	viper.SetDefault("DevModeOptions.SaveDumps", SaveDumpOptions{
-		Enabled:   false,
-		OutputDir: "savedata",
+		Enabled:   true,
+		OutputDir: "save-backups",
 	})
 
 	err := viper.ReadInConfig()
@@ -194,6 +277,20 @@ func LoadConfig() (*Config, error) {
 
 	if c.Host == "" {
 		c.Host = getOutboundIP4().To4().String()
+	}
+
+	for i := range versionStrings {
+		if strings.ToUpper(c.ClientMode) == versionStrings[i] {
+			c.RealClientMode = Mode(i + 1)
+			c.ClientMode = strings.ToUpper(c.ClientMode)
+			if c.RealClientMode <= G101 {
+				c.ClientMode += " (Debug only)"
+			}
+		}
+	}
+	if c.RealClientMode == 0 {
+		c.ClientMode = versionStrings[len(versionStrings)-1]
+		c.RealClientMode = ZZ
 	}
 
 	return c, nil

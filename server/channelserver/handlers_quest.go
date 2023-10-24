@@ -181,6 +181,7 @@ func makeEventQuest(s *Session, rows *sql.Rows) ([]byte, error) {
 	bf.Seek(175, 0)
 	bf.WriteUint8(questVariant3)
 
+	bf.Seek(0, 2)
 	ps.Uint8(bf, "", true) // Debug/Notes string for quest
 	return bf.Data(), nil
 }

@@ -1,11 +1,11 @@
 package channelserver
 
 import (
-	"encoding/hex"
 	"encoding/json"
 	"erupe-ce/common/byteframe"
 	"erupe-ce/common/stringsupport"
 	"erupe-ce/network/mhfpacket"
+	"time"
 )
 
 func handleMsgMhfGetUdTacticsPoint(s *Session, p mhfpacket.MHFPacket) {
@@ -19,7 +19,7 @@ func handleMsgMhfGetUdTacticsPoint(s *Session, p mhfpacket.MHFPacket) {
 		totalPoints += i
 	}
 	bf := byteframe.NewByteFrame()
-	bf.WriteUint8(0x00) // Unk, some kind of error code?
+	bf.WriteUint8(0) // No error
 	bf.WriteInt32(totalPoints)
 	bf.WriteUint8(uint8(len(personalPoints)))
 	for i := range personalPoints {
@@ -83,11 +83,20 @@ type DivaReward struct {
 	Repeatable bool   `db:"repeatable"`
 }
 
+type DivaRankReward struct {
+	Unk0    uint8
+	Unk1    uint16
+	Unk2    uint16
+	MaxRank uint32
+	MinRank uint32
+}
+
 func handleMsgMhfGetUdTacticsRewardList(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetUdTacticsRewardList)
 	bf := byteframe.NewByteFrame()
-	bf.WriteUint8(0)
+	bf.WriteUint8(0) // No error
 	var personalRewards, guildRewards []DivaReward
+	var rankRewards []DivaRankReward
 	var tempReward DivaReward
 	rows, err := s.server.db.Queryx(`SELECT points_req, item_type, item_id, quantity, gr, repeatable FROM diva_prizes WHERE type='personal'`)
 	if err == nil {
@@ -121,21 +130,45 @@ func handleMsgMhfGetUdTacticsRewardList(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteBool(reward.GR)
 		bf.WriteBool(reward.Repeatable)
 	}
-	data, _ := hex.DecodeString("002607000E00C8000000010000000307000F0032000000010000000307001000320000000100000003070011003200000001000000030700120032000000010000000307000E0096000000040000000A07000F0028000000040000000A0700100028000000040000000A0700110028000000040000000A0700120028000000040000000A07000E00640000000B0000001907000F001E0000000B00000019070010001E0000000B00000019070011001E0000000B00000019070012001E0000000B0000001907000E00320000001A0000002807000F00140000001A0000002807001000140000001A0000002807001100140000001A0000002807001200140000001A0000002807000E001E000000290000004607000F000A0000002900000046070010000A000000290000004607001100010000002900000046070012000A000000290000004607000E0019000000470000006407000F0008000000470000006407001000080000004700000064070011000100000047000000640700120008000000470000006407000E000F000000650000009607000F0006000000650000009607001000010000006500000096070011000600000065000000960700120006000000650000009607000E000500000097000001F407000F000500000097000001F4070010000500000097000001F4")
-	bf.WriteBytes(data)
+	bf.WriteUint16(uint16(len(rankRewards)))
+	for _, reward := range rankRewards {
+		bf.WriteUint8(reward.Unk0)
+		bf.WriteUint16(reward.Unk1)
+		bf.WriteUint16(reward.Unk2)
+		bf.WriteUint32(reward.MaxRank)
+		bf.WriteUint32(reward.MinRank)
+	}
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfGetUdTacticsFollower(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetUdTacticsFollower)
-	doAckBufSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint16(0)
+	bf.WriteUint16(0)
+	bf.WriteUint16(0)
+	bf.WriteUint16(0)
+	bf.WriteUint32(0)
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfGetUdTacticsBonusQuest(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetUdTacticsBonusQuest)
-	// Temporary canned response
-	data, _ := hex.DecodeString("14E2F55DCBFE505DCC1A7003E8E2C55DCC6ED05DCC8AF00258E2CE5DCCDF505DCCFB700279E3075DCD4FD05DCD6BF0041AE2F15DCDC0505DCDDC700258E2C45DCE30D05DCE4CF00258E2F55DCEA1505DCEBD7003E8E2C25DCF11D05DCF2DF00258E2CE5DCF82505DCF9E700279E3075DCFF2D05DD00EF0041AE2CE5DD063505DD07F700279E2F35DD0D3D05DD0EFF0028AE2C35DD144505DD160700258E2F05DD1B4D05DD1D0F00258E2CE5DD225505DD241700279E2F55DD295D05DD2B1F003E8E2F25DD306505DD3227002EEE2CA5DD376D05DD392F00258E3075DD3E7505DD40370041AE2F55DD457D05DD473F003E82027313220686F757273273A3A696E74657276616C29202B2027313220686F757273273A3A696E74657276616C2047524F5550204259206D6170204F52444552204259206D61703B2000C7312B000032")
-	doAckBufSucceed(s, pkt.AckHandle, data)
+	bonusQuests := []struct {
+		QuestFileID uint16
+		Start       time.Time
+		End         time.Time
+		Points      uint16
+	}{}
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint8(uint8(len(bonusQuests)))
+	for _, quest := range bonusQuests {
+		bf.WriteUint16(quest.QuestFileID)
+		bf.WriteUint32(uint32(quest.Start.Unix()))
+		bf.WriteUint32(uint32(quest.End.Unix()))
+		bf.WriteUint16(quest.Points)
+	}
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfGetUdTacticsFirstQuestBonus(s *Session, p mhfpacket.MHFPacket) {
@@ -169,17 +202,17 @@ func handleMsgMhfGetUdTacticsRemainingPoint(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfGetUdTacticsRanking(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetUdTacticsRanking)
 	bf := byteframe.NewByteFrame()
-	bf.WriteUint32(0) // ranking
-	bf.WriteUint32(0) // rankingDupe?
-	bf.WriteUint32(0) // guildPoints
-	bf.WriteUint32(0) // unk
-	bf.WriteUint32(0) // unkDupe?
-	bf.WriteUint32(0) // guildPointsDupe?
-	bf.WriteBytes(stringsupport.PaddedString("", 25, true))
+	bf.WriteUint32(0) // Own Rank
+	bf.WriteUint32(0) // Own Score (Areas)
+	bf.WriteBytes(stringsupport.PaddedString("", 32, true))
+	bf.WriteUint8(0) // Num other ranks
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
-func handleMsgMhfSetUdTacticsFollower(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfSetUdTacticsFollower(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfSetUdTacticsFollower)
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+}
 
 func handleMsgMhfGetUdTacticsLog(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetUdTacticsLog)

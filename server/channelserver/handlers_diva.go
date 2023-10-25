@@ -173,12 +173,12 @@ func handleMsgMhfGetKijuInfo(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfSetKiju(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSetKiju)
-	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+	doAckBufSucceed(s, pkt.AckHandle, []byte{0})
 }
 
 func handleMsgMhfAddUdPoint(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfAddUdPoint)
-	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+	doAckBufSucceed(s, pkt.AckHandle, []byte{0})
 }
 
 func handleMsgMhfGetUdMyPoint(s *Session, p mhfpacket.MHFPacket) {
@@ -194,7 +194,7 @@ type UdPointTargets struct {
 func handleMsgMhfGetUdTotalPointInfo(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetUdTotalPointInfo)
 	bf := byteframe.NewByteFrame()
-	bf.WriteUint8(0)
+	bf.WriteUint8(0) // No error
 	targets := make([]UdPointTargets, 64)
 	defaultTargets := []UdPointTargets{
 		{0, 500000},
@@ -428,7 +428,10 @@ func handleMsgMhfGetUdRanking(s *Session, p mhfpacket.MHFPacket) {
 	// Temporary
 	for i := 0; i < 100; i++ {
 		bf.WriteUint16(uint16(i + 1))
-		stringsupport.PaddedString("", 25, false)
+		bf.WriteBytes(stringsupport.PaddedString("", 25, true))
+		if pkt.RankType == 1 || pkt.RankType == 3 { // "Total" type
+			bf.WriteBytes(stringsupport.PaddedString("", 16, true))
+		}
 		bf.WriteUint32(0)
 	}
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
@@ -931,12 +934,12 @@ func handleMsgMhfGenerateUdGuildMap(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGenerateUdGuildMap)
 	guild, err := GetGuildInfoByCharacterId(s, s.charID)
 	if err != nil || guild == nil {
-		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+		doAckBufSucceed(s, pkt.AckHandle, []byte{0xFF})
 		return
 	}
 	isApplicant, _ := guild.HasApplicationForCharID(s, s.charID)
 	if err != nil || isApplicant {
-		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+		doAckBufSucceed(s, pkt.AckHandle, []byte{0xFF})
 		return
 	}
 	interceptionMaps := &InterceptionMaps{}
@@ -945,5 +948,5 @@ func handleMsgMhfGenerateUdGuildMap(s *Session, p mhfpacket.MHFPacket) {
 	if err != nil {
 		s.server.logger.Debug("err", zap.Error(err))
 	}
-	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	doAckBufSucceed(s, pkt.AckHandle, []byte{0})
 }

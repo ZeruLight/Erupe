@@ -13,7 +13,7 @@ type MsgMhfAcquireUdItem struct {
 	AckHandle  uint32
 	Freeze     bool
 	RewardType uint8
-	Count      int
+	Count      uint8
 	RewardIDs  []uint32
 }
 
@@ -27,8 +27,8 @@ func (m *MsgMhfAcquireUdItem) Parse(bf *byteframe.ByteFrame, ctx *clientctx.Clie
 	m.AckHandle = bf.ReadUint32()
 	m.Freeze = bf.ReadBool()
 	m.RewardType = bf.ReadUint8()
-	m.Count = int(bf.ReadUint8())
-	for i := 0; i < m.Count; i++ {
+	m.Count = bf.ReadUint8()
+	for i := uint8(0); i < m.Count; i++ {
 		m.RewardIDs = append(m.RewardIDs, bf.ReadUint32())
 	}
 	return nil

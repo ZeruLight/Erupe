@@ -1,8 +1,6 @@
 package channelserver
 
 import (
-	"encoding/hex"
-
 	"erupe-ce/common/byteframe"
 	"erupe-ce/network/mhfpacket"
 )
@@ -17,26 +15,40 @@ func handleMsgMhfGetAdditionalBeatReward(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfGetUdRankingRewardList(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetUdRankingRewardList)
-	// Temporary canned response
-	data, _ := hex.DecodeString("0100001600000A5397DF00000000000000000000000000000000")
-	doAckBufSucceed(s, pkt.AckHandle, data)
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint16(0) // Len
+	// Format
+	// uint8 Unk
+	// uint16 Unk
+	// uint16 Unk
+	// uint8 Unk
+	// uint32 Unk
+	// uint32 Unk
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfGetRewardSong(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetRewardSong)
-	// Temporary canned response
-	data, _ := hex.DecodeString("0100001600000A5397DF00000000000000000000000000000000")
-	doAckBufSucceed(s, pkt.AckHandle, data)
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint8(0)           // No error
+	bf.WriteUint8(0)           // Unk
+	bf.WriteUint32(0)          // Prayer ID
+	bf.WriteUint32(0xFFFFFFFF) // Prayer end
+	for i := 0; i < 4; i++ {
+		bf.WriteUint16(0)
+		bf.WriteUint8(0)
+	}
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfUseRewardSong(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfUseRewardSong)
-	doAckBufSucceed(s, pkt.AckHandle, make([]byte, 1))
+	doAckBufSucceed(s, pkt.AckHandle, []byte{0})
 }
 
 func handleMsgMhfAddRewardSongCount(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfAddRewardSongCount)
-	doAckBufSucceed(s, pkt.AckHandle, make([]byte, 1))
+	doAckBufSucceed(s, pkt.AckHandle, []byte{0})
 }
 
 func handleMsgMhfAcquireMonthlyReward(s *Session, p mhfpacket.MHFPacket) {

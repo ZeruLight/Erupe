@@ -183,7 +183,16 @@ func handleMsgMhfAddUdPoint(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfGetUdMyPoint(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetUdMyPoint)
-	doAckBufSucceed(s, pkt.AckHandle, make([]byte, 145))
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint8(0) // No error
+	for i := 0; i < 8; i++ {
+		for j := 0; j < 2; j++ {
+			bf.WriteUint8(0)  // Bead index
+			bf.WriteUint32(0) // Unk
+			bf.WriteUint32(0) // Unk
+		}
+	}
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 type UdPointTargets struct {

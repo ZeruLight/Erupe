@@ -36,8 +36,3 @@ If you want to modify or compile Erupe yourself, please read on.
 
 - [Quest and Scenario Binary Files](https://files.catbox.moe/xf0l7w.7z)
 - [Mezeporta Square Discord](https://discord.gg/DnwcpXM488)
-* 1 = Up to 2 star Quests  
-* 2 = Up to 4 star Quests 
-* 4 = All Quests in HR (Enables G Experience Tab) 
-* 5 = Only G Rank Quests 
-* 6 = Minigame World

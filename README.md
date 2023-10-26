@@ -7,10 +7,10 @@
 - PlayStation Vita
 - Wii U (Up to Z2)
 ### Versions (ClientMode)
-All versions after HR compression (G10-ZZ) have been tested extensively and have great functionality.
-All versions available on Wii U (G3-Z2) have been tested and should have good functionality.
-The second oldest found version is Forward.4 (FW.4), this version has basic functionality.
-The oldest found version is Season 6.0 (S6.0), however functionality is very limited.
+- All versions after HR compression (G10-ZZ) have been tested extensively and have great functionality.
+- All versions available on Wii U (G3-Z2) have been tested and should have good functionality.
+- The second oldest found version is Forward.4 (FW.4), this version has basic functionality.
+- The oldest found version is Season 6.0 (S6.0), however functionality is very limited.
 
 If you have an **installed** copy of Monster Hunter Frontier on an old hard drive, **please** get in contact so we can archive it!
 

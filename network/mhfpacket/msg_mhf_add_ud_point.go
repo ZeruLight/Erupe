@@ -1,18 +1,17 @@
 package mhfpacket
 
-import ( 
- "errors" 
+import (
+	"errors"
 
- 	"erupe-ce/network/clientctx"
-	"erupe-ce/network"
 	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgMhfAddUdPoint represents the MSG_MHF_ADD_UD_POINT
 type MsgMhfAddUdPoint struct {
 	AckHandle uint32
-	Unk1      uint32
-	Unk2      uint32
+	Points    uint32
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -23,11 +22,10 @@ func (m *MsgMhfAddUdPoint) Opcode() network.PacketID {
 // Parse parses the packet from binary
 func (m *MsgMhfAddUdPoint) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
-	m.Unk1 = bf.ReadUint32()
-	m.Unk2 = bf.ReadUint32()
-
+	m.Points += bf.ReadUint32()
+	// Premium Course bonus
+	m.Points += bf.ReadUint32()
 	return nil
-	//panic("Not implemented")
 }
 
 // Build builds a binary packet from the current data.

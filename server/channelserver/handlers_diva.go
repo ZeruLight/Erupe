@@ -82,10 +82,7 @@ func handleMsgMhfGetUdSchedule(s *Session, p mhfpacket.MHFPacket) {
 	bf := byteframe.NewByteFrame()
 
 	id, start := uint32(0xCAFEBEEF), uint32(0)
-	rows, _ := s.server.db.Queryx("SELECT id, (EXTRACT(epoch FROM start_time)::int) as start_time FROM events WHERE event_type='diva'")
-	for rows.Next() {
-		rows.Scan(&id, &start)
-	}
+	_ = s.server.db.QueryRow("SELECT id, (EXTRACT(epoch FROM start_time)::int) as start_time FROM events WHERE event_type='diva'").Scan(&id, &start)
 
 	var timestamps []uint32
 	if s.server.erupeConfig.DevMode && s.server.erupeConfig.DevModeOptions.DivaEvent >= 0 {
@@ -141,7 +138,7 @@ func handleMsgMhfGetUdInfo(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfGetKijuInfo(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetKijuInfo)
 	beads := []uint8{1, 3, 4, 8}
-	rows, err := s.server.db.Queryx(`SELECT * FROM diva_beads`)
+	rows, err := s.server.db.Query(`SELECT * FROM diva_beads`)
 	if err == nil {
 		var i int
 		for rows.Next() {
@@ -173,11 +170,13 @@ func handleMsgMhfGetKijuInfo(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfSetKiju(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSetKiju)
+	s.server.db.Exec(`UPDATE characters SET diva_bead=$1 WHERE id=$2`, pkt.BeadIndex, s.charID)
 	doAckBufSucceed(s, pkt.AckHandle, []byte{0})
 }
 
 func handleMsgMhfAddUdPoint(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfAddUdPoint)
+	s.server.db.Exec(`INSERT INTO diva_beads_points VALUES ($1, $2, now(), (SELECT diva_bead FROM characters WHERE id=$1))`, s.charID, pkt.Points)
 	doAckBufSucceed(s, pkt.AckHandle, []byte{0})
 }
 

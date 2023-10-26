@@ -21,4 +21,14 @@ CREATE TABLE IF NOT EXISTS public.diva_beads (
     type INTEGER
 );
 
+ALTER TABLE IF EXISTS public.characters
+    ADD COLUMN IF NOT EXISTS diva_bead INTEGER;
+
+CREATE TABLE IF NOT EXISTS public.diva_beads_points (
+    character_id INTEGER,
+    points INTEGER,
+    timestamp TIMESTAMP WITH TIME ZONE,
+    bead_index INTEGER
+);
+
 END;

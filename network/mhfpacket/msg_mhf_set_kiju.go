@@ -1,17 +1,17 @@
 package mhfpacket
 
-import ( 
- "errors" 
+import (
+	"errors"
 
- 	"erupe-ce/network/clientctx"
-	"erupe-ce/network"
 	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgMhfSetKiju represents the MSG_MHF_SET_KIJU
 type MsgMhfSetKiju struct {
 	AckHandle uint32
-	Unk1      uint16
+	BeadIndex uint8
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -22,9 +22,8 @@ func (m *MsgMhfSetKiju) Opcode() network.PacketID {
 // Parse parses the packet from binary
 func (m *MsgMhfSetKiju) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
-	m.Unk1 = bf.ReadUint16()
+	m.BeadIndex = bf.ReadUint8()
 	return nil
-	//panic("Not implemented")
 }
 
 // Build builds a binary packet from the current data.

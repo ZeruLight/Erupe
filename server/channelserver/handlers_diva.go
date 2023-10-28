@@ -170,13 +170,17 @@ func handleMsgMhfGetKijuInfo(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfSetKiju(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSetKiju)
-	s.server.db.Exec(`UPDATE characters SET diva_bead=$1 WHERE id=$2`, pkt.BeadIndex, s.charID)
+	midday := TimeMidnight().Add(12 * time.Hour)
+	if TimeAdjusted().After(midday) {
+		midday = midday.Add(12 * time.Hour)
+	}
+	s.server.db.Exec(`INSERT INTO diva_beads_assignment VALUES ($1, $2, $3)`, s.charID, pkt.BeadIndex, midday)
 	doAckBufSucceed(s, pkt.AckHandle, []byte{0})
 }
 
 func handleMsgMhfAddUdPoint(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfAddUdPoint)
-	s.server.db.Exec(`INSERT INTO diva_beads_points VALUES ($1, $2, now(), (SELECT diva_bead FROM characters WHERE id=$1))`, s.charID, pkt.Points)
+	s.server.db.Exec(`INSERT INTO diva_beads_points VALUES ($1, $2, now(), (SELECT bead_index FROM diva_beads_assignment WHERE character_id=$1 AND expiry>$3))`, s.charID, pkt.Points, TimeAdjusted())
 	doAckBufSucceed(s, pkt.AckHandle, []byte{0})
 }
 
@@ -184,11 +188,18 @@ func handleMsgMhfGetUdMyPoint(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetUdMyPoint)
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint8(0) // No error
+	var startTime time.Time
+	s.server.db.QueryRow(`SELECT start_time FROM events WHERE event_type='diva'`).Scan(&startTime)
 	for i := 0; i < 8; i++ {
 		for j := 0; j < 2; j++ {
-			bf.WriteUint8(0)  // Bead index
-			bf.WriteUint32(0) // Unk
-			bf.WriteUint32(0) // Unk
+			var bead uint8
+			var points uint32
+			s.server.db.QueryRow(`SELECT bead_index FROM diva_beads_assignment WHERE expiry=$1`, startTime).Scan(&bead)
+			s.server.db.QueryRow(`SELECT COALESCE(SUM(points), 0) FROM diva_beads_points WHERE bead_index=$1 AND timestamp BETWEEN $2 AND $3`, bead, startTime.Add(time.Hour*-12), startTime).Scan(&points)
+			bf.WriteUint8(bead)
+			bf.WriteUint32(points)
+			bf.WriteUint32(points)
+			startTime = startTime.Add(time.Hour * 12)
 		}
 	}
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
@@ -247,7 +258,8 @@ func handleMsgMhfGetUdTotalPointInfo(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint8(target.Type)
 	}
 
-	totalSouls := uint64(1000000000)
+	var totalSouls uint64
+	s.server.db.QueryRow(`SELECT SUM(points) FROM diva_beads_points WHERE bead_index IS NOT NULL`).Scan(&totalSouls)
 	bf.WriteUint64(totalSouls)
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
@@ -255,15 +267,21 @@ func handleMsgMhfGetUdTotalPointInfo(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfGetUdSelectedColorInfo(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetUdSelectedColorInfo)
 	bf := byteframe.NewByteFrame()
-	bf.WriteUint8(0)
-	// Index of bead levelled for each day of Prayer Week
-	bf.WriteUint8(0)
-	bf.WriteUint8(0)
-	bf.WriteUint8(0)
-	bf.WriteUint8(0)
-	bf.WriteUint8(0)
-	bf.WriteUint8(0)
-	bf.WriteUint8(0)
+	bf.WriteUint8(0) // No error
+	var startTime time.Time
+	s.server.db.QueryRow(`SELECT start_time FROM events WHERE event_type='diva'`).Scan(&startTime)
+	for x := 0; x < 8; x++ {
+		var j, k, l int
+		for i := 0; i < 4; i++ {
+			s.server.db.QueryRow(`SELECT COALESCE(SUM(points), 0) FROM diva_beads_points WHERE bead_index=$1 AND timestamp BETWEEN $2 AND $3`, i+1, startTime, startTime.Add(time.Hour*24)).Scan(&j)
+			if j > k {
+				k = j
+				l = i + 1
+			}
+		}
+		startTime = startTime.Add(time.Hour * 24)
+		bf.WriteUint8(uint8(l))
+	}
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 

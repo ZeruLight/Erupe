@@ -19,6 +19,8 @@ import (
 func cleanupDiva(s *Session) {
 	s.server.db.Exec(`DELETE FROM events WHERE event_type='diva'`)
 	s.server.db.Exec(`DELETE FROM diva_beads`)
+	s.server.db.Exec(`DELETE FROM diva_beads_assignment`)
+	s.server.db.Exec(`DELETE FROM diva_beads_points`)
 }
 
 func generateDivaTimestamps(s *Session, start uint32, debug bool) []uint32 {

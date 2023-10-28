@@ -302,7 +302,7 @@ func handleMsgMhfLoadScenarioData(s *Session, p mhfpacket.MHFPacket) {
 	var scenarioData []byte
 	bf := byteframe.NewByteFrame()
 	err := s.server.db.QueryRow("SELECT scenariodata FROM characters WHERE id = $1", s.charID).Scan(&scenarioData)
-	if err != nil {
+	if err != nil || len(scenarioData) < 10 {
 		s.logger.Error("Failed to load scenariodata", zap.Error(err))
 		bf.WriteBytes(make([]byte, 10))
 	} else {

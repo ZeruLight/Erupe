@@ -226,7 +226,7 @@ func (save *CharacterSaveData) updateStructWithSaveData() {
 		if _config.ErupeConfig.RealClientMode >= _config.G10 {
 			save.KQF = save.decompSave[save.Pointers[pKQF] : save.Pointers[pKQF]+8]
 			if save.HRP == uint16(999) {
-				save.GR = grpToGR(binary.LittleEndian.Uint32(save.decompSave[save.Pointers[pGRP] : save.Pointers[pGRP]+4]))
+				save.GR = grpToGR(int(binary.LittleEndian.Uint32(save.decompSave[save.Pointers[pGRP] : save.Pointers[pGRP]+4])))
 			}
 		}
 	}

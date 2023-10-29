@@ -12,12 +12,28 @@ import (
 )
 
 func UTF8ToSJIS(x string) []byte {
+	//Replace unsupported characters with ? 
+	replacedStr := ReplaceUnsupportedCharsToSJIS(x)
+
 	e := japanese.ShiftJIS.NewEncoder()
-	xt, _, err := transform.String(e, x)
+	xt, _, err := transform.String(e, replacedStr)
 	if err != nil {
-		panic(err)
+		panic(fmt.Sprintf("failed to convert string to Shift JIS after replacement: %v", err))
 	}
 	return []byte(xt)
+}
+
+func ReplaceUnsupportedCharsToSJIS(input string) string {
+	e := japanese.ShiftJIS.NewEncoder()
+
+	return strings.Map(func(r rune) rune {
+		_, _, err := transform.String(e, string(r))
+		if err != nil {
+			// For characters that cannot be encoded, replace with ?
+			return '?'
+		}
+		return r
+	}, input)
 }
 
 func SJISToUTF8(b []byte) string {

@@ -482,8 +482,9 @@ type Tile struct {
 	ID          uint16
 	NextID      uint16
 	BranchID    uint16
-	QuestFile   uint16
-	Unk0        uint32
+	QuestFile1  uint16
+	QuestFile2  uint16
+	QuestFile3  uint16
 	BranchIndex uint8
 	Type        uint8
 	PointsReq   int32
@@ -515,12 +516,12 @@ func (im *InterceptionMaps) Value() (valuer driver.Value, err error) {
 func (md *MapData) GetClaimed() uint32 {
 	var claimed uint32
 	for _, tile := range md.Tiles {
-		if md.Points[tile.QuestFile]-tile.PointsReq > 0 {
+		if md.Points[tile.QuestFile1]-tile.PointsReq > 0 {
 			tile.Claimed = true
 			if tile.PointsReq > 0 {
 				claimed++
 			}
-			md.Points[tile.QuestFile] -= tile.PointsReq
+			md.Points[tile.QuestFile1] -= tile.PointsReq
 		}
 	}
 	return claimed
@@ -598,16 +599,17 @@ func handleMsgMhfGetUdGuildMapInfo(s *Session, p mhfpacket.MHFPacket) {
 	err = s.server.db.QueryRow(`SELECT interception_maps FROM guilds WHERE id=$1`, guild.ID).Scan(&interceptionMaps)
 	if err != nil {
 		s.server.logger.Error("Failed to load interception map data", zap.Error(err))
-		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+		doAckBufSucceed(s, pkt.AckHandle, []byte{0xFF})
 		return
 	}
 
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint8(0) // No error
 	var tilesClaimed uint32
 	currentMapID, prevMapID := interceptionMaps.CurrPrevID()
 	currProg := byteframe.NewByteFrame()
 	prevProg := byteframe.NewByteFrame()
-	bf := byteframe.NewByteFrame()
-	bf.WriteUint16(uint16(len(interceptionMaps.Maps)))
+	bf.WriteUint8(uint8(len(interceptionMaps.Maps)))
 	for _, _map := range interceptionMaps.Maps {
 		bf.WriteUint32(_map.ID)
 		bf.WriteUint32(_map.NextID)
@@ -615,8 +617,9 @@ func handleMsgMhfGetUdGuildMapInfo(s *Session, p mhfpacket.MHFPacket) {
 			bf.WriteUint16(tile.ID)
 			bf.WriteUint16(tile.NextID)
 			bf.WriteUint16(tile.BranchID)
-			bf.WriteUint16(tile.QuestFile)
-			bf.WriteUint32(tile.Unk0)
+			bf.WriteUint16(tile.QuestFile1)
+			bf.WriteUint16(tile.QuestFile2)
+			bf.WriteUint16(tile.QuestFile3)
 			bf.WriteUint8(tile.BranchIndex)
 			bf.WriteUint8(tile.Type)
 			bf.WriteInt32(tile.PointsReq)
@@ -636,14 +639,14 @@ func handleMsgMhfGetUdGuildMapInfo(s *Session, p mhfpacket.MHFPacket) {
 			currProg.WriteUint8(uint8(len(_map.Tiles)))
 			for _, tile := range _map.Tiles {
 				if tile.Type != 1 {
-					if _map.Points[tile.QuestFile]-tile.PointsReq > 0 {
+					if _map.Points[tile.QuestFile1]-tile.PointsReq > 0 {
 						tile.Claimed = true
 						tilesClaimed++
-						_map.Points[tile.QuestFile] -= tile.PointsReq
+						_map.Points[tile.QuestFile1] -= tile.PointsReq
 						currProg.WriteInt32(tile.PointsReq)
 					} else {
-						currProg.WriteInt32(_map.Points[tile.QuestFile])
-						_map.Points[tile.QuestFile] = 0
+						currProg.WriteInt32(_map.Points[tile.QuestFile1])
+						_map.Points[tile.QuestFile1] = 0
 					}
 				} else {
 					currProg.WriteInt32(0)
@@ -652,8 +655,9 @@ func handleMsgMhfGetUdGuildMapInfo(s *Session, p mhfpacket.MHFPacket) {
 				currProg.WriteUint16(tile.ID)
 				currProg.WriteUint16(tile.NextID)
 				currProg.WriteUint16(tile.BranchID)
-				currProg.WriteUint16(tile.QuestFile)
-				currProg.WriteUint32(tile.Unk0)
+				currProg.WriteUint16(tile.QuestFile1)
+				currProg.WriteUint16(tile.QuestFile2)
+				currProg.WriteUint16(tile.QuestFile3)
 				currProg.WriteUint8(tile.BranchIndex)
 				currProg.WriteUint8(tile.Type)
 				if tile.Claimed || tile.Type == 1 {
@@ -669,14 +673,14 @@ func handleMsgMhfGetUdGuildMapInfo(s *Session, p mhfpacket.MHFPacket) {
 			prevProg.WriteUint8(uint8(len(_map.Tiles)))
 			for _, tile := range _map.Tiles {
 				if tile.Type != 1 {
-					if _map.Points[tile.QuestFile]-tile.PointsReq > 0 {
+					if _map.Points[tile.QuestFile1]-tile.PointsReq > 0 {
 						tile.Claimed = true
 						tilesClaimed++
-						_map.Points[tile.QuestFile] -= tile.PointsReq
+						_map.Points[tile.QuestFile1] -= tile.PointsReq
 						prevProg.WriteInt32(tile.PointsReq)
 					} else {
-						prevProg.WriteInt32(_map.Points[tile.QuestFile])
-						_map.Points[tile.QuestFile] = 0
+						prevProg.WriteInt32(_map.Points[tile.QuestFile1])
+						_map.Points[tile.QuestFile1] = 0
 					}
 				} else {
 					prevProg.WriteInt32(0)
@@ -685,8 +689,9 @@ func handleMsgMhfGetUdGuildMapInfo(s *Session, p mhfpacket.MHFPacket) {
 				prevProg.WriteUint16(tile.ID)
 				prevProg.WriteUint16(tile.NextID)
 				prevProg.WriteUint16(tile.BranchID)
-				prevProg.WriteUint16(tile.QuestFile)
-				prevProg.WriteUint32(tile.Unk0)
+				prevProg.WriteUint16(tile.QuestFile1)
+				prevProg.WriteUint16(tile.QuestFile2)
+				prevProg.WriteUint16(tile.QuestFile3)
 				prevProg.WriteUint8(tile.BranchIndex)
 				prevProg.WriteUint8(tile.Type)
 				if tile.Claimed || tile.Type == 1 {
@@ -931,7 +936,7 @@ func GenerateUdGuildMaps() ([]MapData, []MapBranch) {
 					branchIndex++
 					newTile := Tile{
 						ID:          newBranchTile,
-						QuestFile:   uint16(j%5 + 58079),
+						QuestFile1:  uint16(j%5 + 58079),
 						BranchIndex: uint8(branchIndex),
 						Type:        0,
 						PointsReq:   100,

@@ -31,17 +31,17 @@ type User struct {
 }
 
 type Character struct {
-	Id        uint32 `json:"id"`
+	ID        uint32 `json:"id"`
 	Name      string `json:"name"`
 	IsFemale  bool   `json:"isFemale" db:"is_female"`
 	Weapon    uint32 `json:"weapon" db:"weapon_type"`
-	Hr        uint32 `json:"hr" db:"hrp"`
-	Gr        uint32 `json:"gr"`
+	HR        uint32 `json:"hr" db:"hrp"`
+	GR        uint32 `json:"gr"`
 	LastLogin int64  `json:"lastLogin" db:"last_login"`
 }
 
 type MezFes struct {
-	Id           uint32   `json:"id"`
+	ID           uint32   `json:"id"`
 	Start        uint32   `json:"start"`
 	End          uint32   `json:"end"`
 	SoloTickets  uint32   `json:"soloTickets"`
@@ -50,8 +50,8 @@ type MezFes struct {
 }
 
 type AuthData struct {
-	CurrentTs     uint32      `json:"currentTs"`
-	ExpiryTs      uint32      `json:"expiryTs"`
+	CurrentTS     uint32      `json:"currentTs"`
+	ExpiryTS      uint32      `json:"expiryTs"`
 	EntranceCount uint32      `json:"entranceCount"`
 	Notifications []string    `json:"notifications"`
 	User          User        `json:"user"`
@@ -61,8 +61,8 @@ type AuthData struct {
 
 func (s *Server) newAuthData(userID uint32, userRights uint32, userToken string, characters []Character) AuthData {
 	resp := AuthData{
-		CurrentTs:     uint32(channelserver.TimeAdjusted().Unix()),
-		ExpiryTs:      uint32(s.getReturnExpiry(userID).Unix()),
+		CurrentTS:     uint32(channelserver.TimeAdjusted().Unix()),
+		ExpiryTS:      uint32(s.getReturnExpiry(userID).Unix()),
 		EntranceCount: 1,
 		User: User{
 			Rights: userRights,
@@ -76,7 +76,7 @@ func (s *Server) newAuthData(userID uint32, userRights uint32, userToken string,
 			stalls[4] = 2
 		}
 		resp.MezFes = &MezFes{
-			Id:           uint32(channelserver.TimeWeekStart().Unix()),
+			ID:           uint32(channelserver.TimeWeekStart().Unix()),
 			Start:        uint32(channelserver.TimeWeekStart().Unix()),
 			End:          uint32(channelserver.TimeWeekNext().Unix()),
 			SoloTickets:  s.erupeConfig.GameplayOptions.MezfesSoloTickets,
@@ -238,7 +238,7 @@ func (s *Server) DeleteCharacter(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var reqData struct {
 		Token  string `json:"token"`
-		CharId uint32 `json:"charId"`
+		CharID uint32 `json:"charId"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&reqData); err != nil {
 		s.logger.Error("JSON decode error", zap.Error(err))
@@ -251,8 +251,8 @@ func (s *Server) DeleteCharacter(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(401)
 		return
 	}
-	if err := s.deleteCharacter(ctx, userID, reqData.CharId); err != nil {
-		s.logger.Error("Failed to delete character", zap.Error(err), zap.String("token", reqData.Token), zap.Uint32("charID", reqData.CharId))
+	if err := s.deleteCharacter(ctx, userID, reqData.CharID); err != nil {
+		s.logger.Error("Failed to delete character", zap.Error(err), zap.String("token", reqData.Token), zap.Uint32("charID", reqData.CharID))
 		w.WriteHeader(500)
 		return
 	}

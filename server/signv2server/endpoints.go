@@ -4,7 +4,9 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"erupe-ce/server/channelserver"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/lib/pq"
@@ -18,21 +20,78 @@ type LauncherMessage struct {
 	Link    string `json:"link"`
 }
 
+type LauncherResponse struct {
+	Important []LauncherMessage `json:"important"`
+	Normal    []LauncherMessage `json:"normal"`
+}
+
+type User struct {
+	Token  string `json:"token"`
+	Rights uint32 `json:"rights"`
+}
+
 type Character struct {
-	ID        int    `json:"id"`
+	Id        uint32 `json:"id"`
 	Name      string `json:"name"`
 	IsFemale  bool   `json:"isFemale" db:"is_female"`
-	Weapon    int    `json:"weapon" db:"weapon_type"`
-	HR        int    `json:"hr" db:"hrp"`
-	GR        int    `json:"gr"`
+	Weapon    uint32 `json:"weapon" db:"weapon_type"`
+	Hr        uint32 `json:"hr" db:"hrp"`
+	Gr        uint32 `json:"gr"`
 	LastLogin int64  `json:"lastLogin" db:"last_login"`
 }
 
-func (s *Server) Launcher(w http.ResponseWriter, r *http.Request) {
-	var respData struct {
-		Important []LauncherMessage `json:"important"`
-		Normal    []LauncherMessage `json:"normal"`
+type MezFes struct {
+	Id           uint32   `json:"id"`
+	Start        uint32   `json:"start"`
+	End          uint32   `json:"end"`
+	SoloTickets  uint32   `json:"soloTickets"`
+	GroupTickets uint32   `json:"groupTickets"`
+	Stalls       []uint32 `json:"stalls"`
+}
+
+type AuthData struct {
+	CurrentTs     uint32      `json:"currentTs"`
+	ExpiryTs      uint32      `json:"expiryTs"`
+	EntranceCount uint32      `json:"entranceCount"`
+	Notifications []string    `json:"notifications"`
+	User          User        `json:"user"`
+	Characters    []Character `json:"characters"`
+	MezFes        *MezFes     `json:"mezFes"`
+}
+
+func (s *Server) newAuthData(userID uint32, userRights uint32, userToken string, characters []Character) AuthData {
+	resp := AuthData{
+		CurrentTs:     uint32(channelserver.TimeAdjusted().Unix()),
+		ExpiryTs:      uint32(s.getReturnExpiry(userID).Unix()),
+		EntranceCount: 1,
+		User: User{
+			Rights: userRights,
+			Token:  userToken,
+		},
+		Characters: characters,
 	}
+	if s.erupeConfig.DevModeOptions.MezFesEvent {
+		stalls := []uint32{10, 3, 6, 9, 4, 8, 5, 7}
+		if s.erupeConfig.DevModeOptions.MezFesAlt {
+			stalls[4] = 2
+		}
+		resp.MezFes = &MezFes{
+			Id:           uint32(channelserver.TimeWeekStart().Unix()),
+			Start:        uint32(channelserver.TimeWeekStart().Unix()),
+			End:          uint32(channelserver.TimeWeekNext().Unix()),
+			SoloTickets:  s.erupeConfig.GameplayOptions.MezfesSoloTickets,
+			GroupTickets: s.erupeConfig.GameplayOptions.MezfesGroupTickets,
+			Stalls:       stalls,
+		}
+	}
+	if !s.erupeConfig.HideLoginNotice {
+		resp.Notifications = append(resp.Notifications, strings.Join(s.erupeConfig.LoginNotices[:], "<PAGE>"))
+	}
+	return resp
+}
+
+func (s *Server) Launcher(w http.ResponseWriter, r *http.Request) {
+	var respData LauncherResponse
 	respData.Important = []LauncherMessage{
 		{
 			Message: "Server Update 9 Released!",
@@ -75,10 +134,11 @@ func (s *Server) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	var (
-		userID   int
-		password string
+		userID     uint32
+		userRights uint32
+		password   string
 	)
-	err := s.db.QueryRow("SELECT id, password FROM users WHERE username = $1", reqData.Username).Scan(&userID, &password)
+	err := s.db.QueryRow("SELECT id, password, rights FROM users WHERE username = $1", reqData.Username).Scan(&userID, &password, &userRights)
 	if err == sql.ErrNoRows {
 		w.WriteHeader(400)
 		w.Write([]byte("Username does not exist"))
@@ -94,22 +154,19 @@ func (s *Server) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var respData struct {
-		Token      string      `json:"token"`
-		Characters []Character `json:"characters"`
-	}
-	respData.Token, err = s.createLoginToken(ctx, userID)
+	userToken, err := s.createLoginToken(ctx, userID)
 	if err != nil {
 		s.logger.Warn("Error registering login token", zap.Error(err))
 		w.WriteHeader(500)
 		return
 	}
-	respData.Characters, err = s.getCharactersForUser(ctx, userID)
+	characters, err := s.getCharactersForUser(ctx, userID)
 	if err != nil {
 		s.logger.Warn("Error getting characters from DB", zap.Error(err))
 		w.WriteHeader(500)
 		return
 	}
+	respData := s.newAuthData(userID, userRights, userToken, characters)
 	w.WriteHeader(200)
 	w.Header().Add("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(respData)
@@ -128,7 +185,7 @@ func (s *Server) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.logger.Info("Creating account", zap.String("username", reqData.Username))
-	userID, err := s.createNewUser(ctx, reqData.Username, reqData.Password)
+	userID, userRights, err := s.createNewUser(ctx, reqData.Username, reqData.Password)
 	if err != nil {
 		var pqErr *pq.Error
 		if errors.As(err, &pqErr) && pqErr.Constraint == "users_username_key" {
@@ -141,15 +198,13 @@ func (s *Server) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var respData struct {
-		Token string `json:"token"`
-	}
-	respData.Token, err = s.createLoginToken(ctx, userID)
+	userToken, err := s.createLoginToken(ctx, userID)
 	if err != nil {
 		s.logger.Error("Error registering login token", zap.Error(err))
 		w.WriteHeader(500)
 		return
 	}
+	respData := s.newAuthData(userID, userRights, userToken, []Character{})
 	json.NewEncoder(w).Encode(respData)
 }
 
@@ -165,28 +220,25 @@ func (s *Server) CreateCharacter(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var respData struct {
-		CharID int `json:"id"`
-	}
 	userID, err := s.userIDFromToken(ctx, reqData.Token)
 	if err != nil {
 		w.WriteHeader(401)
 		return
 	}
-	respData.CharID, err = s.createCharacter(ctx, userID)
+	character, err := s.createCharacter(ctx, userID)
 	if err != nil {
 		s.logger.Error("Failed to create character", zap.Error(err), zap.String("token", reqData.Token))
 		w.WriteHeader(500)
 		return
 	}
-	json.NewEncoder(w).Encode(respData)
+	json.NewEncoder(w).Encode(character)
 }
 
 func (s *Server) DeleteCharacter(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var reqData struct {
 		Token  string `json:"token"`
-		CharID int    `json:"id"`
+		CharId uint32 `json:"charId"`
 	}
 	if err := json.NewDecoder(r.Body).Decode(&reqData); err != nil {
 		s.logger.Error("JSON decode error", zap.Error(err))
@@ -199,8 +251,8 @@ func (s *Server) DeleteCharacter(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(401)
 		return
 	}
-	if err := s.deleteCharacter(ctx, userID, reqData.CharID); err != nil {
-		s.logger.Error("Failed to delete character", zap.Error(err), zap.String("token", reqData.Token), zap.Int("charID", reqData.CharID))
+	if err := s.deleteCharacter(ctx, userID, reqData.CharId); err != nil {
+		s.logger.Error("Failed to delete character", zap.Error(err), zap.String("token", reqData.Token), zap.Uint32("charID", reqData.CharId))
 		w.WriteHeader(500)
 		return
 	}

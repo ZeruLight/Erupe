@@ -372,7 +372,6 @@ func handleMsgSysEnumerateStage(s *Session, p mhfpacket.MHFPacket) {
 	var joinable int
 	for sid, stage := range s.server.stages {
 		stage.RLock()
-		defer stage.RUnlock()
 
 		if len(stage.reservedClientSlots) == 0 && len(stage.clients) == 0 {
 			continue
@@ -386,9 +385,12 @@ func handleMsgSysEnumerateStage(s *Session, p mhfpacket.MHFPacket) {
 
 		resp.WriteUint16(uint16(len(stage.reservedClientSlots))) // Reserved players.
 		resp.WriteUint16(0)                                      // Unk
-		resp.WriteUint8(0)                                       // Unk
-		resp.WriteBool(len(stage.clients) > 0)                   // Has departed.
-		resp.WriteUint16(stage.maxPlayers)                       // Max players.
+		if len(stage.clients) > 0 {
+			bf.WriteUint16(1)
+		} else {
+			bf.WriteUint16(0)
+		}
+		resp.WriteUint16(stage.maxPlayers) // Max players.
 		if len(stage.password) > 0 {
 			// This byte has also been seen as 1
 			// The quest is also recognised as locked when this is 2
@@ -397,6 +399,7 @@ func handleMsgSysEnumerateStage(s *Session, p mhfpacket.MHFPacket) {
 			resp.WriteUint8(0)
 		}
 		ps.Uint8(resp, sid, false)
+		stage.RUnlock()
 	}
 	bf.WriteUint16(uint16(joinable))
 	bf.WriteBytes(resp.Data())

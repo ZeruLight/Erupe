@@ -15,7 +15,7 @@ type MsgMhfSendMail struct {
 	RecipientID   uint32
 	SubjectLength uint16
 	BodyLength    uint16
-	Quantity      uint32
+	Quantity      uint16
 	ItemID        uint16
 	Subject       string
 	Body          string
@@ -32,7 +32,8 @@ func (m *MsgMhfSendMail) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientCon
 	m.RecipientID = bf.ReadUint32()
 	m.SubjectLength = bf.ReadUint16()
 	m.BodyLength = bf.ReadUint16()
-	m.Quantity = bf.ReadUint32()
+	bf.ReadUint16() // Zeroed
+	m.Quantity = bf.ReadUint16()
 	m.ItemID = bf.ReadUint16()
 	m.Subject = stringsupport.SJISToUTF8(bf.ReadNullTerminatedBytes())
 	m.Body = stringsupport.SJISToUTF8(bf.ReadNullTerminatedBytes())

@@ -356,11 +356,11 @@ func handleMsgMhfEnumerateTitle(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfAcquireTitle(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfAcquireTitle)
 	var exists int
-	err := s.server.db.QueryRow("SELECT count(*) FROM titles WHERE id=$1 AND char_id=$2", pkt.TitleID, s.charID).Scan(&exists)
+	err := s.server.db.QueryRow(`SELECT count(*) FROM titles WHERE id=$1 AND char_id=$2`, pkt.TitleID, s.charID).Scan(&exists)
 	if err != nil || exists == 0 {
-		s.server.db.Exec("INSERT INTO titles VALUES ($1, $2, now(), now())", pkt.TitleID, s.charID)
+		s.server.db.Exec(`INSERT INTO titles VALUES ($1, $2, now(), now())`, pkt.TitleID, s.charID)
 	} else {
-		s.server.db.Exec("UPDATE titles SET updated_at=now()")
+		s.server.db.Exec(`UPDATE titles SET updated_at=now() WHERE id=$1 AND char_id=$2`, pkt.TitleID, s.charID)
 	}
 	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }

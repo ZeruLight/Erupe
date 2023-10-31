@@ -374,10 +374,12 @@ func handleMsgSysEnumerateStage(s *Session, p mhfpacket.MHFPacket) {
 		stage.RLock()
 
 		if len(stage.reservedClientSlots) == 0 && len(stage.clients) == 0 {
+			stage.RUnlock()
 			continue
 		}
 
 		if !strings.Contains(stage.id, pkt.StagePrefix) {
+			stage.RUnlock()
 			continue
 		}
 

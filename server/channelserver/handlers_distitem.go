@@ -4,24 +4,25 @@ import (
 	"erupe-ce/common/byteframe"
 	ps "erupe-ce/common/pascalstring"
 	"erupe-ce/network/mhfpacket"
+	"time"
 
 	"go.uber.org/zap"
 )
 
 type ItemDist struct {
-	ID              uint32 `db:"id"`
-	Deadline        uint32 `db:"deadline"`
-	TimesAcceptable uint16 `db:"times_acceptable"`
-	TimesAccepted   uint16 `db:"times_accepted"`
-	MinHR           uint16 `db:"min_hr"`
-	MaxHR           uint16 `db:"max_hr"`
-	MinSR           uint16 `db:"min_sr"`
-	MaxSR           uint16 `db:"max_sr"`
-	MinGR           uint16 `db:"min_gr"`
-	MaxGR           uint16 `db:"max_gr"`
-	EventName       string `db:"event_name"`
-	Description     string `db:"description"`
-	Data            []byte `db:"data"`
+	ID              uint32    `db:"id"`
+	Deadline        time.Time `db:"deadline"`
+	TimesAcceptable uint16    `db:"times_acceptable"`
+	TimesAccepted   uint16    `db:"times_accepted"`
+	MinHR           uint16    `db:"min_hr"`
+	MaxHR           uint16    `db:"max_hr"`
+	MinSR           uint16    `db:"min_sr"`
+	MaxSR           uint16    `db:"max_sr"`
+	MinGR           uint16    `db:"min_gr"`
+	MaxGR           uint16    `db:"max_gr"`
+	EventName       string    `db:"event_name"`
+	Description     string    `db:"description"`
+	Data            []byte    `db:"data"`
 }
 
 func handleMsgMhfEnumerateDistItem(s *Session, p mhfpacket.MHFPacket) {
@@ -37,13 +38,10 @@ func handleMsgMhfEnumerateDistItem(s *Session, p mhfpacket.MHFPacket) {
     	WHERE d.id = da.distribution_id
     	AND da.character_id = $1
 		) AS times_accepted,
-		CASE
-			WHEN (EXTRACT(epoch FROM deadline)::int) IS NULL THEN 0
-			ELSE (EXTRACT(epoch FROM deadline)::int)
-		END deadline
+		COALESCE(deadline, TO_TIMESTAMP(0)) AS deadline
 		FROM distribution d
 		WHERE character_id = $1 AND type = $2 OR character_id IS NULL AND type = $2 ORDER BY id DESC;
-	`, s.charID, pkt.Unk0)
+	`, s.charID, pkt.DistType)
 	if err != nil {
 		s.logger.Error("Error getting distribution data from db", zap.Error(err))
 		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
@@ -56,7 +54,7 @@ func handleMsgMhfEnumerateDistItem(s *Session, p mhfpacket.MHFPacket) {
 				s.logger.Error("Error parsing item distribution data", zap.Error(err))
 			}
 			bf.WriteUint32(distData.ID)
-			bf.WriteUint32(distData.Deadline)
+			bf.WriteUint32(uint32(distData.Deadline.Unix()))
 			bf.WriteUint32(0) // Unk
 			bf.WriteUint16(distData.TimesAcceptable)
 			bf.WriteUint16(distData.TimesAccepted)
@@ -93,67 +91,61 @@ func handleMsgMhfEnumerateDistItem(s *Session, p mhfpacket.MHFPacket) {
 		resp := byteframe.NewByteFrame()
 		resp.WriteUint16(uint16(distCount))
 		resp.WriteBytes(bf.Data())
-		resp.WriteUint8(0)
 		doAckBufSucceed(s, pkt.AckHandle, resp.Data())
 	}
+}
+
+type DistributionItem struct {
+	ItemType uint8  `db:"item_type"`
+	ID       uint32 `db:"id"`
+	ItemID   uint32 `db:"item_id"`
+	Quantity uint32 `db:"quantity"`
 }
 
 func handleMsgMhfApplyDistItem(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfApplyDistItem)
 
-	if pkt.DistributionID == 0 {
-		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 6))
-	} else {
-		row := s.server.db.QueryRowx("SELECT data FROM distribution WHERE id = $1", pkt.DistributionID)
-		dist := &ItemDist{}
-		err := row.StructScan(dist)
-		if err != nil {
-			s.logger.Error("Error parsing item distribution data", zap.Error(err))
-			doAckBufSucceed(s, pkt.AckHandle, make([]byte, 6))
-			return
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint32(pkt.DistributionID)
+	var distItems []DistributionItem
+	rows, err := s.server.db.Queryx(`SELECT id, item_id, item_type, quantity FROM distribution_items WHERE distribution_id=$1`, pkt.DistributionID)
+	if err == nil {
+		var distItem DistributionItem
+		for rows.Next() {
+			err = rows.StructScan(&distItem)
+			if err != nil {
+				continue
+			}
+			distItems = append(distItems, distItem)
 		}
-
-		if len(dist.Data) >= 2 {
-			distData := byteframe.NewByteFrameFromBytes(dist.Data)
-			distItems := int(distData.ReadUint16())
-			for i := 0; i < distItems; i++ {
-				if len(dist.Data) >= 2+(i*13) {
-					itemType := distData.ReadUint8()
-					_ = distData.ReadBytes(6)
-					quantity := int(distData.ReadUint16())
-					_ = distData.ReadBytes(4)
-					switch itemType {
-					case 17:
-						_ = addPointNetcafe(s, quantity)
-					case 19:
-						s.server.db.Exec("UPDATE users u SET gacha_premium=gacha_premium+$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)", quantity, s.charID)
-					case 20:
-						s.server.db.Exec("UPDATE users u SET gacha_trial=gacha_trial+$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)", quantity, s.charID)
-					case 21:
-						s.server.db.Exec("UPDATE users u SET frontier_points=frontier_points+$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)", quantity, s.charID)
-					case 23:
-						saveData, err := GetCharacterSaveData(s, s.charID)
-						if err == nil {
-							saveData.RP += uint16(quantity)
-							saveData.Save(s)
-						}
-					}
-				}
+	}
+	bf.WriteUint16(uint16(len(distItems)))
+	for _, item := range distItems {
+		bf.WriteUint8(item.ItemType)
+		bf.WriteUint32(item.ItemID)
+		bf.WriteUint32(item.Quantity)
+		bf.WriteUint32(item.ID)
+		switch item.ItemType {
+		case 17:
+			_ = addPointNetcafe(s, int(item.Quantity))
+		case 19:
+			s.server.db.Exec("UPDATE users u SET gacha_premium=gacha_premium+$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)", item.Quantity, s.charID)
+		case 20:
+			s.server.db.Exec("UPDATE users u SET gacha_trial=gacha_trial+$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)", item.Quantity, s.charID)
+		case 21:
+			s.server.db.Exec("UPDATE users u SET frontier_points=frontier_points+$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)", item.Quantity, s.charID)
+		case 23:
+			saveData, err := GetCharacterSaveData(s, s.charID)
+			if err == nil {
+				saveData.RP += uint16(item.Quantity)
+				saveData.Save(s)
 			}
 		}
+	}
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 
-		bf := byteframe.NewByteFrame()
-		bf.WriteUint32(pkt.DistributionID)
-		bf.WriteBytes(dist.Data)
-		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
-
-		_, err = s.server.db.Exec(`
-			INSERT INTO public.distributions_accepted
-			VALUES ($1, $2)
-		`, pkt.DistributionID, s.charID)
-		if err != nil {
-			s.logger.Error("Error updating accepted dist count", zap.Error(err))
-		}
+	if pkt.DistributionID > 0 {
+		_, err = s.server.db.Exec(`INSERT INTO public.distributions_accepted VALUES ($1, $2)`, pkt.DistributionID, s.charID)
 	}
 }
 

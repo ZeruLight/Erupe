@@ -47,6 +47,10 @@ func handleMsgSysGetFile(s *Session, p mhfpacket.MHFPacket) {
 			)
 		}
 
+		if s.server.erupeConfig.GameplayOptions.SeasonOverride {
+			pkt.Filename = seasonConversion(s, pkt.Filename)
+		}
+
 		data, err := os.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("quests/%s.bin", pkt.Filename)))
 		if err != nil {
 			s.logger.Error(fmt.Sprintf("Failed to open file: %s/quests/%s.bin", s.server.erupeConfig.BinPath, pkt.Filename))
@@ -55,6 +59,28 @@ func handleMsgSysGetFile(s *Session, p mhfpacket.MHFPacket) {
 			return
 		}
 		doAckBufSucceed(s, pkt.AckHandle, data)
+	}
+}
+
+func questSuffix(s *Session) string {
+	// Determine the letter to append for day / night
+	var timeSet string
+	if TimeGameAbsolute() > 2880 {
+		timeSet = "d"
+	} else {
+		timeSet = "n"
+	}
+	return fmt.Sprintf("%s%d", timeSet, s.server.Season())
+}
+
+func seasonConversion(s *Session, questFile string) string {
+	filename := fmt.Sprintf("%s%s", questFile[:5], questSuffix(s))
+
+	// Return original file if file doesn't exist
+	if _, err := os.Stat(filename); err == nil {
+		return filename
+	} else {
+		return questFile
 	}
 }
 

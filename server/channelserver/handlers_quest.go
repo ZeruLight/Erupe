@@ -51,8 +51,16 @@ func handleMsgSysGetFile(s *Session, p mhfpacket.MHFPacket) {
 			pkt.Filename = seasonConversion(s, pkt.Filename)
 		}
 
+		// custom quests expect there to be only a d0 for quests, rewrite quests to try for d0 if the quest file doesn't exist
+		if _, err := os.Stat(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("quests/%s.bin", pkt.Filename))); err != nil {
+			pkt.Filename = fmt.Sprintf("%s%s", pkt.Filename[:5], "d0")
+		}
+
+		s.logger.Info("Sent " + pkt.Filename)
+
 		data, err := os.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("quests/%s.bin", pkt.Filename)))
 		if err != nil {
+
 			s.logger.Error(fmt.Sprintf("Failed to open file: %s/quests/%s.bin", s.server.erupeConfig.BinPath, pkt.Filename))
 			// This will crash the game.
 			doAckBufSucceed(s, pkt.AckHandle, data)
@@ -77,10 +85,15 @@ func seasonConversion(s *Session, questFile string) string {
 	filename := fmt.Sprintf("%s%s", questFile[:5], questSuffix(s))
 
 	// Return original file if file doesn't exist
-	if _, err := os.Stat(filename); err == nil {
+	if _, err := os.Stat(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("quests/%s.bin", filename))); err == nil {
 		return filename
 	} else {
-		return questFile
+		// Load d0 if the regular quest file doesn't exist (Fixes custom quests)
+		if _, err := os.Stat(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("quests/%s.bin", questFile))); err == nil {
+			return questFile
+		}
+
+		return fmt.Sprintf("%s%s", questFile[:5], "d0")
 	}
 }
 

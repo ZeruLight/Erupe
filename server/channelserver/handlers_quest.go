@@ -56,8 +56,6 @@ func handleMsgSysGetFile(s *Session, p mhfpacket.MHFPacket) {
 			pkt.Filename = fmt.Sprintf("%s%s", pkt.Filename[:5], "d0")
 		}
 
-		s.logger.Info("Sent " + pkt.Filename)
-
 		data, err := os.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("quests/%s.bin", pkt.Filename)))
 		if err != nil {
 

@@ -14,12 +14,12 @@ type ItemDist struct {
 	Deadline        time.Time `db:"deadline"`
 	TimesAcceptable uint16    `db:"times_acceptable"`
 	TimesAccepted   uint16    `db:"times_accepted"`
-	MinHR           uint16    `db:"min_hr"`
-	MaxHR           uint16    `db:"max_hr"`
-	MinSR           uint16    `db:"min_sr"`
-	MaxSR           uint16    `db:"max_sr"`
-	MinGR           uint16    `db:"min_gr"`
-	MaxGR           uint16    `db:"max_gr"`
+	MinHR           int16     `db:"min_hr"`
+	MaxHR           int16     `db:"max_hr"`
+	MinSR           int16     `db:"min_sr"`
+	MaxSR           int16     `db:"max_sr"`
+	MinGR           int16     `db:"min_gr"`
+	MaxGR           int16     `db:"max_gr"`
 	EventName       string    `db:"event_name"`
 	Description     string    `db:"description"`
 	Data            []byte    `db:"data"`
@@ -31,7 +31,9 @@ func handleMsgMhfEnumerateDistItem(s *Session, p mhfpacket.MHFPacket) {
 	distCount := 0
 	dists, err := s.server.db.Queryx(`
 		SELECT d.id, event_name, description, times_acceptable,
-		min_hr, max_hr, min_sr, max_sr, min_gr, max_gr,
+		COALESCE(min_hr, -1) AS min_hr, COALESCE(max_hr, -1) AS max_hr,
+		COALESCE(min_sr, -1) AS min_sr, COALESCE(max_sr, -1) AS max_sr,
+		COALESCE(min_gr, -1) AS min_gr, COALESCE(max_gr, -1) AS max_gr,
 		(
     	SELECT count(*)
     	FROM distributions_accepted da
@@ -59,12 +61,12 @@ func handleMsgMhfEnumerateDistItem(s *Session, p mhfpacket.MHFPacket) {
 			bf.WriteUint16(distData.TimesAcceptable)
 			bf.WriteUint16(distData.TimesAccepted)
 			bf.WriteUint16(0) // Unk
-			bf.WriteUint16(distData.MinHR)
-			bf.WriteUint16(distData.MaxHR)
-			bf.WriteUint16(distData.MinSR)
-			bf.WriteUint16(distData.MaxSR)
-			bf.WriteUint16(distData.MinGR)
-			bf.WriteUint16(distData.MaxGR)
+			bf.WriteInt16(distData.MinHR)
+			bf.WriteInt16(distData.MaxHR)
+			bf.WriteInt16(distData.MinSR)
+			bf.WriteInt16(distData.MaxSR)
+			bf.WriteInt16(distData.MinGR)
+			bf.WriteInt16(distData.MaxGR)
 			bf.WriteUint8(0)
 			bf.WriteUint16(0)
 			bf.WriteUint8(0)

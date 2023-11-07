@@ -9,7 +9,7 @@ import (
 	"go.uber.org/zap"
 )
 
-type ItemDist struct {
+type Distribution struct {
 	ID              uint32    `db:"id"`
 	Deadline        time.Time `db:"deadline"`
 	TimesAcceptable uint16    `db:"times_acceptable"`
@@ -27,74 +27,72 @@ type ItemDist struct {
 
 func handleMsgMhfEnumerateDistItem(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateDistItem)
+
+	var itemDists []Distribution
 	bf := byteframe.NewByteFrame()
-	distCount := 0
-	dists, err := s.server.db.Queryx(`
+	rows, err := s.server.db.Queryx(`
 		SELECT d.id, event_name, description, times_acceptable,
 		COALESCE(min_hr, -1) AS min_hr, COALESCE(max_hr, -1) AS max_hr,
 		COALESCE(min_sr, -1) AS min_sr, COALESCE(max_sr, -1) AS max_sr,
 		COALESCE(min_gr, -1) AS min_gr, COALESCE(max_gr, -1) AS max_gr,
 		(
-    	SELECT count(*)
-    	FROM distributions_accepted da
-    	WHERE d.id = da.distribution_id
-    	AND da.character_id = $1
+    		SELECT count(*) FROM distributions_accepted da
+    		WHERE d.id = da.distribution_id AND da.character_id = $1
 		) AS times_accepted,
 		COALESCE(deadline, TO_TIMESTAMP(0)) AS deadline
 		FROM distribution d
-		WHERE character_id = $1 AND type = $2 OR character_id IS NULL AND type = $2 ORDER BY id DESC;
+		WHERE character_id = $1 AND type = $2 OR character_id IS NULL AND type = $2 ORDER BY id DESC
 	`, s.charID, pkt.DistType)
-	if err != nil {
-		s.logger.Error("Error getting distribution data from db", zap.Error(err))
-		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
-	} else {
-		for dists.Next() {
-			distCount++
-			distData := &ItemDist{}
-			err = dists.StructScan(&distData)
+
+	if err == nil {
+		var itemDist Distribution
+		for rows.Next() {
+			err = rows.StructScan(&itemDist)
 			if err != nil {
-				s.logger.Error("Error parsing item distribution data", zap.Error(err))
+				continue
 			}
-			bf.WriteUint32(distData.ID)
-			bf.WriteUint32(uint32(distData.Deadline.Unix()))
-			bf.WriteUint32(0) // Unk
-			bf.WriteUint16(distData.TimesAcceptable)
-			bf.WriteUint16(distData.TimesAccepted)
-			bf.WriteUint16(0) // Unk
-			bf.WriteInt16(distData.MinHR)
-			bf.WriteInt16(distData.MaxHR)
-			bf.WriteInt16(distData.MinSR)
-			bf.WriteInt16(distData.MaxSR)
-			bf.WriteInt16(distData.MinGR)
-			bf.WriteInt16(distData.MaxGR)
-			bf.WriteUint8(0)
-			bf.WriteUint16(0)
-			bf.WriteUint8(0)
-			bf.WriteUint16(0)
-			bf.WriteUint16(0)
-			bf.WriteUint8(0)
-			ps.Uint8(bf, distData.EventName, true)
-			for i := 0; i < 6; i++ {
-				for j := 0; j < 13; j++ {
-					bf.WriteUint8(0)
-					bf.WriteUint32(0)
-				}
-			}
-			i := uint8(0)
-			bf.WriteUint8(i)
-			if i <= 10 {
-				for j := uint8(0); j < i; j++ {
-					bf.WriteUint32(0)
-					bf.WriteUint32(0)
-					bf.WriteUint32(0)
-				}
+			itemDists = append(itemDists, itemDist)
+		}
+	}
+
+	bf.WriteUint16(uint16(len(itemDists)))
+	for _, dist := range itemDists {
+		bf.WriteUint32(dist.ID)
+		bf.WriteUint32(uint32(dist.Deadline.Unix()))
+		bf.WriteUint32(0) // Unk
+		bf.WriteUint16(dist.TimesAcceptable)
+		bf.WriteUint16(dist.TimesAccepted)
+		bf.WriteUint16(0) // Unk
+		bf.WriteInt16(dist.MinHR)
+		bf.WriteInt16(dist.MaxHR)
+		bf.WriteInt16(dist.MinSR)
+		bf.WriteInt16(dist.MaxSR)
+		bf.WriteInt16(dist.MinGR)
+		bf.WriteInt16(dist.MaxGR)
+		bf.WriteUint8(0)
+		bf.WriteUint16(0)
+		bf.WriteUint8(0)
+		bf.WriteUint16(0)
+		bf.WriteUint16(0)
+		bf.WriteUint8(0)
+		ps.Uint8(bf, dist.EventName, true)
+		for i := 0; i < 6; i++ {
+			for j := 0; j < 13; j++ {
+				bf.WriteUint8(0)
+				bf.WriteUint32(0)
 			}
 		}
-		resp := byteframe.NewByteFrame()
-		resp.WriteUint16(uint16(distCount))
-		resp.WriteBytes(bf.Data())
-		doAckBufSucceed(s, pkt.AckHandle, resp.Data())
+		i := uint8(0)
+		bf.WriteUint8(i)
+		if i <= 10 {
+			for j := uint8(0); j < i; j++ {
+				bf.WriteUint32(0)
+				bf.WriteUint32(0)
+				bf.WriteUint32(0)
+			}
+		}
 	}
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 type DistributionItem struct {

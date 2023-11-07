@@ -26,7 +26,7 @@ func (m *MsgMhfEnumerateDistItem) Parse(bf *byteframe.ByteFrame, ctx *clientctx.
 	m.AckHandle = bf.ReadUint32()
 	m.DistType = bf.ReadUint8()
 	m.Unk1 = bf.ReadUint8()
-	m.Unk2 = bf.ReadUint16()
+	m.Unk2 = bf.ReadUint16() // Maximum? Hardcoded to 256
 	m.Unk3 = bf.ReadBytes(uint(bf.ReadUint8()))
 	return nil
 }

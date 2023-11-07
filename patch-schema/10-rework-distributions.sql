@@ -7,7 +7,7 @@ CREATE TABLE public.distribution_items
 (
     id serial PRIMARY KEY,
     distribution_id integer NOT NULL,
-    item_type integer,
+    item_type integer NOT NULL,
     item_id integer,
     quantity integer
 );

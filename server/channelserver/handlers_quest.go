@@ -51,7 +51,7 @@ func handleMsgSysGetFile(s *Session, p mhfpacket.MHFPacket) {
 			pkt.Filename = seasonConversion(s, pkt.Filename)
 		}
 
-		// custom quests expect there to be only a d0 for quests, rewrite quests to try for d0 if the quest file doesn't exist
+		// Default to d0 for any other quest that has no alternative versions
 		if _, err := os.Stat(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("quests/%s.bin", pkt.Filename))); err != nil {
 			pkt.Filename = fmt.Sprintf("%s%s", pkt.Filename[:5], "d0")
 		}
@@ -71,16 +71,26 @@ func handleMsgSysGetFile(s *Session, p mhfpacket.MHFPacket) {
 func seasonConversion(s *Session, questFile string) string {
 	filename := fmt.Sprintf("%s%d", questFile[:6], s.server.Season())
 
-	// Return original file if file doesn't exist
+	// Return the seasonal file
 	if _, err := os.Stat(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("quests/%s.bin", filename))); err == nil {
 		return filename
 	} else {
-		// Load d0 if the regular quest file doesn't exist (Fixes custom quests)
+		// Attempt to return the requested quest file if the seasonal file doesn't exist
 		if _, err := os.Stat(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("quests/%s.bin", questFile))); err == nil {
 			return questFile
 		}
 
-		return fmt.Sprintf("%s%s", questFile[:5], "d0")
+		// For custom quests, we need to return the day or night version of the quest.
+		var time string
+
+		if TimeGameAbsolute() > 2880 {
+			time = "d"
+		} else {
+			time = "n"
+		}
+
+		// Request a file based on day or night
+		return fmt.Sprintf("%s%s%d", questFile[:5], time, 0)
 	}
 }
 
@@ -184,30 +194,6 @@ func makeEventQuest(s *Session, rows *sql.Rows) ([]byte, error) {
 	bf.WriteUint16(0) // Unk
 	bf.WriteUint16(uint16(len(data)))
 	bf.WriteBytes(data)
-
-	// Time Flag Replacement
-	// Bitset Structure: b8 UNK, b7 Required Objective, b6 UNK, b5 Night, b4 Day, b3 Cold, b2 Warm, b1 Spring
-	// if the byte is set to 0 the game choses the quest file corresponding to whatever season the game is on
-	bf.Seek(25, 0)
-	flagByte := bf.ReadUint8()
-	bf.Seek(25, 0)
-	if s.server.erupeConfig.GameplayOptions.SeasonOverride {
-		bf.WriteUint8(flagByte & 0b11100000)
-	} else {
-		bf.WriteUint8(flagByte)
-	}
-
-	// Bitset Structure Quest Variant 1: b8 UL Fixed, b7 UNK, b6 UNK, b5 UNK, b4 G Rank, b3 HC to UL, b2 Fix HC, b1 Hiden
-	// Bitset Structure Quest Variant 2: b8 Road, b7 High Conquest, b6 Fixed Difficulty, b5 No Active Feature, b4 Timer, b3 No Cuff, b2 No Halk Pots, b1 Low Conquest
-	// Bitset Structure Quest Variant 3: b8 No Sigils, b7 UNK, b6 Interception, b5 Zenith, b4 No GP Skills, b3 No Simple Mode?, b2 GSR to GR, b1 No Reward Skills
-
-	bf.Seek(175, 0)
-	questVariant3 := bf.ReadUint8()
-	questVariant3 &= 0b11011111 // disable Interception flag
-	bf.Seek(175, 0)
-	bf.WriteUint8(questVariant3)
-
-	bf.Seek(0, 2)
 	ps.Uint8(bf, "", true) // Debug/Notes string for quest
 	return bf.Data(), nil
 }

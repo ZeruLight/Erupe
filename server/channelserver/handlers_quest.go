@@ -68,19 +68,8 @@ func handleMsgSysGetFile(s *Session, p mhfpacket.MHFPacket) {
 	}
 }
 
-func questSuffix(s *Session) string {
-	// Determine the letter to append for day / night
-	var timeSet string
-	if TimeGameAbsolute() > 2880 {
-		timeSet = "d"
-	} else {
-		timeSet = "n"
-	}
-	return fmt.Sprintf("%s%d", timeSet, s.server.Season())
-}
-
 func seasonConversion(s *Session, questFile string) string {
-	filename := fmt.Sprintf("%s%s", questFile[:5], questSuffix(s))
+	filename := fmt.Sprintf("%s%d", questFile[:6], s.server.Season())
 
 	// Return original file if file doesn't exist
 	if _, err := os.Stat(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("quests/%s.bin", filename))); err == nil {

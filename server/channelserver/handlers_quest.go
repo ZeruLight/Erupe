@@ -156,7 +156,8 @@ func makeEventQuest(s *Session, rows *sql.Rows) ([]byte, error) {
 	var id, mark uint32
 	var questId int
 	var maxPlayers, questType uint8
-	rows.Scan(&id, &maxPlayers, &questType, &questId, &mark)
+	var questFlags int8
+	rows.Scan(&id, &maxPlayers, &questType, &questId, &mark, &questFlags)
 
 	data := loadQuestFile(s, questId)
 	if data == nil {
@@ -194,6 +195,35 @@ func makeEventQuest(s *Session, rows *sql.Rows) ([]byte, error) {
 	bf.WriteUint16(0) // Unk
 	bf.WriteUint16(uint16(len(data)))
 	bf.WriteBytes(data)
+
+	// Time Flag Replacement
+	// Bitset Structure: b8 UNK, b7 Required Objective, b6 UNK, b5 Night, b4 Day, b3 Cold, b2 Warm, b1 Spring
+	// if the byte is set to 0 the game choses the quest file corresponding to whatever season the game is on
+	bf.Seek(25, 0)
+	flagByte := bf.ReadUint8()
+	bf.Seek(25, 0)
+	if s.server.erupeConfig.GameplayOptions.SeasonOverride {
+		bf.WriteUint8(flagByte & 0b11100000)
+	} else {
+		// Allow for seasons to be specified in database, otherwise use the one in the file.
+		if questFlags == -1 {
+			bf.WriteUint8(flagByte)
+		} else {
+			bf.WriteUint8(uint8(questFlags))
+		}
+	}
+
+	// Bitset Structure Quest Variant 1: b8 UL Fixed, b7 UNK, b6 UNK, b5 UNK, b4 G Rank, b3 HC to UL, b2 Fix HC, b1 Hiden
+	// Bitset Structure Quest Variant 2: b8 Road, b7 High Conquest, b6 Fixed Difficulty, b5 No Active Feature, b4 Timer, b3 No Cuff, b2 No Halk Pots, b1 Low Conquest
+	// Bitset Structure Quest Variant 3: b8 No Sigils, b7 UNK, b6 Interception, b5 Zenith, b4 No GP Skills, b3 No Simple Mode?, b2 GSR to GR, b1 No Reward Skills
+
+	bf.Seek(175, 0)
+	questVariant3 := bf.ReadUint8()
+	questVariant3 &= 0b11011111 // disable Interception flag
+	bf.Seek(175, 0)
+	bf.WriteUint8(questVariant3)
+
+	bf.Seek(0, 2)
 	ps.Uint8(bf, "", true) // Debug/Notes string for quest
 	return bf.Data(), nil
 }

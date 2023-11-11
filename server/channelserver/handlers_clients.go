@@ -10,15 +10,14 @@ import (
 func handleMsgSysEnumerateClient(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysEnumerateClient)
 
-	s.server.stagesLock.RLock()
+	s.server.RLock()
 	stage, ok := s.server.stages[pkt.StageID]
+	s.server.RUnlock()
 	if !ok {
-		s.server.stagesLock.RUnlock()
 		s.logger.Warn("Can't enumerate clients for stage that doesn't exist!", zap.String("stageID", pkt.StageID))
 		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
-	s.server.stagesLock.RUnlock()
 
 	// Read-lock the stage and make the response with all of the charID's in the stage.
 	resp := byteframe.NewByteFrame()
@@ -49,7 +48,6 @@ func handleMsgSysEnumerateClient(s *Session, p mhfpacket.MHFPacket) {
 	stage.RUnlock()
 
 	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
-	s.logger.Debug("MsgSysEnumerateClient Done!")
 }
 
 func handleMsgMhfListMember(s *Session, p mhfpacket.MHFPacket) {

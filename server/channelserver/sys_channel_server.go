@@ -36,7 +36,7 @@ type userBinaryPartID struct {
 
 // Server is a MHF channel server.
 type Server struct {
-	sync.Mutex
+	sync.RWMutex
 	Channels       []*Server
 	ID             uint16
 	GlobalID       string
@@ -52,8 +52,7 @@ type Server struct {
 	listener       net.Listener // Listener that is created when Server.Start is called.
 	isShuttingDown bool
 
-	stagesLock sync.RWMutex
-	stages     map[string]*Stage
+	stages map[string]*Stage
 
 	// Used to map different languages
 	dict map[string]string
@@ -374,8 +373,6 @@ func (s *Server) FindSessionByCharID(charID uint32) *Session {
 }
 
 func (s *Server) FindObjectByChar(charID uint32) *Object {
-	s.stagesLock.RLock()
-	defer s.stagesLock.RUnlock()
 	for _, stage := range s.stages {
 		stage.RLock()
 		for objId := range stage.objects {

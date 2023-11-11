@@ -25,7 +25,7 @@ type packet struct {
 
 // Session holds state for the channel server connection.
 type Session struct {
-	sync.Mutex
+	sync.RWMutex
 	logger        *zap.Logger
 	server        *Server
 	rawConn       net.Conn

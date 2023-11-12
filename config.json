@@ -17,8 +17,8 @@
     "AutoCreateAccount": true,
     "CleanDB": false,
     "MaxLauncherHR": false,
-    "LogInboundMessages": false,
-    "LogOutboundMessages": false,
+    "LogInboundMessages": true,
+    "LogOutboundMessages": true,
     "MaxHexdumpLength": 256,
     "DivaEvent": 0,
     "FestaEvent": -1,
@@ -67,7 +67,7 @@
     "EnableHiganjimaEvent": false,
     "EnableNierEvent": false,
     "DisableRoad": false,
-    "SeasonOverride": true
+    "SeasonOverride": false
   },
   "Discord": {
     "Enabled": false,

@@ -36,10 +36,6 @@ type Stage struct {
 	// These are clients that are CURRENTLY in the stage
 	clients map[*Session]uint32
 
-	// Map of charID -> bool, key represents whether they are ready
-	// These are clients that aren't in the stage, but have reserved a slot (for quests, etc).
-	reservedClientSlots map[uint32]bool
-
 	// These are raw binary blobs that the stage owner sets,
 	// other clients expect the server to echo them back in the exact same format.
 	rawBinaryData map[stageBinaryKey][]byte
@@ -47,18 +43,39 @@ type Stage struct {
 	host       *Session
 	maxPlayers uint16
 	password   string
+	locked     bool
+}
+
+func (s *Stage) ReservedSessions(se *Session) []*Session {
+	var sessions []*Session
+	se.server.RLock()
+	for _, session := range se.server.sessions {
+		if session.reservationStage == s {
+			sessions = append(sessions, session)
+		}
+	}
+	se.server.RUnlock()
+	return sessions
+}
+
+func (s *Stage) IsSessionReserved(se *Session) bool {
+	for _, session := range s.ReservedSessions(se) {
+		if session == se {
+			return true
+		}
+	}
+	return false
 }
 
 // NewStage creates a new stage with intialized values.
 func NewStage(ID string) *Stage {
 	s := &Stage{
-		id:                  ID,
-		clients:             make(map[*Session]uint32),
-		reservedClientSlots: make(map[uint32]bool),
-		objects:             make(map[uint32]*Object),
-		objectIndex:         0,
-		rawBinaryData:       make(map[stageBinaryKey][]byte),
-		maxPlayers:          4,
+		id:            ID,
+		clients:       make(map[*Session]uint32),
+		objects:       make(map[uint32]*Object),
+		objectIndex:   0,
+		rawBinaryData: make(map[stageBinaryKey][]byte),
+		maxPlayers:    4,
 	}
 	return s
 }
@@ -82,16 +99,4 @@ func (s *Stage) BroadcastMHF(pkt mhfpacket.MHFPacket, ignoredSession *Session) {
 		// Enqueue in a non-blocking way that drops the packet if the connections send buffer channel is full.
 		session.QueueSendNonBlocking(bf.Data())
 	}
-}
-
-func (s *Stage) isCharInQuestByID(charID uint32) bool {
-	if _, exists := s.reservedClientSlots[charID]; exists {
-		return exists
-	}
-
-	return false
-}
-
-func (s *Stage) isQuest() bool {
-	return len(s.reservedClientSlots) > 0
 }

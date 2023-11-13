@@ -1,6 +1,7 @@
 package channelserver
 
 import (
+	"erupe-ce/network"
 	"fmt"
 	"strings"
 	"time"
@@ -29,6 +30,8 @@ func handleMsgSysCreateStage(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgSysStageDestruct(s *Session, p mhfpacket.MHFPacket) {}
 
 func doStageTransfer(s *Session, ackHandle uint32, stageID string) {
+	s.reservationStage = nil
+
 	s.server.Lock()
 	stage, exists := s.server.stages[stageID]
 	s.server.Unlock()
@@ -53,9 +56,8 @@ func doStageTransfer(s *Session, ackHandle uint32, stageID string) {
 		removeSessionFromStage(s)
 	}
 
-	// Save our new stage ID and pointer to the new stage itself.
+	// Save our pointer to the new stage itself.
 	s.Lock()
-	s.stageID = stageID
 	s.stage = s.server.stages[stageID]
 	s.Unlock()
 
@@ -113,7 +115,7 @@ func doStageTransfer(s *Session, ackHandle uint32, stageID string) {
 		s.stage.RUnlock()
 	}
 
-	newNotif.WriteUint16(0x0010) // End it.
+	newNotif.WriteUint16(uint16(network.MSG_SYS_END)) // End it.
 	if len(newNotif.Data()) > 2 {
 		s.QueueSend(newNotif.Data())
 	}
@@ -125,7 +127,7 @@ func destructEmptyStages(s *Session) {
 	for _, stage := range s.server.stages {
 		// Destroy empty Quest/My series/Guild stages.
 		if stage.id[3:5] == "Qs" || stage.id[3:5] == "Ms" || stage.id[3:5] == "Gs" || stage.id[3:5] == "Ls" {
-			if len(stage.reservedClientSlots) == 0 && len(stage.clients) == 0 {
+			if len(stage.ReservedSessions(s)) == 0 && len(stage.clients) == 0 {
 				delete(s.server.stages, stage.id)
 				s.logger.Debug("Destructed stage", zap.String("stage.id", stage.id))
 			}
@@ -153,19 +155,11 @@ func handleMsgSysEnterStage(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysEnterStage)
 
 	// Push our current stage ID to the movement stack before entering another one.
-	if s.stageID == "" {
+	if s.stage.id == "" {
 		s.stageMoveStack.Set(pkt.StageID)
 	} else {
-		s.stage.Lock()
-		s.stage.reservedClientSlots[s.charID] = false
-		s.stage.Unlock()
-		s.stageMoveStack.Push(s.stageID)
+		s.stageMoveStack.Push(s.stage.id)
 		s.stageMoveStack.Lock()
-	}
-
-	s.QueueSendMHF(&mhfpacket.MsgSysCleanupObject{})
-	if s.reservationStage != nil {
-		s.reservationStage = nil
 	}
 
 	doStageTransfer(s, pkt.AckHandle, pkt.StageID)
@@ -178,18 +172,8 @@ func handleMsgSysBackStage(s *Session, p mhfpacket.MHFPacket) {
 	s.stageMoveStack.Unlock()
 	backStage, err := s.stageMoveStack.Pop()
 	if err != nil {
-		panic(err)
+		backStage = "sl1Ns200p0a0u0"
 	}
-
-	s.stage.Lock()
-	if _, exists := s.stage.reservedClientSlots[s.charID]; exists {
-		delete(s.stage.reservedClientSlots, s.charID)
-	}
-
-	if _, exists := s.server.stages[backStage].reservedClientSlots[s.charID]; exists {
-		delete(s.server.stages[backStage].reservedClientSlots, s.charID)
-	}
-	s.stage.Unlock()
 
 	doStageTransfer(s, pkt.AckHandle, backStage)
 }
@@ -209,18 +193,19 @@ func handleMsgSysLeaveStage(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgSysLockStage(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysLockStage)
-	// TODO(Andoryuuta): What does this packet _actually_ do?
-	// I think this is supposed to mark a stage as no longer able to accept client reservations
-	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+	if stage, exists := s.server.stages[pkt.StageID]; exists {
+		stage.Lock()
+		stage.locked = true
+		stage.Unlock()
+	}
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgSysUnlockStage(s *Session, p mhfpacket.MHFPacket) {
 	if s.reservationStage != nil {
 		s.reservationStage.RLock()
 		defer s.reservationStage.RUnlock()
-
-		for charID := range s.reservationStage.reservedClientSlots {
-			session := s.server.FindSessionByCharID(charID)
+		for _, session := range s.reservationStage.ReservedSessions(s) {
 			session.QueueSendMHF(&mhfpacket.MsgSysStageDestruct{})
 		}
 
@@ -235,24 +220,24 @@ func handleMsgSysReserveStage(s *Session, p mhfpacket.MHFPacket) {
 	if stage, exists := s.server.stages[pkt.StageID]; exists {
 		stage.Lock()
 		defer stage.Unlock()
-		if _, exists := stage.reservedClientSlots[s.charID]; exists {
+		if stage.IsSessionReserved(s) {
 			switch pkt.Ready {
 			case 1: // 0x01
-				stage.reservedClientSlots[s.charID] = false
+				s.reservationReady = false
 			case 17: // 0x11
-				stage.reservedClientSlots[s.charID] = true
+				s.reservationReady = true
 			}
 			doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
-		} else if uint16(len(stage.reservedClientSlots)) < stage.maxPlayers {
+		} else if uint16(len(stage.ReservedSessions(s))) < stage.maxPlayers {
 			if len(stage.password) > 0 {
 				if stage.password != s.stagePass {
 					doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 					return
 				}
 			}
-			stage.reservedClientSlots[s.charID] = false
 			// Save the reservation stage in the session for later use in MsgSysUnreserveStage.
 			s.Lock()
+			s.reservationReady = false
 			s.reservationStage = stage
 			s.Unlock()
 			doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
@@ -267,16 +252,8 @@ func handleMsgSysReserveStage(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgSysUnreserveStage(s *Session, p mhfpacket.MHFPacket) {
 	s.Lock()
-	stage := s.reservationStage
 	s.reservationStage = nil
 	s.Unlock()
-	if stage != nil {
-		stage.Lock()
-		if _, exists := stage.reservedClientSlots[s.charID]; exists {
-			delete(stage.reservedClientSlots, s.charID)
-		}
-		stage.Unlock()
-	}
 }
 
 func handleMsgSysSetStagePass(s *Session, p mhfpacket.MHFPacket) {
@@ -287,7 +264,7 @@ func handleMsgSysSetStagePass(s *Session, p mhfpacket.MHFPacket) {
 	if stage != nil {
 		stage.Lock()
 		// Will only exist if host.
-		if _, exists := stage.reservedClientSlots[s.charID]; exists {
+		if stage.IsSessionReserved(s) {
 			stage.password = pkt.Password
 		}
 		stage.Unlock()
@@ -370,7 +347,7 @@ func handleMsgSysEnumerateStage(s *Session, p mhfpacket.MHFPacket) {
 	for _, stage := range s.server.stages {
 		stage.RLock()
 		defer stage.RUnlock()
-		if len(stage.reservedClientSlots) == 0 && len(stage.clients) == 0 {
+		if len(stage.ReservedSessions(s)) == 0 && len(stage.clients) == 0 {
 			continue
 		}
 		if !strings.Contains(stage.id, pkt.StagePrefix) {
@@ -383,21 +360,18 @@ func handleMsgSysEnumerateStage(s *Session, p mhfpacket.MHFPacket) {
 	bf.WriteUint16(uint16(len(stages)))
 	for _, stage := range stages {
 		stage.RLock()
-		bf.WriteUint16(uint16(len(stage.reservedClientSlots)))
-		bf.WriteUint16(0)
-		if len(stage.clients) > 0 {
-			bf.WriteUint16(1)
-		} else {
-			bf.WriteUint16(0)
-		}
+		bf.WriteUint16(uint16(len(stage.ReservedSessions(s))) - uint16(len(stage.clients)))
+		bf.WriteUint16(uint16(len(stage.clients)))
+		bf.WriteUint16(uint16(len(stage.clients)))
 		bf.WriteUint16(stage.maxPlayers)
-		if len(stage.password) > 0 {
-			// This byte has also been seen as 1
-			// 2/3 = Locked, bitfield?
-			bf.WriteUint8(2)
-		} else {
-			bf.WriteUint8(0)
+		var flags uint8
+		if stage.locked {
+			flags |= 1
 		}
+		if len(stage.password) > 0 {
+			flags |= 2
+		}
+		bf.WriteUint8(flags)
 		ps.Uint8(bf, stage.id, false)
 		stage.RUnlock()
 	}

@@ -36,9 +36,9 @@ type Session struct {
 
 	objectIndex      uint16
 	userEnteredStage bool // If the user has entered a stage before
-	stageID          string
 	stage            *Stage
 	reservationStage *Stage // Required for the stateful MsgSysUnreserveStage packet.
+	reservationReady bool
 	stagePass        string // Temporary storage
 	prevGuildID      uint32 // Stores the last GuildID used in InfoGuild
 	charID           uint32

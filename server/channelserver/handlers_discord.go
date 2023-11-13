@@ -15,7 +15,7 @@ type Player struct {
 
 func getPlayerSlice(s *Server) []Player {
 	var p []Player
-	var questIndex int
+	//var questIndex int
 
 	for _, channel := range s.Channels {
 		for _, stage := range channel.stages {
@@ -23,10 +23,10 @@ func getPlayerSlice(s *Server) []Player {
 				continue
 			}
 			questID := 0
-			if stage.isQuest() {
-				questIndex++
-				questID = questIndex
-			}
+			//if stage.isQuest() {
+			//	questIndex++
+			//	questID = questIndex
+			//}
 			for client := range stage.clients {
 				p = append(p, Player{
 					CharName: client.Name,

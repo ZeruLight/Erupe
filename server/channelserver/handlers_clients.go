@@ -29,15 +29,15 @@ func handleMsgSysEnumerateClient(s *Session, p mhfpacket.MHFPacket) {
 			clients = append(clients, cid)
 		}
 	case 1: // Not ready
-		for cid, ready := range stage.reservedClientSlots {
-			if !ready {
-				clients = append(clients, cid)
+		for _, session := range stage.ReservedSessions(s) {
+			if !session.reservationReady {
+				clients = append(clients, session.charID)
 			}
 		}
 	case 2: // Ready
-		for cid, ready := range stage.reservedClientSlots {
-			if ready {
-				clients = append(clients, cid)
+		for _, session := range stage.ReservedSessions(s) {
+			if session.reservationReady {
+				clients = append(clients, session.charID)
 			}
 		}
 	}

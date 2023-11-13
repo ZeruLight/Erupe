@@ -190,11 +190,9 @@ func logoutPlayer(s *Session) {
 	for _, stage := range s.server.stages {
 		// Tell sessions registered to disconnecting players quest to unregister
 		if stage.host != nil && stage.host.charID == s.charID {
-			for _, sess := range s.server.sessions {
-				for rSlot := range stage.reservedClientSlots {
-					if sess.charID == rSlot && sess.stage != nil && sess.stage.id[3:5] != "Qs" {
-						sess.QueueSendMHF(&mhfpacket.MsgSysStageDestruct{})
-					}
+			for _, sess := range stage.ReservedSessions(s) {
+				if sess.stage != nil && sess.stage.id[3:5] != "Qs" {
+					sess.QueueSendMHF(&mhfpacket.MsgSysStageDestruct{})
 				}
 			}
 		}
@@ -242,14 +240,6 @@ func logoutPlayer(s *Session) {
 	s.server.BroadcastMHF(&mhfpacket.MsgSysDeleteUser{
 		CharID: s.charID,
 	}, s)
-
-	s.server.Lock()
-	for _, stage := range s.server.stages {
-		if _, exists := stage.reservedClientSlots[s.charID]; exists {
-			delete(stage.reservedClientSlots, s.charID)
-		}
-	}
-	s.server.Unlock()
 
 	removeSessionFromSemaphore(s)
 	removeSessionFromStage(s)
@@ -317,8 +307,6 @@ func handleMsgSysRecordLog(s *Session, p mhfpacket.MHFPacket) {
 			}
 		}
 	}
-	// remove a client returning to town from reserved slots to make sure the stage is hidden from board
-	delete(s.stage.reservedClientSlots, s.charID)
 	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
@@ -378,7 +366,7 @@ func handleMsgMhfTransitMessage(s *Session, p mhfpacket.MHFPacket) {
 				if session.charID == CharID {
 					count++
 					sessionName := stringsupport.UTF8ToSJIS(session.Name)
-					sessionStage := stringsupport.UTF8ToSJIS(session.stageID)
+					sessionStage := stringsupport.UTF8ToSJIS(session.stage.id)
 					resp.WriteUint32(binary.LittleEndian.Uint32(net.ParseIP(c.IP).To4()))
 					resp.WriteUint16(c.Port)
 					resp.WriteUint32(session.charID)
@@ -408,7 +396,7 @@ func handleMsgMhfTransitMessage(s *Session, p mhfpacket.MHFPacket) {
 				if strings.Contains(session.Name, searchTerm) {
 					count++
 					sessionName := stringsupport.UTF8ToSJIS(session.Name)
-					sessionStage := stringsupport.UTF8ToSJIS(session.stageID)
+					sessionStage := stringsupport.UTF8ToSJIS(session.stage.id)
 					resp.WriteUint32(binary.LittleEndian.Uint32(net.ParseIP(c.IP).To4()))
 					resp.WriteUint16(c.Port)
 					resp.WriteUint32(session.charID)
@@ -445,7 +433,7 @@ func handleMsgMhfTransitMessage(s *Session, p mhfpacket.MHFPacket) {
 							hrp := uint16(1)
 							gr := uint16(0)
 							s.server.db.QueryRow("SELECT hrp, gr FROM characters WHERE id=$1", session.charID).Scan(&hrp, &gr)
-							sessionStage := stringsupport.UTF8ToSJIS(session.stageID)
+							sessionStage := stringsupport.UTF8ToSJIS(session.stage.id)
 							sessionName := stringsupport.UTF8ToSJIS(session.Name)
 							resp.WriteUint32(binary.LittleEndian.Uint32(net.ParseIP(c.IP).To4()))
 							resp.WriteUint16(c.Port)

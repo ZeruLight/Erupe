@@ -1,20 +1,17 @@
 package mhfpacket
 
-import ( 
- "errors" 
+import (
+	"errors"
 
- 	"erupe-ce/network/clientctx"
-	"erupe-ce/network"
 	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgSysLockStage represents the MSG_SYS_LOCK_STAGE
 type MsgSysLockStage struct {
-	AckHandle     uint32
-	Unk0          uint8 // Hardcoded 1 in the binary
-	Unk1          uint8 // Hardcoded 1 in the binary
-	StageIDLength uint8
-	StageID       string
+	AckHandle uint32
+	StageID   string
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -25,10 +22,10 @@ func (m *MsgSysLockStage) Opcode() network.PacketID {
 // Parse parses the packet from binary
 func (m *MsgSysLockStage) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
-	m.Unk0 = bf.ReadUint8()
-	m.Unk1 = bf.ReadUint8()
-	m.StageIDLength = bf.ReadUint8()
-	m.StageID = string(bf.ReadBytes(uint(m.StageIDLength)))
+	_ = bf.ReadUint8() // Always 1
+	_ = bf.ReadUint8() // Always 1
+	_ = bf.ReadUint8() // Length StageID
+	m.StageID = string(bf.ReadNullTerminatedBytes())
 	return nil
 }
 

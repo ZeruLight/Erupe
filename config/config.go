@@ -195,8 +195,9 @@ type Sign struct {
 
 // SignV2 holds the new sign server config
 type SignV2 struct {
-	Enabled bool
-	Port    int
+	Enabled     bool
+	Port        int
+	PatchServer string
 }
 
 type Channel struct {

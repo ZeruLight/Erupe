@@ -202,18 +202,10 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 				continue
 			} else {
 				totalCount++
-				if _config.ErupeConfig.RealClientMode == _config.F5 {
-					if totalCount > pkt.Offset && len(bf.Data()) < 21550 {
-						returnedCount++
-						bf.WriteBytes(data)
-						continue
-					}
-				} else {
-					if totalCount > pkt.Offset && len(bf.Data()) < 60000 {
-						returnedCount++
-						bf.WriteBytes(data)
-						continue
-					}
+				if totalCount > pkt.Offset && len(bf.Data()) < 60000 {
+					returnedCount++
+					bf.WriteBytes(data)
+					continue
 				}
 			}
 		}

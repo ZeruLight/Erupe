@@ -316,7 +316,6 @@ func (s *Server) BroadcastChatMessage(message string) {
 	msgBinChat.Build(bf)
 
 	s.BroadcastMHF(&mhfpacket.MsgSysCastedBinary{
-		CharID:         0xFFFFFFFF,
 		MessageType:    BinaryMessageTypeChat,
 		RawDataPayload: bf.Data(),
 	}, nil)
@@ -348,7 +347,6 @@ func (s *Server) BroadcastRaviente(ip uint32, port uint16, stage []byte, _type u
 	bf.WriteUint16(0)    // Unk
 	bf.WriteBytes(stage)
 	s.WorldcastMHF(&mhfpacket.MsgSysCastedBinary{
-		CharID:         0x00000000,
 		BroadcastType:  BroadcastTypeServer,
 		MessageType:    BinaryMessageTypeChat,
 		RawDataPayload: bf.Data(),

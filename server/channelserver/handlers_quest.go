@@ -197,14 +197,9 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 	bf.WriteUint16(0)
 
 	currentTime := time.Now()
-	var tableName = "event_quests"
-	/* This is an example of how I have to test and avoid issues, might be a thing later?
- 	if _config.ErupeConfig.RealClientMode <= _config.F5 {
-		tableName = "event_quests_older"
-	}
- 	*/
+
 	// Check the event_quests table to load the quests with rotation system
-	rows, err := s.server.db.Query("SELECT id, COALESCE(max_players, 4) AS max_players, quest_type, quest_id, COALESCE(mark, 0) AS mark, start_time, active_duration, inactive_duration FROM " + tableName + "")
+	rows, err := s.server.db.Query("SELECT id, COALESCE(max_players, 4) AS max_players, quest_type, quest_id, COALESCE(mark, 0) AS mark, start_time, active_duration, inactive_duration FROM event_quests")
 	if err != nil {
 		return
 	}
@@ -224,14 +219,14 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 		rotationTime := startTime.Add(time.Duration(activeDuration+inactiveDuration) * 24 * time.Hour)
 		if currentTime.After(rotationTime) {
 			// The rotation time has passed, update the start time and reset the rotation
-			_, err := s.server.db.Exec("UPDATE "+tableName+" SET start_time = $1 WHERE quest_id = $2", rotationTime, questId)
+			_, err := s.server.db.Exec("UPDATE event_quests SET start_time = $1 WHERE quest_id = $2", rotationTime, questId)
 			if err != nil {
 				return
 			}
 		}
 
 		// Check if the quest is currently active
-		if currentTime.After(startTime) && currentTime.Sub(startTime) <= time.Duration(activeDuration)*24*time.Hour {
+		if currentTime.After(startTime) && currentTime.Sub(startTime) <= time.Duration(activeDuration) * 24 * time.Hour {
 			data, err := makeEventQuest(s, rows)
 			if err != nil {
 				continue

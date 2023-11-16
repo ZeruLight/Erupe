@@ -77,6 +77,11 @@ func handleMsgMhfSaveFavoriteQuest(s *Session, p mhfpacket.MHFPacket) {
 }
 
 func loadQuestFile(s *Session, questId int) []byte {
+	data, exists := s.server.questCacheData[questId]
+	if exists && s.server.questCacheTime[questId].Add(time.Duration(s.server.erupeConfig.QuestCacheExpiry)*time.Second).After(time.Now()) {
+		return data
+	}
+
 	file, err := os.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("quests/%05dd0.bin", questId)))
 	if err != nil {
 		return nil
@@ -113,6 +118,8 @@ func loadQuestFile(s *Session, questId int) []byte {
 	}
 	questBody.WriteBytes(newStrings.Data())
 
+	s.server.questCacheData[questId] = questBody.Data()
+	s.server.questCacheTime[questId] = time.Now()
 	return questBody.Data()
 }
 

@@ -5,6 +5,7 @@ import (
 	"net"
 	"strings"
 	"sync"
+	"time"
 
 	"erupe-ce/common/byteframe"
 	ps "erupe-ce/common/pascalstring"
@@ -73,6 +74,9 @@ type Server struct {
 	name string
 
 	raviente *Raviente
+
+	questCacheData map[int][]byte
+	questCacheTime map[int]time.Time
 }
 
 type Raviente struct {
@@ -163,6 +167,8 @@ func NewServer(config *Config) *Server {
 			state:    make([]uint32, 30),
 			support:  make([]uint32, 30),
 		},
+		questCacheData: make(map[int][]byte),
+		questCacheTime: make(map[int]time.Time),
 	}
 
 	// Mezeporta

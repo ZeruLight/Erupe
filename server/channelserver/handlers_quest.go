@@ -51,14 +51,8 @@ func handleMsgSysGetFile(s *Session, p mhfpacket.MHFPacket) {
 			pkt.Filename = seasonConversion(s, pkt.Filename)
 		}
 
-		// Default to d0 for any other quest that has no alternative versions
-		if _, err := os.Stat(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("quests/%s.bin", pkt.Filename))); err != nil {
-			pkt.Filename = fmt.Sprintf("%s%s", pkt.Filename[:5], "d0")
-		}
-
 		data, err := os.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("quests/%s.bin", pkt.Filename)))
 		if err != nil {
-
 			s.logger.Error(fmt.Sprintf("Failed to open file: %s/quests/%s.bin", s.server.erupeConfig.BinPath, pkt.Filename))
 			// This will crash the game.
 			doAckBufSucceed(s, pkt.AckHandle, data)

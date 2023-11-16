@@ -80,7 +80,8 @@ func seasonConversion(s *Session, questFile string) string {
 			return questFile
 		}
 
-		// For custom quests, we need to return the day or night version of the quest.
+		// If the code reaches this point, it's most likely a custom quest with no seasonal variations in the files.
+		// Since event quests when seasonal pick day or night and the client requests either one, we need to differentiate between the two to prevent issues.
 		var time string
 
 		if TimeGameAbsolute() > 2880 {
@@ -89,7 +90,7 @@ func seasonConversion(s *Session, questFile string) string {
 			time = "n"
 		}
 
-		// Request a file based on day or night
+		// Request a D0 or N0 file depending on the time of day. The time of day matters since the client will quite a few issues if it's different to the one it requests.
 		return fmt.Sprintf("%s%s%d", questFile[:5], time, 0)
 	}
 }

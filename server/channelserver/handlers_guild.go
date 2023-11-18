@@ -25,14 +25,14 @@ type FestivalColour string
 
 const (
 	FestivalColourNone FestivalColour = "none"
-	FestivalColourRed  FestivalColour = "red"
 	FestivalColourBlue FestivalColour = "blue"
+	FestivalColourRed  FestivalColour = "red"
 )
 
-var FestivalColourCodes = map[FestivalColour]uint8{
-	FestivalColourBlue: 0x00,
-	FestivalColourRed:  0x01,
-	FestivalColourNone: 0xFF,
+var FestivalColourCodes = map[FestivalColour]int8{
+	FestivalColourNone: -1,
+	FestivalColourBlue: 0,
+	FestivalColourRed:  1,
 }
 
 type GuildApplicationType string
@@ -967,7 +967,7 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint8(uint8(len(guildLeaderName)))
 		bf.WriteBytes(guildName)
 		bf.WriteBytes(guildComment)
-		bf.WriteUint8(FestivalColourCodes[guild.FestivalColour])
+		bf.WriteInt8(FestivalColourCodes[guild.FestivalColour])
 		bf.WriteUint32(guild.RankRP)
 		bf.WriteBytes(guildLeaderName)
 		bf.WriteUint32(0)   // Unk

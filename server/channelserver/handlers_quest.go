@@ -220,7 +220,7 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 		}
 
 		// Calculate the rotation time based on start time, active duration, and inactive duration
-		rotationTime := startTime.Add(time.Duration(activeDuration+inactiveDuration) * 24 * time.Hour)
+		rotationTime := startTime.Add((time.Duration(activeDuration+inactiveDuration) * 24) * time.Hour)
 		if currentTime.After(rotationTime) {
 			// The rotation time has passed, update the start time and reset the rotation
 			_, err := transaction.Exec("UPDATE event_quests SET start_time = $1 WHERE quest_id = $2", rotationTime, questId)

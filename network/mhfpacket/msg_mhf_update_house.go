@@ -13,8 +13,7 @@ import (
 type MsgMhfUpdateHouse struct {
 	AckHandle uint32
 	State     uint8
-	Unk1      uint8  // Always 0x01
-	Unk2      uint16 // Always 0x0000
+	Unk1      uint8 // Always 0x01
 	Password  string
 }
 
@@ -28,8 +27,9 @@ func (m *MsgMhfUpdateHouse) Parse(bf *byteframe.ByteFrame, ctx *clientctx.Client
 	m.AckHandle = bf.ReadUint32()
 	m.State = bf.ReadUint8()
 	m.Unk1 = bf.ReadUint8()
-	m.Unk2 = bf.ReadUint16()
-	_ = bf.ReadUint8() // Password length
+	bf.ReadUint8() // Zeroed
+	bf.ReadUint8() // Zeroed
+	bf.ReadUint8() // Password length
 	m.Password = stringsupport.SJISToUTF8(bf.ReadNullTerminatedBytes())
 	return nil
 }

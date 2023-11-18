@@ -1609,16 +1609,16 @@ func handleMsgMhfUpdateGuildItem(s *Session, p mhfpacket.MHFPacket) {
 	// Update item stacks
 	newItems := make([]Item, len(oldItems))
 	copy(newItems, oldItems)
-	for i := 0; i < int(pkt.Amount); i++ {
+	for i := 0; i < len(pkt.Items); i++ {
 		for j := 0; j <= len(oldItems); j++ {
 			if j == len(oldItems) {
 				var newItem Item
-				newItem.ItemId = pkt.Items[i].ItemId
+				newItem.ItemId = pkt.Items[i].ItemID
 				newItem.Amount = pkt.Items[i].Amount
 				newItems = append(newItems, newItem)
 				break
 			}
-			if pkt.Items[i].ItemId == oldItems[j].ItemId {
+			if pkt.Items[i].ItemID == oldItems[j].ItemId {
 				newItems[j].Amount = pkt.Items[i].Amount
 				break
 			}
@@ -1677,7 +1677,7 @@ func handleMsgMhfUpdateGuildIcon(s *Session, p mhfpacket.MHFPacket) {
 
 	icon := &GuildIcon{}
 
-	icon.Parts = make([]GuildIconPart, pkt.PartCount)
+	icon.Parts = make([]GuildIconPart, len(pkt.IconParts))
 
 	for i, p := range pkt.IconParts {
 		icon.Parts[i] = GuildIconPart{

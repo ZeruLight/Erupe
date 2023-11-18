@@ -1,18 +1,17 @@
 package mhfpacket
 
-import ( 
- "errors" 
+import (
+	"errors"
 
- 	"erupe-ce/network/clientctx"
-	"erupe-ce/network"
 	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgSysIssueLogkey represents the MSG_SYS_ISSUE_LOGKEY
 type MsgSysIssueLogkey struct {
 	AckHandle uint32
-	Unk0      uint16 // Hardcoded 00 01 in binary
-	Unk1      uint16 // Hardcoded 0 in binary.
+	Unk0      uint16
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -24,7 +23,7 @@ func (m *MsgSysIssueLogkey) Opcode() network.PacketID {
 func (m *MsgSysIssueLogkey) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
 	m.Unk0 = bf.ReadUint16()
-	m.Unk1 = bf.ReadUint16()
+	bf.ReadUint16() // Zeroed
 	return nil
 }
 

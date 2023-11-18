@@ -12,7 +12,7 @@ import (
 type MsgMhfAcquireGuildTresure struct {
 	AckHandle uint32
 	HuntID    uint32
-	Unk       uint8
+	Unk       bool
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -24,7 +24,7 @@ func (m *MsgMhfAcquireGuildTresure) Opcode() network.PacketID {
 func (m *MsgMhfAcquireGuildTresure) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
 	m.HuntID = bf.ReadUint32()
-	m.Unk = bf.ReadUint8()
+	m.Unk = bf.ReadBool()
 	return nil
 }
 

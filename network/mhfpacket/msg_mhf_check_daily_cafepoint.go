@@ -1,9 +1,10 @@
 package mhfpacket
 
 import (
+	"errors"
+	"erupe-ce/common/byteframe"
 	"erupe-ce/network"
 	"erupe-ce/network/clientctx"
-	"erupe-ce/common/byteframe"
 )
 
 // MsgMhfCheckDailyCafepoint represents the MSG_MHF_CHECK_DAILY_CAFEPOINT
@@ -25,7 +26,5 @@ func (m *MsgMhfCheckDailyCafepoint) Parse(bf *byteframe.ByteFrame, ctx *clientct
 }
 
 func (m *MsgMhfCheckDailyCafepoint) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
-	bf.WriteUint32(m.AckHandle)
-	bf.WriteUint32(m.Unk)
-	return nil
+	return errors.New("NOT IMPLEMENTED")
 }

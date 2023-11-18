@@ -30,7 +30,7 @@ func (m *MsgMhfUpdateGuacot) Opcode() network.PacketID {
 func (m *MsgMhfUpdateGuacot) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
 	m.EntryCount = bf.ReadUint16()
-	_ = bf.ReadUint16() // Zero
+	bf.ReadUint16() // Zeroed
 	var temp Goocoo
 	for i := 0; i < int(m.EntryCount); i++ {
 		temp.Index = bf.ReadUint32()

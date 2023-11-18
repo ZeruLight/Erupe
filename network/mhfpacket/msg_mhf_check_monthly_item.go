@@ -12,7 +12,6 @@ import (
 type MsgMhfCheckMonthlyItem struct {
 	AckHandle uint32
 	Type      uint8
-	Unk       []byte
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -24,7 +23,9 @@ func (m *MsgMhfCheckMonthlyItem) Opcode() network.PacketID {
 func (m *MsgMhfCheckMonthlyItem) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
 	m.Type = bf.ReadUint8()
-	m.Unk = bf.ReadBytes(3)
+	bf.ReadUint8() // Zeroed
+	bf.ReadUint8() // Zeroed
+	bf.ReadUint8() // Zeroed
 	return nil
 }
 

@@ -5,6 +5,7 @@ import (
 	"net"
 	"strings"
 	"sync"
+	"time"
 
 	"erupe-ce/common/byteframe"
 	ps "erupe-ce/common/pascalstring"
@@ -73,6 +74,9 @@ type Server struct {
 	name string
 
 	raviente *Raviente
+
+	questCacheData map[int][]byte
+	questCacheTime map[int]time.Time
 }
 
 type Raviente struct {
@@ -163,6 +167,8 @@ func NewServer(config *Config) *Server {
 			state:    make([]uint32, 30),
 			support:  make([]uint32, 30),
 		},
+		questCacheData: make(map[int][]byte),
+		questCacheTime: make(map[int]time.Time),
 	}
 
 	// Mezeporta
@@ -316,7 +322,6 @@ func (s *Server) BroadcastChatMessage(message string) {
 	msgBinChat.Build(bf)
 
 	s.BroadcastMHF(&mhfpacket.MsgSysCastedBinary{
-		CharID:         0xFFFFFFFF,
 		MessageType:    BinaryMessageTypeChat,
 		RawDataPayload: bf.Data(),
 	}, nil)
@@ -348,7 +353,6 @@ func (s *Server) BroadcastRaviente(ip uint32, port uint16, stage []byte, _type u
 	bf.WriteUint16(0)    // Unk
 	bf.WriteBytes(stage)
 	s.WorldcastMHF(&mhfpacket.MsgSysCastedBinary{
-		CharID:         0x00000000,
 		BroadcastType:  BroadcastTypeServer,
 		MessageType:    BinaryMessageTypeChat,
 		RawDataPayload: bf.Data(),

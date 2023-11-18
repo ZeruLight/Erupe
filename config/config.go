@@ -79,6 +79,7 @@ type Config struct {
 	DeleteOnSaveCorruption bool     // Attempts to save corrupted data will flag the save for deletion
 	ClientMode             string
 	RealClientMode         Mode
+	QuestCacheExpiry       int // Number of seconds to keep quest data cached
 	DevMode                bool
 
 	DevModeOptions  DevModeOptions

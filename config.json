@@ -12,6 +12,7 @@
   "ScreenshotAPIURL": "",
   "DeleteOnSaveCorruption": false,
   "ClientMode": "ZZ",
+  "QuestCacheExpiry": 300,
   "DevMode": true,
   "DevModeOptions": {
     "AutoCreateAccount": true,

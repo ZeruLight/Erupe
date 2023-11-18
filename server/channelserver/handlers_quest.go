@@ -225,7 +225,7 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 			// The rotation time has passed, update the start time and reset the rotation
 			_, err := transaction.Exec("UPDATE event_quests SET start_time = $1 WHERE id = $2", rotationTime, id)
 			if err != nil {
-				return
+				continue
 			}
 		}
 

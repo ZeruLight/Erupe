@@ -47,6 +47,10 @@ func handleMsgSysGetFile(s *Session, p mhfpacket.MHFPacket) {
 			)
 		}
 
+		if s.server.erupeConfig.GameplayOptions.SeasonOverride {
+			pkt.Filename = seasonConversion(s, pkt.Filename)
+		}
+
 		data, err := os.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("quests/%s.bin", pkt.Filename)))
 		if err != nil {
 			s.logger.Error(fmt.Sprintf("Failed to open file: %s/quests/%s.bin", s.server.erupeConfig.BinPath, pkt.Filename))
@@ -55,6 +59,33 @@ func handleMsgSysGetFile(s *Session, p mhfpacket.MHFPacket) {
 			return
 		}
 		doAckBufSucceed(s, pkt.AckHandle, data)
+	}
+}
+
+func seasonConversion(s *Session, questFile string) string {
+	filename := fmt.Sprintf("%s%d", questFile[:6], s.server.Season())
+
+	// Return the seasonal file
+	if _, err := os.Stat(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("quests/%s.bin", filename))); err == nil {
+		return filename
+	} else {
+		// Attempt to return the requested quest file if the seasonal file doesn't exist
+		if _, err = os.Stat(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("quests/%s.bin", questFile))); err == nil {
+			return questFile
+		}
+
+		// If the code reaches this point, it's most likely a custom quest with no seasonal variations in the files.
+		// Since event quests when seasonal pick day or night and the client requests either one, we need to differentiate between the two to prevent issues.
+		var _time string
+
+		if TimeGameAbsolute() > 2880 {
+			_time = "d"
+		} else {
+			_time = "n"
+		}
+
+		// Request a d0 or n0 file depending on the time of day. The time of day matters and issues will occur if it's different to the one it requests.
+		return fmt.Sprintf("%s%s%d", questFile[:5], _time, 0)
 	}
 }
 
@@ -125,9 +156,9 @@ func loadQuestFile(s *Session, questId int) []byte {
 
 func makeEventQuest(s *Session, rows *sql.Rows) ([]byte, error) {
 	var id, mark uint32
-	var questId int
+	var questId, flags int
 	var maxPlayers, questType uint8
-	rows.Scan(&id, &maxPlayers, &questType, &questId, &mark)
+	rows.Scan(&id, &maxPlayers, &questType, &questId, &mark, &flags)
 
 	data := loadQuestFile(s, questId)
 	if data == nil {
@@ -175,7 +206,12 @@ func makeEventQuest(s *Session, rows *sql.Rows) ([]byte, error) {
 	if s.server.erupeConfig.GameplayOptions.SeasonOverride {
 		bf.WriteUint8(flagByte & 0b11100000)
 	} else {
-		bf.WriteUint8(flagByte)
+		// Allow for seasons to be specified in database, otherwise use the one in the file.
+		if flags < 0 {
+			bf.WriteUint8(flagByte)
+		} else {
+			bf.WriteUint8(uint8(flags))
+		}
 	}
 
 	// Bitset Structure Quest Variant 1: b8 UL Fixed, b7 UNK, b6 UNK, b5 UNK, b4 G Rank, b3 HC to UL, b2 Fix HC, b1 Hiden
@@ -199,7 +235,7 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint16(0)
 
-	rows, _ := s.server.db.Query("SELECT id, COALESCE(max_players, 4) AS max_players, quest_type, quest_id, COALESCE(mark, 0) AS mark FROM event_quests ORDER BY quest_id")
+	rows, _ := s.server.db.Query("SELECT id, COALESCE(max_players, 4) AS max_players, quest_type, quest_id, COALESCE(mark, 0) AS mark, COALESCE(flags, -1) FROM event_quests ORDER BY quest_id")
 	for rows.Next() {
 		data, err := makeEventQuest(s, rows)
 		if err != nil {

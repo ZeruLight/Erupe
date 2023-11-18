@@ -10,51 +10,69 @@ import (
 )
 
 type CampaignEvent struct {
-	ID         uint32
-	Unk0       uint32
-	MinHR      int16
-	MaxHR      int16
-	MinSR      int16
-	MaxSR      int16
-	MinGR      int16
-	MaxGR      int16
-	Unk1       uint16
-	Unk2       uint8
-	Unk3       uint8
-	Unk4       uint16
-	Unk5       uint16
-	Start      time.Time
-	End        time.Time
-	Unk6       uint8
-	String0    string
-	String1    string
-	String2    string
-	String3    string
-	Link       string
-	Prefix     string
-	Categories []uint16
+	ID           uint32    `db:"id"`
+	Unk0         uint32    `db:"unk0"`
+	MinHR        int16     `db:"min_hr"`
+	MaxHR        int16     `db:"max_hr"`
+	MinSR        int16     `db:"min_sr"`
+	MaxSR        int16     `db:"max_sr"`
+	MinGR        int16     `db:"min_gr"`
+	MaxGR        int16     `db:"max_gr"`
+	Unk1         uint16    `db:"unk1"`
+	Unk2         uint8     `db:"unk2"`
+	Unk3         uint8     `db:"unk3"`
+	BackgroundID uint16    `db:"background_id"`
+	HideNPC      bool      `db:"hide_npc"` //TODO: FIX this is actual a uint16 however giving this thew value 1 or above made the NPC glitch / hide
+	Start        time.Time `db:"start_time"`
+	End          time.Time `db:"end_time"`
+	PeriodEnded  bool      `db:"period_ended"`
+	String0      string    `db:"string0"`
+	String1      string    `db:"string1"`
+	String2      string    `db:"string2"`
+	String3      string    `db:"string3"`
+	Link         string    `db:"link"`
+	Prefix       string    `db:"code_prefix"`
 }
 
 type CampaignCategory struct {
-	ID          uint16
-	Type        uint8
-	Title       string
-	Description string
+	ID          uint16 `db:"id"`
+	Type        uint8  `db:"cat_type"`
+	Title       string `db:"title"`
+	Description string `db:"description_text"`
 }
 
 type CampaignLink struct {
-	CategoryID uint16
-	CampaignID uint32
+	CategoryID uint16 `db:"category_id"`
+	CampaignID uint32 `db:"campaign_id"`
+}
+type CampaignEntry struct {
+	ID       uint32    `db:"id"`
+	Hide     bool      `db:"hide"`
+	ItemType uint8     `db:"item_type"`
+	Amount   uint16    `db:"item_amount"`
+	ItemNo   uint16    `db:"item_no"`
+	Unk4     uint16    `db:"unk1"`
+	Unk5     uint32    `db:"unk2"`
+	DeadLine time.Time `db:"deadline"`
 }
 
 func handleMsgMhfEnumerateCampaign(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateCampaign)
 	bf := byteframe.NewByteFrame()
 
-	events := []CampaignEvent{}
-	categories := []CampaignCategory{}
+	var events []CampaignEvent
+	var categories []CampaignCategory
+
 	var campaignLinks []CampaignLink
 
+	err := s.server.db.Select(&events, "SELECT id,unk0,min_hr,max_hr,min_sr,max_sr,min_gr,max_gr,unk1,unk2,unk3,background_id,hide_npc,start_time,end_time,period_ended,string0,string1,string2,string3,link,code_prefix FROM campaigns")
+	err = s.server.db.Select(&categories, "SELECT id, cat_type, title, description_text FROM campaign_categories")
+	err = s.server.db.Select(&campaignLinks, "SELECT campaign_id, category_id FROM campaign_category_links")
+
+	if err != nil {
+		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
+		return
+	}
 	if len(events) > 255 {
 		bf.WriteUint8(255)
 		bf.WriteUint16(uint16(len(events)))
@@ -75,19 +93,17 @@ func handleMsgMhfEnumerateCampaign(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint16(event.Unk1)
 		bf.WriteUint8(event.Unk2)
 		bf.WriteUint8(event.Unk3)
-		bf.WriteUint16(event.Unk4)
-		bf.WriteUint16(event.Unk5)
+		bf.WriteUint16(event.BackgroundID)
+		bf.WriteUint16(uint16(0))
 		bf.WriteUint32(uint32(event.Start.Unix()))
 		bf.WriteUint32(uint32(event.End.Unix()))
-		bf.WriteUint8(event.Unk6)
+		bf.WriteBool(event.PeriodEnded)
 		ps.Uint8(bf, event.String0, true)
 		ps.Uint8(bf, event.String1, true)
 		ps.Uint8(bf, event.String2, true)
 		ps.Uint8(bf, event.String3, true)
 		ps.Uint8(bf, event.Link, true)
-		for i := range event.Categories {
-			campaignLinks = append(campaignLinks, CampaignLink{event.Categories[i], event.ID})
-		}
+
 	}
 
 	if len(events) > 255 {
@@ -135,39 +151,57 @@ func handleMsgMhfEnumerateCampaign(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfStateCampaign(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfStateCampaign)
 	bf := byteframe.NewByteFrame()
-	bf.WriteUint16(1)
-	bf.WriteUint16(0)
+	var unk []uint32
+	var result uint16 = 1 //3 stamp//2 Event already acomplished //1 Stamp? //0 stamp
+	bf.WriteUint16(uint16(len(unk)))
+	bf.WriteUint16(result)
+	for _, value := range unk {
+		bf.WriteUint32(value)
+	}
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfApplyCampaign(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfApplyCampaign)
-	bf := byteframe.NewByteFrame()
-	bf.WriteUint32(1)
-	doAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
+
+	// Check campaign ID
+	// Check code against campaign list of codes to see if valid....
+	//checkCode(pkt.CodeString,pkt.CampaignID)
+	validCode := true
+	if validCode {
+		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	} else {
+		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+	}
 }
 
 func handleMsgMhfEnumerateItem(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateItem)
-	items := []struct {
-		Unk0 uint32
-		Unk1 uint16
-		Unk2 uint16
-		Unk3 uint16
-		Unk4 uint32
-		Unk5 uint32
-	}{}
 	bf := byteframe.NewByteFrame()
+	var items []CampaignEntry
+	err := s.server.db.Select(&items, "SELECT id,hide,item_type,item_amount,item_no,unk1,unk2,deadline FROM campaign_entries WHERE campaign_id = $1", pkt.CampaignID)
+	if err != nil {
+		doAckBufFail(s, pkt.AckHandle, bf.Data())
+		return
+	}
 	bf.WriteUint16(uint16(len(items)))
 	for _, item := range items {
-		bf.WriteUint32(item.Unk0)
-		bf.WriteUint16(item.Unk1)
-		bf.WriteUint16(item.Unk2)
-		bf.WriteUint16(item.Unk3)
-		bf.WriteUint32(item.Unk4)
+		bf.WriteUint32(item.ID)
+		bf.WriteBool(item.Hide)
+		bf.WriteUint8(item.ItemType)
+		bf.WriteUint16(item.Amount)
+		bf.WriteUint16(item.ItemNo)
+		bf.WriteUint16(item.Unk4)
 		bf.WriteUint32(item.Unk5)
+		bf.WriteUint32(uint32(item.DeadLine.Unix()))
 	}
-	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	if len(items) == 0 {
+		doAckBufFail(s, pkt.AckHandle, bf.Data())
+
+	} else {
+		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+
+	}
 }
 
 func handleMsgMhfAcquireItem(s *Session, p mhfpacket.MHFPacket) {

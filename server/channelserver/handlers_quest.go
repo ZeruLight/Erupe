@@ -190,6 +190,14 @@ func makeEventQuest(s *Session, rows *sql.Rows) ([]byte, error) {
 	return bf.Data(), nil
 }
 
+func calculateNumberOfCycles(duration time.Duration, lastStartTime time.Time) int {
+	timeDifference := time.Now().Sub(lastStartTime)
+	println(timeDifference.String())
+	println(float64(duration))
+	numberOfCycles := int(timeDifference.Nanoseconds() / int64(duration))
+	return numberOfCycles
+}
+
 func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateQuest)
 	var totalCount, returnedCount uint16
@@ -219,14 +227,22 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 			continue
 		}
 
+		// Count the number of cycles necessary to align quest with actual time.
+		cycleCount := calculateNumberOfCycles(time.Duration(activeDuration+inactiveDuration)*24*time.Hour, startTime)
+
 		// Calculate the rotation time based on start time, active duration, and inactive duration
-		rotationTime := startTime.Add((time.Duration(activeDuration+inactiveDuration) * 24) * time.Hour)
+		rotationTime := startTime.Add(time.Duration(activeDuration+inactiveDuration) * 24 * time.Duration(cycleCount) * time.Hour)
 		if currentTime.After(rotationTime) {
-			// The rotation time has passed, update the start time and reset the rotation
-			_, err := transaction.Exec("UPDATE event_quests SET start_time = $1 WHERE id = $2", rotationTime, id)
+			// take the rotationTime and normalize it to midnight
+			newRotationTime := time.Date(rotationTime.Year(), rotationTime.Month(), rotationTime.Day(), 0, 0, 0, 0, rotationTime.Location())
+			newRotationTime = newRotationTime.Add(time.Duration(TimeMidnight().Add(13 * time.Hour).Nanosecond()))
+
+			_, err := transaction.Exec("UPDATE event_quests SET start_time = $1 WHERE id = $2", newRotationTime, id)
 			if err != nil {
-				continue
+				transaction.Rollback() // Rollback if an error occurs
+				break
 			}
+			startTime = newRotationTime // Set the new start time so the quest can be used immediatelyw
 		}
 
 		// Check if the quest is currently active

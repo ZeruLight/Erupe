@@ -205,11 +205,15 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 	}
 	defer rows.Close()
 
+	// Commit event quest changes to a transaction instead of doing it one by one for to help with performance
+	transaction, _ := s.server.db.Begin()
+
 	for rows.Next() {
 		var id, mark uint32
 		var questId, activeDuration, inactiveDuration int
 		var maxPlayers, questType uint8
 		var startTime time.Time
+
 		err := rows.Scan(&id, &maxPlayers, &questType, &questId, &mark, &startTime, &activeDuration, &inactiveDuration)
 		if err != nil {
 			continue
@@ -219,14 +223,14 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 		rotationTime := startTime.Add(time.Duration(activeDuration+inactiveDuration) * 24 * time.Hour)
 		if currentTime.After(rotationTime) {
 			// The rotation time has passed, update the start time and reset the rotation
-			_, err := s.server.db.Exec("UPDATE event_quests SET start_time = $1 WHERE quest_id = $2", rotationTime, questId)
+			_, err := transaction.Exec("UPDATE event_quests SET start_time = $1 WHERE quest_id = $2", rotationTime, questId)
 			if err != nil {
 				return
 			}
 		}
 
 		// Check if the quest is currently active
-		if currentTime.After(startTime) && currentTime.Sub(startTime) <= time.Duration(activeDuration) * 24 * time.Hour {
+		if currentTime.After(startTime) && currentTime.Sub(startTime) <= time.Duration(activeDuration)*24*time.Hour {
 			data, err := makeEventQuest(s, rows)
 			if err != nil {
 				continue
@@ -244,6 +248,9 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 			}
 		}
 	}
+
+	// Commit transaction so to write to the database.
+	transaction.Commit()
 
 	type tuneValue struct {
 		ID    uint16

@@ -2,6 +2,7 @@ package mhfpacket
 
 import (
 	"errors"
+	_config "erupe-ce/config"
 
 	"erupe-ce/common/byteframe"
 	"erupe-ce/network"
@@ -10,10 +11,10 @@ import (
 
 // MsgSysCreateSemaphore represents the MSG_SYS_CREATE_SEMAPHORE
 type MsgSysCreateSemaphore struct {
-	AckHandle      uint32
-	Unk0           uint16
-	DataSize       uint16
-	RawDataPayload []byte
+	AckHandle   uint32
+	Unk0        uint16
+	PlayerCount uint8
+	SemaphoreID string
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -25,8 +26,11 @@ func (m *MsgSysCreateSemaphore) Opcode() network.PacketID {
 func (m *MsgSysCreateSemaphore) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
 	m.Unk0 = bf.ReadUint16()
-	m.DataSize = bf.ReadUint16()
-	m.RawDataPayload = bf.ReadBytes(uint(m.DataSize))
+	if _config.ErupeConfig.RealClientMode >= _config.S7 { // Assuming this was added with Ravi?
+		m.PlayerCount = bf.ReadUint8()
+	}
+	bf.ReadUint8() // SemaphoreID length
+	m.SemaphoreID = string(bf.ReadNullTerminatedBytes())
 	return nil
 }
 

@@ -18,7 +18,7 @@ type Item struct {
 // MsgMhfUpdateGuildItem represents the MSG_MHF_UPDATE_GUILD_ITEM
 type MsgMhfUpdateGuildItem struct {
 	AckHandle uint32
-	GuildId   uint32
+	GuildID   uint32
 	Items     []Item
 }
 
@@ -30,7 +30,7 @@ func (m *MsgMhfUpdateGuildItem) Opcode() network.PacketID {
 // Parse parses the packet from binary
 func (m *MsgMhfUpdateGuildItem) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
-	m.GuildId = bf.ReadUint32()
+	m.GuildID = bf.ReadUint32()
 	itemCount := int(bf.ReadUint16())
 	bf.ReadUint8() // Zeroed
 	bf.ReadUint8() // Zeroed

@@ -1147,7 +1147,6 @@ func handleMsgMhfEnumerateGuild(s *Session, p mhfpacket.MHFPacket) {
 	var alliances []*GuildAlliance
 	var rows *sqlx.Rows
 	var err error
-	bf := byteframe.NewByteFrameFromBytes(pkt.Data1)
 
 	if pkt.Type <= 8 {
 		var tempGuilds []*Guild
@@ -1164,20 +1163,20 @@ func handleMsgMhfEnumerateGuild(s *Session, p mhfpacket.MHFPacket) {
 		switch pkt.Type {
 		case mhfpacket.ENUMERATE_GUILD_TYPE_GUILD_NAME:
 			for _, guild := range tempGuilds {
-				if strings.Contains(guild.Name, pkt.Data2) {
+				if strings.Contains(guild.Name, stringsupport.SJISToUTF8(pkt.Data2.ReadNullTerminatedBytes())) {
 					guilds = append(guilds, guild)
 				}
 			}
 		case mhfpacket.ENUMERATE_GUILD_TYPE_LEADER_NAME:
 			for _, guild := range tempGuilds {
-				if strings.Contains(guild.LeaderName, pkt.Data2) {
+				if strings.Contains(guild.LeaderName, stringsupport.SJISToUTF8(pkt.Data2.ReadNullTerminatedBytes())) {
 					guilds = append(guilds, guild)
 				}
 			}
 		case mhfpacket.ENUMERATE_GUILD_TYPE_LEADER_ID:
-			ID := bf.ReadUint32()
+			CID := pkt.Data1.ReadUint32()
 			for _, guild := range tempGuilds {
-				if guild.LeaderCharID == ID {
+				if guild.LeaderCharID == CID {
 					guilds = append(guilds, guild)
 				}
 			}
@@ -1215,15 +1214,15 @@ func handleMsgMhfEnumerateGuild(s *Session, p mhfpacket.MHFPacket) {
 			}
 			guilds = tempGuilds
 		case mhfpacket.ENUMERATE_GUILD_TYPE_MOTTO:
-			mainMotto := uint8(bf.ReadUint16())
-			subMotto := uint8(bf.ReadUint16())
+			mainMotto := uint8(pkt.Data1.ReadUint16())
+			subMotto := uint8(pkt.Data1.ReadUint16())
 			for _, guild := range tempGuilds {
 				if guild.MainMotto == mainMotto && guild.SubMotto == subMotto {
 					guilds = append(guilds, guild)
 				}
 			}
 		case mhfpacket.ENUMERATE_GUILD_TYPE_RECRUITING:
-			recruitingMotto := uint8(bf.ReadUint16())
+			recruitingMotto := uint8(pkt.Data1.ReadUint16())
 			for _, guild := range tempGuilds {
 				if guild.MainMotto == recruitingMotto {
 					guilds = append(guilds, guild)
@@ -1244,20 +1243,20 @@ func handleMsgMhfEnumerateGuild(s *Session, p mhfpacket.MHFPacket) {
 		switch pkt.Type {
 		case mhfpacket.ENUMERATE_ALLIANCE_TYPE_ALLIANCE_NAME:
 			for _, alliance := range tempAlliances {
-				if strings.Contains(alliance.Name, pkt.Data2) {
+				if strings.Contains(alliance.Name, stringsupport.SJISToUTF8(pkt.Data2.ReadNullTerminatedBytes())) {
 					alliances = append(alliances, alliance)
 				}
 			}
 		case mhfpacket.ENUMERATE_ALLIANCE_TYPE_LEADER_NAME:
 			for _, alliance := range tempAlliances {
-				if strings.Contains(alliance.ParentGuild.LeaderName, pkt.Data2) {
+				if strings.Contains(alliance.ParentGuild.LeaderName, stringsupport.SJISToUTF8(pkt.Data2.ReadNullTerminatedBytes())) {
 					alliances = append(alliances, alliance)
 				}
 			}
 		case mhfpacket.ENUMERATE_ALLIANCE_TYPE_LEADER_ID:
-			ID := bf.ReadUint32()
+			CID := pkt.Data1.ReadUint32()
 			for _, alliance := range tempAlliances {
-				if alliance.ParentGuild.LeaderCharID == ID {
+				if alliance.ParentGuild.LeaderCharID == CID {
 					alliances = append(alliances, alliance)
 				}
 			}
@@ -1291,7 +1290,7 @@ func handleMsgMhfEnumerateGuild(s *Session, p mhfpacket.MHFPacket) {
 		return
 	}
 
-	bf = byteframe.NewByteFrame()
+	bf := byteframe.NewByteFrame()
 
 	if pkt.Type > 8 {
 		hasNextPage := false
@@ -1436,7 +1435,7 @@ func handleMsgMhfEnumerateGuildMember(s *Session, p mhfpacket.MHFPacket) {
 	for _, member := range guildMembers {
 		bf.WriteUint32(member.CharID)
 		bf.WriteUint16(member.HRP)
-		if s.server.erupeConfig.RealClientMode > _config.G7 {
+		if s.server.erupeConfig.RealClientMode >= _config.G10 {
 			bf.WriteUint16(member.GR)
 		}
 		if s.server.erupeConfig.RealClientMode < _config.ZZ {
@@ -1558,7 +1557,7 @@ func handleMsgMhfEnumerateGuildItem(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateGuildItem)
 	var boxContents []byte
 	bf := byteframe.NewByteFrame()
-	err := s.server.db.QueryRow("SELECT item_box FROM guilds WHERE id = $1", int(pkt.GuildId)).Scan(&boxContents)
+	err := s.server.db.QueryRow("SELECT item_box FROM guilds WHERE id = $1", pkt.GuildID).Scan(&boxContents)
 	if err != nil {
 		s.logger.Error("Failed to get guild item box contents from db", zap.Error(err))
 		bf.WriteBytes(make([]byte, 4))
@@ -1592,7 +1591,7 @@ func handleMsgMhfUpdateGuildItem(s *Session, p mhfpacket.MHFPacket) {
 	// Get item cache from DB
 	var boxContents []byte
 	var oldItems []Item
-	err := s.server.db.QueryRow("SELECT item_box FROM guilds WHERE id = $1", int(pkt.GuildId)).Scan(&boxContents)
+	err := s.server.db.QueryRow("SELECT item_box FROM guilds WHERE id = $1", pkt.GuildID).Scan(&boxContents)
 	if err != nil {
 		s.logger.Error("Failed to get guild item box contents from db", zap.Error(err))
 		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
@@ -1642,7 +1641,7 @@ func handleMsgMhfUpdateGuildItem(s *Session, p mhfpacket.MHFPacket) {
 	}
 
 	// Upload new item cache
-	_, err = s.server.db.Exec("UPDATE guilds SET item_box = $1 WHERE id = $2", bf.Data(), int(pkt.GuildId))
+	_, err = s.server.db.Exec("UPDATE guilds SET item_box = $1 WHERE id = $2", bf.Data(), pkt.GuildID)
 	if err != nil {
 		s.logger.Error("Failed to update guild item box contents in db", zap.Error(err))
 	}

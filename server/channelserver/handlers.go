@@ -611,7 +611,7 @@ func handleMsgMhfServerCommand(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfAnnounce(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfAnnounce)
-	s.server.BroadcastRaviente(pkt.IPAddress, pkt.Port, pkt.StageID, pkt.Type)
+	s.server.BroadcastRaviente(pkt.IPAddress, pkt.Port, pkt.StageID, pkt.Data.ReadUint8())
 	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 

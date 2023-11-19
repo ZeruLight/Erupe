@@ -163,7 +163,6 @@ func handleMsgSysEnterStage(s *Session, p mhfpacket.MHFPacket) {
 		s.stageMoveStack.Lock()
 	}
 
-	s.QueueSendMHF(&mhfpacket.MsgSysCleanupObject{})
 	if s.reservationStage != nil {
 		s.reservationStage = nil
 	}

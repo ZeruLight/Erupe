@@ -218,8 +218,8 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 
 	for rows.Next() {
 		var id, mark uint32
-		var questId, activeDuration, inactiveDuration int
-		var maxPlayers, questType uint8
+		var questId int
+		var maxPlayers, questType, activeDuration, inactiveDuration uint8
 		var startTime time.Time
 
 		err := rows.Scan(&id, &maxPlayers, &questType, &questId, &mark, &startTime, &activeDuration, &inactiveDuration)

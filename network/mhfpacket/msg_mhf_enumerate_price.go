@@ -1,18 +1,16 @@
 package mhfpacket
 
-import ( 
- "errors" 
+import (
+	"errors"
 
- 	"erupe-ce/network/clientctx"
-	"erupe-ce/network"
 	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgMhfEnumeratePrice represents the MSG_MHF_ENUMERATE_PRICE
 type MsgMhfEnumeratePrice struct {
 	AckHandle uint32
-	Unk0      uint16 // Hardcoded 0 in the binary
-	Unk1      uint16 // Hardcoded 0 in the binary
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -23,8 +21,8 @@ func (m *MsgMhfEnumeratePrice) Opcode() network.PacketID {
 // Parse parses the packet from binary
 func (m *MsgMhfEnumeratePrice) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
-	m.Unk0 = bf.ReadUint16()
-	m.Unk1 = bf.ReadUint16()
+	bf.ReadUint16() // Zeroed
+	bf.ReadUint16() // Zeroed
 	return nil
 }
 

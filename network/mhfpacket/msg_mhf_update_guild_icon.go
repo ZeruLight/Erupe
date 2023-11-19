@@ -25,8 +25,6 @@ type GuildIconMsgPart struct {
 type MsgMhfUpdateGuildIcon struct {
 	AckHandle uint32
 	GuildID   uint32
-	PartCount uint16
-	Unk1      uint16
 	IconParts []GuildIconMsgPart
 }
 
@@ -39,12 +37,12 @@ func (m *MsgMhfUpdateGuildIcon) Opcode() network.PacketID {
 func (m *MsgMhfUpdateGuildIcon) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
 	m.GuildID = bf.ReadUint32()
-	m.PartCount = bf.ReadUint16()
-	m.Unk1 = bf.ReadUint16()
+	partCount := int(bf.ReadUint16())
+	bf.ReadUint8() // Zeroed
+	bf.ReadUint8() // Zeroed
+	m.IconParts = make([]GuildIconMsgPart, partCount)
 
-	m.IconParts = make([]GuildIconMsgPart, m.PartCount)
-
-	for i := 0; i < int(m.PartCount); i++ {
+	for i := 0; i < partCount; i++ {
 		m.IconParts[i] = GuildIconMsgPart{
 			Index:    bf.ReadUint16(),
 			ID:       bf.ReadUint16(),

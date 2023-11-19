@@ -11,9 +11,7 @@ import (
 // MsgMhfUpdateUnionItem represents the MSG_MHF_UPDATE_UNION_ITEM
 type MsgMhfUpdateUnionItem struct {
 	AckHandle uint32
-	Amount    uint16
-	Unk1      uint16 // 0x00 0x00
-	Items     []Item // Array of updated item IDs
+	Items     []Item
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -24,13 +22,14 @@ func (m *MsgMhfUpdateUnionItem) Opcode() network.PacketID {
 // Parse parses the packet from binary
 func (m *MsgMhfUpdateUnionItem) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
-	m.Amount = bf.ReadUint16()
-	m.Unk1 = bf.ReadUint16()
-	m.Items = make([]Item, int(m.Amount))
+	itemCount := int(bf.ReadUint16())
+	bf.ReadUint8() // Zeroed
+	bf.ReadUint8() // Zeroed
+	m.Items = make([]Item, itemCount)
 
-	for i := 0; i < int(m.Amount); i++ {
+	for i := 0; i < itemCount; i++ {
 		m.Items[i].Unk0 = bf.ReadUint32()
-		m.Items[i].ItemId = bf.ReadUint16()
+		m.Items[i].ItemID = bf.ReadUint16()
 		m.Items[i].Amount = bf.ReadUint16()
 		m.Items[i].Unk1 = bf.ReadUint32()
 	}

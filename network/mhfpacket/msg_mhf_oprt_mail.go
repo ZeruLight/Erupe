@@ -11,10 +11,11 @@ import (
 type OperateMailOperation uint8
 
 const (
-	OPERATE_MAIL_DELETE       = 0x01
-	OPERATE_MAIL_LOCK         = 0x02
-	OPERATE_MAIL_UNLOCK       = 0x03
-	OPERATE_MAIL_ACQUIRE_ITEM = 0x05
+	OperateMailDelete = iota + 1
+	OperateMailLock
+	OperateMailUnlock
+	OpreateMailNull
+	OperateMailAcquireItem
 )
 
 // MsgMhfOprtMail represents the MSG_MHF_OPRT_MAIL
@@ -23,7 +24,6 @@ type MsgMhfOprtMail struct {
 	AccIndex  uint8
 	Index     uint8
 	Operation OperateMailOperation
-	Unk0      uint8
 	Data      []byte
 	Amount    uint16
 	ItemID    uint16
@@ -40,8 +40,8 @@ func (m *MsgMhfOprtMail) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientCon
 	m.AccIndex = bf.ReadUint8()
 	m.Index = bf.ReadUint8()
 	m.Operation = OperateMailOperation(bf.ReadUint8())
-	m.Unk0 = bf.ReadUint8()
-	if m.Operation == OPERATE_MAIL_ACQUIRE_ITEM {
+	bf.ReadUint8() // Zeroed
+	if m.Operation == OperateMailAcquireItem {
 		m.Amount = bf.ReadUint16()
 		m.ItemID = bf.ReadUint16()
 	}

@@ -22,7 +22,8 @@ type MsgMhfOperateJoint struct {
 	AllianceID uint32
 	GuildID    uint32
 	Action     OperateJointAction
-	UnkData    *byteframe.ByteFrame
+	Data1      *byteframe.ByteFrame
+	Data2      *byteframe.ByteFrame
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -36,8 +37,9 @@ func (m *MsgMhfOperateJoint) Parse(bf *byteframe.ByteFrame, ctx *clientctx.Clien
 	m.AllianceID = bf.ReadUint32()
 	m.GuildID = bf.ReadUint32()
 	m.Action = OperateJointAction(bf.ReadUint8())
-	m.UnkData = byteframe.NewByteFrameFromBytes(bf.DataFromCurrent())
-	bf.Seek(int64(len(bf.Data())-2), 0)
+	dataLen := uint(bf.ReadUint8())
+	m.Data1 = byteframe.NewByteFrameFromBytes(bf.ReadBytes(4))
+	m.Data2 = byteframe.NewByteFrameFromBytes(bf.ReadBytes(dataLen))
 	return nil
 }
 

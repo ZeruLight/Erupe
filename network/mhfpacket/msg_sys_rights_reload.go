@@ -1,17 +1,17 @@
 package mhfpacket
 
-import ( 
- "errors" 
+import (
+	"errors"
 
- 	"erupe-ce/network/clientctx"
-	"erupe-ce/network"
 	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgSysRightsReload represents the MSG_SYS_RIGHTS_RELOAD
-type MsgSysRightsReload struct{
+type MsgSysRightsReload struct {
 	AckHandle uint32
-	Unk0 byte
+	Unk0      []byte
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -22,7 +22,7 @@ func (m *MsgSysRightsReload) Opcode() network.PacketID {
 // Parse parses the packet from binary
 func (m *MsgSysRightsReload) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
-	m.Unk0 = bf.ReadUint8()
+	m.Unk0 = bf.ReadBytes(uint(bf.ReadUint8()))
 	return nil
 }
 

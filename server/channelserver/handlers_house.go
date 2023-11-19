@@ -119,7 +119,9 @@ func handleMsgMhfEnumerateHouse(s *Session, p mhfpacket.MHFPacket) {
 			bf.WriteUint8(0)
 		}
 		bf.WriteUint16(house.HRP)
-		bf.WriteUint16(house.GR)
+		if _config.ErupeConfig.RealClientMode >= _config.G10 {
+			bf.WriteUint16(house.GR)
+		}
 		ps.Uint8(bf, house.Name, true)
 	}
 	bf.Seek(0, 0)
@@ -238,8 +240,8 @@ func handleMsgMhfGetMyhouseInfo(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfUpdateMyhouseInfo(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfUpdateMyhouseInfo)
-	s.server.db.Exec("UPDATE user_binary SET mission=$1 WHERE id=$2", pkt.Unk0, s.charID)
-	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+	s.server.db.Exec("UPDATE user_binary SET mission=$1 WHERE id=$2", pkt.Data, s.charID)
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfLoadDecoMyset(s *Session, p mhfpacket.MHFPacket) {
@@ -250,7 +252,7 @@ func handleMsgMhfLoadDecoMyset(s *Session, p mhfpacket.MHFPacket) {
 		s.logger.Error("Failed to load decomyset", zap.Error(err))
 	}
 	if len(data) == 0 {
-		if s.server.erupeConfig.RealClientMode <= _config.G7 {
+		if s.server.erupeConfig.RealClientMode < _config.G10 {
 			data = []byte{0x00, 0x00}
 		}
 		data = []byte{0x01, 0x00}
@@ -353,12 +355,14 @@ func handleMsgMhfEnumerateTitle(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfAcquireTitle(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfAcquireTitle)
-	var exists int
-	err := s.server.db.QueryRow("SELECT count(*) FROM titles WHERE id=$1 AND char_id=$2", pkt.TitleID, s.charID).Scan(&exists)
-	if err != nil || exists == 0 {
-		s.server.db.Exec("INSERT INTO titles VALUES ($1, $2, now(), now())", pkt.TitleID, s.charID)
-	} else {
-		s.server.db.Exec("UPDATE titles SET updated_at=now()")
+	for _, title := range pkt.TitleIDs {
+		var exists int
+		err := s.server.db.QueryRow(`SELECT count(*) FROM titles WHERE id=$1 AND char_id=$2`, title, s.charID).Scan(&exists)
+		if err != nil || exists == 0 {
+			s.server.db.Exec(`INSERT INTO titles VALUES ($1, $2, now(), now())`, title, s.charID)
+		} else {
+			s.server.db.Exec(`UPDATE titles SET updated_at=now() WHERE id=$1 AND char_id=$2`, title, s.charID)
+		}
 	}
 	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }

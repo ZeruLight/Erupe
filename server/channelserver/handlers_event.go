@@ -10,44 +10,6 @@ import (
 	"erupe-ce/network/mhfpacket"
 )
 
-func handleMsgMhfRegisterEvent(s *Session, p mhfpacket.MHFPacket) {
-	pkt := p.(*mhfpacket.MsgMhfRegisterEvent)
-	bf := byteframe.NewByteFrame()
-	bf.WriteUint8(pkt.Unk2)
-	bf.WriteUint8(pkt.Unk4)
-	bf.WriteUint16(0x1142)
-	doAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
-}
-
-func handleMsgMhfReleaseEvent(s *Session, p mhfpacket.MHFPacket) {
-	pkt := p.(*mhfpacket.MsgMhfReleaseEvent)
-
-	// Do this ack manually because it uses a non-(0|1) error code
-	/*
-		_ACK_SUCCESS = 0
-		_ACK_ERROR = 1
-
-		_ACK_EINPROGRESS = 16
-		_ACK_ENOENT = 17
-		_ACK_ENOSPC = 18
-		_ACK_ETIMEOUT = 19
-
-		_ACK_EINVALID = 64
-		_ACK_EFAILED = 65
-		_ACK_ENOMEM = 66
-		_ACK_ENOTEXIT = 67
-		_ACK_ENOTREADY = 68
-		_ACK_EALREADY = 69
-		_ACK_DISABLE_WORK = 71
-	*/
-	s.QueueSendMHF(&mhfpacket.MsgSysAck{
-		AckHandle:        pkt.AckHandle,
-		IsBufferResponse: false,
-		ErrorCode:        0x41,
-		AckData:          []byte{0x00, 0x00, 0x00, 0x00},
-	})
-}
-
 type Event struct {
 	EventType    uint16
 	Unk1         uint16
@@ -237,15 +199,11 @@ func handleMsgMhfUseKeepLoginBoost(s *Session, p mhfpacket.MHFPacket) {
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint8(0)
 	switch pkt.BoostWeekUsed {
-	case 1:
-		fallthrough
-	case 3:
+	case 1, 3:
 		expiration = TimeAdjusted().Add(120 * time.Minute)
 	case 4:
 		expiration = TimeAdjusted().Add(180 * time.Minute)
-	case 2:
-		fallthrough
-	case 5:
+	case 2, 5:
 		expiration = TimeAdjusted().Add(240 * time.Minute)
 	}
 	bf.WriteUint32(uint32(expiration.Unix()))

@@ -12,7 +12,6 @@ import (
 type MsgMhfGetAchievement struct {
 	AckHandle uint32
 	CharID    uint32
-	Unk1      uint32 // char?
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -24,7 +23,7 @@ func (m *MsgMhfGetAchievement) Opcode() network.PacketID {
 func (m *MsgMhfGetAchievement) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
 	m.CharID = bf.ReadUint32()
-	m.Unk1 = bf.ReadUint32()
+	bf.ReadUint32() // Zeroed
 	return nil
 }
 

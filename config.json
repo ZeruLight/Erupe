@@ -12,13 +12,15 @@
   "ScreenshotAPIURL": "",
   "DeleteOnSaveCorruption": false,
   "ClientMode": "ZZ",
+  "QuestCacheExpiry": 300,
   "DevMode": true,
   "DevModeOptions": {
     "AutoCreateAccount": true,
     "CleanDB": false,
     "MaxLauncherHR": false,
-    "LogInboundMessages": true,
-    "LogOutboundMessages": true,
+    "LogInboundMessages": false,
+    "LogOutboundMessages": false,
+    "LogMessageData": false,
     "MaxHexdumpLength": 256,
     "DivaEvent": 0,
     "FestaEvent": -1,
@@ -40,6 +42,7 @@
     "MaximumNP": 100000,
     "MaximumRP": 50000,
     "MaximumFP": 120000,
+    "TreasureHuntExpiry": 604800,
     "DisableLoginBoost": false,
     "DisableBoostTime": false,
     "BoostTimeDuration": 120,
@@ -54,7 +57,7 @@
     "BerserkRavienteMaxPlayers": 32,
     "ExtremeRavienteMaxPlayers": 32,
     "SmallBerserkRavienteMaxPlayers": 8,
-    "GUrgentRate": 10,
+    "GUrgentRate": 0.10,
     "GCPMultiplier": 1.00,
     "GRPMultiplier": 1.00,
     "GSRPMultiplier": 1.00,
@@ -77,31 +80,31 @@
     {
       "Name": "Rights",
       "Enabled": false,
-      "Prefix": "!rights"
+      "Prefix": "rights"
     }, {
       "Name": "Raviente",
       "Enabled": true,
-      "Prefix": "!ravi"
+      "Prefix": "ravi"
     }, {
       "Name": "Teleport",
       "Enabled": false,
-      "Prefix": "!tele"
+      "Prefix": "tele"
     }, {
       "Name": "Reload",
       "Enabled": true,
-      "Prefix": "!reload"
+      "Prefix": "reload"
     }, {
       "Name": "KeyQuest",
       "Enabled": false,
-      "Prefix": "!kqf"
+      "Prefix": "kqf"
     }, {
       "Name": "Course",
       "Enabled": true,
-      "Prefix": "!course"
+      "Prefix": "course"
     }, {
       "Name": "PSN",
       "Enabled": true,
-      "Prefix": "!psn"
+      "Prefix": "psn"
     }
   ],
   "Courses": [

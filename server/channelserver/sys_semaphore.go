@@ -7,55 +7,35 @@ import (
 	"sync"
 )
 
-// Stage holds stage-specific information
+// Semaphore holds Semaphore-specific information
 type Semaphore struct {
 	sync.RWMutex
 
-	// Stage ID string
-	id_semaphore string
+	// Semaphore ID string
+	name string
 
 	id uint32
 
 	// Map of session -> charID.
-	// These are clients that are CURRENTLY in the stage
+	// These are clients that are registered to the Semaphore
 	clients map[*Session]uint32
-
-	// Map of charID -> interface{}, only the key is used, value is always nil.
-	reservedClientSlots map[uint32]interface{}
 
 	// Max Players for Semaphore
 	maxPlayers uint16
 }
 
-// NewStage creates a new stage with intialized values.
+// NewSemaphore creates a new Semaphore with intialized values
 func NewSemaphore(s *Server, ID string, MaxPlayers uint16) *Semaphore {
 	sema := &Semaphore{
-		id_semaphore:        ID,
-		id:                  s.NextSemaphoreID(),
-		clients:             make(map[*Session]uint32),
-		reservedClientSlots: make(map[uint32]interface{}),
-		maxPlayers:          MaxPlayers,
+		name:       ID,
+		id:         s.NextSemaphoreID(),
+		clients:    make(map[*Session]uint32),
+		maxPlayers: MaxPlayers,
 	}
 	return sema
 }
 
-func (s *Semaphore) BroadcastRavi(pkt mhfpacket.MHFPacket) {
-	// Broadcast the data.
-	for session := range s.clients {
-
-		// Make the header
-		bf := byteframe.NewByteFrame()
-		bf.WriteUint16(uint16(pkt.Opcode()))
-
-		// Build the packet onto the byteframe.
-		pkt.Build(bf, session.clientContext)
-
-		// Enqueue in a non-blocking way that drops the packet if the connections send buffer channel is full.
-		session.QueueSendNonBlocking(bf.Data())
-	}
-}
-
-// BroadcastMHF queues a MHFPacket to be sent to all sessions in the stage.
+// BroadcastMHF queues a MHFPacket to be sent to all sessions in the Semaphore
 func (s *Semaphore) BroadcastMHF(pkt mhfpacket.MHFPacket, ignoredSession *Session) {
 	// Broadcast the data.
 	for session := range s.clients {

@@ -3,7 +3,9 @@ package channelserver
 import (
 	"fmt"
 	"net"
+	"strings"
 	"sync"
+	"time"
 
 	"erupe-ce/common/byteframe"
 	ps "erupe-ce/common/pascalstring"
@@ -72,65 +74,37 @@ type Server struct {
 	name string
 
 	raviente *Raviente
+
+	questCacheData map[int][]byte
+	questCacheTime map[int]time.Time
 }
 
 type Raviente struct {
 	sync.Mutex
-
-	register *RavienteRegister
-	state    *RavienteState
-	support  *RavienteSupport
+	id       uint16
+	register []uint32
+	state    []uint32
+	support  []uint32
 }
 
-type RavienteRegister struct {
-	nextTime     uint32
-	startTime    uint32
-	postTime     uint32
-	killedTime   uint32
-	ravienteType uint32
-	maxPlayers   uint32
-	carveQuest   uint32
-	register     []uint32
-}
-
-type RavienteState struct {
-	stateData []uint32
-}
-
-type RavienteSupport struct {
-	supportData []uint32
-}
-
-// Set up the Raviente variables for the server
-func NewRaviente() *Raviente {
-	ravienteRegister := &RavienteRegister{
-		nextTime:     0,
-		startTime:    0,
-		killedTime:   0,
-		postTime:     0,
-		ravienteType: 0,
-		maxPlayers:   0,
-		carveQuest:   0,
+func (s *Server) resetRaviente() {
+	for _, semaphore := range s.semaphore {
+		if strings.HasPrefix(semaphore.name, "hs_l0") {
+			return
+		}
 	}
-	ravienteState := &RavienteState{}
-	ravienteSupport := &RavienteSupport{}
-	ravienteRegister.register = []uint32{0, 0, 0, 0, 0}
-	ravienteState.stateData = []uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-	ravienteSupport.supportData = []uint32{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
-
-	raviente := &Raviente{
-		register: ravienteRegister,
-		state:    ravienteState,
-		support:  ravienteSupport,
-	}
-	return raviente
+	s.logger.Debug("All Raviente Semaphores empty, resetting")
+	s.raviente.id = s.raviente.id + 1
+	s.raviente.register = make([]uint32, 30)
+	s.raviente.state = make([]uint32, 30)
+	s.raviente.support = make([]uint32, 30)
 }
 
-func (r *Raviente) GetRaviMultiplier(s *Server) float64 {
-	raviSema := getRaviSemaphore(s)
+func (s *Server) GetRaviMultiplier() float64 {
+	raviSema := s.getRaviSemaphore()
 	if raviSema != nil {
 		var minPlayers int
-		if r.register.maxPlayers > 8 {
+		if s.raviente.register[9] > 8 {
 			minPlayers = 24
 		} else {
 			minPlayers = 4
@@ -141,6 +115,33 @@ func (r *Raviente) GetRaviMultiplier(s *Server) float64 {
 		return float64(minPlayers / len(raviSema.clients))
 	}
 	return 0
+}
+
+func (s *Server) UpdateRavi(semaID uint32, index uint8, value uint32, update bool) (uint32, uint32) {
+	var prev uint32
+	var dest *[]uint32
+	switch semaID {
+	case 0x40000:
+		switch index {
+		case 17, 28: // Ignore res and poison
+			break
+		default:
+			value = uint32(float64(value) * s.GetRaviMultiplier())
+		}
+		dest = &s.raviente.state
+	case 0x50000:
+		dest = &s.raviente.support
+	case 0x60000:
+		dest = &s.raviente.register
+	default:
+		return 0, 0
+	}
+	if update {
+		(*dest)[index] += value
+	} else {
+		(*dest)[index] = value
+	}
+	return prev, (*dest)[index]
 }
 
 // NewServer creates a new Server type.
@@ -160,7 +161,14 @@ func NewServer(config *Config) *Server {
 		semaphoreIndex:  7,
 		discordBot:      config.DiscordBot,
 		name:            config.Name,
-		raviente:        NewRaviente(),
+		raviente: &Raviente{
+			id:       1,
+			register: make([]uint32, 30),
+			state:    make([]uint32, 30),
+			support:  make([]uint32, 30),
+		},
+		questCacheData: make(map[int][]byte),
+		questCacheTime: make(map[int]time.Time),
 	}
 
 	// Mezeporta
@@ -314,7 +322,6 @@ func (s *Server) BroadcastChatMessage(message string) {
 	msgBinChat.Build(bf)
 
 	s.BroadcastMHF(&mhfpacket.MsgSysCastedBinary{
-		CharID:         0xFFFFFFFF,
 		MessageType:    BinaryMessageTypeChat,
 		RawDataPayload: bf.Data(),
 	}, nil)
@@ -346,7 +353,6 @@ func (s *Server) BroadcastRaviente(ip uint32, port uint16, stage []byte, _type u
 	bf.WriteUint16(0)    // Unk
 	bf.WriteBytes(stage)
 	s.WorldcastMHF(&mhfpacket.MsgSysCastedBinary{
-		CharID:         0x00000000,
 		BroadcastType:  BroadcastTypeServer,
 		MessageType:    BinaryMessageTypeChat,
 		RawDataPayload: bf.Data(),
@@ -393,15 +399,16 @@ func (s *Server) NextSemaphoreID() uint32 {
 	for {
 		exists := false
 		s.semaphoreIndex = s.semaphoreIndex + 1
-		if s.semaphoreIndex == 0 {
-			s.semaphoreIndex = 7 // Skip reserved indexes
+		if s.semaphoreIndex > 0xFFFF {
+			s.semaphoreIndex = 1
 		}
 		for _, semaphore := range s.semaphore {
 			if semaphore.id == s.semaphoreIndex {
 				exists = true
+				break
 			}
 		}
-		if exists == false {
+		if !exists {
 			break
 		}
 	}

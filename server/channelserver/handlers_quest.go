@@ -225,13 +225,13 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 			continue
 		}
 
-		// Count the number of cycles necessary to align quest with actual time.
+		// Count the number of cycles necessary to align quest with the correct date range.
 		cycleCount := calculateNumberOfCycles(time.Duration(activeDuration+inactiveDuration)*24*time.Hour, startTime)
 
-		// Calculate the rotation time based on start time, active duration, and inactive duration
+		// Calculate the rotation time based on start time, active duration, and inactive duration.
 		rotationTime := startTime.Add(time.Duration(activeDuration+inactiveDuration) * 24 * time.Duration(cycleCount) * time.Hour)
 		if currentTime.After(rotationTime) {
-			// take the rotationTime and normalize it to midnight
+			// take the rotationTime and normalize it to midnight as to align with the ingame message for event quest rotation.
 			newRotationTime := time.Date(rotationTime.Year(), rotationTime.Month(), rotationTime.Day(), 0, 0, 0, 0, rotationTime.Location())
 			newRotationTime = newRotationTime.Add(time.Duration(TimeMidnight().Add(13 * time.Hour).Nanosecond()))
 
@@ -240,7 +240,7 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 				transaction.Rollback() // Rollback if an error occurs
 				break
 			}
-			startTime = newRotationTime // Set the new start time so the quest can be used immediatelyw
+			startTime = newRotationTime // Set the new start time so the quest can be used/remove immediately.
 		}
 
 		// Check if the quest is currently active

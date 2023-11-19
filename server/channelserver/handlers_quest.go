@@ -207,7 +207,7 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 	currentTime := time.Now()
 
 	// Check the event_quests table to load the quests with rotation system
-	rows, err := s.server.db.Query("SELECT id, COALESCE(max_players, 4) AS max_players, quest_type, quest_id, COALESCE(mark, 0) AS mark, start_time, active_duration, inactive_duration FROM event_quests")
+	rows, err := s.server.db.Query("SELECT id, COALESCE(max_players, 4) AS max_players, quest_type, quest_id, COALESCE(mark, 0) AS mark, start_time, COALESCE(active_duration, 1) AS active_duration, COALESCE(inactive_duration, 0) AS inactive_duration FROM event_quests")
 	if err != nil {
 		return
 	}

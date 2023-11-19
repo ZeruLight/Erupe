@@ -260,7 +260,7 @@ func (s *Session) logMessage(opcode uint16, data []byte, sender string, recipien
 
 	if sender == "Server" && !s.server.erupeConfig.DevModeOptions.LogOutboundMessages {
 		return
-	} else if !s.server.erupeConfig.DevModeOptions.LogInboundMessages {
+	} else if sender != "Server" && !s.server.erupeConfig.DevModeOptions.LogInboundMessages {
 		return
 	}
 
@@ -281,7 +281,7 @@ func (s *Session) logMessage(opcode uint16, data []byte, sender string, recipien
 	if len(data) <= s.server.erupeConfig.DevModeOptions.MaxHexdumpLength {
 		fmt.Printf("Data [%d bytes]:\n%s\n", len(data), hex.Dump(data))
 	} else {
-		fmt.Printf("Data [%d bytes]:\n(Too long!)\n\n", len(data))
+		fmt.Printf("Data [%d bytes]: (Too long!)\n\n", len(data))
 	}
 }
 

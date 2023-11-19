@@ -298,8 +298,8 @@ func parseChatCommand(s *Session, command string) {
 	case commands["Teleport"].Prefix:
 		if commands["Teleport"].Enabled {
 			if len(args) > 2 {
-				x, _ := strconv.Atoi(args[1])
-				y, _ := strconv.Atoi(args[2])
+				x, _ := strconv.ParseInt(args[1], 10, 16)
+				y, _ := strconv.ParseInt(args[2], 10, 16)
 				payload := byteframe.NewByteFrame()
 				payload.SetLE()
 				payload.WriteUint8(2)        // SetState type(position == 2)

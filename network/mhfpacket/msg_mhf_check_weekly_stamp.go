@@ -12,7 +12,6 @@ type MsgMhfCheckWeeklyStamp struct {
 	AckHandle uint32
 	StampType string
 	Unk1      bool
-	Unk2      uint16 // Hardcoded 0 in the binary
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -31,7 +30,7 @@ func (m *MsgMhfCheckWeeklyStamp) Parse(bf *byteframe.ByteFrame, ctx *clientctx.C
 		m.StampType = "ex"
 	}
 	m.Unk1 = bf.ReadBool()
-	m.Unk2 = bf.ReadUint16()
+	bf.ReadUint16() // Zeroed
 	return nil
 }
 

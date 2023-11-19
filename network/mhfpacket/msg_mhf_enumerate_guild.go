@@ -2,9 +2,7 @@ package mhfpacket
 
 import (
 	"errors"
-	"erupe-ce/common/bfutil"
 	"erupe-ce/common/byteframe"
-	"erupe-ce/common/stringsupport"
 	"erupe-ce/network"
 	"erupe-ce/network/clientctx"
 )
@@ -34,8 +32,8 @@ type MsgMhfEnumerateGuild struct {
 	Type      EnumerateGuildType
 	Page      uint8
 	Sorting   bool
-	Data1     []byte
-	Data2     string
+	Data1     *byteframe.ByteFrame
+	Data2     *byteframe.ByteFrame
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -49,12 +47,12 @@ func (m *MsgMhfEnumerateGuild) Parse(bf *byteframe.ByteFrame, ctx *clientctx.Cli
 	m.Type = EnumerateGuildType(bf.ReadUint8())
 	m.Page = bf.ReadUint8()
 	m.Sorting = bf.ReadBool()
-	_ = bf.ReadBytes(1)
-	m.Data1 = bf.ReadBytes(4)
-	_ = bf.ReadBytes(2)
-	lenData2 := uint(bf.ReadUint8())
-	_ = bf.ReadBytes(1)
-	m.Data2 = stringsupport.SJISToUTF8(bfutil.UpToNull(bf.ReadBytes(lenData2)))
+	bf.ReadUint8() // Zeroed
+	m.Data1 = byteframe.NewByteFrameFromBytes(bf.ReadBytes(4))
+	bf.ReadUint16() // Zeroed
+	dataLen := uint(bf.ReadUint8())
+	bf.ReadUint8() // Zeroed
+	m.Data2 = byteframe.NewByteFrameFromBytes(bf.ReadBytes(dataLen))
 	return nil
 }
 

@@ -2,7 +2,6 @@ package mhfpacket
 
 import (
 	"errors"
-	"erupe-ce/common/bfutil"
 	"erupe-ce/common/byteframe"
 	_config "erupe-ce/config"
 	"erupe-ce/network"
@@ -29,8 +28,8 @@ func (m *MsgSysCreateAcquireSemaphore) Parse(bf *byteframe.ByteFrame, ctx *clien
 	if _config.ErupeConfig.RealClientMode >= _config.S7 { // Assuming this was added with Ravi?
 		m.PlayerCount = bf.ReadUint8()
 	}
-	SemaphoreIDLength := bf.ReadUint8()
-	m.SemaphoreID = string(bfutil.UpToNull(bf.ReadBytes(uint(SemaphoreIDLength))))
+	bf.ReadUint8() // SemaphoreID length
+	m.SemaphoreID = string(bf.ReadNullTerminatedBytes())
 	return nil
 }
 

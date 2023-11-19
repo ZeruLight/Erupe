@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"erupe-ce/common/mhfcourse"
+	"erupe-ce/common/mhfmon"
 	ps "erupe-ce/common/pascalstring"
 	"erupe-ce/common/stringsupport"
 	_config "erupe-ce/config"
@@ -16,8 +17,9 @@ import (
 	"crypto/rand"
 	"erupe-ce/common/byteframe"
 	"erupe-ce/network/mhfpacket"
-	"go.uber.org/zap"
 	"math/bits"
+
+	"go.uber.org/zap"
 )
 
 // Temporary function to just return no results for a MSG_MHF_ENUMERATE* packet
@@ -231,7 +233,7 @@ func logoutPlayer(s *Session) {
 
 	s.server.db.Exec("UPDATE characters SET time_played = $1 WHERE id = $2", timePlayed, s.charID)
 
-	treasureHuntUnregister(s)
+	s.server.db.Exec(`UPDATE guild_characters SET treasure_hunt=NULL WHERE character_id=$1`, s.charID)
 
 	if s.stage == nil {
 		return
@@ -304,9 +306,20 @@ func handleMsgSysIssueLogkey(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgSysRecordLog(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysRecordLog)
+	if _config.ErupeConfig.RealClientMode == _config.ZZ {
+		bf := byteframe.NewByteFrameFromBytes(pkt.Data)
+		bf.Seek(32, 0)
+		var val uint8
+		for i := 0; i < 176; i++ {
+			val = bf.ReadUint8()
+			if val > 0 && mhfmon.Monsters[i].Large {
+				s.server.db.Exec(`INSERT INTO kill_logs (character_id, monster, quantity, timestamp) VALUES ($1, $2, $3, $4)`, s.charID, i, val, TimeAdjusted())
+			}
+		}
+	}
 	// remove a client returning to town from reserved slots to make sure the stage is hidden from board
 	delete(s.stage.reservedClientSlots, s.charID)
-	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgSysEcho(s *Session, p mhfpacket.MHFPacket) {}
@@ -598,7 +611,7 @@ func handleMsgMhfServerCommand(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfAnnounce(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfAnnounce)
-	s.server.BroadcastRaviente(pkt.IPAddress, pkt.Port, pkt.StageID, pkt.Type)
+	s.server.BroadcastRaviente(pkt.IPAddress, pkt.Port, pkt.StageID, pkt.Data.ReadUint8())
 	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
@@ -692,16 +705,16 @@ func handleMsgMhfUpdateUnionItem(s *Session, p mhfpacket.MHFPacket) {
 	// Update item stacks
 	newItems := make([]Item, len(oldItems))
 	copy(newItems, oldItems)
-	for i := 0; i < int(pkt.Amount); i++ {
+	for i := 0; i < len(pkt.Items); i++ {
 		for j := 0; j <= len(oldItems); j++ {
 			if j == len(oldItems) {
 				var newItem Item
-				newItem.ItemId = pkt.Items[i].ItemId
+				newItem.ItemId = pkt.Items[i].ItemID
 				newItem.Amount = pkt.Items[i].Amount
 				newItems = append(newItems, newItem)
 				break
 			}
-			if pkt.Items[i].ItemId == oldItems[j].ItemId {
+			if pkt.Items[i].ItemID == oldItems[j].ItemId {
 				newItems[j].Amount = pkt.Items[i].Amount
 				break
 			}
@@ -789,20 +802,20 @@ func getGookData(s *Session, cid uint32) (uint16, []byte) {
 	var count uint16
 	bf := byteframe.NewByteFrame()
 	for i := 0; i < 5; i++ {
-		err := s.server.db.QueryRow(fmt.Sprintf("SELECT gook%d FROM gook WHERE id=$1", i), cid).Scan(&data)
+		err := s.server.db.QueryRow(fmt.Sprintf("SELECT goocoo%d FROM goocoo WHERE id=$1", i), cid).Scan(&data)
 		if err != nil {
-			s.server.db.Exec("INSERT INTO gook (id) VALUES ($1)", s.charID)
+			s.server.db.Exec("INSERT INTO goocoo (id) VALUES ($1)", s.charID)
 			return 0, bf.Data()
 		}
 		if err == nil && data != nil {
 			count++
 			if s.charID == cid && count == 1 {
-				gook := byteframe.NewByteFrameFromBytes(data)
-				bf.WriteBytes(gook.ReadBytes(4))
-				d := gook.ReadBytes(2)
+				goocoo := byteframe.NewByteFrameFromBytes(data)
+				bf.WriteBytes(goocoo.ReadBytes(4))
+				d := goocoo.ReadBytes(2)
 				bf.WriteBytes(d)
 				bf.WriteBytes(d)
-				bf.WriteBytes(gook.DataFromCurrent())
+				bf.WriteBytes(goocoo.DataFromCurrent())
 			} else {
 				bf.WriteBytes(data)
 			}
@@ -822,744 +835,75 @@ func handleMsgMhfEnumerateGuacot(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfUpdateGuacot(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfUpdateGuacot)
-	for _, gook := range pkt.Gooks {
-		if !gook.Exists {
-			s.server.db.Exec(fmt.Sprintf("UPDATE gook SET gook%d=NULL WHERE id=$1", gook.Index), s.charID)
+	for _, goocoo := range pkt.Goocoos {
+		if goocoo.Data1[0] == 0 {
+			s.server.db.Exec(fmt.Sprintf("UPDATE goocoo SET goocoo%d=NULL WHERE id=$1", goocoo.Index), s.charID)
 		} else {
 			bf := byteframe.NewByteFrame()
-			bf.WriteUint32(gook.Index)
-			bf.WriteUint16(gook.Type)
-			bf.WriteBytes(gook.Data)
-			bf.WriteUint8(gook.NameLen)
-			bf.WriteBytes(gook.Name)
-			s.server.db.Exec(fmt.Sprintf("UPDATE gook SET gook%d=$1 WHERE id=$2", gook.Index), bf.Data(), s.charID)
-			dumpSaveData(s, bf.Data(), fmt.Sprintf("goocoo-%d", gook.Index))
+			bf.WriteUint32(goocoo.Index)
+			for i := range goocoo.Data1 {
+				bf.WriteUint16(goocoo.Data1[i])
+			}
+			for i := range goocoo.Data2 {
+				bf.WriteUint32(goocoo.Data2[i])
+			}
+			bf.WriteUint8(uint8(len(goocoo.Name)))
+			bf.WriteBytes(goocoo.Name)
+			s.server.db.Exec(fmt.Sprintf("UPDATE goocoo SET goocoo%d=$1 WHERE id=$2", goocoo.Index), bf.Data(), s.charID)
+			dumpSaveData(s, bf.Data(), fmt.Sprintf("goocoo-%d", goocoo.Index))
 		}
 	}
-	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+}
+
+type Scenario struct {
+	MainID uint32
+	// 0 = Basic
+	// 1 = Veteran
+	// 3 = Other
+	// 6 = Pallone
+	// 7 = Diva
+	CategoryID uint8
 }
 
 func handleMsgMhfInfoScenarioCounter(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfInfoScenarioCounter)
-	scenarioCounter := []struct {
-		MainID uint32
-		Unk1   uint8 // Bool item exchange?
-		// 0 = basic, 1 = veteran, 3 = other, 6 = pallone, 7 = diva
-		CategoryID uint8
-	}{
-		//000000110000
-		{
-			MainID: 0x00000011, Unk1: 0, CategoryID: 0,
-		},
-		// 0000005D0001
-		{
-			MainID: 0x0000005D, Unk1: 0, CategoryID: 1,
-		},
-		// 0000005C0001
-		{
-			MainID: 0x0000005C, Unk1: 0, CategoryID: 1,
-		},
-		// 000000510001
-		{
-			MainID: 0x00000051, Unk1: 0, CategoryID: 1,
-		},
-		// 0000005B0001
-		{
-			MainID: 0x0000005B, Unk1: 0, CategoryID: 1,
-		},
-		// 0000005A0001
-		{
-			MainID: 0x0000005A, Unk1: 0, CategoryID: 1,
-		},
-		// 000000590001
-		{
-			MainID: 0x00000059, Unk1: 0, CategoryID: 1,
-		},
-		// 000000580001
-		{
-			MainID: 0x00000058, Unk1: 0, CategoryID: 1,
-		},
-		// 000000570001
-		{
-			MainID: 0x00000057, Unk1: 0, CategoryID: 1,
-		},
-		// 000000560001
-		{
-			MainID: 0x00000056, Unk1: 0, CategoryID: 1,
-		},
-		// 000000550001
-		{
-			MainID: 0x00000055, Unk1: 0, CategoryID: 1,
-		},
-		// 000000540001
-		{
-			MainID: 0x00000054, Unk1: 0, CategoryID: 1,
-		},
-		// 000000530001
-		{
-			MainID: 0x00000053, Unk1: 0, CategoryID: 1,
-		},
-		// 000000520001
-		{
-			MainID: 0x00000052, Unk1: 0, CategoryID: 1,
-		},
-		// 000000570103
-		{
-			MainID: 0x00000057, Unk1: 1, CategoryID: 3,
-		},
-		// 000000580103
-		{
-			MainID: 0x00000058, Unk1: 1, CategoryID: 3,
-		},
-		// 000000590103
-		{
-			MainID: 0x00000059, Unk1: 1, CategoryID: 3,
-		},
-		// 0000005A0103
-		{
-			MainID: 0x0000005A, Unk1: 1, CategoryID: 3,
-		},
-		// 0000005B0103
-		{
-			MainID: 0x0000005B, Unk1: 1, CategoryID: 3,
-		},
-		// 0000005C0103
-		{
-			MainID: 0x0000005C, Unk1: 1, CategoryID: 3,
-		},
-		// 000000530103
-		{
-			MainID: 0x00000053, Unk1: 1, CategoryID: 3,
-		},
-		// 000000560103
-		{
-			MainID: 0x00000056, Unk1: 1, CategoryID: 3,
-		},
-		// 0000003C0103
-		{
-			MainID: 0x0000003C, Unk1: 1, CategoryID: 3,
-		},
-		// 0000003A0103
-		{
-			MainID: 0x0000003A, Unk1: 1, CategoryID: 3,
-		},
-		// 0000003B0103
-		{
-			MainID: 0x0000003B, Unk1: 1, CategoryID: 3,
-		},
-		// 0000001B0103
-		{
-			MainID: 0x0000001B, Unk1: 1, CategoryID: 3,
-		},
-		// 000000190103
-		{
-			MainID: 0x00000019, Unk1: 1, CategoryID: 3,
-		},
-		// 0000001A0103
-		{
-			MainID: 0x0000001A, Unk1: 1, CategoryID: 3,
-		},
-		// 000000170103
-		{
-			MainID: 0x00000017, Unk1: 1, CategoryID: 3,
-		},
-		// 000000020103
-		{
-			MainID: 0x00000002, Unk1: 1, CategoryID: 3,
-		},
-		// 000000030103
-		{
-			MainID: 0x00000003, Unk1: 1, CategoryID: 3,
-		},
-		// 000000040103
-		{
-			MainID: 0x00000004, Unk1: 1, CategoryID: 3,
-		},
-		// 0000001F0103
-		{
-			MainID: 0x0000001F, Unk1: 1, CategoryID: 3,
-		},
-		// 000000200103
-		{
-			MainID: 0x00000020, Unk1: 1, CategoryID: 3,
-		},
-		// 000000210103
-		{
-			MainID: 0x00000021, Unk1: 1, CategoryID: 3,
-		},
-		// 000000220103
-		{
-			MainID: 0x00000022, Unk1: 1, CategoryID: 3,
-		},
-		// 000000230103
-		{
-			MainID: 0x00000023, Unk1: 1, CategoryID: 3,
-		},
-		// 000000240103
-		{
-			MainID: 0x00000024, Unk1: 1, CategoryID: 3,
-		},
-		// 000000250103
-		{
-			MainID: 0x00000025, Unk1: 1, CategoryID: 3,
-		},
-		// 000000280103
-		{
-			MainID: 0x00000028, Unk1: 1, CategoryID: 3,
-		},
-		// 000000260103
-		{
-			MainID: 0x00000026, Unk1: 1, CategoryID: 3,
-		},
-		// 000000270103
-		{
-			MainID: 0x00000027, Unk1: 1, CategoryID: 3,
-		},
-		// 000000300103
-		{
-			MainID: 0x00000030, Unk1: 1, CategoryID: 3,
-		},
-		// 0000000C0103
-		{
-			MainID: 0x0000000C, Unk1: 1, CategoryID: 3,
-		},
-		// 0000000D0103
-		{
-			MainID: 0x0000000D, Unk1: 1, CategoryID: 3,
-		},
-		// 0000001E0103
-		{
-			MainID: 0x0000001E, Unk1: 1, CategoryID: 3,
-		},
-		// 0000001D0103
-		{
-			MainID: 0x0000001D, Unk1: 1, CategoryID: 3,
-		},
-		// 0000002E0003
-		{
-			MainID: 0x0000002E, Unk1: 0, CategoryID: 3,
-		},
-		// 000000000004
-		{
-			MainID: 0x00000000, Unk1: 0, CategoryID: 4,
-		},
-		// 000000010004
-		{
-			MainID: 0x00000001, Unk1: 0, CategoryID: 4,
-		},
-		// 000000020004
-		{
-			MainID: 0x00000002, Unk1: 0, CategoryID: 4,
-		},
-		// 000000030004
-		{
-			MainID: 0x00000003, Unk1: 0, CategoryID: 4,
-		},
-		// 000000040004
-		{
-			MainID: 0x00000004, Unk1: 0, CategoryID: 4,
-		},
-		// 000000050004
-		{
-			MainID: 0x00000005, Unk1: 0, CategoryID: 4,
-		},
-		// 000000060004
-		{
-			MainID: 0x00000006, Unk1: 0, CategoryID: 4,
-		},
-		// 000000070004
-		{
-			MainID: 0x00000007, Unk1: 0, CategoryID: 4,
-		},
-		// 000000080004
-		{
-			MainID: 0x00000008, Unk1: 0, CategoryID: 4,
-		},
-		// 000000090004
-		{
-			MainID: 0x00000009, Unk1: 0, CategoryID: 4,
-		},
-		// 0000000A0004
-		{
-			MainID: 0x0000000A, Unk1: 0, CategoryID: 4,
-		},
-		// 0000000B0004
-		{
-			MainID: 0x0000000B, Unk1: 0, CategoryID: 4,
-		},
-		// 0000000C0004
-		{
-			MainID: 0x0000000C, Unk1: 0, CategoryID: 4,
-		},
-		// 0000000D0004
-		{
-			MainID: 0x0000000D, Unk1: 0, CategoryID: 4,
-		},
-		// 0000000E0004
-		{
-			MainID: 0x0000000E, Unk1: 0, CategoryID: 4,
-		},
-		// 000000320005
-		{
-			MainID: 0x00000032, Unk1: 0, CategoryID: 5,
-		},
-		// 000000330005
-		{
-			MainID: 0x00000033, Unk1: 0, CategoryID: 5,
-		},
-		// 000000340005
-		{
-			MainID: 0x00000034, Unk1: 0, CategoryID: 5,
-		},
-		// 000000350005
-		{
-			MainID: 0x00000035, Unk1: 0, CategoryID: 5,
-		},
-		// 000000360005
-		{
-			MainID: 0x00000036, Unk1: 0, CategoryID: 5,
-		},
-		// 000000370005
-		{
-			MainID: 0x00000037, Unk1: 0, CategoryID: 5,
-		},
-		// 000000380005
-		{
-			MainID: 0x00000038, Unk1: 0, CategoryID: 5,
-		},
-		// 0000003A0005
-		{
-			MainID: 0x0000003A, Unk1: 0, CategoryID: 5,
-		},
-		// 0000003F0005
-		{
-			MainID: 0x0000003F, Unk1: 0, CategoryID: 5,
-		},
-		// 000000400005
-		{
-			MainID: 0x00000040, Unk1: 0, CategoryID: 5,
-		},
-		// 000000410005
-		{
-			MainID: 0x00000041, Unk1: 0, CategoryID: 5,
-		},
-		// 000000430005
-		{
-			MainID: 0x00000043, Unk1: 0, CategoryID: 5,
-		},
-		// 000000470005
-		{
-			MainID: 0x00000047, Unk1: 0, CategoryID: 5,
-		},
-		// 0000004B0005
-		{
-			MainID: 0x0000004B, Unk1: 0, CategoryID: 5,
-		},
-		// 0000003D0005
-		{
-			MainID: 0x0000003D, Unk1: 0, CategoryID: 5,
-		},
-		// 000000440005
-		{
-			MainID: 0x00000044, Unk1: 0, CategoryID: 5,
-		},
-		// 000000420005
-		{
-			MainID: 0x00000042, Unk1: 0, CategoryID: 5,
-		},
-		// 0000004C0005
-		{
-			MainID: 0x0000004C, Unk1: 0, CategoryID: 5,
-		},
-		// 000000460005
-		{
-			MainID: 0x00000046, Unk1: 0, CategoryID: 5,
-		},
-		// 0000004D0005
-		{
-			MainID: 0x0000004D, Unk1: 0, CategoryID: 5,
-		},
-		// 000000480005
-		{
-			MainID: 0x00000048, Unk1: 0, CategoryID: 5,
-		},
-		// 0000004A0005
-		{
-			MainID: 0x0000004A, Unk1: 0, CategoryID: 5,
-		},
-		// 000000490005
-		{
-			MainID: 0x00000049, Unk1: 0, CategoryID: 5,
-		},
-		// 0000004E0005
-		{
-			MainID: 0x0000004E, Unk1: 0, CategoryID: 5,
-		},
-		// 000000450005
-		{
-			MainID: 0x00000045, Unk1: 0, CategoryID: 5,
-		},
-		// 0000003E0005
-		{
-			MainID: 0x0000003E, Unk1: 0, CategoryID: 5,
-		},
-		// 0000004F0005
-		{
-			MainID: 0x0000004F, Unk1: 0, CategoryID: 5,
-		},
-		// 000000000106
-		{
-			MainID: 0x00000000, Unk1: 1, CategoryID: 6,
-		},
-		// 000000010106
-		{
-			MainID: 0x00000001, Unk1: 1, CategoryID: 6,
-		},
-		// 000000020106
-		{
-			MainID: 0x00000002, Unk1: 1, CategoryID: 6,
-		},
-		// 000000030106
-		{
-			MainID: 0x00000003, Unk1: 1, CategoryID: 6,
-		},
-		// 000000040106
-		{
-			MainID: 0x00000004, Unk1: 1, CategoryID: 6,
-		},
-		// 000000050106
-		{
-			MainID: 0x00000005, Unk1: 1, CategoryID: 6,
-		},
-		// 000000060106
-		{
-			MainID: 0x00000006, Unk1: 1, CategoryID: 6,
-		},
-		// 000000070106
-		{
-			MainID: 0x00000007, Unk1: 1, CategoryID: 6,
-		},
-		// 000000080106
-		{
-			MainID: 0x00000008, Unk1: 1, CategoryID: 6,
-		},
-		// 000000090106
-		{
-			MainID: 0x00000009, Unk1: 1, CategoryID: 6,
-		},
-		// 000000110106
-		{
-			MainID: 0x00000011, Unk1: 1, CategoryID: 6,
-		},
-		// 0000000A0106
-		{
-			MainID: 0x0000000A, Unk1: 1, CategoryID: 6,
-		},
-		// 0000000B0106
-		{
-			MainID: 0x0000000B, Unk1: 1, CategoryID: 6,
-		},
-		// 0000000C0106
-		{
-			MainID: 0x0000000C, Unk1: 1, CategoryID: 6,
-		},
-		// 0000000D0106
-		{
-			MainID: 0x0000000D, Unk1: 1, CategoryID: 6,
-		},
-		// 0000000E0106
-		{
-			MainID: 0x0000000E, Unk1: 1, CategoryID: 6,
-		},
-		// 0000000F0106
-		{
-			MainID: 0x0000000F, Unk1: 1, CategoryID: 6,
-		},
-		// 000000100106
-		{
-			MainID: 0x00000010, Unk1: 1, CategoryID: 6,
-		},
-		// 000000320107
-		{
-			MainID: 0x00000032, Unk1: 1, CategoryID: 7,
-		},
-		// 000000350107
-		{
-			MainID: 0x00000035, Unk1: 1, CategoryID: 7,
-		},
-		// 0000003E0107
-		{
-			MainID: 0x0000003E, Unk1: 1, CategoryID: 7,
-		},
-		// 000000340107
-		{
-			MainID: 0x00000034, Unk1: 1, CategoryID: 7,
-		},
-		// 000000380107
-		{
-			MainID: 0x00000038, Unk1: 1, CategoryID: 7,
-		},
-		// 000000330107
-		{
-			MainID: 0x00000033, Unk1: 1, CategoryID: 7,
-		},
-		// 000000310107
-		{
-			MainID: 0x00000031, Unk1: 1, CategoryID: 7,
-		},
-		// 000000360107
-		{
-			MainID: 0x00000036, Unk1: 1, CategoryID: 7,
-		},
-		// 000000390107
-		{
-			MainID: 0x00000039, Unk1: 1, CategoryID: 7,
-		},
-		// 000000370107
-		{
-			MainID: 0x00000037, Unk1: 1, CategoryID: 7,
-		},
-		// 0000003D0107
-		{
-			MainID: 0x0000003D, Unk1: 1, CategoryID: 7,
-		},
-		// 0000003A0107
-		{
-			MainID: 0x0000003A, Unk1: 1, CategoryID: 7,
-		},
-		// 0000003C0107
-		{
-			MainID: 0x0000003C, Unk1: 1, CategoryID: 7,
-		},
-		// 0000003B0107
-		{
-			MainID: 0x0000003B, Unk1: 1, CategoryID: 7,
-		},
-		// 0000002A0107
-		{
-			MainID: 0x0000002A, Unk1: 1, CategoryID: 7,
-		},
-		// 000000300107
-		{
-			MainID: 0x00000030, Unk1: 1, CategoryID: 7,
-		},
-		// 000000280107
-		{
-			MainID: 0x00000028, Unk1: 1, CategoryID: 7,
-		},
-		// 000000270107
-		{
-			MainID: 0x00000027, Unk1: 1, CategoryID: 7,
-		},
-		// 0000002B0107
-		{
-			MainID: 0x0000002B, Unk1: 1, CategoryID: 7,
-		},
-		// 0000002E0107
-		{
-			MainID: 0x0000002E, Unk1: 1, CategoryID: 7,
-		},
-		// 000000290107
-		{
-			MainID: 0x00000029, Unk1: 1, CategoryID: 7,
-		},
-		// 0000002C0107
-		{
-			MainID: 0x0000002C, Unk1: 1, CategoryID: 7,
-		},
-		// 0000002D0107
-		{
-			MainID: 0x0000002D, Unk1: 1, CategoryID: 7,
-		},
-		// 0000002F0107
-		{
-			MainID: 0x0000002F, Unk1: 1, CategoryID: 7,
-		},
-		// 000000250107
-		{
-			MainID: 0x00000025, Unk1: 1, CategoryID: 7,
-		},
-		// 000000220107
-		{
-			MainID: 0x00000022, Unk1: 1, CategoryID: 7,
-		},
-		// 000000210107
-		{
-			MainID: 0x00000021, Unk1: 1, CategoryID: 7,
-		},
-		// 000000200107
-		{
-			MainID: 0x00000020, Unk1: 1, CategoryID: 7,
-		},
-		// 0000001C0107
-		{
-			MainID: 0x0000001C, Unk1: 1, CategoryID: 7,
-		},
-		// 0000001A0107
-		{
-			MainID: 0x0000001A, Unk1: 1, CategoryID: 7,
-		},
-		// 000000240107
-		{
-			MainID: 0x00000024, Unk1: 1, CategoryID: 7,
-		},
-		// 000000260107
-		{
-			MainID: 0x00000026, Unk1: 1, CategoryID: 7,
-		},
-		// 000000230107
-		{
-			MainID: 0x00000023, Unk1: 1, CategoryID: 7,
-		},
-		// 0000001B0107
-		{
-			MainID: 0x0000001B, Unk1: 1, CategoryID: 7,
-		},
-		// 0000001E0107
-		{
-			MainID: 0x0000001E, Unk1: 1, CategoryID: 7,
-		},
-		// 0000001F0107
-		{
-			MainID: 0x0000001F, Unk1: 1, CategoryID: 7,
-		},
-		// 0000001D0107
-		{
-			MainID: 0x0000001D, Unk1: 1, CategoryID: 7,
-		},
-		// 000000180107
-		{
-			MainID: 0x00000018, Unk1: 1, CategoryID: 7,
-		},
-		// 000000170107
-		{
-			MainID: 0x00000017, Unk1: 1, CategoryID: 7,
-		},
-		// 000000160107
-		{
-			MainID: 0x00000016, Unk1: 1, CategoryID: 7,
-		},
-		// 000000150107
-		// Missing file
-		// {
-		// 	MainID: 0x00000015, Unk1: 1, CategoryID: 7,
-		// },
-		// 000000190107
-		{
-			MainID: 0x00000019, Unk1: 1, CategoryID: 7,
-		},
-		// 000000140107
-		// Missing file
-		// {
-		// 	MainID: 0x00000014, Unk1: 1, CategoryID: 7,
-		// },
-		// 000000070107
-		// Missing file
-		// {
-		//	MainID: 0x00000007, Unk1: 1, CategoryID: 7,
-		// },
-		// 000000090107
-		// Missing file
-		// {
-		//	MainID: 0x00000009, Unk1: 1, CategoryID: 7,
-		// },
-		// 0000000D0107
-		// Missing file
-		// {
-		//	MainID: 0x0000000D, Unk1: 1, CategoryID: 7,
-		// },
-		// 000000100107
-		// Missing file
-		// {
-		//	MainID: 0x00000010, Unk1: 1, CategoryID: 7,
-		// },
-		// 0000000C0107
-		// Missing file
-		// {
-		//	MainID: 0x0000000C, Unk1: 1, CategoryID: 7,
-		// },
-		// 0000000E0107
-		// Missing file
-		// {
-		//	MainID: 0x0000000E, Unk1: 1, CategoryID: 7,
-		// },
-		// 0000000F0107
-		// Missing file
-		// {
-		//	MainID: 0x0000000F, Unk1: 1, CategoryID: 7,
-		// },
-		// 000000130107
-		// Missing file
-		// {
-		//	MainID: 0x00000013, Unk1: 1, CategoryID: 7,
-		// },
-		// 0000000A0107
-		// Missing file
-		// {
-		//	MainID: 0x0000000A, Unk1: 1, CategoryID: 7,
-		// },
-		// 000000080107
-		// Missing file
-		// {
-		//	MainID: 0x00000008, Unk1: 1, CategoryID: 7,
-		// },
-		// 0000000B0107
-		// Missing file
-		// {
-		//	MainID: 0x0000000B, Unk1: 1, CategoryID: 7,
-		// },
-		// 000000120107
-		// Missing file
-		// {
-		//	MainID: 0x00000012, Unk1: 1, CategoryID: 7,
-		// },
-		// 000000110107
-		// Missing file
-		// {
-		// 	MainID: 0x00000011, Unk1: 1, CategoryID: 7,
-		// },
-		// 000000060107
-		// Missing file
-		// {
-		// 	MainID: 0x00000006, Unk1: 1, CategoryID: 7,
-		// },
-		// 000000050107
-		// Missing file
-		// {
-		// 	MainID: 0x00000005, Unk1: 1, CategoryID: 7,
-		// },
-		// 000000040107
-		// Missing file
-		// {
-		//	MainID: 0x00000004, Unk1: 1, CategoryID: 7,
-		// },
-		// 000000030107
-		{
-			MainID: 0x00000003, Unk1: 1, CategoryID: 7,
-		},
-		// 000000020107
-		{
-			MainID: 0x00000002, Unk1: 1, CategoryID: 7,
-		},
-		// 000000010107
-		{
-			MainID: 0x00000001, Unk1: 1, CategoryID: 7,
-		},
-		// 000000000107
-		{
-			MainID: 0x00000000, Unk1: 1, CategoryID: 7,
-		},
+	var scenarios []Scenario
+	var scenario Scenario
+	scenarioData, err := s.server.db.Queryx("SELECT scenario_id, category_id FROM scenario_counter")
+	if err != nil {
+		scenarioData.Close()
+		s.logger.Error("Failed to get scenario counter info from db", zap.Error(err))
+		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 1))
+		return
+	}
+	for scenarioData.Next() {
+		err = scenarioData.Scan(&scenario.MainID, &scenario.CategoryID)
+		if err != nil {
+			continue
+		}
+		scenarios = append(scenarios, scenario)
 	}
 
-	resp := byteframe.NewByteFrame()
-	resp.WriteUint8(uint8(len(scenarioCounter))) // Entry count
-	for _, entry := range scenarioCounter {
-		resp.WriteUint32(entry.MainID)
-		resp.WriteUint8(entry.Unk1)
-		resp.WriteUint8(entry.CategoryID)
+	// Trim excess scenarios
+	if len(scenarios) > 128 {
+		scenarios = scenarios[:128]
 	}
 
-	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint8(uint8(len(scenarios)))
+	for _, scenario := range scenarios {
+		bf.WriteUint32(scenario.MainID)
+		// If item exchange
+		switch scenario.CategoryID {
+		case 3, 6, 7:
+			bf.WriteBool(true)
+		default:
+			bf.WriteBool(false)
+		}
+		bf.WriteUint8(scenario.CategoryID)
+	}
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfGetEtcPoints(s *Session, p mhfpacket.MHFPacket) {

@@ -62,8 +62,9 @@ type Session struct {
 	mailList []int
 
 	// For Debuging
-	Name   string
-	closed bool
+	Name     string
+	closed   bool
+	ackStart map[uint32]time.Time
 }
 
 // NewSession creates a new Session type.
@@ -78,6 +79,7 @@ func NewSession(server *Server, conn net.Conn) *Session {
 		lastPacket:     time.Now(),
 		sessionStart:   TimeAdjusted().Unix(),
 		stageMoveStack: stringstack.New(),
+		ackStart:       make(map[uint32]time.Time),
 	}
 	s.SetObjectID()
 	return s
@@ -192,6 +194,10 @@ func (s *Session) handlePacketGroup(pktGroup []byte) {
 	s.lastPacket = time.Now()
 	bf := byteframe.NewByteFrameFromBytes(pktGroup)
 	opcodeUint16 := bf.ReadUint16()
+	if len(bf.Data()) >= 6 {
+		s.ackStart[bf.ReadUint32()] = time.Now()
+		bf.Seek(2, io.SeekStart)
+	}
 	opcode := network.PacketID(opcodeUint16)
 
 	// This shouldn't be needed, but it's better to recover and let the connection die than to panic the server.
@@ -254,7 +260,7 @@ func (s *Session) logMessage(opcode uint16, data []byte, sender string, recipien
 
 	if sender == "Server" && !s.server.erupeConfig.DevModeOptions.LogOutboundMessages {
 		return
-	} else if !s.server.erupeConfig.DevModeOptions.LogInboundMessages {
+	} else if sender != "Server" && !s.server.erupeConfig.DevModeOptions.LogInboundMessages {
 		return
 	}
 
@@ -262,12 +268,24 @@ func (s *Session) logMessage(opcode uint16, data []byte, sender string, recipien
 	if ignored(opcodePID) {
 		return
 	}
-	fmt.Printf("[%s] -> [%s]\n", sender, recipient)
-	fmt.Printf("Opcode: %s\n", opcodePID)
-	if len(data) <= s.server.erupeConfig.DevModeOptions.MaxHexdumpLength {
-		fmt.Printf("Data [%d bytes]:\n%s\n", len(data), hex.Dump(data))
+	var ackHandle uint32
+	if len(data) >= 6 {
+		ackHandle = binary.BigEndian.Uint32(data[2:6])
+	}
+	if t, ok := s.ackStart[ackHandle]; ok {
+		fmt.Printf("[%s] -> [%s] (%fs)\n", sender, recipient, float64(time.Now().UnixNano()-t.UnixNano())/1000000000)
 	} else {
-		fmt.Printf("Data [%d bytes]:\n(Too long!)\n\n", len(data))
+		fmt.Printf("[%s] -> [%s]\n", sender, recipient)
+	}
+	fmt.Printf("Opcode: %s\n", opcodePID)
+	if s.server.erupeConfig.DevModeOptions.LogMessageData {
+		if len(data) <= s.server.erupeConfig.DevModeOptions.MaxHexdumpLength {
+			fmt.Printf("Data [%d bytes]:\n%s\n", len(data), hex.Dump(data))
+		} else {
+			fmt.Printf("Data [%d bytes]: (Too long!)\n\n", len(data))
+		}
+	} else {
+		fmt.Printf("\n")
 	}
 }
 

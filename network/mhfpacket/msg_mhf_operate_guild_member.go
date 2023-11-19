@@ -23,7 +23,6 @@ type MsgMhfOperateGuildMember struct {
 	GuildID   uint32
 	CharID    uint32
 	Action    uint8
-	Unk       []byte
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -37,7 +36,8 @@ func (m *MsgMhfOperateGuildMember) Parse(bf *byteframe.ByteFrame, ctx *clientctx
 	m.GuildID = bf.ReadUint32()
 	m.CharID = bf.ReadUint32()
 	m.Action = bf.ReadUint8()
-	m.Unk = bf.ReadBytes(3)
+	bf.ReadUint8()  // Zeroed
+	bf.ReadUint16() // Zeroed
 	return nil
 }
 

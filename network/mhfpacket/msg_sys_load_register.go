@@ -11,7 +11,7 @@ import (
 type MsgSysLoadRegister struct {
 	AckHandle  uint32
 	RegisterID uint32
-	Unk1       uint8
+	Values     uint8
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -23,9 +23,9 @@ func (m *MsgSysLoadRegister) Opcode() network.PacketID {
 func (m *MsgSysLoadRegister) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
 	m.RegisterID = bf.ReadUint32()
-	m.Unk1 = bf.ReadUint8()
-	_ = bf.ReadUint8()
-	_ = bf.ReadUint16()
+	m.Values = bf.ReadUint8()
+	bf.ReadUint8()  // Zeroed
+	bf.ReadUint16() // Zeroed
 	return nil
 }
 

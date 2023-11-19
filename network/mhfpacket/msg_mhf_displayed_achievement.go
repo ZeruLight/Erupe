@@ -1,15 +1,14 @@
 package mhfpacket
 
 import (
+	"errors"
+	"erupe-ce/common/byteframe"
 	"erupe-ce/network"
 	"erupe-ce/network/clientctx"
-	"erupe-ce/common/byteframe"
 )
 
 // MsgMhfDisplayedAchievement represents the MSG_MHF_DISPLAYED_ACHIEVEMENT
-type MsgMhfDisplayedAchievement struct {
-	Unk0 uint8
-}
+type MsgMhfDisplayedAchievement struct{}
 
 // Opcode returns the ID associated with this packet type.
 func (m *MsgMhfDisplayedAchievement) Opcode() network.PacketID {
@@ -18,12 +17,11 @@ func (m *MsgMhfDisplayedAchievement) Opcode() network.PacketID {
 
 // Parse parses the packet from binary
 func (m *MsgMhfDisplayedAchievement) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
-	m.Unk0 = bf.ReadUint8()
+	bf.ReadUint8() // Zeroed
 	return nil
 }
 
 // Build builds a binary packet from the current data.
 func (m *MsgMhfDisplayedAchievement) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
-	bf.WriteUint8(m.Unk0)
-	return nil
+	return errors.New("NOT IMPLEMENTED")
 }

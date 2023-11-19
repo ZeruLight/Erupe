@@ -163,7 +163,6 @@ func handleMsgSysEnterStage(s *Session, p mhfpacket.MHFPacket) {
 		s.stageMoveStack.Lock()
 	}
 
-	s.QueueSendMHF(&mhfpacket.MsgSysCleanupObject{})
 	if s.reservationStage != nil {
 		s.reservationStage = nil
 	}
@@ -367,39 +366,42 @@ func handleMsgSysEnumerateStage(s *Session, p mhfpacket.MHFPacket) {
 	defer s.server.stagesLock.RUnlock()
 
 	// Build the response
-	resp := byteframe.NewByteFrame()
 	bf := byteframe.NewByteFrame()
-	var joinable int
+	var joinable uint16
+	bf.WriteUint16(0)
 	for sid, stage := range s.server.stages {
 		stage.RLock()
-		defer stage.RUnlock()
 
 		if len(stage.reservedClientSlots) == 0 && len(stage.clients) == 0 {
+			stage.RUnlock()
 			continue
 		}
-
 		if !strings.Contains(stage.id, pkt.StagePrefix) {
+			stage.RUnlock()
 			continue
 		}
-
 		joinable++
 
-		resp.WriteUint16(uint16(len(stage.reservedClientSlots))) // Reserved players.
-		resp.WriteUint16(0)                                      // Unk
-		resp.WriteUint8(0)                                       // Unk
-		resp.WriteBool(len(stage.clients) > 0)                   // Has departed.
-		resp.WriteUint16(stage.maxPlayers)                       // Max players.
+		bf.WriteUint16(uint16(len(stage.reservedClientSlots)))
+		bf.WriteUint16(0) // Unk
+		if len(stage.clients) > 0 {
+			bf.WriteUint16(1)
+		} else {
+			bf.WriteUint16(0)
+		}
+		bf.WriteUint16(stage.maxPlayers)
 		if len(stage.password) > 0 {
 			// This byte has also been seen as 1
 			// The quest is also recognised as locked when this is 2
-			resp.WriteUint8(3)
+			bf.WriteUint8(2)
 		} else {
-			resp.WriteUint8(0)
+			bf.WriteUint8(0)
 		}
-		ps.Uint8(resp, sid, false)
+		ps.Uint8(bf, sid, false)
+		stage.RUnlock()
 	}
-	bf.WriteUint16(uint16(joinable))
-	bf.WriteBytes(resp.Data())
+	bf.Seek(0, 0)
+	bf.WriteUint16(joinable)
 
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }

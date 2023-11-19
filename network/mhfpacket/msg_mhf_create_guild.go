@@ -12,8 +12,6 @@ import (
 // MsgMhfCreateGuild represents the MSG_MHF_CREATE_GUILD
 type MsgMhfCreateGuild struct {
 	AckHandle uint32
-	Unk0      uint8
-	Unk1      uint8
 	Name      string
 }
 
@@ -25,9 +23,8 @@ func (m *MsgMhfCreateGuild) Opcode() network.PacketID {
 // Parse parses the packet from binary
 func (m *MsgMhfCreateGuild) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
-	m.Unk0 = bf.ReadUint8()
-	m.Unk1 = bf.ReadUint8()
-	_ = bf.ReadUint16() // len
+	bf.ReadUint16() // Zeroed
+	bf.ReadUint16() // Name length
 	m.Name = stringsupport.SJISToUTF8(bf.ReadNullTerminatedBytes())
 	return nil
 }

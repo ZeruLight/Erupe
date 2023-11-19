@@ -1,11 +1,11 @@
 package mhfpacket
 
-import ( 
- "errors" 
+import (
+	"errors"
 
- 	"erupe-ce/network/clientctx"
-	"erupe-ce/network"
 	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgMhfTransferItem represents the MSG_MHF_TRANSFER_ITEM
@@ -15,8 +15,8 @@ type MsgMhfTransferItem struct {
 	// correlate with any item IDs that would make sense to get after quests so
 	// I have no idea what this actually does
 	Unk0 uint32
-	Unk1 uint16 // Hardcoded
-	Unk2 uint16 // Hardcoded
+	Unk1 uint8
+	Unk2 uint16
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -28,7 +28,8 @@ func (m *MsgMhfTransferItem) Opcode() network.PacketID {
 func (m *MsgMhfTransferItem) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
 	m.Unk0 = bf.ReadUint32()
-	m.Unk1 = bf.ReadUint16()
+	m.Unk1 = bf.ReadUint8()
+	bf.ReadUint8() // Zeroed
 	m.Unk2 = bf.ReadUint16()
 	return nil
 }

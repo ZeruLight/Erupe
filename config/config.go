@@ -58,7 +58,7 @@ const (
 )
 
 var versionStrings = []string{"S1.0", "S1.5", "S2.0", "S2.5", "S3.0", "S3.5", "S4.0", "S5.0", "S5.5", "S6.0", "S7.0",
-	"S8.0", "S8.5", "S9", "S10", "FW.1", "FW.2", "FW.3", "FW.4", "FW.5", "G1", "G2", "G3", "G3.1", "G3.2", "GG", "G5",
+	"S8.0", "S8.5", "S9.0", "S10", "FW.1", "FW.2", "FW.3", "FW.4", "FW.5", "G1", "G2", "G3", "G3.1", "G3.2", "GG", "G5",
 	"G5.1", "G5.2", "G6", "G6.1", "G7", "G8", "G8.1", "G9", "G9.1", "G10", "G10.1", "Z1", "Z2", "ZZ"}
 
 func (m Mode) String() string {
@@ -79,6 +79,7 @@ type Config struct {
 	DeleteOnSaveCorruption bool     // Attempts to save corrupted data will flag the save for deletion
 	ClientMode             string
 	RealClientMode         Mode
+	QuestCacheExpiry       int // Number of seconds to keep quest data cached
 	DevMode                bool
 
 	DevModeOptions  DevModeOptions
@@ -100,6 +101,7 @@ type DevModeOptions struct {
 	MaxLauncherHR        bool // Sets the HR returned in the launcher to HR7 so that you can join non-beginner worlds.
 	LogInboundMessages   bool // Log all messages sent to the server
 	LogOutboundMessages  bool // Log all messages sent to the clients
+	LogMessageData       bool // Log all bytes transferred as a hexdump
 	MaxHexdumpLength     int  // Maximum number of bytes printed when logs are enabled
 	DivaEvent            int  // Diva Defense event status
 	FestaEvent           int  // Hunter's Festa event status
@@ -125,6 +127,8 @@ type GameplayOptions struct {
 	MaximumNP                      int    // Maximum number of NP held by a player
 	MaximumRP                      uint16 // Maximum number of RP held by a player
 	MaximumFP                      uint32 // Maximum number of FP held by a player
+	TreasureHuntExpiry             uint32 // Seconds until a Clan Treasure Hunt will expire
+	TreasureHuntPartnyaCooldown    uint32 // Seconds until a Partnya can be assigned to another Clan Treasure Hunt
 	DisableLoginBoost              bool   // Disables the Login Boost system
 	DisableBoostTime               bool   // Disables the daily NetCafe Boost Time
 	BoostTimeDuration              int    // The number of minutes NetCafe Boost Time lasts for
@@ -139,7 +143,7 @@ type GameplayOptions struct {
 	BerserkRavienteMaxPlayers      uint8
 	ExtremeRavienteMaxPlayers      uint8
 	SmallBerserkRavienteMaxPlayers uint8
-	GUrgentRate                    uint16  // Adjusts the rate of G Urgent quests spawning
+	GUrgentRate                    float32 // Adjusts the rate of G Urgent quests spawning
 	GCPMultiplier                  float32 // Adjusts the multiplier of GCP rewarded for quest completion
 	GRPMultiplier                  float32 // Adjusts the multiplier of G Rank Points rewarded for quest completion
 	GSRPMultiplier                 float32 // Adjusts the multiplier of G Skill Rank Points rewarded for quest completion

@@ -192,8 +192,6 @@ func makeEventQuest(s *Session, rows *sql.Rows) ([]byte, error) {
 
 func calculateNumberOfCycles(duration time.Duration, lastStartTime time.Time) int {
 	timeDifference := time.Now().Sub(lastStartTime)
-	println(timeDifference.String())
-	println(float64(duration))
 	numberOfCycles := int(timeDifference.Nanoseconds() / int64(duration))
 	return numberOfCycles
 }

@@ -101,6 +101,7 @@ type DevModeOptions struct {
 	MaxLauncherHR        bool // Sets the HR returned in the launcher to HR7 so that you can join non-beginner worlds.
 	LogInboundMessages   bool // Log all messages sent to the server
 	LogOutboundMessages  bool // Log all messages sent to the clients
+	LogMessageData       bool // Log all bytes transferred as a hexdump
 	MaxHexdumpLength     int  // Maximum number of bytes printed when logs are enabled
 	DivaEvent            int  // Diva Defense event status
 	FestaEvent           int  // Hunter's Festa event status

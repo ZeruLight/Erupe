@@ -278,10 +278,14 @@ func (s *Session) logMessage(opcode uint16, data []byte, sender string, recipien
 		fmt.Printf("[%s] -> [%s]\n", sender, recipient)
 	}
 	fmt.Printf("Opcode: %s\n", opcodePID)
-	if len(data) <= s.server.erupeConfig.DevModeOptions.MaxHexdumpLength {
-		fmt.Printf("Data [%d bytes]:\n%s\n", len(data), hex.Dump(data))
+	if s.server.erupeConfig.DevModeOptions.LogMessageData {
+		if len(data) <= s.server.erupeConfig.DevModeOptions.MaxHexdumpLength {
+			fmt.Printf("Data [%d bytes]:\n%s\n", len(data), hex.Dump(data))
+		} else {
+			fmt.Printf("Data [%d bytes]: (Too long!)\n\n", len(data))
+		}
 	} else {
-		fmt.Printf("Data [%d bytes]: (Too long!)\n\n", len(data))
+		fmt.Printf("\n")
 	}
 }
 

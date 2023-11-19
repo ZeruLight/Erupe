@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"erupe-ce/common/byteframe"
-	"erupe-ce/common/bfutil"
 	"erupe-ce/network"
 	"erupe-ce/network/clientctx"
 )
@@ -25,8 +24,8 @@ func (m *MsgSysEnterStage) Opcode() network.PacketID {
 func (m *MsgSysEnterStage) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
 	m.UnkBool = bf.ReadUint8()
-	stageIDLength := bf.ReadUint8()
-	m.StageID = string(bfutil.UpToNull(bf.ReadBytes(uint(stageIDLength))))
+	bf.ReadUint8()
+	m.StageID = string(bf.ReadNullTerminatedBytes())
 	return nil
 }
 

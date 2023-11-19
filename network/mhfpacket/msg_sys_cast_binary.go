@@ -1,17 +1,16 @@
 package mhfpacket
 
-import ( 
- "errors" 
+import (
+	"errors"
 
- 	"erupe-ce/network/clientctx"
-	"erupe-ce/network"
 	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgSysCastBinary represents the MSG_SYS_CAST_BINARY
 type MsgSysCastBinary struct {
-	Unk0           uint16
-	Unk1           uint16
+	Unk            uint32
 	BroadcastType  uint8
 	MessageType    uint8
 	RawDataPayload []byte
@@ -24,8 +23,7 @@ func (m *MsgSysCastBinary) Opcode() network.PacketID {
 
 // Parse parses the packet from binary
 func (m *MsgSysCastBinary) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
-	m.Unk0 = bf.ReadUint16()
-	m.Unk1 = bf.ReadUint16()
+	m.Unk = bf.ReadUint32()
 	m.BroadcastType = bf.ReadUint8()
 	m.MessageType = bf.ReadUint8()
 	dataSize := bf.ReadUint16()

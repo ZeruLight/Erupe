@@ -240,7 +240,7 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 				transaction.Rollback() // Rollback if an error occurs
 				break
 			}
-			startTime = newRotationTime // Set the new start time so the quest can be used/remove immediately.
+			startTime = newRotationTime // Set the new start time so the quest can be used/removed immediately.
 		}
 
 		// Check if the quest is currently active

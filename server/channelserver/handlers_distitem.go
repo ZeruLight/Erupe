@@ -3,6 +3,7 @@ package channelserver
 import (
 	"erupe-ce/common/byteframe"
 	ps "erupe-ce/common/pascalstring"
+	_config "erupe-ce/config"
 	"erupe-ce/network/mhfpacket"
 	"time"
 
@@ -128,7 +129,9 @@ func handleMsgMhfApplyDistItem(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint8(item.ItemType)
 		bf.WriteUint32(item.ItemID)
 		bf.WriteUint32(item.Quantity)
-		bf.WriteUint32(item.ID)
+		if _config.ErupeConfig.RealClientMode >= _config.G8 {
+			bf.WriteUint32(item.ID)
+		}
 	}
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }

@@ -75,7 +75,7 @@ func sendServerChatMessage(s *Session, message string) {
 	msgBinChat.Build(bf)
 
 	castedBin := &mhfpacket.MsgSysCastedBinary{
-		CharID:         s.charID,
+		CharID:         0,
 		MessageType:    BinaryMessageTypeChat,
 		RawDataPayload: bf.Data(),
 	}

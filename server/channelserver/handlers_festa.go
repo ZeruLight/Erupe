@@ -309,17 +309,17 @@ func handleMsgMhfInfoFesta(s *Session, p mhfpacket.MHFPacket) {
 		ps.Uint8(bf, "", true) // Guild Name
 	}
 
-	// Unknown values
-	bf.WriteUint32(1)
-	bf.WriteUint32(5000)
-	bf.WriteUint32(2000)
-	bf.WriteUint32(1000)
-	bf.WriteUint32(100)
-	bf.WriteUint16(300)
-	bf.WriteUint16(200)
-	bf.WriteUint16(150)
-	bf.WriteUint16(100)
-	bf.WriteUint16(50)
+	// Final bonus rates
+	bf.WriteUint32(1)    // 5000-Infinity?
+	bf.WriteUint32(5000) // 5000+ souls
+	bf.WriteUint32(2000) // 2000-4999 souls
+	bf.WriteUint32(1000) // 1000-1999 souls
+	bf.WriteUint32(100)  // 100-999 souls
+	bf.WriteUint16(300)  // 300% bonus
+	bf.WriteUint16(200)  // 200% bonus
+	bf.WriteUint16(150)  // 150% bonus
+	bf.WriteUint16(100)  // Normal rate
+	bf.WriteUint16(50)   // 50% penalty
 
 	ps.Uint16(bf, "", false)
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())

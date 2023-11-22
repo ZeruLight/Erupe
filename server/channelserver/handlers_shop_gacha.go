@@ -693,8 +693,13 @@ func handleMsgMhfGetFpointExchangeList(s *Session, p mhfpacket.MHFPacket) {
 			exchanges = append(exchanges, exchange)
 		}
 	}
-	bf.WriteUint16(uint16(len(exchanges)))
-	bf.WriteUint16(buyables)
+	if _config.ErupeConfig.RealClientMode <= _config.Z2 {
+		bf.WriteUint8(uint8(len(exchanges)))
+		bf.WriteUint8(uint8(buyables))
+	} else {
+		bf.WriteUint16(uint16(len(exchanges)))
+		bf.WriteUint16(buyables)
+	}
 	for _, e := range exchanges {
 		bf.WriteUint32(e.ID)
 		bf.WriteUint16(0)

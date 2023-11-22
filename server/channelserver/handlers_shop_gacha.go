@@ -664,57 +664,49 @@ func handleMsgMhfExchangeItem2Fpoint(s *Session, p mhfpacket.MHFPacket) {
 	doAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
 }
 
+type FPointExchange struct {
+	ID       uint32 `db:"id"`
+	ItemType uint8  `db:"item_type"`
+	ItemID   uint16 `db:"item_id"`
+	Quantity uint16 `db:"quantity"`
+	FPoints  uint16 `db:"fpoints"`
+	Buyable  bool   `db:"buyable"`
+}
+
 func handleMsgMhfGetFpointExchangeList(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetFpointExchangeList)
-	resp := byteframe.NewByteFrame()
-	resp.WriteUint32(0)
-	var buyables, sellables uint16
-	var id uint32
-	var itemType uint8
-	var itemID, quantity, fPoints uint16
 
-	buyRows, err := s.server.db.Query("SELECT id,item_type,item_id,quantity,fpoints FROM fpoint_items WHERE trade_type=0")
+	bf := byteframe.NewByteFrame()
+	var exchange FPointExchange
+	var exchanges []FPointExchange
+	var buyables uint16
+	rows, err := s.server.db.Queryx(`SELECT id, item_type, item_id, quantity, fpoints, buyable FROM fpoint_items ORDER BY buyable DESC`)
 	if err == nil {
-		for buyRows.Next() {
-			err = buyRows.Scan(&id, &itemType, &itemID, &quantity, &fPoints)
+		for rows.Next() {
+			err = rows.StructScan(&exchange)
 			if err != nil {
 				continue
 			}
-			resp.WriteUint32(id)
-			resp.WriteUint16(0)
-			resp.WriteUint16(0)
-			resp.WriteUint16(0)
-			resp.WriteUint8(itemType)
-			resp.WriteUint16(itemID)
-			resp.WriteUint16(quantity)
-			resp.WriteUint16(fPoints)
-			buyables++
-		}
-	}
-
-	sellRows, err := s.server.db.Query("SELECT id,item_type,item_id,quantity,fpoints FROM fpoint_items WHERE trade_type=1")
-	if err == nil {
-		for sellRows.Next() {
-			err = sellRows.Scan(&id, &itemType, &itemID, &quantity, &fPoints)
-			if err != nil {
-				continue
+			if exchange.Buyable {
+				buyables++
 			}
-			resp.WriteUint32(id)
-			resp.WriteUint16(0)
-			resp.WriteUint16(0)
-			resp.WriteUint16(0)
-			resp.WriteUint8(itemType)
-			resp.WriteUint16(itemID)
-			resp.WriteUint16(quantity)
-			resp.WriteUint16(fPoints)
-			sellables++
+			exchanges = append(exchanges, exchange)
 		}
 	}
-	resp.Seek(0, 0)
-	resp.WriteUint16(buyables)
-	resp.WriteUint16(sellables)
+	bf.WriteUint16(uint16(len(exchanges)))
+	bf.WriteUint16(buyables)
+	for _, e := range exchanges {
+		bf.WriteUint32(e.ID)
+		bf.WriteUint16(0)
+		bf.WriteUint16(0)
+		bf.WriteUint16(0)
+		bf.WriteUint8(e.ItemType)
+		bf.WriteUint16(e.ItemID)
+		bf.WriteUint16(e.Quantity)
+		bf.WriteUint16(e.FPoints)
+	}
 
-	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfPlayFreeGacha(s *Session, p mhfpacket.MHFPacket) {

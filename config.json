@@ -29,6 +29,7 @@
     "MezFesAlt": false,
     "DisableTokenCheck": false,
     "QuestDebugTools": false,
+    "ProxyPort": 0,
     "EarthStatusOverride": 0,
     "EarthIDOverride": 0,
     "EarthMonsterOverride": 0,

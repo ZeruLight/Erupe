@@ -63,33 +63,51 @@ func handleMsgMhfEnumerateDistItem(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint32(0) // Unk
 		bf.WriteUint16(dist.TimesAcceptable)
 		bf.WriteUint16(dist.TimesAccepted)
-		bf.WriteUint16(0) // Unk
+		if _config.ErupeConfig.RealClientMode >= _config.G9 {
+			bf.WriteUint16(0) // Unk
+		}
 		bf.WriteInt16(dist.MinHR)
 		bf.WriteInt16(dist.MaxHR)
 		bf.WriteInt16(dist.MinSR)
 		bf.WriteInt16(dist.MaxSR)
 		bf.WriteInt16(dist.MinGR)
 		bf.WriteInt16(dist.MaxGR)
-		bf.WriteUint8(0)
-		bf.WriteUint16(0)
-		bf.WriteUint8(0)
-		bf.WriteUint16(0)
-		bf.WriteUint16(0)
-		bf.WriteUint8(0)
+		if _config.ErupeConfig.RealClientMode >= _config.G7 {
+			bf.WriteUint8(0) // Unk
+		}
+		if _config.ErupeConfig.RealClientMode >= _config.G6 {
+			bf.WriteUint16(0) // Unk
+		}
+		if _config.ErupeConfig.RealClientMode >= _config.G8 {
+			bf.WriteUint8(0) // Unk
+		}
+		if _config.ErupeConfig.RealClientMode >= _config.G7 {
+			bf.WriteUint16(0) // Unk
+			bf.WriteUint16(0) // Unk
+		}
+		if _config.ErupeConfig.RealClientMode >= _config.G10 {
+			bf.WriteUint8(0) // Unk
+		}
 		ps.Uint8(bf, dist.EventName, true)
+		k := 6
+		if _config.ErupeConfig.RealClientMode >= _config.G8 {
+			k = 13
+		}
 		for i := 0; i < 6; i++ {
-			for j := 0; j < 13; j++ {
+			for j := 0; j < k; j++ {
 				bf.WriteUint8(0)
 				bf.WriteUint32(0)
 			}
 		}
-		i := uint8(0)
-		bf.WriteUint8(i)
-		if i <= 10 {
-			for j := uint8(0); j < i; j++ {
-				bf.WriteUint32(0)
-				bf.WriteUint32(0)
-				bf.WriteUint32(0)
+		if _config.ErupeConfig.RealClientMode >= _config.Z2 {
+			i := uint8(0)
+			bf.WriteUint8(i)
+			if i <= 10 {
+				for j := uint8(0); j < i; j++ {
+					bf.WriteUint32(0)
+					bf.WriteUint32(0)
+					bf.WriteUint32(0)
+				}
 			}
 		}
 	}

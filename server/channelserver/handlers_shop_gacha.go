@@ -718,5 +718,8 @@ func handleMsgMhfGetFpointExchangeList(s *Session, p mhfpacket.MHFPacket) {
 }
 
 func handleMsgMhfPlayFreeGacha(s *Session, p mhfpacket.MHFPacket) {
-	// not sure this is used anywhere, free gachas use the MSG_MHF_PLAY_NORMAL_GACHA method in captures
+	pkt := p.(*mhfpacket.MsgMhfPlayFreeGacha)
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint32(1)
+	doAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
 }

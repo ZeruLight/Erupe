@@ -1,15 +1,19 @@
 package mhfpacket
 
-import ( 
- "errors" 
+import (
+	"errors"
 
- 	"erupe-ce/network/clientctx"
-	"erupe-ce/network"
 	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgMhfPlayFreeGacha represents the MSG_MHF_PLAY_FREE_GACHA
-type MsgMhfPlayFreeGacha struct{}
+type MsgMhfPlayFreeGacha struct {
+	AckHandle uint32
+	GachaID   uint32
+	GachaType uint8
+}
 
 // Opcode returns the ID associated with this packet type.
 func (m *MsgMhfPlayFreeGacha) Opcode() network.PacketID {
@@ -18,7 +22,10 @@ func (m *MsgMhfPlayFreeGacha) Opcode() network.PacketID {
 
 // Parse parses the packet from binary
 func (m *MsgMhfPlayFreeGacha) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
-	return errors.New("NOT IMPLEMENTED")
+	m.AckHandle = bf.ReadUint32()
+	m.GachaID = bf.ReadUint32()
+	m.GachaType = bf.ReadUint8()
+	return nil
 }
 
 // Build builds a binary packet from the current data.

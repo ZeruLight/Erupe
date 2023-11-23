@@ -78,6 +78,10 @@ type AuthData struct {
 	PatchServer   string      `json:"patchServer"`
 }
 
+type ExportData struct {
+	Character map[string]interface{} `json:"character"`
+}
+
 func (s *Server) newAuthData(userID uint32, userRights uint32, userToken string, characters []Character) AuthData {
 	resp := AuthData{
 		CurrentTS:     uint32(channelserver.TimeAdjusted().Unix()),
@@ -373,11 +377,14 @@ func (s *Server) ExportSave(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(401)
 		return
 	}
-	save, err := s.exportSave(ctx, userID, reqData.CharID)
+	character, err := s.exportSave(ctx, userID, reqData.CharID)
 	if err != nil {
 		s.logger.Error("Failed to export save", zap.Error(err), zap.String("token", reqData.Token), zap.Uint32("charID", reqData.CharID))
 		w.WriteHeader(500)
 		return
+	}
+	save := ExportData{
+		Character: character,
 	}
 	w.Header().Add("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(save)

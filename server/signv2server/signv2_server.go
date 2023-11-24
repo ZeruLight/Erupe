@@ -51,6 +51,7 @@ func (s *Server) Start() error {
 	r.HandleFunc("/register", s.Register)
 	r.HandleFunc("/character/create", s.CreateCharacter)
 	r.HandleFunc("/character/delete", s.DeleteCharacter)
+	r.HandleFunc("/character/export", s.ExportSave)
 	handler := handlers.CORS(handlers.AllowedHeaders([]string{"Content-Type"}))(r)
 	s.httpServer.Handler = handlers.LoggingHandler(os.Stdout, handler)
 	s.httpServer.Addr = fmt.Sprintf(":%d", s.erupeConfig.SignV2.Port)

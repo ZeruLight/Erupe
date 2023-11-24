@@ -122,3 +122,13 @@ func (s *Server) getReturnExpiry(uid uint32) time.Time {
 	s.db.Exec("UPDATE users SET last_login=$1 WHERE id=$2", time.Now(), uid)
 	return returnExpiry
 }
+
+func (s *Server) exportSave(ctx context.Context, uid uint32, cid uint32) (map[string]interface{}, error) {
+	row := s.db.QueryRowxContext(ctx, "SELECT * FROM characters WHERE id=$1 AND user_id=$2", cid, uid)
+	result := make(map[string]interface{})
+	err := row.MapScan(result)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
+}

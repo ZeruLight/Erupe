@@ -4,10 +4,10 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	_config "erupe-ce/config"
 	"erupe-ce/server/channelserver"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/lib/pq"
 	"go.uber.org/zap"
@@ -19,28 +19,10 @@ const (
 	NotificationNew
 )
 
-type LauncherBanner struct {
-	Src  string `json:"src"`
-	Link string `json:"link"`
-}
-
-type LauncherMessage struct {
-	Message string `json:"message"`
-	Date    int64  `json:"date"`
-	Link    string `json:"link"`
-	Kind    int    `json:"kind"`
-}
-
-type LauncherLink struct {
-	Name string `json:"name"`
-	Link string `json:"link"`
-	Icon string `json:"icon"`
-}
-
 type LauncherResponse struct {
-	Banners  []LauncherBanner  `json:"banners"`
-	Messages []LauncherMessage `json:"messages"`
-	Links    []LauncherLink    `json:"links"`
+	Banners  []_config.SignV2Banner  `json:"banners"`
+	Messages []_config.SignV2Message `json:"messages"`
+	Links    []_config.SignV2Link    `json:"links"`
 }
 
 type User struct {
@@ -122,95 +104,9 @@ func (s *Server) newAuthData(userID uint32, userRights uint32, userToken string,
 
 func (s *Server) Launcher(w http.ResponseWriter, r *http.Request) {
 	var respData LauncherResponse
-	respData.Banners = []LauncherBanner{
-		{
-			Src:  "http://zerulight.cc/launcher/en/images/bnr/1030_0.jpg",
-			Link: "http://localhost",
-		},
-		{
-			Src:  "http://zerulight.cc/launcher/en/images/bnr/0801_3.jpg",
-			Link: "http://localhost",
-		},
-		{
-			Src:  "http://zerulight.cc/launcher/en/images/bnr/0705_3.jpg",
-			Link: "http://localhost",
-		},
-		{
-			Src:  "http://zerulight.cc/launcher/en/images/bnr/1211_11.jpg",
-			Link: "http://localhost",
-		},
-		{
-			Src:  "http://zerulight.cc/launcher/en/images/bnr/reg_mezefes.jpg",
-			Link: "http://localhost",
-		},
-	}
-	respData.Messages = []LauncherMessage{
-		{
-			Message: "Server Update 9.2 — Quest fixes,\nGacha support and tons of bug fixes!",
-			Date:    time.Date(2023, 4, 1, 0, 0, 0, 0, time.UTC).Unix(),
-			Link:    "https://discord.com/channels/368424389416583169/929509970624532511/1003985850255818762",
-			Kind:    NotificationNew,
-		},
-		{
-			Message: "English Patch 4.1 — Fix \"Unknown\" weapons, NPC changes & Diva Support.",
-			Date:    time.Date(2023, 2, 27, 0, 0, 0, 0, time.UTC).Unix(),
-			Link:    "https://discord.com/channels/368424389416583169/929509970624532511/969305400795078656",
-			Kind:    NotificationNew,
-		},
-		{
-			Message: "Server Update 9.1! Hunter Festival, Return worlds and NetCafe are back!",
-			Date:    time.Date(2022, 11, 4, 0, 0, 0, 0, time.UTC).Unix(),
-			Link:    "https://discord.com/channels/368424389416583169/929509970624532511/969286397301248050",
-			Kind:    NotificationDefault,
-		},
-		{
-			Message: "Deerby & Supream have been updating Ferias! You can find any and all MHF info/data there!",
-			Date:    time.Date(2022, 7, 7, 0, 0, 0, 0, time.UTC).Unix(),
-			Link:    "https://discord.gg/CFnzbhQ",
-			Kind:    NotificationDefault,
-		},
-		{
-			Message: "Server hosts, get Chakratos' Save Manager! Use it to enhance your Erupe server!",
-			Date:    time.Date(2022, 7, 7, 0, 0, 0, 0, time.UTC).Unix(),
-			Link:    "https://discord.gg/CFnzbhQ",
-			Kind:    NotificationDefault,
-		},
-		{
-			Message: "Server Update 9.0 is out! Enjoy MezFes and all the other new content!",
-			Date:    time.Date(2022, 8, 2, 0, 0, 0, 0, time.UTC).Unix(),
-			Link:    "https://discord.gg/CFnzbhQ",
-			Kind:    NotificationDefault,
-		},
-		{
-			Message: "English Community Translation 2 is here! Get the latest translation patch!",
-			Date:    time.Date(2022, 5, 4, 0, 0, 0, 0, time.UTC).Unix(),
-			Link:    "https://discord.gg/CFnzbhQ",
-			Kind:    NotificationDefault,
-		},
-		{
-			Message: "Join the community Discord for future updates!",
-			Date:    time.Date(2022, 5, 4, 0, 0, 0, 0, time.UTC).Unix(),
-			Link:    "https://discord.gg/CFnzbhQ",
-			Kind:    NotificationDefault,
-		},
-	}
-	respData.Links = []LauncherLink{
-		{
-			Name: "GitHub",
-			Link: "https://github.com/ZeruLight/Erupe",
-			Icon: "https://cdn-icons-png.flaticon.com/512/25/25231.png",
-		},
-		{
-			Name: "Discord",
-			Link: "https://discord.gg/DnwcpXM488",
-			Icon: "https://assets-global.website-files.com/6257adef93867e50d84d30e2/636e0a6a49cf127bf92de1e2_icon_clyde_blurple_RGB.png",
-		},
-		{
-			Name: "Equal Dragon Weapon Info",
-			Link: "https://discord.gg/DnwcpXM488",
-			Icon: "",
-		},
-	}
+	respData.Banners = s.erupeConfig.SignV2.Banners
+	respData.Messages = s.erupeConfig.SignV2.Messages
+	respData.Links = s.erupeConfig.SignV2.Links
 	w.Header().Add("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(respData)
 }

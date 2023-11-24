@@ -9,7 +9,7 @@ import (
 
 	"erupe-ce/common/byteframe"
 	ps "erupe-ce/common/pascalstring"
-	"erupe-ce/config"
+	_config "erupe-ce/config"
 	"erupe-ce/network/binpacket"
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/server/discordbot"

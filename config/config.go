@@ -198,6 +198,27 @@ type SignV2 struct {
 	Enabled     bool
 	Port        int
 	PatchServer string
+	Banners     []SignV2Banner
+	Messages    []SignV2Message
+	Links       []SignV2Link
+}
+
+type SignV2Banner struct {
+	Src  string `json:"src"`  // Displayed image URL
+	Link string `json:"link"` // Link accessed on click
+}
+
+type SignV2Message struct {
+	Message string `json:"message"` // Displayed message
+	Date    int64  `json:"date"`    // Displayed date
+	Kind    int    `json:"kind"`    // 0 for 'Default', 1 for 'New'
+	Link    string `json:"link"`    // Link accessed on click
+}
+
+type SignV2Link struct {
+	Name string `json:"name"` // Displayed name
+	Icon string `json:"icon"` // Displayed icon. It will be cast as a monochrome color as long as it is transparent.
+	Link string `json:"link"` // Link accessed on click
 }
 
 type Channel struct {

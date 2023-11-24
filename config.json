@@ -134,7 +134,10 @@
   "SignV2": {
     "Enabled": false,
     "Port": 8080,
-    "PatchServer": ""
+    "PatchServer": "",
+    "Banners": [],
+    "Messages": [],
+    "Links": []
   },
   "Channel": {
     "Enabled": true

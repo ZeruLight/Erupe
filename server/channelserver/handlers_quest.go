@@ -156,9 +156,10 @@ func loadQuestFile(s *Session, questId int) []byte {
 
 func makeEventQuest(s *Session, rows *sql.Rows) ([]byte, error) {
 	var id, mark uint32
-	var questId, flags int
+	var questId, activeDuration, inactiveDuration, flags int
 	var maxPlayers, questType uint8
-	rows.Scan(&id, &maxPlayers, &questType, &questId, &mark, &flags)
+	var startTime time.Time
+	rows.Scan(&id, &maxPlayers, &questType, &questId, &mark, &flags, &startTime, &activeDuration, &inactiveDuration)
 
 	data := loadQuestFile(s, questId)
 	if data == nil {
@@ -229,30 +230,81 @@ func makeEventQuest(s *Session, rows *sql.Rows) ([]byte, error) {
 	return bf.Data(), nil
 }
 
+func calculateNumberOfCycles(duration time.Duration, lastStartTime time.Time) int {
+	timeDifference := time.Now().Sub(lastStartTime)
+	numberOfCycles := int(timeDifference.Nanoseconds() / int64(duration))
+	return numberOfCycles
+}
+
 func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateQuest)
 	var totalCount, returnedCount uint16
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint16(0)
 
-	rows, _ := s.server.db.Query("SELECT id, COALESCE(max_players, 4) AS max_players, quest_type, quest_id, COALESCE(mark, 0) AS mark, COALESCE(flags, -1) FROM event_quests ORDER BY quest_id")
+	currentTime := time.Now()
+
+	// Check the event_quests table to load the quests with rotation system
+	rows, err := s.server.db.Query("SELECT id, COALESCE(max_players, 4) AS max_players, quest_type, quest_id, COALESCE(mark, 0) AS mark, COALESCE(flags, -1), start_time, COALESCE(active_duration, 1) AS active_duration, COALESCE(inactive_duration, 0) AS inactive_duration FROM event_quests ORDER BY quest_id")
+	if err != nil {
+		return
+	}
+	defer rows.Close()
+
+	// Commit event quest changes to a transaction instead of doing it one by one for to help with performance
+	transaction, _ := s.server.db.Begin()
+  
 	for rows.Next() {
-		data, err := makeEventQuest(s, rows)
+		var id, mark uint32
+		var questId int
+		var maxPlayers, flags, questType, activeDuration, inactiveDuration uint8
+		var startTime time.Time
+
+		err := rows.Scan(&id, &maxPlayers, &questType, &questId, &mark, &flags, &startTime, &activeDuration, &inactiveDuration)
 		if err != nil {
 			continue
-		} else {
-			if len(data) > 896 || len(data) < 352 {
+		}
+
+		// Count the number of cycles necessary to align quest with the correct date range.
+		cycleCount := calculateNumberOfCycles(time.Duration(activeDuration+inactiveDuration)*24*time.Hour, startTime)
+
+		// Calculate the rotation time based on start time, active duration, and inactive duration.
+		rotationTime := startTime.Add(time.Duration(activeDuration+inactiveDuration) * 24 * time.Duration(cycleCount) * time.Hour)
+		if currentTime.After(rotationTime) {
+			// take the rotationTime and normalize it to midnight as to align with the ingame message for event quest rotation.
+			newRotationTime := time.Date(rotationTime.Year(), rotationTime.Month(), rotationTime.Day(), 0, 0, 0, 0, rotationTime.Location())
+			newRotationTime = newRotationTime.Add(time.Duration(TimeMidnight().Add(13 * time.Hour).Nanosecond()))
+
+			_, err := transaction.Exec("UPDATE event_quests SET start_time = $1 WHERE id = $2", newRotationTime, id)
+			if err != nil {
+				transaction.Rollback() // Rollback if an error occurs
+				break
+			}
+			startTime = newRotationTime // Set the new start time so the quest can be used/removed immediately.
+		}
+
+		// Check if the quest is currently active
+		if currentTime.After(startTime) && currentTime.Sub(startTime) <= time.Duration(activeDuration)*24*time.Hour {
+			data, err := makeEventQuest(s, rows)
+			if err != nil {
 				continue
 			} else {
-				totalCount++
-				if totalCount > pkt.Offset && len(bf.Data()) < 60000 {
-					returnedCount++
-					bf.WriteBytes(data)
+				if len(data) > 896 || len(data) < 352 {
 					continue
+				} else {
+					totalCount++
+					if totalCount > pkt.Offset && len(bf.Data()) < 60000 {
+						returnedCount++
+						bf.WriteBytes(data)
+						continue
+					}
 				}
 			}
 		}
 	}
+
+	// Commit transaction so to write to the database.
+	transaction.Commit()
 
 	type tuneValue struct {
 		ID    uint16

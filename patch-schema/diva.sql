@@ -22,9 +22,10 @@ CREATE TABLE IF NOT EXISTS public.diva_beads (
 );
 
 CREATE TABLE IF NOT EXISTS public.diva_beads_assignment (
-    character_id INTEGER PRIMARY KEY,
+    character_id INTEGER,
     bead_index INTEGER,
-    expiry TIMESTAMP WITH TIME ZONE PRIMARY KEY
+    expiry TIMESTAMP WITH TIME ZONE,
+    PRIMARY KEY (character_id, expiry)
 );
 
 CREATE TABLE IF NOT EXISTS public.diva_beads_points (

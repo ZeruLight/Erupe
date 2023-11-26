@@ -236,32 +236,32 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint16(0)
 
-	rows, err := s.server.db.Query("SELECT id, COALESCE(max_players, 4) AS max_players, quest_type, quest_id, COALESCE(mark, 0) AS mark, COALESCE(flags, -1), start_time, COALESCE(active_duration, 0) AS active_duration, COALESCE(inactive_duration, 0) AS inactive_duration FROM event_quests ORDER BY quest_id")
+	rows, err := s.server.db.Query("SELECT id, COALESCE(max_players, 4) AS max_players, quest_type, quest_id, COALESCE(mark, 0) AS mark, COALESCE(flags, -1), start_time, COALESCE(active_days, 0) AS active_days, COALESCE(inactive_days, 0) AS inactive_days FROM event_quests ORDER BY quest_id")
 	if err == nil {
 		currentTime := time.Now()
 		tx, _ := s.server.db.Begin()
 
 		for rows.Next() {
 			var id, mark uint32
-			var questId, flags, activeDuration, inactiveDuration int
+			var questId, flags, activeDays, inactiveDays int
 			var maxPlayers, questType uint8
 			var startTime time.Time
 
-			err = rows.Scan(&id, &maxPlayers, &questType, &questId, &mark, &flags, &startTime, &activeDuration, &inactiveDuration)
+			err = rows.Scan(&id, &maxPlayers, &questType, &questId, &mark, &flags, &startTime, &activeDays, &inactiveDays)
 			if err != nil {
 				continue
 			}
 
 			// Use the Event Cycling system
-			if activeDuration > 0 {
-				cycleLength := (time.Duration(activeDuration) + time.Duration(inactiveDuration)) * 24 * time.Hour
+			if activeDays > 0 {
+				cycleLength := (time.Duration(activeDays) + time.Duration(inactiveDays)) * 24 * time.Hour
 
 				// Count the number of full cycles elapsed since the last rotation.
 				extraCycles := int(currentTime.Sub(startTime) / cycleLength)
 
 				if extraCycles > 0 {
 					// Calculate the rotation time based on start time, active duration, and inactive duration.
-					rotationTime := startTime.Add(time.Duration(activeDuration+inactiveDuration) * 24 * time.Hour * time.Duration(extraCycles))
+					rotationTime := startTime.Add(time.Duration(activeDays+inactiveDays) * 24 * time.Hour * time.Duration(extraCycles))
 					if currentTime.After(rotationTime) {
 						// Normalize rotationTime to 12PM JST to align with the in-game events update notification.
 						newRotationTime := time.Date(rotationTime.Year(), rotationTime.Month(), rotationTime.Day(), 12, 0, 0, 0, TimeAdjusted().Location())
@@ -276,7 +276,7 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 				}
 
 				// Check if the quest is currently active
-				if currentTime.Before(startTime) || currentTime.After(startTime.Add(time.Duration(activeDuration)*24*time.Hour)) {
+				if currentTime.Before(startTime) || currentTime.After(startTime.Add(time.Duration(activeDays)*24*time.Hour)) {
 					break
 				}
 			}

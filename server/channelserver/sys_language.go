@@ -76,6 +76,8 @@ func getLangStrings(s *Server) map[string]string {
 		strings["commandPSNSuccess"] = "Connected PSN ID: %s"
 		strings["commandPSNExists"] = "PSN ID is connected to another account!"
 
+		strings["commandDiscordSuccess"] = "Discord token has been generated: %s"
+
 		strings["commandRaviNoCommand"] = "No Raviente command specified!"
 		strings["commandRaviStartSuccess"] = "The Great Slaying will begin in a moment"
 		strings["commandRaviStartError"] = "The Great Slaying has already begun!"

@@ -36,6 +36,7 @@ type Session struct {
 
 	objectIndex      uint16
 	userEnteredStage bool // If the user has entered a stage before
+	stageID          string
 	stage            *Stage
 	reservationStage *Stage // Required for the stateful MsgSysUnreserveStage packet.
 	stagePass        string // Temporary storage

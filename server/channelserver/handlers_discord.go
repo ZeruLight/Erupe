@@ -3,6 +3,7 @@ package channelserver
 import (
 	"fmt"
 	"github.com/bwmarrin/discordgo"
+	"golang.org/x/crypto/bcrypt"
 	"sort"
 	"strings"
 	"unicode"
@@ -70,14 +71,32 @@ func getCharacterList(s *Server) string {
 func (s *Server) onInteraction(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 	switch i.Interaction.ApplicationCommandData().Name {
 	case "verify":
-		_, err := s.db.Exec("UPDATE users SET discord_id = ? WHERE discord_token = ?", i.User.ID, i.Interaction.ApplicationCommandData().Options[0].StringValue())
+		_, err := s.db.Exec("UPDATE users SET discord_id = $1 WHERE discord_token = $2", i.Member.User.ID, i.ApplicationCommandData().Options[0].StringValue())
 		if err != nil {
 			return
 		}
 		err = ds.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 			Type: discordgo.InteractionResponseChannelMessageWithSource,
 			Data: &discordgo.InteractionResponseData{
-				Content: "Account successfully linked",
+				Content: "Erupe account successfully linked to Discord account.",
+				Flags:   discordgo.MessageFlagsEphemeral,
+			},
+		})
+		if err != nil {
+			return
+		}
+		break
+	case "passwordreset":
+		password, _ := bcrypt.GenerateFromPassword([]byte(i.ApplicationCommandData().Options[0].StringValue()), 10)
+		_, err := s.db.Exec("UPDATE users SET password = $1 WHERE discord_id = $2", password, i.Member.User.ID)
+		if err != nil {
+			return
+		}
+		err = ds.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: "Password has been reset, you may login now.",
+				Flags:   discordgo.MessageFlagsEphemeral,
 			},
 		})
 		if err != nil {

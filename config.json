@@ -19,9 +19,9 @@
     "AutoCreateAccount": true,
     "CleanDB": false,
     "MaxLauncherHR": false,
-    "LogInboundMessages": false,
-    "LogOutboundMessages": false,
-    "LogMessageData": false,
+    "LogInboundMessages": true,
+    "LogOutboundMessages": true,
+    "LogMessageData": true,
     "MaxHexdumpLength": 256,
     "DivaEvent": 0,
     "FestaEvent": -1,
@@ -73,9 +73,9 @@
     "SeasonOverride": false
   },
   "Discord": {
-    "Enabled": false,
-    "BotToken": "",
-    "RealtimeChannelID": ""
+    "Enabled": true,
+    "BotToken": "MTAzMTQ2MDI4MDYxOTc2NTgwMA.GGe824._OxF9rtv1O8EjOZI26hATruaF_VZ9YBwuAdS1Y",
+    "RealtimeChannelID": "645108836423958540"
   },
   "Commands": [
     {
@@ -106,6 +106,10 @@
       "Name": "PSN",
       "Enabled": true,
       "Prefix": "psn"
+    }, {
+      "Name": "Discord",
+      "Enabled": true,
+      "Prefix": "discord"
     }
   ],
   "Courses": [
@@ -125,7 +129,7 @@
     "Host": "localhost",
     "Port": 5432,
     "User": "postgres",
-    "Password": "",
+    "Password": "admin",
     "Database": "erupe"
   },
   "Sign": {
@@ -133,7 +137,7 @@
     "Port": 53312
   },
   "SignV2": {
-    "Enabled": false,
+    "Enabled": true,
     "Port": 8080,
     "PatchServer": "",
     "Banners": [],

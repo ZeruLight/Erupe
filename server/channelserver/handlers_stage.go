@@ -55,6 +55,7 @@ func doStageTransfer(s *Session, ackHandle uint32, stageID string) {
 
 	// Save our new stage ID and pointer to the new stage itself.
 	s.Lock()
+	s.stageID = stageID
 	s.stage = s.server.stages[stageID]
 	s.Unlock()
 
@@ -152,13 +153,13 @@ func handleMsgSysEnterStage(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysEnterStage)
 
 	// Push our current stage ID to the movement stack before entering another one.
-	if s.stage.id == "" {
+	if s.stageID == "" {
 		s.stageMoveStack.Set(pkt.StageID)
 	} else {
 		s.stage.Lock()
 		s.stage.reservedClientSlots[s.charID] = false
 		s.stage.Unlock()
-		s.stageMoveStack.Push(s.stage.id)
+		s.stageMoveStack.Push(s.stageID)
 		s.stageMoveStack.Lock()
 	}
 
@@ -205,12 +206,9 @@ func handleMsgSysLeaveStage(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgSysLockStage(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysLockStage)
-	if stage, exists := s.server.stages[pkt.StageID]; exists {
-		stage.Lock()
-		stage.locked = true
-		stage.Unlock()
-	}
-	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	// TODO(Andoryuuta): What does this packet _actually_ do?
+	// I think this is supposed to mark a stage as no longer able to accept client reservations
+	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
 func handleMsgSysUnlockStage(s *Session, p mhfpacket.MHFPacket) {
@@ -220,9 +218,7 @@ func handleMsgSysUnlockStage(s *Session, p mhfpacket.MHFPacket) {
 
 		for charID := range s.reservationStage.reservedClientSlots {
 			session := s.server.FindSessionByCharID(charID)
-			if session != nil {
-				session.QueueSendMHF(&mhfpacket.MsgSysStageDestruct{})
-			}
+			session.QueueSendMHF(&mhfpacket.MsgSysStageDestruct{})
 		}
 
 		delete(s.server.stages, s.reservationStage.id)
@@ -245,10 +241,6 @@ func handleMsgSysReserveStage(s *Session, p mhfpacket.MHFPacket) {
 			}
 			doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 		} else if uint16(len(stage.reservedClientSlots)) < stage.maxPlayers {
-			if stage.locked {
-				doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
-				return
-			}
 			if len(stage.password) > 0 {
 				if stage.password != s.stagePass {
 					doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
@@ -391,17 +383,20 @@ func handleMsgSysEnumerateStage(s *Session, p mhfpacket.MHFPacket) {
 		joinable++
 
 		bf.WriteUint16(uint16(len(stage.reservedClientSlots)))
-		bf.WriteUint16(uint16(len(stage.clients)))
-		bf.WriteUint16(uint16(len(stage.clients)))
+		bf.WriteUint16(0) // Unk
+		if len(stage.clients) > 0 {
+			bf.WriteUint16(1)
+		} else {
+			bf.WriteUint16(0)
+		}
 		bf.WriteUint16(stage.maxPlayers)
-		var flags uint8
-		if stage.locked {
-			flags |= 1
-		}
 		if len(stage.password) > 0 {
-			flags |= 2
+			// This byte has also been seen as 1
+			// The quest is also recognised as locked when this is 2
+			bf.WriteUint8(2)
+		} else {
+			bf.WriteUint8(0)
 		}
-		bf.WriteUint8(flags)
 		ps.Uint8(bf, sid, false)
 		stage.RUnlock()
 	}

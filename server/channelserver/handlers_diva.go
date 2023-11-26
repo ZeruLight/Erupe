@@ -190,7 +190,8 @@ func handleMsgMhfAddUdPoint(s *Session, p mhfpacket.MHFPacket) {
 		s.server.db.QueryRow(`SELECT bead_index FROM diva_beads_assignment WHERE character_id=$1 ORDER BY expiry DESC`, s.charID,).Scan(&beadIndex)
 		if (beadIndex == 0) {
 			doAckBufSucceed(s, pkt.AckHandle, []byte{0})	// bead not selected, do nothing
-		} else {											// carry over last selected bead
+			return;
+		} else {						// carry over last selected bead
 			midday := TimeMidnight().Add(12 * time.Hour)
 			if TimeAdjusted().After(midday) {
 				midday = midday.Add(12 * time.Hour)
@@ -213,8 +214,8 @@ func handleMsgMhfGetUdMyPoint(s *Session, p mhfpacket.MHFPacket) {
 		for j := 0; j < 2; j++ {
 			var bead uint8
 			var points uint32
-			s.server.db.QueryRow(`SELECT bead_index FROM diva_beads_assignment WHERE expiry=$1`, startTime).Scan(&bead)
-			s.server.db.QueryRow(`SELECT COALESCE(SUM(points), 0) FROM diva_beads_points WHERE bead_index=$1 AND timestamp BETWEEN $2 AND $3`, bead, startTime.Add(time.Hour*-12), startTime).Scan(&points)
+			s.server.db.QueryRow(`SELECT bead_index FROM diva_beads_assignment WHERE expiry=$1 AND character_id=$2`, startTime, s.charID).Scan(&bead)
+			s.server.db.QueryRow(`SELECT COALESCE(SUM(points), 0) FROM diva_beads_points WHERE character_id=$4 AND bead_index=$1 AND timestamp BETWEEN $2 AND $3`, bead, startTime.Add(time.Hour*-12), startTime, s.charID).Scan(&points)
 			bf.WriteUint8(bead)
 			bf.WriteUint32(points)
 			bf.WriteUint32(points)

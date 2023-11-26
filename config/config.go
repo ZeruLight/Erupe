@@ -151,6 +151,7 @@ type GameplayOptions struct {
 	MaterialMultiplier             float32 // Adjusts the multiplier of Monster Materials rewarded for quest completion
 	ExtraCarves                    uint16  // Grant n extra chances to carve ALL carcasses
 	DisableHunterNavi              bool    // Disables the Hunter Navi
+	MezFesDuration                 int     // Seconds that MezFes will last for weekly (from 12AM Mon backwards)
 	EnableKaijiEvent               bool    // Enables the Kaiji event in the Rasta Bar
 	EnableHiganjimaEvent           bool    // Enables the Higanjima event in the Rasta Bar
 	EnableNierEvent                bool    // Enables the Nier event in the Rasta Bar

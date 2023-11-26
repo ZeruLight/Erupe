@@ -65,6 +65,7 @@
     "MaterialMultiplier": 1.00,
     "ExtraCarves": 0,
     "DisableHunterNavi": false,
+    "MezFesDuration": 172800,
     "EnableKaijiEvent": false,
     "EnableHiganjimaEvent": false,
     "EnableNierEvent": false,

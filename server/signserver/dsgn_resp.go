@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"go.uber.org/zap"
 	"strings"
+	"time"
 )
 
 func (s *Session) makeSignResponse(uid uint32) []byte {
@@ -160,7 +161,7 @@ func (s *Session) makeSignResponse(uid uint32) []byte {
 		// We can just use the start timestamp as the event ID
 		bf.WriteUint32(uint32(channelserver.TimeWeekStart().Unix()))
 		// Start time
-		bf.WriteUint32(uint32(channelserver.TimeWeekStart().Unix()))
+		bf.WriteUint32(uint32(channelserver.TimeWeekNext().Add(-time.Duration(s.server.erupeConfig.GameplayOptions.MezFesDuration) * time.Second).Unix()))
 		// End time
 		bf.WriteUint32(uint32(channelserver.TimeWeekNext().Unix()))
 		bf.WriteUint8(2) // Unk

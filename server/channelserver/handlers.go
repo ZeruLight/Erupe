@@ -988,8 +988,8 @@ func handleMsgMhfKickExportForce(s *Session, p mhfpacket.MHFPacket) {}
 func handleMsgMhfGetEarthStatus(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetEarthStatus)
 	bf := byteframe.NewByteFrame()
-	bf.WriteUint32(uint32(TimeWeekStart().Add(time.Hour * -24).Unix())) // Start
-	bf.WriteUint32(uint32(TimeWeekNext().Add(time.Hour * 24).Unix()))   // End
+	bf.WriteUint32(uint32(TimeWeekStart().Unix())) // Start
+	bf.WriteUint32(uint32(TimeWeekNext().Unix()))  // End
 	bf.WriteInt32(s.server.erupeConfig.DevModeOptions.EarthStatusOverride)
 	bf.WriteInt32(s.server.erupeConfig.DevModeOptions.EarthIDOverride)
 	bf.WriteInt32(s.server.erupeConfig.DevModeOptions.EarthMonsterOverride)

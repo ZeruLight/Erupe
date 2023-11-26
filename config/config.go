@@ -79,7 +79,8 @@ type Config struct {
 	DeleteOnSaveCorruption bool     // Attempts to save corrupted data will flag the save for deletion
 	ClientMode             string
 	RealClientMode         Mode
-	QuestCacheExpiry       int // Number of seconds to keep quest data cached
+	QuestCacheExpiry       int    // Number of seconds to keep quest data cached
+	ProxyPort              uint16 // Forces the game to connect to a channel server proxy
 	DevMode                bool
 
 	DevModeOptions  DevModeOptions

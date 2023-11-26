@@ -131,8 +131,8 @@ type GameplayOptions struct {
 	TreasureHuntPartnyaCooldown    uint32 // Seconds until a Partnya can be assigned to another Clan Treasure Hunt
 	DisableLoginBoost              bool   // Disables the Login Boost system
 	DisableBoostTime               bool   // Disables the daily NetCafe Boost Time
-	BoostTimeDuration              int    // The number of minutes NetCafe Boost Time lasts for
-	GuildMealDuration              int    // The number of minutes a Guild Meal can be activated for after cooking
+	BoostTimeDuration              int    // Second that the NetCafe Boost Time lasts
+	GuildMealDuration              int    // Second that a Guild Meal can be activated for after cooking
 	BonusQuestAllowance            uint32 // Number of Bonus Point Quests to allow daily
 	DailyQuestAllowance            uint32 // Number of Daily Quests to allow daily
 	MezfesSoloTickets              uint32 // Number of solo tickets given weekly

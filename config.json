@@ -13,6 +13,7 @@
   "DeleteOnSaveCorruption": false,
   "ClientMode": "ZZ",
   "QuestCacheExpiry": 300,
+  "ProxyPort": 0,
   "DevMode": true,
   "DevModeOptions": {
     "AutoCreateAccount": true,
@@ -29,7 +30,6 @@
     "MezFesAlt": false,
     "DisableTokenCheck": false,
     "QuestDebugTools": false,
-    "ProxyPort": 0,
     "EarthStatusOverride": 0,
     "EarthIDOverride": 0,
     "EarthMonsterOverride": 0,

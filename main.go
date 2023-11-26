@@ -26,7 +26,7 @@ func cleanDB(db *sqlx.DB, config *_config.Config) {
 	_ = db.MustExec("DELETE FROM guild_characters")
 	_ = db.MustExec("DELETE FROM guilds")
 	_ = db.MustExec("DELETE FROM characters")
-	if !config.DevMode || config.DevModeOptions.ProxyPort == 0 {
+	if config.ProxyPort == 0 {
 		_ = db.MustExec("DELETE FROM sign_sessions")
 	}
 	_ = db.MustExec("DELETE FROM users")

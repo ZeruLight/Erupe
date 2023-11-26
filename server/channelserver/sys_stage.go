@@ -47,6 +47,7 @@ type Stage struct {
 	host       *Session
 	maxPlayers uint16
 	password   string
+	locked     bool
 }
 
 // NewStage creates a new stage with intialized values.

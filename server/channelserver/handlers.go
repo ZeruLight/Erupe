@@ -378,7 +378,7 @@ func handleMsgMhfTransitMessage(s *Session, p mhfpacket.MHFPacket) {
 				if session.charID == CharID {
 					count++
 					sessionName := stringsupport.UTF8ToSJIS(session.Name)
-					sessionStage := stringsupport.UTF8ToSJIS(session.stageID)
+					sessionStage := stringsupport.UTF8ToSJIS(session.stage.id)
 					resp.WriteUint32(binary.LittleEndian.Uint32(net.ParseIP(c.IP).To4()))
 					resp.WriteUint16(c.Port)
 					resp.WriteUint32(session.charID)
@@ -408,7 +408,7 @@ func handleMsgMhfTransitMessage(s *Session, p mhfpacket.MHFPacket) {
 				if strings.Contains(session.Name, searchTerm) {
 					count++
 					sessionName := stringsupport.UTF8ToSJIS(session.Name)
-					sessionStage := stringsupport.UTF8ToSJIS(session.stageID)
+					sessionStage := stringsupport.UTF8ToSJIS(session.stage.id)
 					resp.WriteUint32(binary.LittleEndian.Uint32(net.ParseIP(c.IP).To4()))
 					resp.WriteUint16(c.Port)
 					resp.WriteUint32(session.charID)
@@ -445,7 +445,7 @@ func handleMsgMhfTransitMessage(s *Session, p mhfpacket.MHFPacket) {
 							hrp := uint16(1)
 							gr := uint16(0)
 							s.server.db.QueryRow("SELECT hrp, gr FROM characters WHERE id=$1", session.charID).Scan(&hrp, &gr)
-							sessionStage := stringsupport.UTF8ToSJIS(session.stageID)
+							sessionStage := stringsupport.UTF8ToSJIS(session.stage.id)
 							sessionName := stringsupport.UTF8ToSJIS(session.Name)
 							resp.WriteUint32(binary.LittleEndian.Uint32(net.ParseIP(c.IP).To4()))
 							resp.WriteUint16(c.Port)

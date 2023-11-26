@@ -11,7 +11,7 @@ import (
 // MsgSysEnterStage represents the MSG_SYS_ENTER_STAGE
 type MsgSysEnterStage struct {
 	AckHandle uint32
-	UnkBool   uint8
+	Unk       bool
 	StageID   string
 }
 
@@ -23,8 +23,8 @@ func (m *MsgSysEnterStage) Opcode() network.PacketID {
 // Parse parses the packet from binary
 func (m *MsgSysEnterStage) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
-	m.UnkBool = bf.ReadUint8()
-	bf.ReadUint8()
+	m.Unk = bf.ReadBool() // IsQuest?
+	bf.ReadUint8()        // Length StageID
 	m.StageID = string(bf.ReadNullTerminatedBytes())
 	return nil
 }

@@ -79,7 +79,8 @@ type Config struct {
 	DeleteOnSaveCorruption bool     // Attempts to save corrupted data will flag the save for deletion
 	ClientMode             string
 	RealClientMode         Mode
-	QuestCacheExpiry       int // Number of seconds to keep quest data cached
+	QuestCacheExpiry       int    // Number of seconds to keep quest data cached
+	ProxyPort              uint16 // Forces the game to connect to a channel server proxy
 	DevMode                bool
 
 	DevModeOptions  DevModeOptions
@@ -106,8 +107,6 @@ type DevModeOptions struct {
 	DivaEvent            int  // Diva Defense event status
 	FestaEvent           int  // Hunter's Festa event status
 	TournamentEvent      int  // VS Tournament event status
-	MezFesEvent          bool // MezFes status
-	MezFesAlt            bool // Swaps out Volpakkun for Tokotoko
 	DisableTokenCheck    bool // Disables checking login token exists in the DB (security risk!)
 	QuestDebugTools      bool // Enable various quest debug logs
 	EarthStatusOverride  int32
@@ -131,8 +130,8 @@ type GameplayOptions struct {
 	TreasureHuntPartnyaCooldown    uint32 // Seconds until a Partnya can be assigned to another Clan Treasure Hunt
 	DisableLoginBoost              bool   // Disables the Login Boost system
 	DisableBoostTime               bool   // Disables the daily NetCafe Boost Time
-	BoostTimeDuration              int    // The number of minutes NetCafe Boost Time lasts for
-	GuildMealDuration              int    // The number of minutes a Guild Meal can be activated for after cooking
+	BoostTimeDuration              int    // Second that the NetCafe Boost Time lasts
+	GuildMealDuration              int    // Second that a Guild Meal can be activated for after cooking
 	BonusQuestAllowance            uint32 // Number of Bonus Point Quests to allow daily
 	DailyQuestAllowance            uint32 // Number of Daily Quests to allow daily
 	MezfesSoloTickets              uint32 // Number of solo tickets given weekly
@@ -151,6 +150,8 @@ type GameplayOptions struct {
 	MaterialMultiplier             float32 // Adjusts the multiplier of Monster Materials rewarded for quest completion
 	ExtraCarves                    uint16  // Grant n extra chances to carve ALL carcasses
 	DisableHunterNavi              bool    // Disables the Hunter Navi
+	MezFesDuration                 int     // Seconds that MezFes will last for weekly (from 12AM Mon backwards)
+	MezFesSwitchMinigame           bool    // Swaps out Volpakkun Together for Tokotoko Partnya
 	EnableKaijiEvent               bool    // Enables the Kaiji event in the Rasta Bar
 	EnableHiganjimaEvent           bool    // Enables the Higanjima event in the Rasta Bar
 	EnableNierEvent                bool    // Enables the Nier event in the Rasta Bar

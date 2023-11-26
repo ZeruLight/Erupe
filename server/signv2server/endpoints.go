@@ -8,6 +8,7 @@ import (
 	"erupe-ce/server/channelserver"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/lib/pq"
 	"go.uber.org/zap"
@@ -82,19 +83,17 @@ func (s *Server) newAuthData(userID uint32, userRights uint32, userToken string,
 			resp.Characters[i].HR = 7
 		}
 	}
-	if s.erupeConfig.DevModeOptions.MezFesEvent {
-		stalls := []uint32{10, 3, 6, 9, 4, 8, 5, 7}
-		if s.erupeConfig.DevModeOptions.MezFesAlt {
-			stalls[4] = 2
-		}
-		resp.MezFes = &MezFes{
-			ID:           uint32(channelserver.TimeWeekStart().Unix()),
-			Start:        uint32(channelserver.TimeWeekStart().Unix()),
-			End:          uint32(channelserver.TimeWeekNext().Unix()),
-			SoloTickets:  s.erupeConfig.GameplayOptions.MezfesSoloTickets,
-			GroupTickets: s.erupeConfig.GameplayOptions.MezfesGroupTickets,
-			Stalls:       stalls,
-		}
+	stalls := []uint32{10, 3, 6, 9, 4, 8, 5, 7}
+	if s.erupeConfig.GameplayOptions.MezFesSwitchMinigame {
+		stalls[4] = 2
+	}
+	resp.MezFes = &MezFes{
+		ID:           uint32(channelserver.TimeWeekStart().Unix()),
+		Start:        uint32(channelserver.TimeWeekStart().Add(-time.Duration(s.erupeConfig.GameplayOptions.MezFesDuration) * time.Second).Unix()),
+		End:          uint32(channelserver.TimeWeekNext().Unix()),
+		SoloTickets:  s.erupeConfig.GameplayOptions.MezfesSoloTickets,
+		GroupTickets: s.erupeConfig.GameplayOptions.MezfesGroupTickets,
+		Stalls:       stalls,
 	}
 	if !s.erupeConfig.HideLoginNotice {
 		resp.Notices = append(resp.Notices, strings.Join(s.erupeConfig.LoginNotices[:], "<PAGE>"))

@@ -220,7 +220,7 @@ func addPointNetcafe(s *Session, p int) error {
 func handleMsgMhfStartBoostTime(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfStartBoostTime)
 	bf := byteframe.NewByteFrame()
-	boostLimit := TimeAdjusted().Add(time.Duration(s.server.erupeConfig.GameplayOptions.BoostTimeDuration) * time.Minute)
+	boostLimit := TimeAdjusted().Add(time.Duration(s.server.erupeConfig.GameplayOptions.BoostTimeDuration) * time.Second)
 	if s.server.erupeConfig.GameplayOptions.DisableBoostTime {
 		bf.WriteUint32(0)
 		doAckBufSucceed(s, pkt.AckHandle, bf.Data())

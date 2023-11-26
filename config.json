@@ -73,9 +73,9 @@
     "SeasonOverride": false
   },
   "Discord": {
-    "Enabled": true,
-    "BotToken": "MTAzMTQ2MDI4MDYxOTc2NTgwMA.GGe824._OxF9rtv1O8EjOZI26hATruaF_VZ9YBwuAdS1Y",
-    "RealtimeChannelID": "645108836423958540"
+    "Enabled": false,
+    "BotToken": "",
+    "RealtimeChannelID": ""
   },
   "Commands": [
     {
@@ -129,7 +129,7 @@
     "Host": "localhost",
     "Port": 5432,
     "User": "postgres",
-    "Password": "admin",
+    "Password": "",
     "Database": "erupe"
   },
   "Sign": {

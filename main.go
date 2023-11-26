@@ -22,11 +22,13 @@ import (
 )
 
 // Temporary DB auto clean on startup for quick development & testing.
-func cleanDB(db *sqlx.DB) {
+func cleanDB(db *sqlx.DB, config *_config.Config) {
 	_ = db.MustExec("DELETE FROM guild_characters")
 	_ = db.MustExec("DELETE FROM guilds")
 	_ = db.MustExec("DELETE FROM characters")
-	_ = db.MustExec("DELETE FROM sign_sessions")
+	if config.ProxyPort == 0 {
+		_ = db.MustExec("DELETE FROM sign_sessions")
+	}
 	_ = db.MustExec("DELETE FROM users")
 }
 
@@ -124,14 +126,16 @@ func main() {
 	logger.Info("Database: Started successfully")
 
 	// Clear stale data
-	_ = db.MustExec("DELETE FROM sign_sessions")
+	if !config.DevMode || config.DevModeOptions.ProxyPort == 0 {
+		_ = db.MustExec("DELETE FROM sign_sessions")
+	}
 	_ = db.MustExec("DELETE FROM servers")
 	_ = db.MustExec(`UPDATE guild_characters SET treasure_hunt=NULL`)
 
 	// Clean the DB if the option is on.
 	if config.DevMode && config.DevModeOptions.CleanDB {
 		logger.Info("Database: Started clearing...")
-		cleanDB(db)
+		cleanDB(db, config)
 		logger.Info("Database: Finished clearing")
 	}
 

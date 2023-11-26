@@ -13,6 +13,7 @@
   "DeleteOnSaveCorruption": false,
   "ClientMode": "ZZ",
   "QuestCacheExpiry": 300,
+  "ProxyPort": 0,
   "DevMode": true,
   "DevModeOptions": {
     "AutoCreateAccount": true,

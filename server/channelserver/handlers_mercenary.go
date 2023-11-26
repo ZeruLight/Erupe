@@ -147,8 +147,8 @@ func handleMsgMhfCreateMercenary(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfSaveMercenary(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSaveMercenary)
 	dumpSaveData(s, pkt.MercData, "mercenary")
-	temp := byteframe.NewByteFrameFromBytes(pkt.MercData)
 	if len(pkt.MercData) > 0 {
+		temp := byteframe.NewByteFrameFromBytes(pkt.MercData)
 		s.server.db.Exec("UPDATE characters SET savemercenary=$1, rasta_id=$2 WHERE id=$3", pkt.MercData, temp.ReadUint32(), s.charID)
 	}
 	var rastaGCP, pactID uint32

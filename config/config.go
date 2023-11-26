@@ -106,8 +106,6 @@ type DevModeOptions struct {
 	DivaEvent            int  // Diva Defense event status
 	FestaEvent           int  // Hunter's Festa event status
 	TournamentEvent      int  // VS Tournament event status
-	MezFesEvent          bool // MezFes status
-	MezFesAlt            bool // Swaps out Volpakkun for Tokotoko
 	DisableTokenCheck    bool // Disables checking login token exists in the DB (security risk!)
 	QuestDebugTools      bool // Enable various quest debug logs
 	EarthStatusOverride  int32
@@ -152,6 +150,7 @@ type GameplayOptions struct {
 	ExtraCarves                    uint16  // Grant n extra chances to carve ALL carcasses
 	DisableHunterNavi              bool    // Disables the Hunter Navi
 	MezFesDuration                 int     // Seconds that MezFes will last for weekly (from 12AM Mon backwards)
+	MezFesSwitchMinigame           bool    // Swaps out Volpakkun Together for Tokotoko Partnya
 	EnableKaijiEvent               bool    // Enables the Kaiji event in the Rasta Bar
 	EnableHiganjimaEvent           bool    // Enables the Higanjima event in the Rasta Bar
 	EnableNierEvent                bool    // Enables the Nier event in the Rasta Bar

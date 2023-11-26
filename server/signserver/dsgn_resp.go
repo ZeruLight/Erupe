@@ -155,35 +155,30 @@ func (s *Session) makeSignResponse(uid uint32) []byte {
 	bf.WriteUint32(uint32(s.server.getReturnExpiry(uid).Unix()))
 	bf.WriteUint32(0)
 
-	mezfes := s.server.erupeConfig.DevModeOptions.MezFesEvent
-	alt := s.server.erupeConfig.DevModeOptions.MezFesAlt
-	if mezfes {
-		// We can just use the start timestamp as the event ID
-		bf.WriteUint32(uint32(channelserver.TimeWeekStart().Unix()))
-		// Start time
-		bf.WriteUint32(uint32(channelserver.TimeWeekNext().Add(-time.Duration(s.server.erupeConfig.GameplayOptions.MezFesDuration) * time.Second).Unix()))
-		// End time
-		bf.WriteUint32(uint32(channelserver.TimeWeekNext().Unix()))
-		bf.WriteUint8(2) // Unk
-		bf.WriteUint32(s.server.erupeConfig.GameplayOptions.MezfesSoloTickets)
-		bf.WriteUint32(s.server.erupeConfig.GameplayOptions.MezfesGroupTickets)
-		bf.WriteUint8(8)  // Stalls open
-		bf.WriteUint8(10) // Stall Map
-		bf.WriteUint8(3)  // Pachinko
-		bf.WriteUint8(6)  // Nyanrendo
-		bf.WriteUint8(9)  // Point stall
-		if alt {
-			bf.WriteUint8(2) // Tokotoko Partnya
-		} else {
-			bf.WriteUint8(4) // Volpakkun Together
-		}
-		bf.WriteUint8(8) // Dokkan Battle Cats
-		bf.WriteUint8(5) // Goocoo Scoop
-		bf.WriteUint8(7) // Honey Panic
-	} else {
-		bf.WriteUint32(0)
-		bf.WriteUint32(0)
-		bf.WriteUint32(0)
+	tickets := []uint32{
+		s.server.erupeConfig.GameplayOptions.MezfesSoloTickets,
+		s.server.erupeConfig.GameplayOptions.MezfesGroupTickets,
+	}
+	stalls := []uint8{
+		10, 3, 6, 9, 4, 8, 5, 7,
+	}
+	if s.server.erupeConfig.GameplayOptions.MezFesSwitchMinigame {
+		stalls[4] = 2
+	}
+
+	// We can just use the start timestamp as the event ID
+	bf.WriteUint32(uint32(channelserver.TimeWeekStart().Unix()))
+	// Start time
+	bf.WriteUint32(uint32(channelserver.TimeWeekNext().Add(-time.Duration(s.server.erupeConfig.GameplayOptions.MezFesDuration) * time.Second).Unix()))
+	// End time
+	bf.WriteUint32(uint32(channelserver.TimeWeekNext().Unix()))
+	bf.WriteUint8(uint8(len(tickets)))
+	for i := range tickets {
+		bf.WriteUint32(tickets[i])
+	}
+	bf.WriteUint8(uint8(len(stalls)))
+	for i := range stalls {
+		bf.WriteUint8(stalls[i])
 	}
 	return bf.Data()
 }

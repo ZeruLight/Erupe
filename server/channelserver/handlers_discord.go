@@ -66,6 +66,27 @@ func getCharacterList(s *Server) string {
 	return message
 }
 
+// onInteraction handles slash commands
+func (s *Server) onInteraction(ds *discordgo.Session, i *discordgo.InteractionCreate) {
+	switch i.Interaction.ApplicationCommandData().Name {
+	case "verify":
+		_, err := s.db.Exec("UPDATE users SET discord_id = ? WHERE discord_token = ?", i.User.ID, i.Interaction.ApplicationCommandData().Options[0].StringValue())
+		if err != nil {
+			return
+		}
+		err = ds.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+			Type: discordgo.InteractionResponseChannelMessageWithSource,
+			Data: &discordgo.InteractionResponseData{
+				Content: "Account successfully linked",
+			},
+		})
+		if err != nil {
+			return
+		}
+		break
+	}
+}
+
 // onDiscordMessage handles receiving messages from discord and forwarding them ingame.
 func (s *Server) onDiscordMessage(ds *discordgo.Session, m *discordgo.MessageCreate) {
 	// Ignore messages from our bot, or ones that are not in the correct channel.

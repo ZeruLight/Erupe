@@ -2,6 +2,7 @@ package channelserver
 
 import (
 	"fmt"
+	"github.com/bwmarrin/discordgo"
 	"net"
 	"strings"
 	"sync"
@@ -210,7 +211,17 @@ func (s *Server) Start() error {
 
 	// Start the discord bot for chat integration.
 	if s.erupeConfig.Discord.Enabled && s.discordBot != nil {
+		_, err := s.discordBot.Session.ApplicationCommandBulkOverwrite(s.discordBot.Session.State.User.ID, "", []*discordgo.ApplicationCommand{
+			{
+				Name:        "verify",
+				Description: "Verify your account with Discord",
+			},
+		})
+		if err != nil {
+			return err
+		}
 		s.discordBot.Session.AddHandler(s.onDiscordMessage)
+		s.discordBot.Session.AddHandler(s.onInteraction)
 	}
 
 	return nil

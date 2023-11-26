@@ -1,6 +1,7 @@
 package channelserver
 
 import (
+	"crypto"
 	"encoding/hex"
 	"erupe-ce/common/byteframe"
 	"erupe-ce/common/mhfcourse"
@@ -317,6 +318,15 @@ func parseChatCommand(s *Session, command string) {
 			}
 		} else {
 			sendDisabledCommandMessage(s, commands["Teleport"])
+		}
+	case commands["Discord"].Prefix:
+		if commands["Discord"].Enabled {
+			token := crypto.MD5.New()
+			_, err := s.server.db.Exec("UPDATE users SET discord_token = ?", token)
+			if err != nil {
+				return
+			}
+			sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandDiscord"], token))
 		}
 	}
 }

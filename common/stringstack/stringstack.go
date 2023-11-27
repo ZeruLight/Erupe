@@ -6,32 +6,17 @@ import (
 
 // StringStack is a basic LIFO "stack" for storing strings.
 type StringStack struct {
-	Locked bool
-	stack  []string
+	stack []string
 }
 
 // New creates a new instance of StringStack
 func New() *StringStack {
-	return &StringStack{Locked: false}
+	return &StringStack{}
 }
 
 // Set sets up a new StringStack
 func (s *StringStack) Set(v string) {
 	s.stack = []string{v}
-}
-
-// Lock freezes the StringStack
-func (s *StringStack) Lock() {
-	if !s.Locked {
-		s.Locked = true
-	}
-}
-
-// Unlock unfreezes the StringStack
-func (s *StringStack) Unlock() {
-	if s.Locked {
-		s.Locked = false
-	}
 }
 
 // Push pushes a string onto the stack.

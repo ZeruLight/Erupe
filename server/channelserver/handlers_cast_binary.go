@@ -321,9 +321,16 @@ func parseChatCommand(s *Session, command string) {
 		}
 	case commands["Discord"].Prefix:
 		if commands["Discord"].Enabled {
-			discordToken := make([]byte, 8)
-			_, err := rand.Read(discordToken)
-			s.logger.Info(fmt.Sprint(discordToken))
+			randToken := make([]byte, 4)
+
+			_, err := rand.Read(randToken)
+			if err != nil {
+				sendServerChatMessage(s, fmt.Sprint("An error occurred while processing this command"))
+				s.logger.Error(fmt.Sprint(err))
+				return
+			}
+
+			discordToken := fmt.Sprintf("%x-%x", randToken[:2], randToken[2:])
 			_, err = s.server.db.Exec("UPDATE users u SET discord_token = $1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)", fmt.Sprint(discordToken), s.charID)
 			if err != nil {
 				sendServerChatMessage(s, fmt.Sprint("An error occurred while processing this command"))

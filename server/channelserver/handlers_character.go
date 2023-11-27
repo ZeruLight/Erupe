@@ -195,7 +195,7 @@ func (save *CharacterSaveData) Decompress() error {
 func (save *CharacterSaveData) updateSaveDataWithStruct() {
 	rpBytes := make([]byte, 2)
 	binary.LittleEndian.PutUint16(rpBytes, save.RP)
-	if _config.ErupeConfig.RealClientMode >= _config.G10 {
+	if _config.ErupeConfig.RealClientMode >= _config.G3 {
 		copy(save.decompSave[save.Pointers[pRP]:save.Pointers[pRP]+2], rpBytes)
 		copy(save.decompSave[save.Pointers[pKQF]:save.Pointers[pKQF]+8], save.KQF)
 	} else if _config.ErupeConfig.RealClientMode == _config.F5 || _config.ErupeConfig.RealClientMode == _config.F4 {
@@ -212,7 +212,7 @@ func (save *CharacterSaveData) updateStructWithSaveData() {
 		save.Gender = false
 	}
 	if !save.IsNewCharacter {
-		if (_config.ErupeConfig.RealClientMode >= _config.F4 && _config.ErupeConfig.RealClientMode <= _config.F5) || _config.ErupeConfig.RealClientMode >= _config.G10 {
+		if (_config.ErupeConfig.RealClientMode == _config.F4 || _config.ErupeConfig.RealClientMode == _config.F5) || _config.ErupeConfig.RealClientMode >= _config.G3 {
 			save.RP = binary.LittleEndian.Uint16(save.decompSave[save.Pointers[pRP] : save.Pointers[pRP]+2])
 			save.HouseTier = save.decompSave[save.Pointers[pHouseTier] : save.Pointers[pHouseTier]+5]
 			save.HouseData = save.decompSave[save.Pointers[pHouseData] : save.Pointers[pHouseData]+195]
@@ -223,12 +223,13 @@ func (save *CharacterSaveData) updateStructWithSaveData() {
 			save.WeaponType = save.decompSave[save.Pointers[pWeaponType]]
 			save.WeaponID = binary.LittleEndian.Uint16(save.decompSave[save.Pointers[pWeaponID] : save.Pointers[pWeaponID]+2])
 			save.HRP = binary.LittleEndian.Uint16(save.decompSave[save.Pointers[pHRP] : save.Pointers[pHRP]+2])
-		}
-
-		if _config.ErupeConfig.RealClientMode >= _config.G10 {
-			save.KQF = save.decompSave[save.Pointers[pKQF] : save.Pointers[pKQF]+8]
-			if save.HRP == uint16(999) {
-				save.GR = grpToGR(int(binary.LittleEndian.Uint32(save.decompSave[save.Pointers[pGRP] : save.Pointers[pGRP]+4])))
+			if _config.ErupeConfig.RealClientMode >= _config.G3 {
+				if save.HRP == uint16(999) {
+					save.GR = grpToGR(int(binary.LittleEndian.Uint32(save.decompSave[save.Pointers[pGRP] : save.Pointers[pGRP]+4])))
+				}
+			}
+			if _config.ErupeConfig.RealClientMode >= _config.G10 {
+				save.KQF = save.decompSave[save.Pointers[pKQF] : save.Pointers[pKQF]+8]
 			}
 		}
 	}

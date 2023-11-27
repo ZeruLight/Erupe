@@ -84,8 +84,7 @@
       "Enabled": true,
       "Description": "Show all of the commands",
       "Prefix": "help"
-    },
-    {
+    }, {
       "Name": "Rights",
       "Enabled": false,
       "Description": "Directly alter user's applied courses.",
@@ -103,7 +102,7 @@
     }, {
       "Name": "Reload",
       "Enabled": true,
-      "Description": "Reload all user sessions (Forces log out)",
+      "Description": "Delete and recreate all players within the session.",
       "Prefix": "reload"
     }, {
       "Name": "KeyQuest",

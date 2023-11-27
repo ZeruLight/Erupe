@@ -169,9 +169,10 @@ type Discord struct {
 
 // Command is a channelserver chat command
 type Command struct {
-	Name    string
-	Enabled bool
-	Prefix  string
+	Name        string
+	Enabled     bool
+	Description string
+	Prefix      string
 }
 
 // Course represents a course within MHF

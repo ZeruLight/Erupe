@@ -318,6 +318,12 @@ func parseChatCommand(s *Session, command string) {
 		} else {
 			sendDisabledCommandMessage(s, commands["Teleport"])
 		}
+	case commands["Help"].Prefix:
+		if commands["Help"].Enabled {
+			sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandTeleportSuccess"], x, y))
+		} else {
+			sendDisabledCommandMessage(s, commands["Help"])
+		}
 	}
 }
 
@@ -391,7 +397,7 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 			bf.SetLE()
 			chatMessage := &binpacket.MsgBinChat{}
 			chatMessage.Parse(bf)
-			if strings.HasPrefix(chatMessage.Message, "!") {
+			if strings.HasPrefix(chatMessage.Message, s.server.erupeConfig.CommandPrefix) {
 				parseChatCommand(s, chatMessage.Message)
 				return
 			}

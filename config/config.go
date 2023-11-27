@@ -81,6 +81,7 @@ type Config struct {
 	RealClientMode         Mode
 	QuestCacheExpiry       int    // Number of seconds to keep quest data cached
 	ProxyPort              uint16 // Forces the game to connect to a channel server proxy
+	CommandPrefix          string // The prefix for commands
 	DevMode                bool
 
 	DevModeOptions  DevModeOptions

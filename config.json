@@ -14,6 +14,7 @@
   "ClientMode": "ZZ",
   "QuestCacheExpiry": 300,
   "ProxyPort": 0,
+  "CommandPrefix": "!",
   "DevMode": true,
   "DevModeOptions": {
     "AutoCreateAccount": true,
@@ -78,6 +79,11 @@
     "RealtimeChannelID": ""
   },
   "Commands": [
+    {
+      "Name": "Help",
+      "Enabled": true,
+      "Prefix": "help"
+    },
     {
       "Name": "Rights",
       "Enabled": false,

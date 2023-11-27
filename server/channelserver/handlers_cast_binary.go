@@ -85,7 +85,7 @@ func sendServerChatMessage(s *Session, message string) {
 }
 
 func parseChatCommand(s *Session, command string) {
-	args := strings.Split(command[1:], " ")
+	args := strings.Split(command[len(s.server.erupeConfig.CommandPrefix):], " ")
 	switch args[0] {
 	case commands["PSN"].Prefix:
 		if commands["PSN"].Enabled {

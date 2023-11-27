@@ -168,17 +168,21 @@ func parseChatCommand(s *Session, command string) {
 		}
 	case commands["KeyQuest"].Prefix:
 		if commands["KeyQuest"].Enabled {
-			if len(args) > 1 {
-				if args[1] == "get" {
-					sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandKqfGet"], s.kqf))
-				} else if args[1] == "set" {
-					if len(args) > 2 && len(args[2]) == 16 {
-						hexd, _ := hex.DecodeString(args[2])
-						s.kqf = hexd
-						s.kqfOverride = true
-						sendServerChatMessage(s, s.server.dict["commandKqfSetSuccess"])
-					} else {
-						sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandKqfSetError"], commands["KeyQuest"].Prefix))
+			if s.server.erupeConfig.RealClientMode < _config.G10 {
+				sendServerChatMessage(s, s.server.dict["commandKqfVersion"])
+			} else {
+				if len(args) > 1 {
+					if args[1] == "get" {
+						sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandKqfGet"], s.kqf))
+					} else if args[1] == "set" {
+						if len(args) > 2 && len(args[2]) == 16 {
+							hexd, _ := hex.DecodeString(args[2])
+							s.kqf = hexd
+							s.kqfOverride = true
+							sendServerChatMessage(s, s.server.dict["commandKqfSetSuccess"])
+						} else {
+							sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandKqfSetError"], commands["KeyQuest"].Prefix))
+						}
 					}
 				}
 			}

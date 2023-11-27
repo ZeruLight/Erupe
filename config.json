@@ -19,9 +19,9 @@
     "AutoCreateAccount": true,
     "CleanDB": false,
     "MaxLauncherHR": false,
-    "LogInboundMessages": true,
-    "LogOutboundMessages": true,
-    "LogMessageData": true,
+    "LogInboundMessages": false,
+    "LogOutboundMessages": false,
+    "LogMessageData": false,
     "MaxHexdumpLength": 256,
     "DivaEvent": 0,
     "FestaEvent": -1,
@@ -140,7 +140,7 @@
     "Port": 53312
   },
   "SignV2": {
-    "Enabled": true,
+    "Enabled": false,
     "Port": 8080,
     "PatchServer": "",
     "Banners": [],

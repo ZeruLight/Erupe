@@ -252,16 +252,21 @@ func handleMsgMhfLoadDecoMyset(s *Session, p mhfpacket.MHFPacket) {
 		s.logger.Error("Failed to load decomyset", zap.Error(err))
 	}
 	if len(data) == 0 {
+		data = []byte{0x01, 0x00}
 		if s.server.erupeConfig.RealClientMode < _config.G10 {
 			data = []byte{0x00, 0x00}
 		}
-		data = []byte{0x01, 0x00}
 	}
 	doAckBufSucceed(s, pkt.AckHandle, data)
 }
 
 func handleMsgMhfSaveDecoMyset(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSaveDecoMyset)
+	// TODO: Backwards compatibility for DecoMyset
+	if s.server.erupeConfig.RealClientMode < _config.ZZ {
+		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+		return
+	}
 	// https://gist.github.com/Andoryuuta/9c524da7285e4b5ca7e52e0fc1ca1daf
 	var loadData []byte
 	bf := byteframe.NewByteFrameFromBytes(pkt.RawDataPayload[1:]) // skip first unk byte

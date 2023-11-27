@@ -110,7 +110,7 @@ func (s *Server) onInteraction(ds *discordgo.Session, i *discordgo.InteractionCr
 // onDiscordMessage handles receiving messages from discord and forwarding them ingame.
 func (s *Server) onDiscordMessage(ds *discordgo.Session, m *discordgo.MessageCreate) {
 	// Ignore messages from our bot, or ones that are not in the correct channel.
-	if m.Author.Bot || m.ChannelID != s.erupeConfig.Discord.RealtimeChannelID {
+	if m.Author.Bot || m.ChannelID != s.erupeConfig.Discord.RealTimeChannel.RealtimeChannelID {
 		return
 	}
 

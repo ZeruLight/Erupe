@@ -28,7 +28,11 @@ func NewDiscordBot(options Options) (discordBot *DiscordBot, err error) {
 		return nil, err
 	}
 
-	realtimeChannel, err := session.Channel(options.Config.Discord.RealtimeChannelID)
+	var realtimeChannel *discordgo.Channel
+
+	if options.Config.Discord.RealTimeChannel.Enabled {
+		realtimeChannel, err = session.Channel(options.Config.Discord.RealTimeChannel.RealtimeChannelID)
+	}
 
 	if err != nil {
 		options.Logger.Fatal("Discord failed to create realtimeChannel", zap.Error(err))
@@ -74,6 +78,10 @@ func (bot *DiscordBot) NormalizeDiscordMessage(message string) string {
 }
 
 func (bot *DiscordBot) RealtimeChannelSend(message string) (err error) {
+	if bot.RealtimeChannel == nil {
+		return
+	}
+
 	_, err = bot.Session.ChannelMessageSend(bot.RealtimeChannel.ID, message)
 
 	return

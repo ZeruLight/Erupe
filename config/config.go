@@ -161,8 +161,13 @@ type GameplayOptions struct {
 
 // Discord holds the discord integration config.
 type Discord struct {
+	Enabled         bool
+	BotToken        string
+	RealTimeChannel DiscordRealTime
+}
+
+type DiscordRealTime struct {
 	Enabled           bool
-	BotToken          string
 	RealtimeChannelID string
 }
 

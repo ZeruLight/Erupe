@@ -75,7 +75,10 @@
   "Discord": {
     "Enabled": false,
     "BotToken": "",
-    "RealtimeChannelID": ""
+    "RealTimeChannel": {
+      "Enabled": false,
+      "RealTimeChannelID": ""
+    }
   },
   "Commands": [
     {

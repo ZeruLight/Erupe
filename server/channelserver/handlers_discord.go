@@ -86,10 +86,11 @@ func (s *Server) onInteraction(ds *discordgo.Session, i *discordgo.InteractionCr
 			return
 		}
 		break
-	case "passwordreset":
+	case "password":
 		password, _ := bcrypt.GenerateFromPassword([]byte(i.ApplicationCommandData().Options[0].StringValue()), 10)
 		_, err := s.db.Exec("UPDATE users SET password = $1 WHERE discord_id = $2", password, i.Member.User.ID)
 		if err != nil {
+			s.logger.Error(fmt.Sprint(err))
 			return
 		}
 		err = ds.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{

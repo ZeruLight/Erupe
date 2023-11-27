@@ -1,8 +1,7 @@
 package channelserver
 
 import (
-	"crypto"
-	"encoding/binary"
+	"crypto/rand"
 	"encoding/hex"
 	"erupe-ce/common/byteframe"
 	"erupe-ce/common/mhfcourse"
@@ -322,14 +321,10 @@ func parseChatCommand(s *Session, command string) {
 		}
 	case commands["Discord"].Prefix:
 		if commands["Discord"].Enabled {
-			tokenHash := crypto.MD5.New()
-			tokenSalt := fmt.Sprint(s.charID) + fmt.Sprint(s.server.ID)
-			tokenData := make([]byte, 4)
-			binary.LittleEndian.PutUint32(tokenData, uint32(time.Now().Second()))
-			tokenHash.Write([]byte(fmt.Sprintf("%s%s", tokenSalt, tokenData)))
-			discordToken := fmt.Sprint(tokenHash)[4:12]
-			s.logger.Info(discordToken)
-			_, err := s.server.db.Exec("UPDATE users u SET discord_token = $1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)", discordToken, s.charID)
+			discordToken := make([]byte, 8)
+			_, err := rand.Read(discordToken)
+			s.logger.Info(fmt.Sprint(discordToken))
+			_, err = s.server.db.Exec("UPDATE users u SET discord_token = $1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)", fmt.Sprint(discordToken), s.charID)
 			if err != nil {
 				sendServerChatMessage(s, fmt.Sprint("An error occurred while processing this command"))
 				s.logger.Error(fmt.Sprint(err))

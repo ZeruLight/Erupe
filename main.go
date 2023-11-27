@@ -114,7 +114,7 @@ func main() {
 				},
 			},
 			{
-				Name:        "passwordreset",
+				Name:        "password",
 				Description: "Reset your account password on Erupe",
 				Options: []*discordgo.ApplicationCommandOption{
 					{

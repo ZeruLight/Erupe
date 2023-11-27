@@ -71,7 +71,9 @@ func getPointers() map[SavePointer]int {
 		pointers[pGardenData] = 142424
 		pointers[pRP] = 142614
 		pointers[pKQF] = 146720
-	case _config.Z2, _config.Z1, _config.G101, _config.G10:
+	case _config.Z2, _config.Z1, _config.G101, _config.G10, _config.G91, _config.G9, _config.G81, _config.G8,
+		_config.G7, _config.G61, _config.G6, _config.G52, _config.G51, _config.G5, _config.GG, _config.G32, _config.G31,
+		_config.G3:
 		pointers[pWeaponID] = 92522
 		pointers[pWeaponType] = 92789
 		pointers[pHouseTier] = 93900

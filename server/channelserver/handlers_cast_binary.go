@@ -325,7 +325,9 @@ func parseChatCommand(s *Session, command string) {
 	case commands["Help"].Prefix:
 		if commands["Help"].Enabled {
 			for _, command := range commands {
-				sendServerChatMessage(s, fmt.Sprintf("%s%s: %s", s.server.erupeConfig.CommandPrefix, command.Prefix, command.Description))
+				if command.Enabled {
+					sendServerChatMessage(s, fmt.Sprintf("%s%s: %s", s.server.erupeConfig.CommandPrefix, command.Prefix, command.Description))
+				}
 			}
 		} else {
 			sendDisabledCommandMessage(s, commands["Help"])

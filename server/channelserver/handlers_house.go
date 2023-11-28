@@ -272,7 +272,7 @@ func handleMsgMhfSaveDecoMyset(s *Session, p mhfpacket.MHFPacket) {
 
 	// Version handling
 	bf := byteframe.NewByteFrame()
-	var size int
+	var size uint
 	if s.server.erupeConfig.RealClientMode >= _config.G10 {
 		size = 76
 		bf.WriteUint8(1)
@@ -284,16 +284,16 @@ func handleMsgMhfSaveDecoMyset(s *Session, p mhfpacket.MHFPacket) {
 	// Build a map of set data
 	sets := make(map[uint16][]byte)
 	oldSets := byteframe.NewByteFrameFromBytes(temp[2:])
-	for i := 0; i < len(temp)/size; i++ {
+	for i := uint8(0); i < temp[1]; i++ {
 		index := oldSets.ReadUint16()
-		sets[index] = oldSets.ReadBytes(uint(size))
+		sets[index] = oldSets.ReadBytes(size)
 	}
 
 	// Overwrite existing sets
 	newSets := byteframe.NewByteFrameFromBytes(pkt.RawDataPayload[2:])
 	for i := uint8(0); i < pkt.RawDataPayload[1]; i++ {
 		index := newSets.ReadUint16()
-		sets[index] = newSets.ReadBytes(uint(size))
+		sets[index] = newSets.ReadBytes(size)
 	}
 
 	// Serialise the set data

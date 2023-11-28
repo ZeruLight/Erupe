@@ -29,25 +29,33 @@ func handleMsgMhfGetUdRankingRewardList(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfGetRewardSong(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetRewardSong)
+	var activationTime = 0xFFFFFFFF
+	var questCount = 0
+	var activationCount = 0
+	s.server.db.QueryRow(`SELECT (EXTRACT(epoch FROM activation_time)::int) as activation_time, quest_count, activation_count FROM diva_buffs WHERE character_id=$1`, s.charID).Scan(&activationTime, &questCount, &activationCount)
+
 	bf := byteframe.NewByteFrame()
-	bf.WriteUint8(0)           // No error
-	bf.WriteUint8(0)           // Unk
-	bf.WriteUint32(0)          // Prayer ID
-	bf.WriteUint32(0xFFFFFFFF) // Prayer end
-	for i := 0; i < 4; i++ {
-		bf.WriteUint16(0)
-		bf.WriteUint8(0)
+	bf.WriteUint8(0)            			 		// No error
+	bf.WriteUint8(uint8(activationCount))           		// Activation Count
+	bf.WriteUint32(0)           			 		// UKN
+	bf.WriteUint32(uint32(activationTime))	// Prayer activation time
+	for i := 0; i < 4; i++ {    					// Quest Count
+		bf.WriteUint16(uint16(questCount))
+		bf.WriteUint8(uint8(questCount))
 	}
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfUseRewardSong(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfUseRewardSong)
+	activationTime := TimeAdjusted()
+	s.server.db.Exec(`INSERT INTO diva_buffs VALUES ($1, $2, 0, 1) ON CONFLICT (character_id) DO UPDATE SET activation_time = excluded.activation_time, quest_count = excluded.quest_count, activation_count = diva_buffs.activation_count + 1;`, s.charID, activationTime)
 	doAckBufSucceed(s, pkt.AckHandle, []byte{0})
 }
 
 func handleMsgMhfAddRewardSongCount(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfAddRewardSongCount)
+	s.server.db.Exec(`UPDATE diva_buffs SET quest_count=quest_count+1 WHERE character_id = $1`, s.charID);
 	doAckBufSucceed(s, pkt.AckHandle, []byte{0})
 }
 

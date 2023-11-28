@@ -21,6 +21,7 @@ func cleanupDiva(s *Session) {
 	s.server.db.Exec(`DELETE FROM diva_beads`)
 	s.server.db.Exec(`DELETE FROM diva_beads_assignment`)
 	s.server.db.Exec(`DELETE FROM diva_beads_points`)
+	s.server.db.Exec(`DELETE FROM diva_buffs`)
 }
 
 func generateDivaTimestamps(s *Session, start uint32, debug bool) []uint32 {
@@ -176,13 +177,29 @@ func handleMsgMhfSetKiju(s *Session, p mhfpacket.MHFPacket) {
 	if TimeAdjusted().After(midday) {
 		midday = midday.Add(12 * time.Hour)
 	}
-	s.server.db.Exec(`INSERT INTO diva_beads_assignment VALUES ($1, $2, $3)`, s.charID, pkt.BeadIndex, midday)
+	s.server.db.Exec(`INSERT INTO diva_beads_assignment VALUES ($1, $2, $3) ON CONFLICT (character_id, expiry) DO UPDATE SET bead_index = excluded.bead_index`, s.charID, pkt.BeadIndex, midday)
 	doAckBufSucceed(s, pkt.AckHandle, []byte{0})
 }
 
 func handleMsgMhfAddUdPoint(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfAddUdPoint)
-	s.server.db.Exec(`INSERT INTO diva_beads_points VALUES ($1, $2, now(), (SELECT bead_index FROM diva_beads_assignment WHERE character_id=$1 AND expiry>$3))`, s.charID, pkt.Points, TimeAdjusted())
+	var beadIndex = 0
+	s.server.db.QueryRow(`SELECT bead_index FROM diva_beads_assignment WHERE character_id=$1 AND expiry>$3`, s.charID, TimeAdjusted()).Scan(&beadIndex)
+
+	if (beadIndex == 0) {
+		s.server.db.QueryRow(`SELECT bead_index FROM diva_beads_assignment WHERE character_id=$1 ORDER BY expiry DESC`, s.charID,).Scan(&beadIndex)
+		if (beadIndex == 0) {
+			doAckBufSucceed(s, pkt.AckHandle, []byte{0})	// bead not selected, do nothing
+		} else {											// carry over last selected bead
+			midday := TimeMidnight().Add(12 * time.Hour)
+			if TimeAdjusted().After(midday) {
+				midday = midday.Add(12 * time.Hour)
+			}
+			s.server.db.Exec(`INSERT INTO diva_beads_assignment VALUES ($1, $2, $3) ON CONFLICT (character_id, expiry) DO UPDATE SET bead_index = excluded.bead_index`, s.charID, beadIndex, midday)
+		}
+	}
+	
+	s.server.db.Exec(`INSERT INTO diva_beads_points VALUES ($1, $2, now(), $3)`, s.charID, pkt.Points * 1000, beadIndex)
 	doAckBufSucceed(s, pkt.AckHandle, []byte{0})
 }
 

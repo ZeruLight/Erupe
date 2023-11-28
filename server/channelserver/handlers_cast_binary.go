@@ -84,7 +84,7 @@ func sendServerChatMessage(s *Session, message string) {
 }
 
 func parseChatCommand(s *Session, command string) {
-	args := strings.Split(command[1:], " ")
+	args := strings.Split(command[len(s.server.erupeConfig.CommandPrefix):], " ")
 	switch args[0] {
 	case commands["PSN"].Prefix:
 		if commands["PSN"].Enabled {
@@ -322,6 +322,16 @@ func parseChatCommand(s *Session, command string) {
 		} else {
 			sendDisabledCommandMessage(s, commands["Teleport"])
 		}
+	case commands["Help"].Prefix:
+		if commands["Help"].Enabled {
+			for _, command := range commands {
+				if command.Enabled {
+					sendServerChatMessage(s, fmt.Sprintf("%s%s: %s", s.server.erupeConfig.CommandPrefix, command.Prefix, command.Description))
+				}
+			}
+		} else {
+			sendDisabledCommandMessage(s, commands["Help"])
+		}
 	}
 }
 
@@ -395,7 +405,7 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 			bf.SetLE()
 			chatMessage := &binpacket.MsgBinChat{}
 			chatMessage.Parse(bf)
-			if strings.HasPrefix(chatMessage.Message, "!") {
+			if strings.HasPrefix(chatMessage.Message, s.server.erupeConfig.CommandPrefix) {
 				parseChatCommand(s, chatMessage.Message)
 				return
 			}

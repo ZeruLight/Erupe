@@ -171,8 +171,8 @@ func handleMsgSysBackStage(s *Session, p mhfpacket.MHFPacket) {
 
 	// Transfer back to the saved stage ID before the previous move or enter.
 	backStage, err := s.stageMoveStack.Pop()
-	if err != nil {
-		panic(err)
+	if backStage == "" || err != nil {
+		backStage = "sl1Ns200p0a0u0"
 	}
 
 	if _, exists := s.stage.reservedClientSlots[s.charID]; exists {

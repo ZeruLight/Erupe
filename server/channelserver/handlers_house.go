@@ -262,66 +262,50 @@ func handleMsgMhfLoadDecoMyset(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfSaveDecoMyset(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSaveDecoMyset)
-	// TODO: Backwards compatibility for DecoMyset
-	if s.server.erupeConfig.RealClientMode < _config.ZZ {
+	var temp []byte
+	err := s.server.db.QueryRow("SELECT decomyset FROM characters WHERE id = $1", s.charID).Scan(&temp)
+	if err != nil {
+		s.logger.Error("Failed to load decomyset", zap.Error(err))
 		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
-	// https://gist.github.com/Andoryuuta/9c524da7285e4b5ca7e52e0fc1ca1daf
-	var loadData []byte
-	bf := byteframe.NewByteFrameFromBytes(pkt.RawDataPayload[1:]) // skip first unk byte
-	err := s.server.db.QueryRow("SELECT decomyset FROM characters WHERE id = $1", s.charID).Scan(&loadData)
-	if err != nil {
-		s.logger.Error("Failed to load decomyset", zap.Error(err))
-	} else {
-		numSets := bf.ReadUint8() // sets being written
-		// empty save
-		if len(loadData) == 0 {
-			loadData = []byte{0x01, 0x00}
-		}
 
-		savedSets := loadData[1] // existing saved sets
-		// no sets, new slice with just first 2 bytes for appends later
-		if savedSets == 0 {
-			loadData = []byte{0x01, 0x00}
-		}
-		for i := 0; i < int(numSets); i++ {
-			writeSet := bf.ReadUint16()
-			dataChunk := bf.ReadBytes(76)
-			setBytes := append([]byte{uint8(writeSet >> 8), uint8(writeSet & 0xff)}, dataChunk...)
-			for x := 0; true; x++ {
-				if x == int(savedSets) {
-					// appending set
-					if loadData[len(loadData)-1] == 0x10 {
-						// sanity check for if there was a messy manual import
-						loadData = append(loadData[:len(loadData)-2], setBytes...)
-					} else {
-						loadData = append(loadData, setBytes...)
-					}
-					savedSets++
-					break
-				}
-				currentSet := loadData[3+(x*78)]
-				if int(currentSet) == int(writeSet) {
-					// replacing a set
-					loadData = append(loadData[:2+(x*78)], append(setBytes, loadData[2+((x+1)*78):]...)...)
-					break
-				} else if int(currentSet) > int(writeSet) {
-					// inserting before current set
-					loadData = append(loadData[:2+((x)*78)], append(setBytes, loadData[2+((x)*78):]...)...)
-					savedSets++
-					break
-				}
-			}
-			loadData[1] = savedSets // update set count
-		}
-		dumpSaveData(s, loadData, "decomyset")
-		_, err := s.server.db.Exec("UPDATE characters SET decomyset=$1 WHERE id=$2", loadData, s.charID)
-		if err != nil {
-			s.logger.Error("Failed to save decomyset", zap.Error(err))
-		}
+	// Version handling
+	bf := byteframe.NewByteFrame()
+	var size int
+	if s.server.erupeConfig.RealClientMode >= _config.G10 {
+		size = 76
+		bf.WriteUint8(1)
+	} else {
+		size = 68
+		bf.WriteUint8(0)
 	}
-	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+
+	// Build a map of set data
+	sets := make(map[uint16][]byte)
+	oldSets := byteframe.NewByteFrameFromBytes(temp[2:])
+	for i := 0; i < len(temp)/size; i++ {
+		index := oldSets.ReadUint16()
+		sets[index] = oldSets.ReadBytes(uint(size))
+	}
+
+	// Overwrite existing sets
+	newSets := byteframe.NewByteFrameFromBytes(pkt.RawDataPayload[2:])
+	for i := uint8(0); i < pkt.RawDataPayload[1]; i++ {
+		index := newSets.ReadUint16()
+		sets[index] = newSets.ReadBytes(uint(size))
+	}
+
+	// Serialise the set data
+	bf.WriteUint8(uint8(len(sets)))
+	for u, b := range sets {
+		bf.WriteUint16(u)
+		bf.WriteBytes(b)
+	}
+
+	dumpSaveData(s, bf.Data(), "decomyset")
+	s.server.db.Exec("UPDATE characters SET decomyset=$1 WHERE id=$2", bf.Data(), s.charID)
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 type Title struct {

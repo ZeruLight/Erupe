@@ -10,7 +10,6 @@ import (
 	"erupe-ce/network/binpacket"
 	"erupe-ce/network/mhfpacket"
 	"fmt"
-	"golang.org/x/exp/maps"
 	"golang.org/x/exp/slices"
 	"math"
 	"strconv"
@@ -325,7 +324,7 @@ func parseChatCommand(s *Session, command string) {
 		}
 	case commands["Help"].Prefix:
 		if commands["Help"].Enabled {
-			for _, command := range maps.Values(commands) {
+			for _, command := range commands {
 				sendServerChatMessage(s, fmt.Sprintf("%s%s: %s", s.server.erupeConfig.CommandPrefix, command.Prefix, command.Description))
 			}
 		} else {

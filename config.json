@@ -82,42 +82,42 @@
     {
       "Name": "Help",
       "Enabled": true,
-      "Description": "Show all of the commands",
+      "Description": "Show enabled chat commands",
       "Prefix": "help"
     }, {
       "Name": "Rights",
       "Enabled": false,
-      "Description": "Directly alter user's applied courses.",
+      "Description": "Overwrite the Rights value on your account",
       "Prefix": "rights"
     }, {
       "Name": "Raviente",
       "Enabled": true,
-      "Description": "Start or view an ongoing raviante raid.",
+      "Description": "Various Raviente siege commands",
       "Prefix": "ravi"
     }, {
       "Name": "Teleport",
       "Enabled": false,
-      "Description": "Teleport to a specified stage.",
+      "Description": "Teleport to specified coordinates",
       "Prefix": "tele"
     }, {
       "Name": "Reload",
       "Enabled": true,
-      "Description": "Delete and recreate all players within the session.",
+      "Description": "Reload all players in your Land",
       "Prefix": "reload"
     }, {
       "Name": "KeyQuest",
       "Enabled": false,
-      "Description": "Allow the overriding of necessary key quests.",
+      "Description": "Overwrite your HR Key Quest progress",
       "Prefix": "kqf"
     }, {
       "Name": "Course",
       "Enabled": true,
-      "Description": "Apply/remove user courses based on the name.",
+      "Description": "Toggle Courses on your account",
       "Prefix": "course"
     }, {
       "Name": "PSN",
       "Enabled": true,
-      "Description": "Link a PSN account to your Erupe account.",
+      "Description": "Link a PlayStation Network ID to your account",
       "Prefix": "psn"
     }
   ],

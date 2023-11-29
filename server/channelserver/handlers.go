@@ -1197,7 +1197,10 @@ func handleMsgMhfGetSeibattle(s *Session, p mhfpacket.MHFPacket) {
 	doAckEarthSucceed(s, pkt.AckHandle, data)
 }
 
-func handleMsgMhfPostSeibattle(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfPostSeibattle(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfPostSeibattle)
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+}
 
 func handleMsgMhfGetDailyMissionMaster(s *Session, p mhfpacket.MHFPacket) {}
 

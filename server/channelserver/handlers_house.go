@@ -281,6 +281,11 @@ func handleMsgMhfSaveDecoMyset(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint8(0)
 	}
 
+	// Handle nil data
+	if len(temp) == 0 {
+		temp = append(bf.Data(), uint8(0))
+	}
+
 	// Build a map of set data
 	sets := make(map[uint16][]byte)
 	oldSets := byteframe.NewByteFrameFromBytes(temp[2:])

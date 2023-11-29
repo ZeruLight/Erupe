@@ -112,7 +112,7 @@ type DevModeOptions struct {
 	QuestDebugTools      bool // Enable various quest debug logs
 	EarthStatusOverride  int32
 	EarthIDOverride      int32
-	EarthMonsterOverride int32
+	EarthMonsterOverride []int32
 	SaveDumps            SaveDumpOptions
 }
 

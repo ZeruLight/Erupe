@@ -992,11 +992,16 @@ func handleMsgMhfGetEarthStatus(s *Session, p mhfpacket.MHFPacket) {
 	bf.WriteUint32(uint32(TimeWeekNext().Unix()))  // End
 	bf.WriteInt32(s.server.erupeConfig.DevModeOptions.EarthStatusOverride)
 	bf.WriteInt32(s.server.erupeConfig.DevModeOptions.EarthIDOverride)
-	bf.WriteInt32(s.server.erupeConfig.DevModeOptions.EarthMonsterOverride)
-	bf.WriteInt32(0)
-	bf.WriteInt32(0)
-	if _config.ErupeConfig.RealClientMode >= _config.G91 {
-		bf.WriteInt32(0)
+	for i, m := range s.server.erupeConfig.DevModeOptions.EarthMonsterOverride {
+		if _config.ErupeConfig.RealClientMode >= _config.G91 {
+			if i == 3 {
+				break
+			}
+		}
+		if i == 4 {
+			break
+		}
+		bf.WriteInt32(m)
 	}
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }

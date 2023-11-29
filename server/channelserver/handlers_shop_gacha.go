@@ -61,19 +61,30 @@ func writeShopItems(bf *byteframe.ByteFrame, items []ShopItem) {
 	bf.WriteUint16(uint16(len(items)))
 	bf.WriteUint16(uint16(len(items)))
 	for _, item := range items {
-		bf.WriteUint32(item.ID)
+		if _config.ErupeConfig.RealClientMode >= _config.Z2 {
+			bf.WriteUint32(item.ID)
+		}
 		bf.WriteUint32(item.ItemID)
 		bf.WriteUint32(item.Cost)
 		bf.WriteUint16(item.Quantity)
 		bf.WriteUint16(item.MinHR)
 		bf.WriteUint16(item.MinSR)
-		bf.WriteUint16(item.MinGR)
+		if _config.ErupeConfig.RealClientMode >= _config.Z2 {
+			bf.WriteUint16(item.MinGR)
+		}
 		bf.WriteUint8(0) // Unk
 		bf.WriteUint8(item.StoreLevel)
-		bf.WriteUint16(item.MaxQuantity)
-		bf.WriteUint16(item.UsedQuantity)
-		bf.WriteUint16(item.RoadFloors)
-		bf.WriteUint16(item.RoadFatalis)
+		if _config.ErupeConfig.RealClientMode >= _config.Z2 {
+			bf.WriteUint16(item.MaxQuantity)
+			bf.WriteUint16(item.UsedQuantity)
+		}
+		if _config.ErupeConfig.RealClientMode == _config.Z1 {
+			bf.WriteUint8(uint8(item.RoadFloors))
+			bf.WriteUint8(uint8(item.RoadFatalis))
+		} else if _config.ErupeConfig.RealClientMode >= _config.Z2 {
+			bf.WriteUint16(item.RoadFloors)
+			bf.WriteUint16(item.RoadFatalis)
+		}
 	}
 }
 

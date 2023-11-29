@@ -126,8 +126,8 @@ func handleMsgMhfPostTowerInfo(s *Session, p mhfpacket.MHFPacket) {
 		skills := "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0"
 		s.server.db.QueryRow(`SELECT skills FROM tower WHERE char_id=$1`, s.charID).Scan(&skills)
 		s.server.db.Exec(`UPDATE tower SET skills=$1, tsp=tsp-$2 WHERE char_id=$3`, stringsupport.CSVSetIndex(skills, int(pkt.Skill), stringsupport.CSVGetIndex(skills, int(pkt.Skill))+1), pkt.Cost, s.charID)
-	case 7:
-		s.server.db.Exec(`UPDATE tower SET tr=$1, trp=trp+$2, block1=block1+$3 WHERE char_id=$4`, pkt.TR, pkt.TRP, pkt.Block1, s.charID)
+	case 1, 7:
+		s.server.db.Exec(`UPDATE tower SET tr=$1, trp=COALESCE(trp, 0)+$2, block1=COALESCE(block1, 0)+$3 WHERE char_id=$4`, pkt.TR, pkt.TRP, pkt.Block1, s.charID)
 	}
 	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }

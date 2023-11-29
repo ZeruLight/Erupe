@@ -993,7 +993,7 @@ func handleMsgMhfGetEarthStatus(s *Session, p mhfpacket.MHFPacket) {
 	bf.WriteInt32(s.server.erupeConfig.DevModeOptions.EarthStatusOverride)
 	bf.WriteInt32(s.server.erupeConfig.DevModeOptions.EarthIDOverride)
 	for i, m := range s.server.erupeConfig.DevModeOptions.EarthMonsterOverride {
-		if _config.ErupeConfig.RealClientMode >= _config.G91 {
+		if _config.ErupeConfig.RealClientMode <= _config.G9 {
 			if i == 3 {
 				break
 			}

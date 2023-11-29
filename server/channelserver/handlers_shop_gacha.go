@@ -241,6 +241,9 @@ func handleMsgMhfEnumerateShop(s *Session, p mhfpacket.MHFPacket) {
 	case 10: // Item shop, 0-8
 		bf := byteframe.NewByteFrame()
 		items := getShopItems(s, pkt.ShopType, pkt.ShopID)
+		if len(items) > int(pkt.Limit) {
+			items = items[:pkt.Limit]
+		}
 		writeShopItems(bf, items)
 		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 	}

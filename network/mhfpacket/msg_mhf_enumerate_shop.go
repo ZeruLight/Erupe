@@ -14,7 +14,7 @@ type MsgMhfEnumerateShop struct {
 	AckHandle uint32
 	ShopType  uint8 // 1 running gachas, 10 normal shop extensions, 8 Diva Defense shop
 	ShopID    uint32
-	Unk2      uint16 // 00 80 running gachas, 00 20 normal shop
+	Limit     uint16
 	Unk3      uint8
 	Unk4      uint8
 	Unk5      uint32
@@ -30,7 +30,7 @@ func (m *MsgMhfEnumerateShop) Parse(bf *byteframe.ByteFrame, ctx *clientctx.Clie
 	m.AckHandle = bf.ReadUint32()
 	m.ShopType = bf.ReadUint8()
 	m.ShopID = bf.ReadUint32()
-	m.Unk2 = bf.ReadUint16()
+	m.Limit = bf.ReadUint16()
 	m.Unk3 = bf.ReadUint8()
 	if _config.ErupeConfig.RealClientMode >= _config.G2 {
 		m.Unk4 = bf.ReadUint8()

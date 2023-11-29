@@ -992,10 +992,17 @@ func handleMsgMhfGetEarthStatus(s *Session, p mhfpacket.MHFPacket) {
 	bf.WriteUint32(uint32(TimeWeekNext().Unix()))  // End
 	bf.WriteInt32(s.server.erupeConfig.DevModeOptions.EarthStatusOverride)
 	bf.WriteInt32(s.server.erupeConfig.DevModeOptions.EarthIDOverride)
-	bf.WriteInt32(s.server.erupeConfig.DevModeOptions.EarthMonsterOverride)
-	bf.WriteInt32(0)
-	bf.WriteInt32(0)
-	bf.WriteInt32(0)
+	for i, m := range s.server.erupeConfig.DevModeOptions.EarthMonsterOverride {
+		if _config.ErupeConfig.RealClientMode <= _config.G9 {
+			if i == 3 {
+				break
+			}
+		}
+		if i == 4 {
+			break
+		}
+		bf.WriteInt32(m)
+	}
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
@@ -1195,7 +1202,10 @@ func handleMsgMhfGetSeibattle(s *Session, p mhfpacket.MHFPacket) {
 	doAckEarthSucceed(s, pkt.AckHandle, data)
 }
 
-func handleMsgMhfPostSeibattle(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfPostSeibattle(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfPostSeibattle)
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+}
 
 func handleMsgMhfGetDailyMissionMaster(s *Session, p mhfpacket.MHFPacket) {}
 

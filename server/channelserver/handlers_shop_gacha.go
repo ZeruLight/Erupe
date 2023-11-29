@@ -10,13 +10,13 @@ import (
 
 type ShopItem struct {
 	ID           uint32 `db:"id"`
-	ItemID       uint16 `db:"item_id"`
+	ItemID       uint32 `db:"item_id"`
 	Cost         uint32 `db:"cost"`
 	Quantity     uint16 `db:"quantity"`
 	MinHR        uint16 `db:"min_hr"`
 	MinSR        uint16 `db:"min_sr"`
 	MinGR        uint16 `db:"min_gr"`
-	StoreLevel   uint16 `db:"store_level"`
+	StoreLevel   uint8  `db:"store_level"`
 	MaxQuantity  uint16 `db:"max_quantity"`
 	UsedQuantity uint16 `db:"used_quantity"`
 	RoadFloors   uint16 `db:"road_floors"`
@@ -61,19 +61,30 @@ func writeShopItems(bf *byteframe.ByteFrame, items []ShopItem) {
 	bf.WriteUint16(uint16(len(items)))
 	bf.WriteUint16(uint16(len(items)))
 	for _, item := range items {
-		bf.WriteUint32(item.ID)
-		bf.WriteUint16(0)
-		bf.WriteUint16(item.ItemID)
+		if _config.ErupeConfig.RealClientMode >= _config.Z2 {
+			bf.WriteUint32(item.ID)
+		}
+		bf.WriteUint32(item.ItemID)
 		bf.WriteUint32(item.Cost)
 		bf.WriteUint16(item.Quantity)
 		bf.WriteUint16(item.MinHR)
 		bf.WriteUint16(item.MinSR)
-		bf.WriteUint16(item.MinGR)
-		bf.WriteUint16(item.StoreLevel)
-		bf.WriteUint16(item.MaxQuantity)
-		bf.WriteUint16(item.UsedQuantity)
-		bf.WriteUint16(item.RoadFloors)
-		bf.WriteUint16(item.RoadFatalis)
+		if _config.ErupeConfig.RealClientMode >= _config.Z2 {
+			bf.WriteUint16(item.MinGR)
+		}
+		bf.WriteUint8(0) // Unk
+		bf.WriteUint8(item.StoreLevel)
+		if _config.ErupeConfig.RealClientMode >= _config.Z2 {
+			bf.WriteUint16(item.MaxQuantity)
+			bf.WriteUint16(item.UsedQuantity)
+		}
+		if _config.ErupeConfig.RealClientMode == _config.Z1 {
+			bf.WriteUint8(uint8(item.RoadFloors))
+			bf.WriteUint8(uint8(item.RoadFatalis))
+		} else if _config.ErupeConfig.RealClientMode >= _config.Z2 {
+			bf.WriteUint16(item.RoadFloors)
+			bf.WriteUint16(item.RoadFatalis)
+		}
 	}
 }
 
@@ -241,6 +252,9 @@ func handleMsgMhfEnumerateShop(s *Session, p mhfpacket.MHFPacket) {
 	case 10: // Item shop, 0-8
 		bf := byteframe.NewByteFrame()
 		items := getShopItems(s, pkt.ShopType, pkt.ShopID)
+		if len(items) > int(pkt.Limit) {
+			items = items[:pkt.Limit]
+		}
 		writeShopItems(bf, items)
 		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 	}

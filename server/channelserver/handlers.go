@@ -130,7 +130,7 @@ func handleMsgSysLogin(s *Session, p mhfpacket.MHFPacket) {
 
 	if !s.server.erupeConfig.DevModeOptions.DisableTokenCheck {
 		var token string
-		err := s.server.db.QueryRow("SELECT token FROM sign_sessions WHERE token=$1", pkt.LoginTokenString).Scan(&token)
+		err := s.server.db.QueryRow("SELECT token FROM sign_sessions ss INNER JOIN public.users u on ss.user_id = u.id WHERE token=$1 AND ss.id=$2 AND u.id=(SELECT c.user_id FROM characters c WHERE c.id=$3)", pkt.LoginTokenString, pkt.LoginTokenNumber, pkt.CharID0).Scan(&token)
 		if err != nil {
 			s.rawConn.Close()
 			s.logger.Warn(fmt.Sprintf("Invalid login token, offending CID: (%d)", pkt.CharID0))

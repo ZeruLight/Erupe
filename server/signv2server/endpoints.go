@@ -27,8 +27,9 @@ type LauncherResponse struct {
 }
 
 type User struct {
-	Token  string `json:"token"`
-	Rights uint32 `json:"rights"`
+	TokenID uint32 `json:"tokenId"`
+	Token   string `json:"token"`
+	Rights  uint32 `json:"rights"`
 }
 
 type Character struct {
@@ -65,14 +66,15 @@ type ExportData struct {
 	Character map[string]interface{} `json:"character"`
 }
 
-func (s *Server) newAuthData(userID uint32, userRights uint32, userToken string, characters []Character) AuthData {
+func (s *Server) newAuthData(userID uint32, userRights uint32, userTokenID uint32, userToken string, characters []Character) AuthData {
 	resp := AuthData{
 		CurrentTS:     uint32(channelserver.TimeAdjusted().Unix()),
 		ExpiryTS:      uint32(s.getReturnExpiry(userID).Unix()),
 		EntranceCount: 1,
 		User: User{
-			Rights: userRights,
-			Token:  userToken,
+			Rights:  userRights,
+			TokenID: userTokenID,
+			Token:   userToken,
 		},
 		Characters:  characters,
 		PatchServer: s.erupeConfig.SignV2.PatchServer,
@@ -142,7 +144,7 @@ func (s *Server) Login(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userToken, err := s.createLoginToken(ctx, userID)
+	userTokenID, userToken, err := s.createLoginToken(ctx, userID)
 	if err != nil {
 		s.logger.Warn("Error registering login token", zap.Error(err))
 		w.WriteHeader(500)
@@ -157,7 +159,7 @@ func (s *Server) Login(w http.ResponseWriter, r *http.Request) {
 	if characters == nil {
 		characters = []Character{}
 	}
-	respData := s.newAuthData(userID, userRights, userToken, characters)
+	respData := s.newAuthData(userID, userRights, userTokenID, userToken, characters)
 	w.Header().Add("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(respData)
 }
@@ -191,13 +193,13 @@ func (s *Server) Register(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	userToken, err := s.createLoginToken(ctx, userID)
+	userTokenID, userToken, err := s.createLoginToken(ctx, userID)
 	if err != nil {
 		s.logger.Error("Error registering login token", zap.Error(err))
 		w.WriteHeader(500)
 		return
 	}
-	respData := s.newAuthData(userID, userRights, userToken, []Character{})
+	respData := s.newAuthData(userID, userRights, userTokenID, userToken, []Character{})
 	w.Header().Add("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(respData)
 }

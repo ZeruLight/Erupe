@@ -32,13 +32,14 @@ func (s *Server) createNewUser(ctx context.Context, username string, password st
 	return id, rights, err
 }
 
-func (s *Server) createLoginToken(ctx context.Context, uid uint32) (string, error) {
+func (s *Server) createLoginToken(ctx context.Context, uid uint32) (uint32, string, error) {
 	loginToken := token.Generate(16)
-	_, err := s.db.ExecContext(ctx, "INSERT INTO sign_sessions (user_id, token) VALUES ($1, $2)", uid, loginToken)
+	var tid uint32
+	err := s.db.QueryRowContext(ctx, "INSERT INTO sign_sessions (user_id, token) VALUES ($1, $2) RETURNING id", uid, loginToken).Scan(&tid)
 	if err != nil {
-		return "", err
+		return 0, "", err
 	}
-	return loginToken, nil
+	return tid, loginToken, nil
 }
 
 func (s *Server) userIDFromToken(ctx context.Context, token string) (uint32, error) {

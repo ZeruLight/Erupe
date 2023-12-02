@@ -586,8 +586,10 @@ func handleMsgMhfTransitMessage(s *Session, p mhfpacket.MHFPacket) {
 						}
 					}
 
-					if stageData[0] > findPartyParams.RankRestriction {
-						continue
+					if findPartyParams.RankRestriction >= 0 {
+						if stageData[0] > findPartyParams.RankRestriction {
+							continue
+						}
 					}
 
 					var hasTarget bool
@@ -608,12 +610,12 @@ func handleMsgMhfTransitMessage(s *Session, p mhfpacket.MHFPacket) {
 					resp.WriteUint16(c.Port)
 
 					resp.WriteUint16(0) // Static?
-					resp.WriteUint16(0) // Unk
-					resp.WriteUint16(uint16(len(stage.reservedClientSlots)))
+					resp.WriteUint16(0) // Unk, [0 1 2]
+					resp.WriteUint16(uint16(len(stage.clients) + len(stage.reservedClientSlots)))
 					resp.WriteUint16(stage.maxPlayers)
-					resp.WriteUint16(uint16(len(stage.clients))) // Num clients entered from stage
+					resp.WriteUint16(uint16(len(stage.reservedClientSlots)))
 
-					resp.WriteUint8(0) // Unk
+					resp.WriteUint8(0) // Static?
 					resp.WriteUint8(uint8(stage.maxPlayers))
 					resp.WriteUint8(1) // Static?
 					resp.WriteUint8(uint8(len(stage.id) + 1))

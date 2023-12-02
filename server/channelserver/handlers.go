@@ -366,36 +366,41 @@ func handleMsgSysRightsReload(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfTransitMessage(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfTransitMessage)
+	bf := byteframe.NewByteFrameFromBytes(pkt.MessageData)
 	resp := byteframe.NewByteFrame()
 	resp.WriteUint16(0)
 	var count uint16
 	switch pkt.SearchType {
-	case 1: // CID
-		bf := byteframe.NewByteFrameFromBytes(pkt.MessageData)
-		CharID := bf.ReadUint32()
+	case 1: // usersearchidx
+		cid := bf.ReadUint32()
 		for _, c := range s.server.Channels {
 			for _, session := range c.sessions {
-				if session.charID == CharID {
+				if session.charID == cid {
 					count++
 					sessionName := stringsupport.UTF8ToSJIS(session.Name)
 					sessionStage := stringsupport.UTF8ToSJIS(session.stage.id)
 					resp.WriteUint32(binary.LittleEndian.Uint32(net.ParseIP(c.IP).To4()))
 					resp.WriteUint16(c.Port)
 					resp.WriteUint32(session.charID)
-					resp.WriteBool(true)
+					resp.WriteUint8(uint8(len(sessionStage) + 1))
 					resp.WriteUint8(uint8(len(sessionName) + 1))
 					resp.WriteUint16(uint16(len(c.userBinaryParts[userBinaryPartID{charID: session.charID, index: 3}])))
-					resp.WriteBytes(make([]byte, 40))
-					resp.WriteUint8(uint8(len(sessionStage) + 1))
+
+					// TODO: These cases might be <=G2
+					if _config.ErupeConfig.RealClientMode <= _config.G1 {
+						resp.WriteBytes(make([]byte, 8))
+					} else {
+						resp.WriteBytes(make([]byte, 40))
+					}
 					resp.WriteBytes(make([]byte, 8))
+
+					resp.WriteNullTerminatedBytes(sessionStage)
 					resp.WriteNullTerminatedBytes(sessionName)
 					resp.WriteBytes(c.userBinaryParts[userBinaryPartID{session.charID, 3}])
-					resp.WriteNullTerminatedBytes(sessionStage)
 				}
 			}
 		}
-	case 2: // Name
-		bf := byteframe.NewByteFrameFromBytes(pkt.MessageData)
+	case 2: // usersearchname
 		bf.ReadUint16() // lenSearchTerm
 		bf.ReadUint16() // maxResults
 		bf.ReadUint8()  // Unk
@@ -411,28 +416,33 @@ func handleMsgMhfTransitMessage(s *Session, p mhfpacket.MHFPacket) {
 					sessionStage := stringsupport.UTF8ToSJIS(session.stage.id)
 					resp.WriteUint32(binary.LittleEndian.Uint32(net.ParseIP(c.IP).To4()))
 					resp.WriteUint16(c.Port)
+
 					resp.WriteUint32(session.charID)
-					resp.WriteBool(true)
+					resp.WriteUint8(uint8(len(sessionStage) + 1))
 					resp.WriteUint8(uint8(len(sessionName) + 1))
 					resp.WriteUint16(uint16(len(c.userBinaryParts[userBinaryPartID{session.charID, 3}])))
-					resp.WriteBytes(make([]byte, 40))
-					resp.WriteUint8(uint8(len(sessionStage) + 1))
+
+					if _config.ErupeConfig.RealClientMode <= _config.G1 {
+						resp.WriteBytes(make([]byte, 8))
+					} else {
+						resp.WriteBytes(make([]byte, 40))
+					}
 					resp.WriteBytes(make([]byte, 8))
+
+					resp.WriteNullTerminatedBytes(sessionStage)
 					resp.WriteNullTerminatedBytes(sessionName)
 					resp.WriteBytes(c.userBinaryParts[userBinaryPartID{charID: session.charID, index: 3}])
-					resp.WriteNullTerminatedBytes(sessionStage)
 				}
 			}
 		}
-	case 3: // Enumerate Party
-		bf := byteframe.NewByteFrameFromBytes(pkt.MessageData)
+	case 3: // lobbysearchname
 		ip := bf.ReadBytes(4)
 		ipString := fmt.Sprintf("%d.%d.%d.%d", ip[3], ip[2], ip[1], ip[0])
 		port := bf.ReadUint16()
-		bf.ReadUint16() // lenStage
+		bf.ReadUint16() // Len stageID
 		maxResults := bf.ReadUint16()
-		bf.ReadBytes(1)
-		stageID := stringsupport.SJISToUTF8(bf.ReadNullTerminatedBytes())
+		bf.ReadUint8()
+		stageID := string(bf.ReadNullTerminatedBytes())
 		for _, c := range s.server.Channels {
 			if c.IP == ipString && c.Port == port {
 				for _, stage := range c.stages {
@@ -442,9 +452,6 @@ func handleMsgMhfTransitMessage(s *Session, p mhfpacket.MHFPacket) {
 						}
 						for session := range stage.clients {
 							count++
-							hrp := uint16(1)
-							gr := uint16(0)
-							s.server.db.QueryRow("SELECT hrp, gr FROM characters WHERE id=$1", session.charID).Scan(&hrp, &gr)
 							sessionStage := stringsupport.UTF8ToSJIS(session.stage.id)
 							sessionName := stringsupport.UTF8ToSJIS(session.Name)
 							resp.WriteUint32(binary.LittleEndian.Uint32(net.ParseIP(c.IP).To4()))
@@ -452,57 +459,60 @@ func handleMsgMhfTransitMessage(s *Session, p mhfpacket.MHFPacket) {
 							resp.WriteUint32(session.charID)
 							resp.WriteUint8(uint8(len(sessionStage) + 1))
 							resp.WriteUint8(uint8(len(sessionName) + 1))
-							resp.WriteUint8(0)
-							resp.WriteUint8(7) // lenBinary
-							resp.WriteBytes(make([]byte, 48))
+							resp.WriteUint16(uint16(len(c.userBinaryParts[userBinaryPartID{session.charID, 3}])))
+
+							if _config.ErupeConfig.RealClientMode <= _config.G1 {
+								resp.WriteBytes(make([]byte, 8))
+							} else {
+								resp.WriteBytes(make([]byte, 40))
+							}
+							resp.WriteBytes(make([]byte, 8))
+
 							resp.WriteNullTerminatedBytes(sessionStage)
 							resp.WriteNullTerminatedBytes(sessionName)
-							resp.WriteUint16(hrp)
-							resp.WriteUint16(gr)
-							resp.WriteBytes([]byte{0x06, 0x10, 0x00}) // Unk
+							resp.WriteBytes(c.userBinaryParts[userBinaryPartID{charID: session.charID, index: 3}])
 						}
 					}
 				}
 			}
 		}
-	case 4: // Find Party
+	case 4: // lobbysearch
 		type FindPartyParams struct {
 			StagePrefix     string
-			RankRestriction uint16
-			Targets         []uint16
-			Unk0            []uint16
-			Unk1            []uint16
-			QuestID         []uint16
+			RankRestriction int16
+			Targets         []int16
+			Unk0            []int16
+			Unk1            []int16
+			QuestID         []int16
 		}
 		findPartyParams := FindPartyParams{
 			StagePrefix: "sl2Ls210",
 		}
-		bf := byteframe.NewByteFrameFromBytes(pkt.MessageData)
-		numParams := int(bf.ReadUint8())
+		numParams := bf.ReadUint8()
 		maxResults := bf.ReadUint16()
-		for i := 0; i < numParams; i++ {
+		for i := uint8(0); i < numParams; i++ {
 			switch bf.ReadUint8() {
 			case 0:
-				values := int(bf.ReadUint8())
-				for i := 0; i < values; i++ {
+				values := bf.ReadUint8()
+				for i := uint8(0); i < values; i++ {
 					if _config.ErupeConfig.RealClientMode >= _config.Z1 {
-						findPartyParams.RankRestriction = bf.ReadUint16()
+						findPartyParams.RankRestriction = bf.ReadInt16()
 					} else {
-						findPartyParams.RankRestriction = uint16(bf.ReadInt8())
+						findPartyParams.RankRestriction = int16(bf.ReadInt8())
 					}
 				}
 			case 1:
-				values := int(bf.ReadUint8())
-				for i := 0; i < values; i++ {
+				values := bf.ReadUint8()
+				for i := uint8(0); i < values; i++ {
 					if _config.ErupeConfig.RealClientMode >= _config.Z1 {
-						findPartyParams.Targets = append(findPartyParams.Targets, bf.ReadUint16())
+						findPartyParams.Targets = append(findPartyParams.Targets, bf.ReadInt16())
 					} else {
-						findPartyParams.Targets = append(findPartyParams.Targets, uint16(bf.ReadInt8()))
+						findPartyParams.Targets = append(findPartyParams.Targets, int16(bf.ReadInt8()))
 					}
 				}
 			case 2:
-				values := int(bf.ReadUint8())
-				for i := 0; i < values; i++ {
+				values := bf.ReadUint8()
+				for i := uint8(0); i < values; i++ {
 					var value int16
 					if _config.ErupeConfig.RealClientMode >= _config.Z1 {
 						value = bf.ReadInt16()
@@ -523,30 +533,30 @@ func handleMsgMhfTransitMessage(s *Session, p mhfpacket.MHFPacket) {
 					}
 				}
 			case 3: // Unknown
-				values := int(bf.ReadUint8())
-				for i := 0; i < values; i++ {
+				values := bf.ReadUint8()
+				for i := uint8(0); i < values; i++ {
 					if _config.ErupeConfig.RealClientMode >= _config.Z1 {
-						findPartyParams.Unk0 = append(findPartyParams.Unk0, bf.ReadUint16())
+						findPartyParams.Unk0 = append(findPartyParams.Unk0, bf.ReadInt16())
 					} else {
-						findPartyParams.Unk0 = append(findPartyParams.Unk0, uint16(bf.ReadInt8()))
+						findPartyParams.Unk0 = append(findPartyParams.Unk0, int16(bf.ReadInt8()))
 					}
 				}
 			case 4: // Looking for n or already have n
-				values := int(bf.ReadUint8())
-				for i := 0; i < values; i++ {
+				values := bf.ReadUint8()
+				for i := uint8(0); i < values; i++ {
 					if _config.ErupeConfig.RealClientMode >= _config.Z1 {
-						findPartyParams.Unk1 = append(findPartyParams.Unk1, bf.ReadUint16())
+						findPartyParams.Unk1 = append(findPartyParams.Unk1, bf.ReadInt16())
 					} else {
-						findPartyParams.Unk1 = append(findPartyParams.Unk1, uint16(bf.ReadInt8()))
+						findPartyParams.Unk1 = append(findPartyParams.Unk1, int16(bf.ReadInt8()))
 					}
 				}
 			case 5:
-				values := int(bf.ReadUint8())
-				for i := 0; i < values; i++ {
+				values := bf.ReadUint8()
+				for i := uint8(0); i < values; i++ {
 					if _config.ErupeConfig.RealClientMode >= _config.Z1 {
-						findPartyParams.QuestID = append(findPartyParams.QuestID, bf.ReadUint16())
+						findPartyParams.QuestID = append(findPartyParams.QuestID, bf.ReadInt16())
 					} else {
-						findPartyParams.QuestID = append(findPartyParams.QuestID, uint16(bf.ReadInt8()))
+						findPartyParams.QuestID = append(findPartyParams.QuestID, int16(bf.ReadInt8()))
 					}
 				}
 			}
@@ -559,37 +569,64 @@ func handleMsgMhfTransitMessage(s *Session, p mhfpacket.MHFPacket) {
 				if strings.HasPrefix(stage.id, findPartyParams.StagePrefix) {
 					sb3 := byteframe.NewByteFrameFromBytes(stage.rawBinaryData[stageBinaryKey{1, 3}])
 					sb3.Seek(4, 0)
-					stageRankRestriction := sb3.ReadUint16()
-					stageTarget := sb3.ReadUint16()
-					if stageRankRestriction > findPartyParams.RankRestriction {
+
+					stageDataParams := 8
+					if _config.ErupeConfig.RealClientMode <= _config.G10 {
+						stageDataParams = 4
+					} else if _config.ErupeConfig.RealClientMode <= _config.Z1 {
+						stageDataParams = 6
+					} else if _config.ErupeConfig.RealClientMode <= _config.Z2 {
+						stageDataParams = 7
+					}
+
+					var stageData []int16
+					for i := 0; i < stageDataParams; i++ {
+						if _config.ErupeConfig.RealClientMode >= _config.Z1 {
+							stageData = append(stageData, sb3.ReadInt16())
+						} else {
+							stageData = append(stageData, int16(sb3.ReadInt8()))
+						}
+					}
+
+					if stageData[0] > findPartyParams.RankRestriction {
 						continue
 					}
+
+					var hasTarget bool
 					if len(findPartyParams.Targets) > 0 {
 						for _, target := range findPartyParams.Targets {
-							if target == stageTarget {
+							if target == stageData[1] {
+								hasTarget = true
 								break
 							}
 						}
-						continue
+						if !hasTarget {
+							continue
+						}
 					}
+
 					count++
-					sessionStage := stringsupport.UTF8ToSJIS(stage.id)
 					resp.WriteUint32(binary.LittleEndian.Uint32(net.ParseIP(c.IP).To4()))
 					resp.WriteUint16(c.Port)
+
 					resp.WriteUint16(0) // Static?
 					resp.WriteUint16(0) // Unk
-					resp.WriteUint16(uint16(len(stage.clients)))
+					resp.WriteUint16(uint16(len(stage.reservedClientSlots)))
 					resp.WriteUint16(stage.maxPlayers)
-					resp.WriteUint16(0) // Num clients entered from stage
-					resp.WriteUint16(stage.maxPlayers)
+					resp.WriteUint16(uint16(len(stage.clients))) // Num clients entered from stage
+
+					resp.WriteUint8(0) // Unk
+					resp.WriteUint8(uint8(stage.maxPlayers))
 					resp.WriteUint8(1) // Static?
-					resp.WriteUint8(uint8(len(sessionStage) + 1))
+					resp.WriteUint8(uint8(len(stage.id) + 1))
 					resp.WriteUint8(uint8(len(stage.rawBinaryData[stageBinaryKey{1, 0}])))
 					resp.WriteUint8(uint8(len(stage.rawBinaryData[stageBinaryKey{1, 1}])))
-					resp.WriteUint16(stageRankRestriction)
-					resp.WriteUint16(stageTarget)
-					resp.WriteBytes(make([]byte, 12))
-					resp.WriteNullTerminatedBytes(sessionStage)
+
+					for i := range stageData {
+						resp.WriteInt16(stageData[i])
+					}
+
+					resp.WriteNullTerminatedBytes([]byte(stage.id))
 					resp.WriteBytes(stage.rawBinaryData[stageBinaryKey{1, 0}])
 					resp.WriteBytes(stage.rawBinaryData[stageBinaryKey{1, 1}])
 				}

@@ -570,13 +570,11 @@ func handleMsgMhfTransitMessage(s *Session, p mhfpacket.MHFPacket) {
 					sb3 := byteframe.NewByteFrameFromBytes(stage.rawBinaryData[stageBinaryKey{1, 3}])
 					sb3.Seek(4, 0)
 
-					stageDataParams := 8
+					stageDataParams := 7
 					if _config.ErupeConfig.RealClientMode <= _config.G10 {
 						stageDataParams = 4
 					} else if _config.ErupeConfig.RealClientMode <= _config.Z1 {
 						stageDataParams = 6
-					} else if _config.ErupeConfig.RealClientMode <= _config.Z2 {
-						stageDataParams = 7
 					}
 
 					var stageData []int16
@@ -623,8 +621,14 @@ func handleMsgMhfTransitMessage(s *Session, p mhfpacket.MHFPacket) {
 					resp.WriteUint8(uint8(len(stage.rawBinaryData[stageBinaryKey{1, 1}])))
 
 					for i := range stageData {
-						resp.WriteInt16(stageData[i])
+						if _config.ErupeConfig.RealClientMode >= _config.Z1 {
+							resp.WriteInt16(stageData[i])
+						} else {
+							resp.WriteInt8(int8(stageData[i]))
+						}
 					}
+					resp.WriteUint8(0) // Unk
+					resp.WriteUint8(0) // Unk
 
 					resp.WriteNullTerminatedBytes([]byte(stage.id))
 					resp.WriteBytes(stage.rawBinaryData[stageBinaryKey{1, 0}])
@@ -632,10 +636,6 @@ func handleMsgMhfTransitMessage(s *Session, p mhfpacket.MHFPacket) {
 				}
 			}
 		}
-	}
-	if (pkt.SearchType == 1 || pkt.SearchType == 3) && count == 0 {
-		doAckBufFail(s, pkt.AckHandle, make([]byte, 4))
-		return
 	}
 	resp.Seek(0, io.SeekStart)
 	resp.WriteUint16(count)

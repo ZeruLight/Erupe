@@ -1003,7 +1003,7 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint32(55000)
 		bf.WriteUint32(0)
 		bf.WriteUint16(0) // Changing Room RP
-		bf.WriteUint16(0)
+		bf.WriteUint16(0) // Ignored
 
 		if guild.AllianceID > 0 {
 			alliance, err := GetAllianceData(s, guild.AllianceID)
@@ -1013,7 +1013,7 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 				bf.WriteUint32(alliance.ID)
 				bf.WriteUint32(uint32(alliance.CreatedAt.Unix()))
 				bf.WriteUint16(alliance.TotalMembers)
-				bf.WriteUint8(0)
+				bf.WriteUint8(0) // Ignored
 				bf.WriteUint8(0)
 				ps.Uint16(bf, alliance.Name, true)
 				if alliance.SubGuild1ID > 0 {

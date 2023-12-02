@@ -613,6 +613,7 @@ func handleMsgMhfTransitMessage(s *Session, p mhfpacket.MHFPacket) {
 					resp.WriteUint16(0) // Unk, [0 1 2]
 					resp.WriteUint16(uint16(len(stage.clients) + len(stage.reservedClientSlots)))
 					resp.WriteUint16(stage.maxPlayers)
+					// TODO: Retail returned the number of clients in quests, not workshop/my series
 					resp.WriteUint16(uint16(len(stage.reservedClientSlots)))
 
 					resp.WriteUint8(0) // Static?

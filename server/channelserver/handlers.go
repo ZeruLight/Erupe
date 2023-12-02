@@ -1020,7 +1020,10 @@ func handleMsgMhfStampcardStamp(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfStampcardPrize(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfUnreserveSrg(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfUnreserveSrg(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfUnreserveSrg)
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+}
 
 func handleMsgMhfKickExportForce(s *Session, p mhfpacket.MHFPacket) {}
 

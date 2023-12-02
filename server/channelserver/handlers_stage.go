@@ -386,7 +386,11 @@ func handleMsgSysEnumerateStage(s *Session, p mhfpacket.MHFPacket) {
 
 		bf.WriteUint16(uint16(len(stage.reservedClientSlots)))
 		bf.WriteUint16(uint16(len(stage.clients)))
-		bf.WriteUint16(uint16(len(stage.clients)))
+		if strings.HasPrefix(stage.id, "sl2Ls") {
+			bf.WriteUint16(uint16(len(stage.clients) + len(stage.reservedClientSlots)))
+		} else {
+			bf.WriteUint16(uint16(len(stage.clients)))
+		}
 		bf.WriteUint16(stage.maxPlayers)
 		var flags uint8
 		if stage.locked {

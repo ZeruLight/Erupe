@@ -117,8 +117,9 @@ type DevModeOptions struct {
 }
 
 type SaveDumpOptions struct {
-	Enabled   bool
-	OutputDir string
+	Enabled    bool
+	RawEnabled bool
+	OutputDir  string
 }
 
 // GameplayOptions has various gameplay modifiers

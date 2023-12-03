@@ -34,6 +34,7 @@
     "EarthMonsterOverride": [0, 0, 0, 0],
     "SaveDumps": {
       "Enabled": true,
+      "RawEnabled": false,
       "OutputDir": "save-backups"
     }
   },

@@ -157,6 +157,7 @@ func handleMsgSysEnterStage(s *Session, p mhfpacket.MHFPacket) {
 		s.stage.reservedClientSlots[s.charID] = false
 		s.stage.Unlock()
 		s.stageMoveStack.Push(s.stage.id)
+		s.stageMoveStack.Lock()
 	}
 
 	if s.reservationStage != nil {
@@ -170,6 +171,7 @@ func handleMsgSysBackStage(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysBackStage)
 
 	// Transfer back to the saved stage ID before the previous move or enter.
+	s.stageMoveStack.Unlock()
 	backStage, err := s.stageMoveStack.Pop()
 	if backStage == "" || err != nil {
 		backStage = "sl1Ns200p0a0u0"
@@ -190,7 +192,9 @@ func handleMsgSysMoveStage(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysMoveStage)
 
 	// Set a new move stack from the given stage ID
-	s.stageMoveStack.Set(pkt.StageID)
+	if !s.stageMoveStack.Locked {
+		s.stageMoveStack.Set(pkt.StageID)
+	}
 
 	doStageTransfer(s, pkt.AckHandle, pkt.StageID)
 }

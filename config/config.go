@@ -228,35 +228,29 @@ type SignV2Link struct {
 
 type Channel struct {
 	Enabled bool
+	Worlds  []World
+}
+
+type World struct {
+	IP                 string
+	Type               uint8
+	Season             uint8
+	Recommended        uint8
+	Name               string
+	Description        string
+	AllowedClientFlags uint32
+	Lands              []Land
+}
+
+type Land struct {
+	Port       uint16
+	MaxPlayers uint16
 }
 
 // Entrance holds the entrance server config.
 type Entrance struct {
 	Enabled bool
 	Port    uint16
-	Entries []EntranceServerInfo
-}
-
-// EntranceServerInfo represents an entry in the serverlist.
-type EntranceServerInfo struct {
-	IP          string
-	Type        uint8  // Server type. 0=?, 1=open, 2=cities, 3=newbie, 4=bar
-	Season      uint8  // Server activity. 0 = green, 1 = orange, 2 = blue
-	Recommended uint8  // Something to do with server recommendation on 0, 3, and 5.
-	Name        string // Server name, 66 byte null terminated Shift-JIS(JP) or Big5(TW).
-	Description string // Server description
-	// 4096(PC, PS3/PS4)?, 8258(PC, PS3/PS4)?, 8192 == nothing?
-	// THIS ONLY EXISTS IF Binary8Header.type == "SV2", NOT "SVR"!
-	AllowedClientFlags uint32
-
-	Channels []EntranceChannelInfo
-}
-
-// EntranceChannelInfo represents an entry in a server's channel list.
-type EntranceChannelInfo struct {
-	Port           uint16
-	MaxPlayers     uint16
-	CurrentPlayers uint16
 }
 
 var ErupeConfig *Config

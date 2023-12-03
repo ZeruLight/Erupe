@@ -156,45 +156,37 @@
     "Links": []
   },
   "Channel": {
-    "Enabled": true
+    "Enabled": true,
+    "Worlds": [
+      {
+        "Name": "Novice", "Description": "Up to 2★", "IP": "", "Type": 3, "Recommended": 1, "AllowedClientFlags": 0,
+        "Lands": [{"MaxPlayers": 100}]
+      }, {
+        "Name": "Rookie", "Description": "Up to 4★", "IP": "", "Type": 3, "Recommended": 2, "AllowedClientFlags": 0,
+        "Lands": [{"MaxPlayers": 100}]
+      }, {
+        "Name": "Sincere", "Description": "All Quests", "IP": "", "Type": 1, "Recommended": 0, "AllowedClientFlags": 0,
+        "Lands": [{"MaxPlayers": 100}]
+      }, {
+        "Name": "Brave", "Description": "Only G Quests", "IP": "", "Type": 1, "Recommended": 5, "AllowedClientFlags": 0,
+        "Lands": [{"MaxPlayers": 100}]
+      }, {
+        "Name": "Noble", "Description": "All Quests", "IP": "", "Type": 2, "Recommended": 0, "AllowedClientFlags": 0,
+        "Lands": [{"MaxPlayers": 100}, {"MaxPlayers": 100}]
+      }, {
+        "Name": "Spirit", "Description": "All Quests", "IP": "", "Type": 4, "Recommended": 0, "AllowedClientFlags": 0,
+        "Lands": [{"MaxPlayers": 100}, {"MaxPlayers": 100}]
+      }, {
+        "Name": "Legend", "Description": "All Quests", "IP": "", "Type": 5, "Recommended": 0, "AllowedClientFlags": 0,
+        "Lands": [{"MaxPlayers": 100}]
+      }, {
+        "Name": "Fancy", "Description": "Minigames!", "IP": "", "Type": 6, "Recommended": 6, "AllowedClientFlags": 0,
+        "Lands": [{"MaxPlayers": 80}]
+      }
+    ]
   },
   "Entrance": {
     "Enabled": true,
-    "Port": 53310,
-    "Entries": [
-      {
-        "Name": "Newbie", "Description": "", "IP": "", "Type": 3, "Recommended": 2, "AllowedClientFlags": 0,
-        "Channels": [
-          { "Port": 54001, "MaxPlayers": 100 },
-          { "Port": 54002, "MaxPlayers": 100 }
-        ]
-      }, {
-        "Name": "Normal", "Description": "", "IP": "", "Type": 1, "Recommended": 0, "AllowedClientFlags": 0,
-        "Channels": [
-          { "Port": 54003, "MaxPlayers": 100 },
-          { "Port": 54004, "MaxPlayers": 100 }
-        ]
-      }, {
-        "Name": "Cities", "Description": "", "IP": "", "Type": 2, "Recommended": 0, "AllowedClientFlags": 0,
-        "Channels": [
-          { "Port": 54005, "MaxPlayers": 100 }
-        ]
-      }, {
-        "Name": "Tavern", "Description": "", "IP": "", "Type": 4, "Recommended": 0, "AllowedClientFlags": 0,
-        "Channels": [
-          { "Port": 54006, "MaxPlayers": 100 }
-        ]
-      }, {
-        "Name": "Return", "Description": "", "IP": "", "Type": 5, "Recommended": 0, "AllowedClientFlags": 0,
-        "Channels": [
-          { "Port": 54007, "MaxPlayers": 100 }
-        ]
-      }, {
-        "Name": "MezFes", "Description": "", "IP": "", "Type": 6, "Recommended": 6, "AllowedClientFlags": 0,
-        "Channels": [
-          { "Port": 54008, "MaxPlayers": 100 }
-        ]
-      }
-    ]
+    "Port": 53310
   }
 }

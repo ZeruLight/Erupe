@@ -7,6 +7,7 @@ import (
 	"os"
 	"os/signal"
 	"runtime/debug"
+	"slices"
 	"syscall"
 	"time"
 
@@ -150,7 +151,7 @@ func main() {
 		entranceServer = entranceserver.NewServer(
 			&entranceserver.Config{
 				Logger:      logger.Named("entrance"),
-				ErupeConfig: _config.ErupeConfig,
+				ErupeConfig: config,
 				DB:          db,
 			})
 		err = entranceServer.Start()
@@ -169,7 +170,7 @@ func main() {
 		signServer = signserver.NewServer(
 			&signserver.Config{
 				Logger:      logger.Named("sign"),
-				ErupeConfig: _config.ErupeConfig,
+				ErupeConfig: config,
 				DB:          db,
 			})
 		err = signServer.Start()
@@ -187,7 +188,7 @@ func main() {
 		newSignServer = signv2server.NewServer(
 			&signv2server.Config{
 				Logger:      logger.Named("sign"),
-				ErupeConfig: _config.ErupeConfig,
+				ErupeConfig: config,
 				DB:          db,
 			})
 		err = newSignServer.Start()
@@ -199,20 +200,20 @@ func main() {
 		logger.Info("SignV2: Disabled")
 	}
 
-	var channels []*channelserver.Server
+	var worlds [][]*channelserver.Server
+	var ports []uint16
 
 	if config.Channel.Enabled {
 		channelQuery := ""
-		si := 0
-		ci := 0
-		count := 1
-		for j, ee := range config.Entrance.Entries {
-			for i, ce := range ee.Channels {
-				sid := (4096 + si*256) + (16 + ci)
+		var count int
+		for j, ee := range config.Channel.Worlds {
+			var lands []*channelserver.Server
+			for i, ce := range ee.Lands {
+				sid := (4096 + j*256) + (16 + i)
 				c := *channelserver.NewServer(&channelserver.Config{
 					ID:          uint16(sid),
-					Logger:      logger.Named("channel-" + fmt.Sprint(count)),
-					ErupeConfig: _config.ErupeConfig,
+					Logger:      logger.Named("channel-" + fmt.Sprint(count+1)),
+					ErupeConfig: config,
 					DB:          db,
 					DiscordBot:  discordBot,
 				})
@@ -221,28 +222,41 @@ func main() {
 				} else {
 					c.IP = ee.IP
 				}
-				c.Port = ce.Port
+				if ce.Port == 0 {
+					for i := 0; ; i++ {
+						port := uint16(54001 + i)
+						if !slices.Contains(ports, port) {
+							ce.Port = port
+							break
+						}
+					}
+				}
+				if slices.Contains(ports, ce.Port) {
+					preventClose("Channel: Failed to start, duplicate port")
+					break
+				} else {
+					ports = append(ports, ce.Port)
+					c.Port = ce.Port
+				}
 				c.GlobalID = fmt.Sprintf("%02d%02d", j+1, i+1)
 				err = c.Start()
 				if err != nil {
 					preventClose(fmt.Sprintf("Channel: Failed to start, %s", err.Error()))
 				} else {
 					channelQuery += fmt.Sprintf(`INSERT INTO servers (server_id, current_players, world_name, world_description, land) VALUES (%d, 0, '%s', '%s', %d);`, sid, ee.Name, ee.Description, i+1)
-					channels = append(channels, &c)
-					logger.Info(fmt.Sprintf("Channel %d (%d): Started successfully", count, ce.Port))
-					ci++
+					lands = append(lands, &c)
+					logger.Info(fmt.Sprintf("Channel %d (%d): Started successfully", count, c.Port))
 					count++
 				}
 			}
-			ci = 0
-			si++
+			worlds = append(worlds, lands)
 		}
 
 		// Register all servers in DB
 		_ = db.MustExec(channelQuery)
 
-		for _, c := range channels {
-			c.Channels = channels
+		if config.Entrance.Enabled {
+			entranceServer.SetWorlds(worlds)
 		}
 	}
 
@@ -256,8 +270,10 @@ func main() {
 	if !config.DisableSoftCrash {
 		for i := 0; i < 10; i++ {
 			message := fmt.Sprintf("Shutting down in %d...", 10-i)
-			for _, c := range channels {
-				c.BroadcastChatMessage(message)
+			for _, w := range worlds {
+				for _, l := range w {
+					l.BroadcastChatMessage(message)
+				}
 			}
 			logger.Info(message)
 			time.Sleep(time.Second)
@@ -265,8 +281,10 @@ func main() {
 	}
 
 	if config.Channel.Enabled {
-		for _, c := range channels {
-			c.Shutdown()
+		for _, w := range worlds {
+			for _, l := range w {
+				l.Shutdown()
+			}
 		}
 	}
 

@@ -2,6 +2,7 @@ package entranceserver
 
 import (
 	"encoding/hex"
+	"erupe-ce/server/channelserver"
 	"fmt"
 	"io"
 	"net"
@@ -19,6 +20,7 @@ type Server struct {
 	sync.Mutex
 	logger         *zap.Logger
 	erupeConfig    *_config.Config
+	worlds         [][]*channelserver.Server
 	db             *sqlx.DB
 	listener       net.Listener
 	isShuttingDown bool
@@ -66,6 +68,10 @@ func (s *Server) Shutdown() {
 
 	// This will cause the acceptor goroutine to error and exit gracefully.
 	s.listener.Close()
+}
+
+func (s *Server) SetWorlds(c [][]*channelserver.Server) {
+	s.worlds = c
 }
 
 // acceptClients handles accepting new clients in a loop.

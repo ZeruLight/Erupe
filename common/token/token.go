@@ -1,6 +1,7 @@
 package token
 
 import (
+	crand "crypto/rand"
 	"math/rand"
 	"time"
 )
@@ -19,4 +20,11 @@ func Generate(length int) string {
 // RNG returns a new RNG generator
 func RNG() *rand.Rand {
 	return rand.New(rand.NewSource(time.Now().UnixNano()))
+}
+
+// RandBytes returns x random bytes
+func RandBytes(x int) []byte {
+	y := make([]byte, x)
+	crand.Read(y)
+	return y
 }

@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"erupe-ce/common/stringsupport"
+	"erupe-ce/common/token"
 	_config "erupe-ce/config"
 	"fmt"
 	"net"
@@ -13,10 +14,8 @@ import (
 )
 
 func encodeServerInfo(config *_config.Config, s *Server, local bool) []byte {
-	serverInfos := config.Entrance.Entries
 	bf := byteframe.NewByteFrame()
-
-	for serverIdx, si := range serverInfos {
+	for i, si := range config.Channel.Worlds {
 		// Prevent MezFes Worlds displaying on Z1
 		if config.RealClientMode <= _config.Z1 {
 			if si.Type == 6 {
@@ -29,7 +28,7 @@ func encodeServerInfo(config *_config.Config, s *Server, local bool) []byte {
 			}
 		}
 
-		sid := (4096 + serverIdx*256) * 6000
+		sid := (4096 + i*256) * 6000
 		if si.IP == "" {
 			si.IP = config.Host
 		}
@@ -38,11 +37,11 @@ func encodeServerInfo(config *_config.Config, s *Server, local bool) []byte {
 		} else {
 			bf.WriteUint32(binary.LittleEndian.Uint32(net.ParseIP(si.IP).To4()))
 		}
-		bf.WriteUint16(16 + uint16(serverIdx))
+		bf.WriteUint16(16 + uint16(i))
 		bf.WriteUint16(0x0000)
-		bf.WriteUint16(uint16(len(si.Channels)))
+		bf.WriteUint16(uint16(len(si.Lands)))
 		bf.WriteUint8(si.Type)
-		bf.WriteUint8(uint8(((channelserver.TimeAdjusted().Unix() / 86400) + int64(serverIdx)) % 3))
+		bf.WriteUint8(uint8(((channelserver.TimeAdjusted().Unix() / 86400) + int64(i)) % 3))
 		if s.erupeConfig.RealClientMode >= _config.G1 {
 			bf.WriteUint8(si.Recommended)
 		}
@@ -67,15 +66,15 @@ func encodeServerInfo(config *_config.Config, s *Server, local bool) []byte {
 			bf.WriteUint32(si.AllowedClientFlags)
 		}
 
-		for channelIdx, ci := range si.Channels {
-			sid = (4096 + serverIdx*256) + (16 + channelIdx)
+		for j, land := range si.Lands {
+			sid = (4096 + i*256) + (16 + j)
 			if _config.ErupeConfig.DevMode && _config.ErupeConfig.ProxyPort != 0 {
 				bf.WriteUint16(_config.ErupeConfig.ProxyPort)
 			} else {
-				bf.WriteUint16(ci.Port)
+				bf.WriteUint16(land.Port)
 			}
-			bf.WriteUint16(16 + uint16(channelIdx))
-			bf.WriteUint16(ci.MaxPlayers)
+			bf.WriteUint16(16 + uint16(j))
+			bf.WriteUint16(land.MaxPlayers)
 			var currentPlayers uint16
 			s.db.QueryRow("SELECT current_players FROM servers WHERE server_id=$1", sid).Scan(&currentPlayers)
 			bf.WriteUint16(currentPlayers)
@@ -115,11 +114,11 @@ func makeHeader(data []byte, respType string, entryCount uint16, key byte) []byt
 }
 
 func makeSv2Resp(config *_config.Config, s *Server, local bool) []byte {
-	serverInfos := config.Entrance.Entries
+	worlds := config.Channel.Worlds
 	// Decrease by the number of MezFes Worlds
 	var mf int
 	if config.RealClientMode <= _config.Z1 {
-		for _, si := range serverInfos {
+		for _, si := range worlds {
 			if si.Type == 6 {
 				mf++
 			}
@@ -128,7 +127,7 @@ func makeSv2Resp(config *_config.Config, s *Server, local bool) []byte {
 	// and Return Worlds
 	var ret int
 	if config.RealClientMode <= _config.G6 {
-		for _, si := range serverInfos {
+		for _, si := range worlds {
 			if si.Type == 5 {
 				ret++
 			}
@@ -146,7 +145,7 @@ func makeSv2Resp(config *_config.Config, s *Server, local bool) []byte {
 	}
 
 	bf := byteframe.NewByteFrame()
-	bf.WriteBytes(makeHeader(rawServerData, respType, uint16(len(serverInfos)-(mf+ret)), 0x00))
+	bf.WriteBytes(makeHeader(rawServerData, respType, uint16(len(worlds)-(mf+ret)), token.RandBytes(1)[0]))
 	return bf.Data()
 }
 
@@ -172,5 +171,5 @@ func makeUsrResp(pkt []byte, s *Server) []byte {
 		fmt.Printf("[Server] -> [Client]\nData [%d bytes]:\n%s\n", len(resp.Data()), hex.Dump(resp.Data()))
 	}
 
-	return makeHeader(resp.Data(), "USR", userEntries, 0x00)
+	return makeHeader(resp.Data(), "USR", userEntries, token.RandBytes(1)[0])
 }

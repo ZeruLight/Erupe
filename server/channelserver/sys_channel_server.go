@@ -419,3 +419,7 @@ func (s *Server) Season() uint8 {
 	sid := int64(((s.ID & 0xFF00) - 4096) / 256)
 	return uint8(((TimeAdjusted().Unix() / 86400) + sid) % 3)
 }
+
+func (s *Server) Players() uint16 {
+	return uint16(len(s.sessions))
+}

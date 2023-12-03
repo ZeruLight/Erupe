@@ -366,6 +366,12 @@ func handleMsgSysRightsReload(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfTransitMessage(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfTransitMessage)
+
+	local := false
+	if strings.Split(s.rawConn.RemoteAddr().String(), ":")[0] == "127.0.0.1" {
+		local = true
+	}
+
 	bf := byteframe.NewByteFrameFromBytes(pkt.MessageData)
 	resp := byteframe.NewByteFrame()
 	resp.WriteUint16(0)
@@ -379,7 +385,11 @@ func handleMsgMhfTransitMessage(s *Session, p mhfpacket.MHFPacket) {
 					count++
 					sessionName := stringsupport.UTF8ToSJIS(session.Name)
 					sessionStage := stringsupport.UTF8ToSJIS(session.stage.id)
-					resp.WriteUint32(binary.LittleEndian.Uint32(net.ParseIP(c.IP).To4()))
+					if !local {
+						resp.WriteUint32(binary.LittleEndian.Uint32(net.ParseIP(c.IP).To4()))
+					} else {
+						resp.WriteUint32(0x0100007F)
+					}
 					resp.WriteUint16(c.Port)
 					resp.WriteUint32(session.charID)
 					resp.WriteUint8(uint8(len(sessionStage) + 1))
@@ -414,7 +424,11 @@ func handleMsgMhfTransitMessage(s *Session, p mhfpacket.MHFPacket) {
 					count++
 					sessionName := stringsupport.UTF8ToSJIS(session.Name)
 					sessionStage := stringsupport.UTF8ToSJIS(session.stage.id)
-					resp.WriteUint32(binary.LittleEndian.Uint32(net.ParseIP(c.IP).To4()))
+					if !local {
+						resp.WriteUint32(binary.LittleEndian.Uint32(net.ParseIP(c.IP).To4()))
+					} else {
+						resp.WriteUint32(0x0100007F)
+					}
 					resp.WriteUint16(c.Port)
 
 					resp.WriteUint32(session.charID)
@@ -454,7 +468,11 @@ func handleMsgMhfTransitMessage(s *Session, p mhfpacket.MHFPacket) {
 							count++
 							sessionStage := stringsupport.UTF8ToSJIS(session.stage.id)
 							sessionName := stringsupport.UTF8ToSJIS(session.Name)
-							resp.WriteUint32(binary.LittleEndian.Uint32(net.ParseIP(c.IP).To4()))
+							if !local {
+								resp.WriteUint32(binary.LittleEndian.Uint32(net.ParseIP(c.IP).To4()))
+							} else {
+								resp.WriteUint32(0x0100007F)
+							}
 							resp.WriteUint16(c.Port)
 							resp.WriteUint32(session.charID)
 							resp.WriteUint8(uint8(len(sessionStage) + 1))
@@ -606,7 +624,11 @@ func handleMsgMhfTransitMessage(s *Session, p mhfpacket.MHFPacket) {
 					}
 
 					count++
-					resp.WriteUint32(binary.LittleEndian.Uint32(net.ParseIP(c.IP).To4()))
+					if !local {
+						resp.WriteUint32(binary.LittleEndian.Uint32(net.ParseIP(c.IP).To4()))
+					} else {
+						resp.WriteUint32(0x0100007F)
+					}
 					resp.WriteUint16(c.Port)
 
 					resp.WriteUint16(0) // Static?

@@ -372,126 +372,72 @@ func handleMsgMhfTransitMessage(s *Session, p mhfpacket.MHFPacket) {
 		local = true
 	}
 
+	var maxResults, port, count uint16
+	var cid uint32
+	var term, ip string
 	bf := byteframe.NewByteFrameFromBytes(pkt.MessageData)
+	switch pkt.SearchType {
+	case 1:
+		maxResults = 1
+		cid = bf.ReadUint32()
+	case 2:
+		bf.ReadUint16() // term length
+		maxResults = bf.ReadUint16()
+		bf.ReadUint8() // Unk
+		term = stringsupport.SJISToUTF8(bf.ReadNullTerminatedBytes())
+	case 3:
+		_ip := bf.ReadBytes(4)
+		ip = fmt.Sprintf("%d.%d.%d.%d", _ip[3], _ip[2], _ip[1], _ip[0])
+		port = bf.ReadUint16()
+		bf.ReadUint16() // term length
+		maxResults = bf.ReadUint16()
+		bf.ReadUint8()
+		term = string(bf.ReadNullTerminatedBytes())
+	}
+
 	resp := byteframe.NewByteFrame()
 	resp.WriteUint16(0)
-	var count uint16
 	switch pkt.SearchType {
-	case 1: // usersearchidx
-		cid := bf.ReadUint32()
+	case 1, 2, 3: // usersearchidx, usersearchname, lobbysearchname
 		for _, c := range s.server.Channels {
 			for _, session := range c.sessions {
-				if session.charID == cid {
-					count++
-					sessionName := stringsupport.UTF8ToSJIS(session.Name)
-					sessionStage := stringsupport.UTF8ToSJIS(session.stage.id)
-					if !local {
-						resp.WriteUint32(binary.LittleEndian.Uint32(net.ParseIP(c.IP).To4()))
-					} else {
-						resp.WriteUint32(0x0100007F)
-					}
-					resp.WriteUint16(c.Port)
-					resp.WriteUint32(session.charID)
-					resp.WriteUint8(uint8(len(sessionStage) + 1))
-					resp.WriteUint8(uint8(len(sessionName) + 1))
-					resp.WriteUint16(uint16(len(c.userBinaryParts[userBinaryPartID{charID: session.charID, index: 3}])))
-
-					// TODO: These cases might be <=G2
-					if _config.ErupeConfig.RealClientMode <= _config.G1 {
-						resp.WriteBytes(make([]byte, 8))
-					} else {
-						resp.WriteBytes(make([]byte, 40))
-					}
-					resp.WriteBytes(make([]byte, 8))
-
-					resp.WriteNullTerminatedBytes(sessionStage)
-					resp.WriteNullTerminatedBytes(sessionName)
-					resp.WriteBytes(c.userBinaryParts[userBinaryPartID{session.charID, 3}])
-				}
-			}
-		}
-	case 2: // usersearchname
-		bf.ReadUint16() // lenSearchTerm
-		bf.ReadUint16() // maxResults
-		bf.ReadUint8()  // Unk
-		searchTerm := stringsupport.SJISToUTF8(bf.ReadNullTerminatedBytes())
-		for _, c := range s.server.Channels {
-			for _, session := range c.sessions {
-				if count == 100 {
+				if count == maxResults {
 					break
 				}
-				if strings.Contains(session.Name, searchTerm) {
-					count++
-					sessionName := stringsupport.UTF8ToSJIS(session.Name)
-					sessionStage := stringsupport.UTF8ToSJIS(session.stage.id)
-					if !local {
-						resp.WriteUint32(binary.LittleEndian.Uint32(net.ParseIP(c.IP).To4()))
-					} else {
-						resp.WriteUint32(0x0100007F)
-					}
-					resp.WriteUint16(c.Port)
+				if pkt.SearchType == 1 && session.charID != cid {
+					continue
+				}
+				if pkt.SearchType == 2 && !strings.Contains(session.Name, term) {
+					continue
+				}
+				if pkt.SearchType == 3 && session.server.IP != ip && session.server.Port != port && session.stage.id != term {
+					continue
+				}
+				count++
+				sessionName := stringsupport.UTF8ToSJIS(session.Name)
+				sessionStage := stringsupport.UTF8ToSJIS(session.stage.id)
+				if !local {
+					resp.WriteUint32(binary.LittleEndian.Uint32(net.ParseIP(c.IP).To4()))
+				} else {
+					resp.WriteUint32(0x0100007F)
+				}
+				resp.WriteUint16(c.Port)
+				resp.WriteUint32(session.charID)
+				resp.WriteUint8(uint8(len(sessionStage) + 1))
+				resp.WriteUint8(uint8(len(sessionName) + 1))
+				resp.WriteUint16(uint16(len(c.userBinaryParts[userBinaryPartID{charID: session.charID, index: 3}])))
 
-					resp.WriteUint32(session.charID)
-					resp.WriteUint8(uint8(len(sessionStage) + 1))
-					resp.WriteUint8(uint8(len(sessionName) + 1))
-					resp.WriteUint16(uint16(len(c.userBinaryParts[userBinaryPartID{session.charID, 3}])))
-
-					if _config.ErupeConfig.RealClientMode <= _config.G1 {
-						resp.WriteBytes(make([]byte, 8))
-					} else {
-						resp.WriteBytes(make([]byte, 40))
-					}
+				// TODO: This case might be <=G2
+				if _config.ErupeConfig.RealClientMode <= _config.G1 {
 					resp.WriteBytes(make([]byte, 8))
-
-					resp.WriteNullTerminatedBytes(sessionStage)
-					resp.WriteNullTerminatedBytes(sessionName)
-					resp.WriteBytes(c.userBinaryParts[userBinaryPartID{charID: session.charID, index: 3}])
+				} else {
+					resp.WriteBytes(make([]byte, 40))
 				}
-			}
-		}
-	case 3: // lobbysearchname
-		ip := bf.ReadBytes(4)
-		ipString := fmt.Sprintf("%d.%d.%d.%d", ip[3], ip[2], ip[1], ip[0])
-		port := bf.ReadUint16()
-		bf.ReadUint16() // Len stageID
-		maxResults := bf.ReadUint16()
-		bf.ReadUint8()
-		stageID := string(bf.ReadNullTerminatedBytes())
-		for _, c := range s.server.Channels {
-			if c.IP == ipString && c.Port == port {
-				for _, stage := range c.stages {
-					if stage.id == stageID {
-						if count == maxResults {
-							break
-						}
-						for session := range stage.clients {
-							count++
-							sessionStage := stringsupport.UTF8ToSJIS(session.stage.id)
-							sessionName := stringsupport.UTF8ToSJIS(session.Name)
-							if !local {
-								resp.WriteUint32(binary.LittleEndian.Uint32(net.ParseIP(c.IP).To4()))
-							} else {
-								resp.WriteUint32(0x0100007F)
-							}
-							resp.WriteUint16(c.Port)
-							resp.WriteUint32(session.charID)
-							resp.WriteUint8(uint8(len(sessionStage) + 1))
-							resp.WriteUint8(uint8(len(sessionName) + 1))
-							resp.WriteUint16(uint16(len(c.userBinaryParts[userBinaryPartID{session.charID, 3}])))
+				resp.WriteBytes(make([]byte, 8))
 
-							if _config.ErupeConfig.RealClientMode <= _config.G1 {
-								resp.WriteBytes(make([]byte, 8))
-							} else {
-								resp.WriteBytes(make([]byte, 40))
-							}
-							resp.WriteBytes(make([]byte, 8))
-
-							resp.WriteNullTerminatedBytes(sessionStage)
-							resp.WriteNullTerminatedBytes(sessionName)
-							resp.WriteBytes(c.userBinaryParts[userBinaryPartID{charID: session.charID, index: 3}])
-						}
-					}
-				}
+				resp.WriteNullTerminatedBytes(sessionStage)
+				resp.WriteNullTerminatedBytes(sessionName)
+				resp.WriteBytes(c.userBinaryParts[userBinaryPartID{session.charID, 3}])
 			}
 		}
 	case 4: // lobbysearch
@@ -507,7 +453,7 @@ func handleMsgMhfTransitMessage(s *Session, p mhfpacket.MHFPacket) {
 			StagePrefix: "sl2Ls210",
 		}
 		numParams := bf.ReadUint8()
-		maxResults := bf.ReadUint16()
+		maxResults = bf.ReadUint16()
 		for i := uint8(0); i < numParams; i++ {
 			switch bf.ReadUint8() {
 			case 0:

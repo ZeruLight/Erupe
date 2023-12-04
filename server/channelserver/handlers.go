@@ -991,12 +991,17 @@ func handleMsgMhfUpdateGuacot(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfUpdateGuacot)
 	for _, goocoo := range pkt.Goocoos {
 		// TODO: This doesn't seem to indicate deletion?
-		if goocoo.Data[0] == 0 && goocoo.Data[1] == 0 {
+		if goocoo.Data1[0] == 0 {
 			s.server.db.Exec(fmt.Sprintf("UPDATE goocoo SET goocoo%d=NULL WHERE id=$1", goocoo.Index), s.charID)
 		} else {
 			bf := byteframe.NewByteFrame()
 			bf.WriteUint32(goocoo.Index)
-			bf.WriteBytes(goocoo.Data)
+			for i := range goocoo.Data1 {
+				bf.WriteInt16(goocoo.Data1[i])
+			}
+			for i := range goocoo.Data2 {
+				bf.WriteUint32(goocoo.Data2[i])
+			}
 			bf.WriteUint8(uint8(len(goocoo.Name)))
 			bf.WriteBytes(goocoo.Name)
 			s.server.db.Exec(fmt.Sprintf("UPDATE goocoo SET goocoo%d=$1 WHERE id=$2", goocoo.Index), bf.Data(), s.charID)

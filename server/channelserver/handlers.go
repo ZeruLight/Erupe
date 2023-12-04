@@ -1100,10 +1100,10 @@ func handleMsgMhfUpdateEtcPoint(s *Session, p mhfpacket.MHFPacket) {
 		column = "promo_points"
 	}
 
-	var value int
+	var value int16
 	err := s.server.db.QueryRow(fmt.Sprintf(`SELECT %s FROM characters WHERE id = $1`, column), s.charID).Scan(&value)
 	if err == nil {
-		if value-int(pkt.Delta) < 0 {
+		if value+pkt.Delta < 0 {
 			s.server.db.Exec(fmt.Sprintf(`UPDATE characters SET %s = 0 WHERE id = $1`, column), s.charID)
 		} else {
 			s.server.db.Exec(fmt.Sprintf(`UPDATE characters SET %s = %s + $1 WHERE id = $2`, column, column), pkt.Delta, s.charID)

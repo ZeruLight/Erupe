@@ -117,27 +117,29 @@ type DevModeOptions struct {
 }
 
 type SaveDumpOptions struct {
-	Enabled   bool
-	OutputDir string
+	Enabled    bool
+	RawEnabled bool
+	OutputDir  string
 }
 
 // GameplayOptions has various gameplay modifiers
 type GameplayOptions struct {
-	FeaturedWeapons                int    // Number of Active Feature weapons to generate daily
-	MaximumNP                      int    // Maximum number of NP held by a player
-	MaximumRP                      uint16 // Maximum number of RP held by a player
-	MaximumFP                      uint32 // Maximum number of FP held by a player
-	TreasureHuntExpiry             uint32 // Seconds until a Clan Treasure Hunt will expire
-	TreasureHuntPartnyaCooldown    uint32 // Seconds until a Partnya can be assigned to another Clan Treasure Hunt
-	DisableLoginBoost              bool   // Disables the Login Boost system
-	DisableBoostTime               bool   // Disables the daily NetCafe Boost Time
-	BoostTimeDuration              int    // Second that the NetCafe Boost Time lasts
-	GuildMealDuration              int    // Second that a Guild Meal can be activated for after cooking
-	BonusQuestAllowance            uint32 // Number of Bonus Point Quests to allow daily
-	DailyQuestAllowance            uint32 // Number of Daily Quests to allow daily
-	MezfesSoloTickets              uint32 // Number of solo tickets given weekly
-	MezfesGroupTickets             uint32 // Number of group tickets given weekly
-	LowLatencyRaviente             bool   // Toggles low latency mode for Raviente, can be network intensive
+	FeaturedWeapons                int       // Number of Active Feature weapons to generate daily
+	MaximumNP                      int       // Maximum number of NP held by a player
+	MaximumRP                      uint16    // Maximum number of RP held by a player
+	MaximumFP                      uint32    // Maximum number of FP held by a player
+	TreasureHuntExpiry             uint32    // Seconds until a Clan Treasure Hunt will expire
+	TreasureHuntPartnyaCooldown    uint32    // Seconds until a Partnya can be assigned to another Clan Treasure Hunt
+	DisableLoginBoost              bool      // Disables the Login Boost system
+	DisableBoostTime               bool      // Disables the daily NetCafe Boost Time
+	BoostTimeDuration              int       // Second that the NetCafe Boost Time lasts
+	ClanMealDuration               int       // Second that a Clan Meal can be activated for after cooking
+	ClanMemberLimits               [][]uint8 // Array of maximum Clan Members -> [Rank, Members]
+	BonusQuestAllowance            uint32    // Number of Bonus Point Quests to allow daily
+	DailyQuestAllowance            uint32    // Number of Daily Quests to allow daily
+	MezfesSoloTickets              uint32    // Number of solo tickets given weekly
+	MezfesGroupTickets             uint32    // Number of group tickets given weekly
+	LowLatencyRaviente             bool      // Toggles low latency mode for Raviente, can be network intensive
 	RegularRavienteMaxPlayers      uint8
 	ViolentRavienteMaxPlayers      uint8
 	BerserkRavienteMaxPlayers      uint8

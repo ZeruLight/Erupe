@@ -82,7 +82,7 @@ const (
 	BrightHypnoc
 	RedLavasioth
 	Espinas
-	OrangeEspinas
+	BurningEspinas
 	WhiteHypnoc
 	AqraVashimu
 	AqraJebia
@@ -91,7 +91,7 @@ const (
 	Mon87
 	Mon88
 	Pariapuria
-	WhiteEspinas
+	PearlEspinas
 	KamuOrugaron
 	NonoOrugaron
 	Raviente
@@ -267,7 +267,7 @@ var Monsters = []Monster{
 	{"Bright Hypnocatrice", true},
 	{"Red Lavasioth", true},
 	{"Espinas", true},
-	{"Orange Espinas", true},
+	{"Burning Espinas", true},
 	{"White Hypnocatrice", true},
 	{"Aqra Vashimu", true},
 	{"Aqra Jebia", true},
@@ -276,7 +276,7 @@ var Monsters = []Monster{
 	{"Mon87", false},
 	{"Mon88", false},
 	{"Pariapuria", true},
-	{"White Espinas", true},
+	{"Pearl Espinas", true},
 	{"Kamu Orugaron", true},
 	{"Nono Orugaron", true},
 	{"Raviente", true}, // + Violent

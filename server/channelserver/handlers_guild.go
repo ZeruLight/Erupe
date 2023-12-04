@@ -989,20 +989,21 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 		}
 		bf.WriteUint32(guild.PugiOutfits)
 
-		if guild.Rank() >= 3 {
-			bf.WriteUint8(40)
-		} else if guild.Rank() >= 7 {
-			bf.WriteUint8(50)
-		} else if guild.Rank() >= 10 {
-			bf.WriteUint8(60)
-		} else {
-			bf.WriteUint8(30)
+		limit := s.server.erupeConfig.GameplayOptions.ClanMemberLimits[0][1]
+		for _, j := range s.server.erupeConfig.GameplayOptions.ClanMemberLimits {
+			if guild.Rank() >= uint16(j[0]) {
+				limit = j[1]
+			}
 		}
+		if limit > 100 {
+			limit = 100
+		}
+		bf.WriteUint8(limit)
 
 		bf.WriteUint32(55000)
 		bf.WriteUint32(0)
 		bf.WriteUint16(0) // Changing Room RP
-		bf.WriteUint16(0)
+		bf.WriteUint16(0) // Ignored
 
 		if guild.AllianceID > 0 {
 			alliance, err := GetAllianceData(s, guild.AllianceID)
@@ -1012,7 +1013,7 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 				bf.WriteUint32(alliance.ID)
 				bf.WriteUint32(uint32(alliance.CreatedAt.Unix()))
 				bf.WriteUint16(alliance.TotalMembers)
-				bf.WriteUint8(0)
+				bf.WriteUint8(0) // Ignored
 				bf.WriteUint8(0)
 				ps.Uint16(bf, alliance.Name, true)
 				if alliance.SubGuild1ID > 0 {
@@ -1831,7 +1832,7 @@ func handleMsgMhfLoadGuildCooking(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfRegistGuildCooking(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfRegistGuildCooking)
 	guild, _ := GetGuildInfoByCharacterId(s, s.charID)
-	startTime := TimeAdjusted().Add(time.Duration(s.server.erupeConfig.GameplayOptions.GuildMealDuration-3600) * time.Second)
+	startTime := TimeAdjusted().Add(time.Duration(s.server.erupeConfig.GameplayOptions.ClanMealDuration-3600) * time.Second)
 	if pkt.OverwriteID != 0 {
 		s.server.db.Exec("UPDATE guild_meals SET meal_id = $1, level = $2, created_at = $3 WHERE id = $4", pkt.MealID, pkt.Success, startTime, pkt.OverwriteID)
 	} else {

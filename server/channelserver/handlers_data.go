@@ -45,6 +45,9 @@ func handleMsgMhfSavedata(s *Session, p mhfpacket.MHFPacket) {
 			doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 			return
 		}
+		if s.server.erupeConfig.DevModeOptions.SaveDumps.RawEnabled {
+			dumpSaveData(s, saveData, "raw-savedata")
+		}
 		s.logger.Info("Updating save with blob")
 		characterSaveData.decompSave = saveData
 	}

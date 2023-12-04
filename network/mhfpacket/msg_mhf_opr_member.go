@@ -13,7 +13,6 @@ type MsgMhfOprMember struct {
 	AckHandle uint32
 	Blacklist bool
 	Operation bool
-	Unk       uint16
 	CharIDs   []uint32
 }
 

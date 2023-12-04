@@ -344,6 +344,7 @@ func parseChatCommand(s *Session, command string) {
 			sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandDiscordSuccess"], discordToken))
 		} else {
 			sendDisabledCommandMessage(s, commands["Discord"])
+		}
 	case commands["Help"].Prefix:
 		if commands["Help"].Enabled {
 			for _, command := range commands {

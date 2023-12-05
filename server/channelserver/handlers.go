@@ -990,7 +990,6 @@ func handleMsgMhfEnumerateGuacot(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfUpdateGuacot(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfUpdateGuacot)
 	for _, goocoo := range pkt.Goocoos {
-		// TODO: This doesn't seem to indicate deletion?
 		if goocoo.Data1[0] == 0 {
 			s.server.db.Exec(fmt.Sprintf("UPDATE goocoo SET goocoo%d=NULL WHERE id=$1", goocoo.Index), s.charID)
 		} else {

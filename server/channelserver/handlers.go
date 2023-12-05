@@ -959,39 +959,31 @@ func handleMsgMhfExchangeWeeklyStamp(s *Session, p mhfpacket.MHFPacket) {
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
-func getGookData(s *Session, cid uint32) (uint16, []byte) {
-	var data []byte
-	var count uint16
-	bf := byteframe.NewByteFrame()
+func getGoocooData(s *Session, cid uint32) [][]byte {
+	var goocoo []byte
+	var goocoos [][]byte
 	for i := 0; i < 5; i++ {
-		err := s.server.db.QueryRow(fmt.Sprintf("SELECT goocoo%d FROM goocoo WHERE id=$1", i), cid).Scan(&data)
+		err := s.server.db.QueryRow(fmt.Sprintf("SELECT goocoo%d FROM goocoo WHERE id=$1", i), cid).Scan(&goocoo)
 		if err != nil {
 			s.server.db.Exec("INSERT INTO goocoo (id) VALUES ($1)", s.charID)
-			return 0, bf.Data()
+			return goocoos
 		}
-		if err == nil && data != nil {
-			count++
-			if s.charID == cid && count == 1 {
-				goocoo := byteframe.NewByteFrameFromBytes(data)
-				bf.WriteBytes(goocoo.ReadBytes(4))
-				d := goocoo.ReadBytes(2)
-				bf.WriteBytes(d)
-				bf.WriteBytes(d)
-				bf.WriteBytes(goocoo.DataFromCurrent())
-			} else {
-				bf.WriteBytes(data)
-			}
+		if err == nil && goocoo != nil {
+			goocoos = append(goocoos, goocoo)
 		}
 	}
-	return count, bf.Data()
+	return goocoos
 }
 
 func handleMsgMhfEnumerateGuacot(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateGuacot)
 	bf := byteframe.NewByteFrame()
-	count, data := getGookData(s, s.charID)
-	bf.WriteUint16(count)
-	bf.WriteBytes(data)
+	goocoos := getGoocooData(s, s.charID)
+	bf.WriteUint16(uint16(len(goocoos)))
+	bf.WriteUint16(0)
+	for _, goocoo := range goocoos {
+		bf.WriteBytes(goocoo)
+	}
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
@@ -1004,7 +996,7 @@ func handleMsgMhfUpdateGuacot(s *Session, p mhfpacket.MHFPacket) {
 			bf := byteframe.NewByteFrame()
 			bf.WriteUint32(goocoo.Index)
 			for i := range goocoo.Data1 {
-				bf.WriteUint16(goocoo.Data1[i])
+				bf.WriteInt16(goocoo.Data1[i])
 			}
 			for i := range goocoo.Data2 {
 				bf.WriteUint32(goocoo.Data2[i])

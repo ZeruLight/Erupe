@@ -73,9 +73,9 @@ func handleMsgMhfGetUdSchedule(s *Session, p mhfpacket.MHFPacket) {
 	if s.server.erupeConfig.DevMode && s.server.erupeConfig.DevModeOptions.DivaEvent >= 0 {
 		if s.server.erupeConfig.DevModeOptions.DivaEvent == 0 {
 			if s.server.erupeConfig.RealClientMode >= _config.Z2 {
-				doAckBufSucceed(s, pkt.AckHandle, make([]byte, 32))
-			} else {
 				doAckBufSucceed(s, pkt.AckHandle, make([]byte, 36))
+			} else {
+				doAckBufSucceed(s, pkt.AckHandle, make([]byte, 32))
 			}
 			return
 		}

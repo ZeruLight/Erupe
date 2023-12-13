@@ -2,7 +2,6 @@ package channelserver
 
 import (
 	"encoding/binary"
-	"encoding/hex"
 	"erupe-ce/common/mhfcourse"
 	"erupe-ce/common/mhfitem"
 	"erupe-ce/common/mhfmon"

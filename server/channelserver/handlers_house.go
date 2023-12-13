@@ -477,10 +477,7 @@ func warehouseGetEquipment(s *Session, index uint8) []mhfitem.MHFEquipment {
 		numStacks := box.ReadUint16()
 		box.ReadUint16() // Unused
 		for i := 0; i < int(numStacks); i++ {
-			temp := mhfitem.ReadWarehouseEquipment(box)
-			if !temp.Deleted {
-				equipment = append(equipment, temp)
-			}
+			equipment = append(equipment, mhfitem.ReadWarehouseEquipment(box))
 		}
 	}
 	return equipment

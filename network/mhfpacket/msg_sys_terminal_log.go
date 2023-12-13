@@ -23,11 +23,9 @@ type TerminalLogEntry struct {
 
 // MsgSysTerminalLog represents the MSG_SYS_TERMINAL_LOG
 type MsgSysTerminalLog struct {
-	AckHandle  uint32
-	LogID      uint32 // 0 on the first packet, and the server sends back a value to use for subsequent requests.
-	EntryCount uint16
-	Unk0       uint16 // Hardcoded 0 in the binary
-	Entries    []*TerminalLogEntry
+	AckHandle uint32
+	LogID     uint32 // 0 on the first packet, and the server sends back a value to use for subsequent requests.
+	Entries   []TerminalLogEntry
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -39,11 +37,11 @@ func (m *MsgSysTerminalLog) Opcode() network.PacketID {
 func (m *MsgSysTerminalLog) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
 	m.LogID = bf.ReadUint32()
-	m.EntryCount = bf.ReadUint16()
-	m.Unk0 = bf.ReadUint16()
+	entryCount := int(bf.ReadUint16())
+	bf.ReadUint16() // Zeroed
 
-	for i := 0; i < int(m.EntryCount); i++ {
-		e := &TerminalLogEntry{}
+	var e TerminalLogEntry
+	for i := 0; i < entryCount; i++ {
 		e.Index = bf.ReadUint32()
 		e.Type1 = bf.ReadUint8()
 		e.Type2 = bf.ReadUint8()

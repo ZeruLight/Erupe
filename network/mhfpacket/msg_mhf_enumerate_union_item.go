@@ -11,7 +11,6 @@ import (
 // MsgMhfEnumerateUnionItem represents the MSG_MHF_ENUMERATE_UNION_ITEM
 type MsgMhfEnumerateUnionItem struct {
 	AckHandle uint32
-	Unk0      uint16
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -22,8 +21,8 @@ func (m *MsgMhfEnumerateUnionItem) Opcode() network.PacketID {
 // Parse parses the packet from binary
 func (m *MsgMhfEnumerateUnionItem) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
-	m.Unk0 = bf.ReadUint16()
-
+	bf.ReadUint8() // Zeroed
+	bf.ReadUint8() // Zeroed
 	return nil
 }
 

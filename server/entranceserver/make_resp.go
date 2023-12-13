@@ -69,7 +69,11 @@ func encodeServerInfo(config *_config.Config, s *Server, local bool) []byte {
 
 		for channelIdx, ci := range si.Channels {
 			sid = (4096 + serverIdx*256) + (16 + channelIdx)
-			bf.WriteUint16(ci.Port)
+			if _config.ErupeConfig.DevMode && _config.ErupeConfig.ProxyPort != 0 {
+				bf.WriteUint16(_config.ErupeConfig.ProxyPort)
+			} else {
+				bf.WriteUint16(ci.Port)
+			}
 			bf.WriteUint16(16 + uint16(channelIdx))
 			bf.WriteUint16(ci.MaxPlayers)
 			var currentPlayers uint16

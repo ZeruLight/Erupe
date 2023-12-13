@@ -12,7 +12,7 @@ type StringStack struct {
 
 // New creates a new instance of StringStack
 func New() *StringStack {
-	return &StringStack{Locked: false}
+	return &StringStack{}
 }
 
 // Set sets up a new StringStack
@@ -41,11 +41,12 @@ func (s *StringStack) Push(v string) {
 
 // Pop pops a string from the stack.
 func (s *StringStack) Pop() (string, error) {
+	var x string
 	if len(s.stack) == 0 {
-		return "", errors.New("no items on stack")
+		return x, errors.New("no items on stack")
 	}
 
-	x := s.stack[len(s.stack)-1]
+	x = s.stack[len(s.stack)-1]
 	s.stack = s.stack[:len(s.stack)-1]
 
 	return x, nil

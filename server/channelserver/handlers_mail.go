@@ -79,57 +79,6 @@ func (m *Mail) MarkRead(s *Session) error {
 	return nil
 }
 
-func (m *Mail) MarkDeleted(s *Session) error {
-	_, err := s.server.db.Exec(`
-		UPDATE mail SET deleted = true WHERE id = $1
-	`, m.ID)
-
-	if err != nil {
-		s.logger.Error(
-			"failed to mark mail as deleted",
-			zap.Error(err),
-			zap.Int("mailID", m.ID),
-		)
-		return err
-	}
-
-	return nil
-}
-
-func (m *Mail) MarkAcquired(s *Session) error {
-	_, err := s.server.db.Exec(`
-		UPDATE mail SET attached_item_received = true WHERE id = $1
-	`, m.ID)
-
-	if err != nil {
-		s.logger.Error(
-			"failed to mark mail item as claimed",
-			zap.Error(err),
-			zap.Int("mailID", m.ID),
-		)
-		return err
-	}
-
-	return nil
-}
-
-func (m *Mail) MarkLocked(s *Session, locked bool) error {
-	_, err := s.server.db.Exec(`
-		UPDATE mail SET locked = $1 WHERE id = $2
-	`, locked, m.ID)
-
-	if err != nil {
-		s.logger.Error(
-			"failed to mark mail as locked",
-			zap.Error(err),
-			zap.Int("mailID", m.ID),
-		)
-		return err
-	}
-
-	return nil
-}
-
 func GetMailListForCharacter(s *Session, charID uint32) ([]Mail, error) {
 	rows, err := s.server.db.Queryx(`
 		SELECT
@@ -256,26 +205,21 @@ func handleMsgMhfReadMail(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfReadMail)
 
 	mailId := s.mailList[pkt.AccIndex]
-
 	if mailId == 0 {
-		doAckBufFail(s, pkt.AckHandle, make([]byte, 4))
-		panic("attempting to read mail that doesn't exist in session map")
+		doAckBufSucceed(s, pkt.AckHandle, []byte{0})
+		return
 	}
 
 	mail, err := GetMailByID(s, mailId)
-
 	if err != nil {
-		doAckBufFail(s, pkt.AckHandle, make([]byte, 4))
-		panic(err)
+		doAckBufSucceed(s, pkt.AckHandle, []byte{0})
+		return
 	}
 
-	_ = mail.MarkRead(s)
-
+	s.server.db.Exec(`UPDATE mail SET read = true WHERE id = $1`, mail.ID)
 	bf := byteframe.NewByteFrame()
-
 	body := stringsupport.UTF8ToSJIS(mail.Body)
 	bf.WriteNullTerminatedBytes(body)
-
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
@@ -283,10 +227,9 @@ func handleMsgMhfListMail(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfListMail)
 
 	mail, err := GetMailListForCharacter(s, s.charID)
-
 	if err != nil {
-		doAckBufFail(s, pkt.AckHandle, make([]byte, 4))
-		panic(err)
+		doAckBufSucceed(s, pkt.AckHandle, []byte{0})
+		return
 	}
 
 	if s.mailList == nil {
@@ -354,24 +297,20 @@ func handleMsgMhfOprtMail(s *Session, p mhfpacket.MHFPacket) {
 
 	mail, err := GetMailByID(s, s.mailList[pkt.AccIndex])
 	if err != nil {
-		panic(err)
+		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+		return
 	}
 
 	switch pkt.Operation {
-	case mhfpacket.OPERATE_MAIL_DELETE:
-		err = mail.MarkDeleted(s)
-	case mhfpacket.OPERATE_MAIL_LOCK:
-		err = mail.MarkLocked(s, true)
-	case mhfpacket.OPERATE_MAIL_UNLOCK:
-		err = mail.MarkLocked(s, false)
-	case mhfpacket.OPERATE_MAIL_ACQUIRE_ITEM:
-		err = mail.MarkAcquired(s)
+	case mhfpacket.OperateMailDelete:
+		s.server.db.Exec(`UPDATE mail SET deleted = true WHERE id = $1`, mail.ID)
+	case mhfpacket.OperateMailLock:
+		s.server.db.Exec(`UPDATE mail SET locked = TRUE WHERE id = $1`, mail.ID)
+	case mhfpacket.OperateMailUnlock:
+		s.server.db.Exec(`UPDATE mail SET locked = FALSE WHERE id = $1`, mail.ID)
+	case mhfpacket.OperateMailAcquireItem:
+		s.server.db.Exec(`UPDATE mail SET attached_item_received = TRUE WHERE id = $1`, mail.ID)
 	}
-
-	if err != nil {
-		panic(err)
-	}
-
 	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 

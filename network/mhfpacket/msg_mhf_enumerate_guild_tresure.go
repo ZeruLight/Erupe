@@ -12,7 +12,8 @@ import (
 type MsgMhfEnumerateGuildTresure struct {
 	AckHandle uint32
 	MaxHunts  uint16
-	Unk       uint32
+	Unk0      uint16
+	Unk1      uint16
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -24,9 +25,8 @@ func (m *MsgMhfEnumerateGuildTresure) Opcode() network.PacketID {
 func (m *MsgMhfEnumerateGuildTresure) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
 	m.MaxHunts = bf.ReadUint16()
-	// Changes with MaxHunts
-	// 0 if MaxHunts = 1, 1 if MaxHunts = 30
-	m.Unk = bf.ReadUint32()
+	m.Unk0 = bf.ReadUint16()
+	m.Unk1 = bf.ReadUint16()
 	return nil
 }
 

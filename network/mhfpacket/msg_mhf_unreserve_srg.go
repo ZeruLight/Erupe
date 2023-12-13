@@ -1,15 +1,17 @@
 package mhfpacket
 
-import ( 
- "errors" 
+import (
+	"errors"
 
- 	"erupe-ce/network/clientctx"
-	"erupe-ce/network"
 	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgMhfUnreserveSrg represents the MSG_MHF_UNRESERVE_SRG
-type MsgMhfUnreserveSrg struct{}
+type MsgMhfUnreserveSrg struct {
+	AckHandle uint32
+}
 
 // Opcode returns the ID associated with this packet type.
 func (m *MsgMhfUnreserveSrg) Opcode() network.PacketID {
@@ -18,7 +20,8 @@ func (m *MsgMhfUnreserveSrg) Opcode() network.PacketID {
 
 // Parse parses the packet from binary
 func (m *MsgMhfUnreserveSrg) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
-	return errors.New("NOT IMPLEMENTED")
+	m.AckHandle = bf.ReadUint32()
+	return nil
 }
 
 // Build builds a binary packet from the current data.

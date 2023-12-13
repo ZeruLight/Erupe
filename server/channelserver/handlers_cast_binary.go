@@ -6,6 +6,7 @@ import (
 	"erupe-ce/common/mhfcourse"
 	"erupe-ce/common/token"
 	"erupe-ce/config"
+	"erupe-ce/network"
 	"erupe-ce/network/binpacket"
 	"erupe-ce/network/mhfpacket"
 	"fmt"
@@ -74,7 +75,7 @@ func sendServerChatMessage(s *Session, message string) {
 	msgBinChat.Build(bf)
 
 	castedBin := &mhfpacket.MsgSysCastedBinary{
-		CharID:         s.charID,
+		CharID:         0,
 		MessageType:    BinaryMessageTypeChat,
 		RawDataPayload: bf.Data(),
 	}
@@ -83,7 +84,7 @@ func sendServerChatMessage(s *Session, message string) {
 }
 
 func parseChatCommand(s *Session, command string) {
-	args := strings.Split(command[1:], " ")
+	args := strings.Split(command[len(s.server.erupeConfig.CommandPrefix):], " ")
 	switch args[0] {
 	case commands["PSN"].Prefix:
 		if commands["PSN"].Enabled {
@@ -125,7 +126,7 @@ func parseChatCommand(s *Session, command string) {
 				deleteNotif.WriteUint16(uint16(temp.Opcode()))
 				temp.Build(deleteNotif, s.clientContext)
 			}
-			deleteNotif.WriteUint16(0x0010)
+			deleteNotif.WriteUint16(uint16(network.MSG_SYS_END))
 			s.QueueSend(deleteNotif.Data())
 			time.Sleep(500 * time.Millisecond)
 			reloadNotif := byteframe.NewByteFrame()
@@ -160,24 +161,28 @@ func parseChatCommand(s *Session, command string) {
 				reloadNotif.WriteUint16(uint16(temp.Opcode()))
 				temp.Build(reloadNotif, s.clientContext)
 			}
-			reloadNotif.WriteUint16(0x0010)
+			reloadNotif.WriteUint16(uint16(network.MSG_SYS_END))
 			s.QueueSend(reloadNotif.Data())
 		} else {
 			sendDisabledCommandMessage(s, commands["Reload"])
 		}
 	case commands["KeyQuest"].Prefix:
 		if commands["KeyQuest"].Enabled {
-			if len(args) > 1 {
-				if args[1] == "get" {
-					sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandKqfGet"], s.kqf))
-				} else if args[1] == "set" {
-					if len(args) > 2 && len(args[2]) == 16 {
-						hexd, _ := hex.DecodeString(args[2])
-						s.kqf = hexd
-						s.kqfOverride = true
-						sendServerChatMessage(s, s.server.dict["commandKqfSetSuccess"])
-					} else {
-						sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandKqfSetError"], commands["KeyQuest"].Prefix))
+			if s.server.erupeConfig.RealClientMode < _config.G10 {
+				sendServerChatMessage(s, s.server.dict["commandKqfVersion"])
+			} else {
+				if len(args) > 1 {
+					if args[1] == "get" {
+						sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandKqfGet"], s.kqf))
+					} else if args[1] == "set" {
+						if len(args) > 2 && len(args[2]) == 16 {
+							hexd, _ := hex.DecodeString(args[2])
+							s.kqf = hexd
+							s.kqfOverride = true
+							sendServerChatMessage(s, s.server.dict["commandKqfSetSuccess"])
+						} else {
+							sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandKqfSetError"], commands["KeyQuest"].Prefix))
+						}
 					}
 				}
 			}
@@ -297,8 +302,8 @@ func parseChatCommand(s *Session, command string) {
 	case commands["Teleport"].Prefix:
 		if commands["Teleport"].Enabled {
 			if len(args) > 2 {
-				x, _ := strconv.Atoi(args[1])
-				y, _ := strconv.Atoi(args[2])
+				x, _ := strconv.ParseInt(args[1], 10, 16)
+				y, _ := strconv.ParseInt(args[2], 10, 16)
 				payload := byteframe.NewByteFrame()
 				payload.SetLE()
 				payload.WriteUint8(2)        // SetState type(position == 2)
@@ -316,6 +321,16 @@ func parseChatCommand(s *Session, command string) {
 			}
 		} else {
 			sendDisabledCommandMessage(s, commands["Teleport"])
+		}
+	case commands["Help"].Prefix:
+		if commands["Help"].Enabled {
+			for _, command := range commands {
+				if command.Enabled {
+					sendServerChatMessage(s, fmt.Sprintf("%s%s: %s", s.server.erupeConfig.CommandPrefix, command.Prefix, command.Description))
+				}
+			}
+		} else {
+			sendDisabledCommandMessage(s, commands["Help"])
 		}
 	}
 }
@@ -390,7 +405,7 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 			bf.SetLE()
 			chatMessage := &binpacket.MsgBinChat{}
 			chatMessage.Parse(bf)
-			if strings.HasPrefix(chatMessage.Message, "!") {
+			if strings.HasPrefix(chatMessage.Message, s.server.erupeConfig.CommandPrefix) {
 				parseChatCommand(s, chatMessage.Message)
 				return
 			}

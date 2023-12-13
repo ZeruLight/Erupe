@@ -10,36 +10,40 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func (s *Server) createNewUser(ctx context.Context, username string, password string) (int, error) {
+func (s *Server) createNewUser(ctx context.Context, username string, password string) (uint32, uint32, error) {
 	// Create salted hash of user password
 	passwordHash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return 0, err
+		return 0, 0, err
 	}
 
-	var id int
+	var (
+		id     uint32
+		rights uint32
+	)
 	err = s.db.QueryRowContext(
 		ctx, `
 		INSERT INTO users (username, password, return_expires)
 		VALUES ($1, $2, $3)
-		RETURNING id
+		RETURNING id, rights
 		`,
 		username, string(passwordHash), time.Now().Add(time.Hour*24*30),
-	).Scan(&id)
-	return id, err
+	).Scan(&id, &rights)
+	return id, rights, err
 }
 
-func (s *Server) createLoginToken(ctx context.Context, uid int) (string, error) {
+func (s *Server) createLoginToken(ctx context.Context, uid uint32) (uint32, string, error) {
 	loginToken := token.Generate(16)
-	_, err := s.db.ExecContext(ctx, "INSERT INTO sign_sessions (user_id, token) VALUES ($1, $2)", uid, loginToken)
+	var tid uint32
+	err := s.db.QueryRowContext(ctx, "INSERT INTO sign_sessions (user_id, token) VALUES ($1, $2) RETURNING id", uid, loginToken).Scan(&tid)
 	if err != nil {
-		return "", err
+		return 0, "", err
 	}
-	return loginToken, nil
+	return tid, loginToken, nil
 }
 
-func (s *Server) userIDFromToken(ctx context.Context, token string) (int, error) {
-	var userID int
+func (s *Server) userIDFromToken(ctx context.Context, token string) (uint32, error) {
+	var userID uint32
 	err := s.db.QueryRowContext(ctx, "SELECT user_id FROM sign_sessions WHERE token = $1", token).Scan(&userID)
 	if err == sql.ErrNoRows {
 		return 0, fmt.Errorf("invalid login token")
@@ -49,65 +53,47 @@ func (s *Server) userIDFromToken(ctx context.Context, token string) (int, error)
 	return userID, nil
 }
 
-func (s *Server) createCharacter(ctx context.Context, userID int) (int, error) {
-	var charID int
-	err := s.db.QueryRowContext(ctx,
-		"SELECT id FROM characters WHERE is_new_character = true AND user_id = $1",
+func (s *Server) createCharacter(ctx context.Context, userID uint32) (Character, error) {
+	var character Character
+	err := s.db.GetContext(ctx, &character,
+		"SELECT id, name, is_female, weapon_type, hrp, gr, last_login FROM characters WHERE is_new_character = true AND user_id = $1 LIMIT 1",
 		userID,
-	).Scan(&charID)
+	)
 	if err == sql.ErrNoRows {
-		err = s.db.QueryRowContext(ctx, `
+		var count int
+		s.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM characters WHERE user_id = $1", userID).Scan(&count)
+		if count >= 16 {
+			return character, fmt.Errorf("cannot have more than 16 characters")
+		}
+		err = s.db.GetContext(ctx, &character, `
 			INSERT INTO characters (
 				user_id, is_female, is_new_character, name, unk_desc_string,
 				hrp, gr, weapon_type, last_login
 			)
 			VALUES ($1, false, true, '', '', 0, 0, 0, $2)
-			RETURNING id`,
+			RETURNING id, name, is_female, weapon_type, hrp, gr, last_login`,
 			userID, uint32(time.Now().Unix()),
-		).Scan(&charID)
+		)
 	}
-	return charID, err
+	return character, err
 }
 
-func (s *Server) deleteCharacter(ctx context.Context, userID int, charID int) error {
-	tx, err := s.db.BeginTx(ctx, nil)
+func (s *Server) deleteCharacter(ctx context.Context, userID uint32, charID uint32) error {
+	var isNew bool
+	err := s.db.QueryRow("SELECT is_new_character FROM characters WHERE id = $1", charID).Scan(&isNew)
 	if err != nil {
 		return err
 	}
-	defer tx.Rollback()
-
-	_, err = tx.ExecContext(
-		ctx, `
-		DELETE FROM login_boost_state
-		WHERE char_id = $1`,
-		charID,
-	)
-	if err != nil {
-		return err
+	if isNew {
+		_, err = s.db.Exec("DELETE FROM characters WHERE id = $1", charID)
+	} else {
+		_, err = s.db.Exec("UPDATE characters SET deleted = true WHERE id = $1", charID)
 	}
-	_, err = tx.ExecContext(
-		ctx, `
-		DELETE FROM guild_characters
-		WHERE character_id = $1`,
-		charID,
-	)
-	if err != nil {
-		return err
-	}
-	_, err = tx.ExecContext(
-		ctx, `
-		DELETE FROM characters
-		WHERE user_id = $1 AND id = $2`,
-		userID, charID,
-	)
-	if err != nil {
-		return err
-	}
-	return tx.Commit()
+	return err
 }
 
-func (s *Server) getCharactersForUser(ctx context.Context, uid int) ([]Character, error) {
-	characters := make([]Character, 0)
+func (s *Server) getCharactersForUser(ctx context.Context, uid uint32) ([]Character, error) {
+	var characters []Character
 	err := s.db.SelectContext(
 		ctx, &characters, `
 		SELECT id, name, is_female, weapon_type, hrp, gr, last_login
@@ -119,4 +105,31 @@ func (s *Server) getCharactersForUser(ctx context.Context, uid int) ([]Character
 		return nil, err
 	}
 	return characters, nil
+}
+
+func (s *Server) getReturnExpiry(uid uint32) time.Time {
+	var returnExpiry, lastLogin time.Time
+	s.db.Get(&lastLogin, "SELECT COALESCE(last_login, now()) FROM users WHERE id=$1", uid)
+	if time.Now().Add((time.Hour * 24) * -90).After(lastLogin) {
+		returnExpiry = time.Now().Add(time.Hour * 24 * 30)
+		s.db.Exec("UPDATE users SET return_expires=$1 WHERE id=$2", returnExpiry, uid)
+	} else {
+		err := s.db.Get(&returnExpiry, "SELECT return_expires FROM users WHERE id=$1", uid)
+		if err != nil {
+			returnExpiry = time.Now()
+			s.db.Exec("UPDATE users SET return_expires=$1 WHERE id=$2", returnExpiry, uid)
+		}
+	}
+	s.db.Exec("UPDATE users SET last_login=$1 WHERE id=$2", time.Now(), uid)
+	return returnExpiry
+}
+
+func (s *Server) exportSave(ctx context.Context, uid uint32, cid uint32) (map[string]interface{}, error) {
+	row := s.db.QueryRowxContext(ctx, "SELECT * FROM characters WHERE id=$1 AND user_id=$2", cid, uid)
+	result := make(map[string]interface{})
+	err := row.MapScan(result)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }

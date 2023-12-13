@@ -5,10 +5,11 @@ import (
 	"net"
 	"strings"
 	"sync"
+	"time"
 
 	"erupe-ce/common/byteframe"
 	ps "erupe-ce/common/pascalstring"
-	"erupe-ce/config"
+	_config "erupe-ce/config"
 	"erupe-ce/network/binpacket"
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/server/discordbot"
@@ -73,6 +74,9 @@ type Server struct {
 	name string
 
 	raviente *Raviente
+
+	questCacheData map[int][]byte
+	questCacheTime map[int]time.Time
 }
 
 type Raviente struct {
@@ -115,6 +119,7 @@ func (s *Server) GetRaviMultiplier() float64 {
 
 func (s *Server) UpdateRavi(semaID uint32, index uint8, value uint32, update bool) (uint32, uint32) {
 	var prev uint32
+	var dest *[]uint32
 	switch semaID {
 	case 0x40000:
 		switch index {
@@ -123,28 +128,20 @@ func (s *Server) UpdateRavi(semaID uint32, index uint8, value uint32, update boo
 		default:
 			value = uint32(float64(value) * s.GetRaviMultiplier())
 		}
-		prev = s.raviente.state[index]
-		if prev != 0 && !update {
-			return prev, prev
-		}
-		s.raviente.state[index] += value
-		return prev, s.raviente.state[index]
+		dest = &s.raviente.state
 	case 0x50000:
-		prev = s.raviente.support[index]
-		if prev != 0 && !update {
-			return prev, prev
-		}
-		s.raviente.support[index] += value
-		return prev, s.raviente.support[index]
+		dest = &s.raviente.support
 	case 0x60000:
-		prev = s.raviente.register[index]
-		if prev != 0 && !update {
-			return prev, prev
-		}
-		s.raviente.register[index] += value
-		return prev, s.raviente.register[index]
+		dest = &s.raviente.register
+	default:
+		return 0, 0
 	}
-	return 0, 0
+	if update {
+		(*dest)[index] += value
+	} else {
+		(*dest)[index] = value
+	}
+	return prev, (*dest)[index]
 }
 
 // NewServer creates a new Server type.
@@ -170,6 +167,8 @@ func NewServer(config *Config) *Server {
 			state:    make([]uint32, 30),
 			support:  make([]uint32, 30),
 		},
+		questCacheData: make(map[int][]byte),
+		questCacheTime: make(map[int]time.Time),
 	}
 
 	// Mezeporta
@@ -323,7 +322,6 @@ func (s *Server) BroadcastChatMessage(message string) {
 	msgBinChat.Build(bf)
 
 	s.BroadcastMHF(&mhfpacket.MsgSysCastedBinary{
-		CharID:         0xFFFFFFFF,
 		MessageType:    BinaryMessageTypeChat,
 		RawDataPayload: bf.Data(),
 	}, nil)
@@ -355,7 +353,6 @@ func (s *Server) BroadcastRaviente(ip uint32, port uint16, stage []byte, _type u
 	bf.WriteUint16(0)    // Unk
 	bf.WriteBytes(stage)
 	s.WorldcastMHF(&mhfpacket.MsgSysCastedBinary{
-		CharID:         0x00000000,
 		BroadcastType:  BroadcastTypeServer,
 		MessageType:    BinaryMessageTypeChat,
 		RawDataPayload: bf.Data(),

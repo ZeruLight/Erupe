@@ -199,15 +199,11 @@ func handleMsgMhfUseKeepLoginBoost(s *Session, p mhfpacket.MHFPacket) {
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint8(0)
 	switch pkt.BoostWeekUsed {
-	case 1:
-		fallthrough
-	case 3:
+	case 1, 3:
 		expiration = TimeAdjusted().Add(120 * time.Minute)
 	case 4:
 		expiration = TimeAdjusted().Add(180 * time.Minute)
-	case 2:
-		fallthrough
-	case 5:
+	case 2, 5:
 		expiration = TimeAdjusted().Add(240 * time.Minute)
 	}
 	bf.WriteUint32(uint32(expiration.Unix()))

@@ -12,26 +12,29 @@
   "ScreenshotAPIURL": "",
   "DeleteOnSaveCorruption": false,
   "ClientMode": "ZZ",
+  "QuestCacheExpiry": 300,
+  "ProxyPort": 0,
+  "CommandPrefix": "!",
   "DevMode": true,
   "DevModeOptions": {
     "AutoCreateAccount": true,
     "CleanDB": false,
     "MaxLauncherHR": false,
-    "LogInboundMessages": true,
-    "LogOutboundMessages": true,
+    "LogInboundMessages": false,
+    "LogOutboundMessages": false,
+    "LogMessageData": false,
     "MaxHexdumpLength": 256,
     "DivaEvent": 0,
     "FestaEvent": -1,
     "TournamentEvent": 0,
-    "MezFesEvent": true,
-    "MezFesAlt": false,
     "DisableTokenCheck": false,
     "QuestDebugTools": false,
     "EarthStatusOverride": 0,
     "EarthIDOverride": 0,
-    "EarthMonsterOverride": 0,
+    "EarthMonsterOverride": [0, 0, 0, 0],
     "SaveDumps": {
       "Enabled": true,
+      "RawEnabled": false,
       "OutputDir": "save-backups"
     }
   },
@@ -40,10 +43,12 @@
     "MaximumNP": 100000,
     "MaximumRP": 50000,
     "MaximumFP": 120000,
+    "TreasureHuntExpiry": 604800,
     "DisableLoginBoost": false,
     "DisableBoostTime": false,
-    "BoostTimeDuration": 120,
-    "GuildMealDuration": 60,
+    "BoostTimeDuration": 7200,
+    "ClanMealDuration": 3600,
+    "ClanMemberLimits": [[0, 30], [3, 40], [7, 50], [10, 60]],
     "BonusQuestAllowance": 3,
     "DailyQuestAllowance": 1,
     "MezfesSoloTickets": 10,
@@ -54,7 +59,7 @@
     "BerserkRavienteMaxPlayers": 32,
     "ExtremeRavienteMaxPlayers": 32,
     "SmallBerserkRavienteMaxPlayers": 8,
-    "GUrgentRate": 10,
+    "GUrgentRate": 0.10,
     "GCPMultiplier": 1.00,
     "GRPMultiplier": 1.00,
     "GSRPMultiplier": 1.00,
@@ -62,6 +67,8 @@
     "MaterialMultiplier": 1.00,
     "ExtraCarves": 0,
     "DisableHunterNavi": false,
+    "MezFesDuration": 172800,
+    "MezFesSwitchMinigame": false,
     "EnableKaijiEvent": false,
     "EnableHiganjimaEvent": false,
     "EnableNierEvent": false,
@@ -75,32 +82,44 @@
   },
   "Commands": [
     {
+      "Name": "Help",
+      "Enabled": true,
+      "Description": "Show enabled chat commands",
+      "Prefix": "help"
+    }, {
       "Name": "Rights",
       "Enabled": false,
+      "Description": "Overwrite the Rights value on your account",
       "Prefix": "rights"
     }, {
       "Name": "Raviente",
       "Enabled": true,
+      "Description": "Various Raviente siege commands",
       "Prefix": "ravi"
     }, {
       "Name": "Teleport",
       "Enabled": false,
+      "Description": "Teleport to specified coordinates",
       "Prefix": "tele"
     }, {
       "Name": "Reload",
       "Enabled": true,
+      "Description": "Reload all players in your Land",
       "Prefix": "reload"
     }, {
       "Name": "KeyQuest",
       "Enabled": false,
+      "Description": "Overwrite your HR Key Quest progress",
       "Prefix": "kqf"
     }, {
       "Name": "Course",
       "Enabled": true,
+      "Description": "Toggle Courses on your account",
       "Prefix": "course"
     }, {
       "Name": "PSN",
       "Enabled": true,
+      "Description": "Link a PlayStation Network ID to your account",
       "Prefix": "psn"
     }
   ],
@@ -130,7 +149,11 @@
   },
   "SignV2": {
     "Enabled": false,
-    "Port": 8080
+    "Port": 8080,
+    "PatchServer": "",
+    "Banners": [],
+    "Messages": [],
+    "Links": []
   },
   "Channel": {
     "Enabled": true

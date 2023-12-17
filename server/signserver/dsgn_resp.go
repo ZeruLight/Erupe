@@ -144,14 +144,32 @@ func (s *Session) makeSignResponse(uid uint32) []byte {
 		s.server.db.QueryRow("SELECT psn_id FROM users WHERE id = $1", uid).Scan(&psnUser)
 		bf.WriteBytes(stringsupport.PaddedString(psnUser, 20, true))
 	}
-	bf.WriteUint16(0xCA10)
-	bf.WriteUint16(0x4E20)
-	ps.Uint16(bf, "", false) // unk key
-	bf.WriteUint8(0x00)
-	bf.WriteUint16(0xCA11)
-	bf.WriteUint16(0x0001)
-	bf.WriteUint16(0x4E20)
-	ps.Uint16(bf, "", false) // unk ipv4
+
+	bf.WriteUint16(s.server.erupeConfig.DevModeOptions.CapLink.Values[0])
+	if s.server.erupeConfig.DevModeOptions.CapLink.Values[0] == 51728 {
+		bf.WriteUint16(s.server.erupeConfig.DevModeOptions.CapLink.Values[1])
+		if s.server.erupeConfig.DevModeOptions.CapLink.Values[1] == 20000 || s.server.erupeConfig.DevModeOptions.CapLink.Values[1] == 20002 {
+			ps.Uint16(bf, s.server.erupeConfig.DevModeOptions.CapLink.Key, false)
+		}
+	}
+	caStruct := []struct {
+		Unk0 uint8
+		Unk1 uint32
+		Unk2 string
+	}{}
+	bf.WriteUint8(uint8(len(caStruct)))
+	for i := range caStruct {
+		bf.WriteUint8(caStruct[i].Unk0)
+		bf.WriteUint32(caStruct[i].Unk1)
+		ps.Uint8(bf, caStruct[i].Unk2, false)
+	}
+	bf.WriteUint16(s.server.erupeConfig.DevModeOptions.CapLink.Values[2])
+	bf.WriteUint16(s.server.erupeConfig.DevModeOptions.CapLink.Values[3])
+	bf.WriteUint16(s.server.erupeConfig.DevModeOptions.CapLink.Values[4])
+	if s.server.erupeConfig.DevModeOptions.CapLink.Values[2] == 51729 && s.server.erupeConfig.DevModeOptions.CapLink.Values[3] == 1 && s.server.erupeConfig.DevModeOptions.CapLink.Values[4] == 20000 {
+		ps.Uint16(bf, fmt.Sprintf(`%s:%d`, s.server.erupeConfig.DevModeOptions.CapLink.Host, s.server.erupeConfig.DevModeOptions.CapLink.Port), false)
+	}
+
 	bf.WriteUint32(uint32(s.server.getReturnExpiry(uid).Unix()))
 	bf.WriteUint32(0)
 

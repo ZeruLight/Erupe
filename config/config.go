@@ -114,12 +114,20 @@ type DevModeOptions struct {
 	EarthIDOverride      int32
 	EarthMonsterOverride []int32
 	SaveDumps            SaveDumpOptions
+	CapLink              CapLinkOptions
 }
 
 type SaveDumpOptions struct {
 	Enabled    bool
 	RawEnabled bool
 	OutputDir  string
+}
+
+type CapLinkOptions struct {
+	Values []uint16
+	Key    string
+	Host   string
+	Port   int
 }
 
 // GameplayOptions has various gameplay modifiers

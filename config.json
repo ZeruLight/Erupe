@@ -36,6 +36,12 @@
       "Enabled": true,
       "RawEnabled": false,
       "OutputDir": "save-backups"
+    },
+    "CapLink": {
+      "Values": [51728, 20000, 51729, 1, 20000],
+      "Key": "",
+      "Host": "",
+      "Port": 80
     }
   },
   "GameplayOptions": {

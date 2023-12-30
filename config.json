@@ -29,6 +29,7 @@
     "TournamentEvent": 0,
     "DisableTokenCheck": false,
     "QuestDebugTools": false,
+    "DefaultCourses": [1, 23, 24],
     "EarthStatusOverride": 0,
     "EarthIDOverride": 0,
     "EarthMonsterOverride": [0, 0, 0, 0],

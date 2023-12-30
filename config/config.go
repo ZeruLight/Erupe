@@ -110,6 +110,7 @@ type DevModeOptions struct {
 	TournamentEvent      int  // VS Tournament event status
 	DisableTokenCheck    bool // Disables checking login token exists in the DB (security risk!)
 	QuestDebugTools      bool // Enable various quest debug logs
+	DefaultCourses       []uint16
 	EarthStatusOverride  int32
 	EarthIDOverride      int32
 	EarthMonsterOverride []int32

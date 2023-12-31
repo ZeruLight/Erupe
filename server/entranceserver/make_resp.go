@@ -51,13 +51,13 @@ func encodeServerInfo(config *_config.Config, s *Server, local bool) []byte {
 			combined := append(stringsupport.UTF8ToSJIS(si.Name), []byte{0x00}...)
 			combined = append(combined, stringsupport.UTF8ToSJIS(si.Description)...)
 			bf.WriteBytes(stringsupport.PaddedString(string(combined), 65, false))
-		} else if s.erupeConfig.RealClientMode <= _config.GG {
+		} else if s.erupeConfig.RealClientMode <= _config.G5 {
 			combined := append(stringsupport.UTF8ToSJIS(si.Name), []byte{0x00}...)
 			combined = append(combined, stringsupport.UTF8ToSJIS(si.Description)...)
 			bf.WriteUint8(uint8(len(combined)))
 			bf.WriteBytes(combined)
 		} else {
-			bf.WriteUint8(0) // Prevents malformed server name
+			bf.WriteUint8(0) // Ignored
 			combined := append(stringsupport.UTF8ToSJIS(si.Name), []byte{0x00}...)
 			combined = append(combined, stringsupport.UTF8ToSJIS(si.Description)...)
 			bf.WriteBytes(stringsupport.PaddedString(string(combined), 65, false))

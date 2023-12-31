@@ -47,20 +47,15 @@ func encodeServerInfo(config *_config.Config, s *Server, local bool) []byte {
 			bf.WriteUint8(si.Recommended)
 		}
 
-		if s.erupeConfig.RealClientMode <= _config.F5 {
-			combined := append(stringsupport.UTF8ToSJIS(si.Name), []byte{0x00}...)
-			combined = append(combined, stringsupport.UTF8ToSJIS(si.Description)...)
-			bf.WriteBytes(stringsupport.PaddedString(string(combined), 65, false))
-		} else if s.erupeConfig.RealClientMode <= _config.GG {
-			combined := append(stringsupport.UTF8ToSJIS(si.Name), []byte{0x00}...)
-			combined = append(combined, stringsupport.UTF8ToSJIS(si.Description)...)
-			bf.WriteUint8(uint8(len(combined)))
-			bf.WriteBytes(combined)
+		fullName := append(append(stringsupport.UTF8ToSJIS(si.Name), []byte{0x00}...), stringsupport.UTF8ToSJIS(si.Description)...)
+		if s.erupeConfig.RealClientMode >= _config.G1 && s.erupeConfig.RealClientMode <= _config.G5 {
+			bf.WriteUint8(uint8(len(fullName)))
+			bf.WriteBytes(fullName)
 		} else {
-			bf.WriteUint8(0) // Prevents malformed server name
-			combined := append(stringsupport.UTF8ToSJIS(si.Name), []byte{0x00}...)
-			combined = append(combined, stringsupport.UTF8ToSJIS(si.Description)...)
-			bf.WriteBytes(stringsupport.PaddedString(string(combined), 65, false))
+			if s.erupeConfig.RealClientMode >= _config.G51 {
+				bf.WriteUint8(0) // Ignored
+			}
+			bf.WriteBytes(stringsupport.PaddedString(string(fullName), 65, false))
 		}
 
 		if s.erupeConfig.RealClientMode >= _config.GG {
@@ -69,8 +64,8 @@ func encodeServerInfo(config *_config.Config, s *Server, local bool) []byte {
 
 		for channelIdx, ci := range si.Channels {
 			sid = (4096 + serverIdx*256) + (16 + channelIdx)
-			if _config.ErupeConfig.DevMode && _config.ErupeConfig.ProxyPort != 0 {
-				bf.WriteUint16(_config.ErupeConfig.ProxyPort)
+			if _config.ErupeConfig.DebugOptions.ProxyPort != 0 {
+				bf.WriteUint16(_config.ErupeConfig.DebugOptions.ProxyPort)
 			} else {
 				bf.WriteUint16(ci.Port)
 			}
@@ -136,7 +131,7 @@ func makeSv2Resp(config *_config.Config, s *Server, local bool) []byte {
 	}
 	rawServerData := encodeServerInfo(config, s, local)
 
-	if s.erupeConfig.DevMode && s.erupeConfig.DevModeOptions.LogOutboundMessages {
+	if s.erupeConfig.DebugOptions.LogOutboundMessages {
 		fmt.Printf("[Server] -> [Client]\nData [%d bytes]:\n%s\n", len(rawServerData), hex.Dump(rawServerData))
 	}
 
@@ -168,7 +163,7 @@ func makeUsrResp(pkt []byte, s *Server) []byte {
 		}
 	}
 
-	if s.erupeConfig.DevMode && s.erupeConfig.DevModeOptions.LogOutboundMessages {
+	if s.erupeConfig.DebugOptions.LogOutboundMessages {
 		fmt.Printf("[Server] -> [Client]\nData [%d bytes]:\n%s\n", len(resp.Data()), hex.Dump(resp.Data()))
 	}
 

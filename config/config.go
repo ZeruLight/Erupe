@@ -80,46 +80,53 @@ type Config struct {
 	ClientMode             string
 	RealClientMode         Mode
 	QuestCacheExpiry       int    // Number of seconds to keep quest data cached
-	ProxyPort              uint16 // Forces the game to connect to a channel server proxy
 	CommandPrefix          string // The prefix for commands
-	DevMode                bool
-
-	DevModeOptions  DevModeOptions
-	GameplayOptions GameplayOptions
-	Discord         Discord
-	Commands        []Command
-	Courses         []Course
-	Database        Database
-	Sign            Sign
-	SignV2          SignV2
-	Channel         Channel
-	Entrance        Entrance
-}
-
-// DevModeOptions holds various debug/temporary options for use while developing Erupe.
-type DevModeOptions struct {
-	AutoCreateAccount    bool // Automatically create accounts if they don't exist
-	CleanDB              bool // Automatically wipes the DB on server reset.
-	MaxLauncherHR        bool // Sets the HR returned in the launcher to HR7 so that you can join non-beginner worlds.
-	LogInboundMessages   bool // Log all messages sent to the server
-	LogOutboundMessages  bool // Log all messages sent to the clients
-	LogMessageData       bool // Log all bytes transferred as a hexdump
-	MaxHexdumpLength     int  // Maximum number of bytes printed when logs are enabled
-	DivaEvent            int  // Diva Defense event status
-	FestaEvent           int  // Hunter's Festa event status
-	TournamentEvent      int  // VS Tournament event status
-	DisableTokenCheck    bool // Disables checking login token exists in the DB (security risk!)
-	QuestDebugTools      bool // Enable various quest debug logs
-	EarthStatusOverride  int32
-	EarthIDOverride      int32
-	EarthMonsterOverride []int32
-	SaveDumps            SaveDumpOptions
+	AutoCreateAccount      bool   // Automatically create accounts if they don't exist
+	DefaultCourses         []uint16
+	EarthStatus            int32
+	EarthID                int32
+	EarthMonsters          []int32
+	SaveDumps              SaveDumpOptions
+	DebugOptions           DebugOptions
+	GameplayOptions        GameplayOptions
+	Discord                Discord
+	Commands               []Command
+	Courses                []Course
+	Database               Database
+	Sign                   Sign
+	SignV2                 SignV2
+	Channel                Channel
+	Entrance               Entrance
 }
 
 type SaveDumpOptions struct {
 	Enabled    bool
 	RawEnabled bool
 	OutputDir  string
+}
+
+// DebugOptions holds various debug/temporary options for use while developing Erupe.
+type DebugOptions struct {
+	CleanDB             bool   // Automatically wipes the DB on server reset.
+	MaxLauncherHR       bool   // Sets the HR returned in the launcher to HR7 so that you can join non-beginner worlds.
+	LogInboundMessages  bool   // Log all messages sent to the server
+	LogOutboundMessages bool   // Log all messages sent to the clients
+	LogMessageData      bool   // Log all bytes transferred as a hexdump
+	MaxHexdumpLength    int    // Maximum number of bytes printed when logs are enabled
+	DivaOverride        int    // Diva Defense event status
+	FestaOverride       int    // Hunter's Festa event status
+	TournamentOverride  int    // VS Tournament event status
+	DisableTokenCheck   bool   // Disables checking login token exists in the DB (security risk!)
+	QuestTools          bool   // Enable various quest debug logs
+	ProxyPort           uint16 // Forces the game to connect to a channel server proxy
+	CapLink             CapLinkOptions
+}
+
+type CapLinkOptions struct {
+	Values []uint16
+	Key    string
+	Host   string
+	Port   int
 }
 
 // GameplayOptions has various gameplay modifiers
@@ -137,8 +144,6 @@ type GameplayOptions struct {
 	ClanMemberLimits               [][]uint8 // Array of maximum Clan Members -> [Rank, Members]
 	BonusQuestAllowance            uint32    // Number of Bonus Point Quests to allow daily
 	DailyQuestAllowance            uint32    // Number of Daily Quests to allow daily
-	MezfesSoloTickets              uint32    // Number of solo tickets given weekly
-	MezfesGroupTickets             uint32    // Number of group tickets given weekly
 	LowLatencyRaviente             bool      // Toggles low latency mode for Raviente, can be network intensive
 	RegularRavienteMaxPlayers      uint8
 	ViolentRavienteMaxPlayers      uint8
@@ -153,6 +158,8 @@ type GameplayOptions struct {
 	MaterialMultiplier             float32 // Adjusts the multiplier of Monster Materials rewarded for quest completion
 	ExtraCarves                    uint16  // Grant n extra chances to carve ALL carcasses
 	DisableHunterNavi              bool    // Disables the Hunter Navi
+	MezFesSoloTickets              uint32  // Number of solo tickets given weekly
+	MezFesGroupTickets             uint32  // Number of group tickets given weekly
 	MezFesDuration                 int     // Seconds that MezFes will last for weekly (from 12AM Mon backwards)
 	MezFesSwitchMinigame           bool    // Swaps out Volpakkun Together for Tokotoko Partnya
 	EnableKaijiEvent               bool    // Enables the Kaiji event in the Rasta Bar

@@ -105,7 +105,7 @@ func handleMsgMhfGetTowerInfo(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfPostTowerInfo(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfPostTowerInfo)
 
-	if s.server.erupeConfig.DevModeOptions.QuestDebugTools {
+	if s.server.erupeConfig.DebugOptions.QuestTools {
 		s.logger.Debug(
 			p.Opcode().String(),
 			zap.Uint32("InfoType", pkt.InfoType),
@@ -328,7 +328,7 @@ func handleMsgMhfGetTenrouirai(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfPostTenrouirai(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfPostTenrouirai)
 
-	if s.server.erupeConfig.DevModeOptions.QuestDebugTools {
+	if s.server.erupeConfig.DebugOptions.QuestTools {
 		s.logger.Debug(
 			p.Opcode().String(),
 			zap.Uint8("Unk0", pkt.Unk0),
@@ -442,7 +442,7 @@ func handleMsgMhfGetGemInfo(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfPostGemInfo(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfPostGemInfo)
 
-	if s.server.erupeConfig.DevModeOptions.QuestDebugTools {
+	if s.server.erupeConfig.DebugOptions.QuestTools {
 		s.logger.Debug(
 			p.Opcode().String(),
 			zap.Uint32("Op", pkt.Op),

@@ -31,7 +31,7 @@ func stubEnumerateNoResults(s *Session, ackHandle uint32) {
 
 func doAckEarthSucceed(s *Session, ackHandle uint32, data []*byteframe.ByteFrame) {
 	bf := byteframe.NewByteFrame()
-	bf.WriteUint32(uint32(s.server.erupeConfig.DevModeOptions.EarthIDOverride))
+	bf.WriteUint32(uint32(s.server.erupeConfig.EarthID))
 	bf.WriteUint32(0)
 	bf.WriteUint32(0)
 	bf.WriteUint32(uint32(len(data)))
@@ -127,7 +127,7 @@ func handleMsgSysTerminalLog(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgSysLogin(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysLogin)
 
-	if !s.server.erupeConfig.DevModeOptions.DisableTokenCheck {
+	if !s.server.erupeConfig.DebugOptions.DisableTokenCheck {
 		var token string
 		err := s.server.db.QueryRow("SELECT token FROM sign_sessions ss INNER JOIN public.users u on ss.user_id = u.id WHERE token=$1 AND ss.id=$2 AND u.id=(SELECT c.user_id FROM characters c WHERE c.id=$3)", pkt.LoginTokenString, pkt.LoginTokenNumber, pkt.CharID0).Scan(&token)
 		if err != nil {
@@ -959,39 +959,31 @@ func handleMsgMhfExchangeWeeklyStamp(s *Session, p mhfpacket.MHFPacket) {
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
-func getGookData(s *Session, cid uint32) (uint16, []byte) {
-	var data []byte
-	var count uint16
-	bf := byteframe.NewByteFrame()
+func getGoocooData(s *Session, cid uint32) [][]byte {
+	var goocoo []byte
+	var goocoos [][]byte
 	for i := 0; i < 5; i++ {
-		err := s.server.db.QueryRow(fmt.Sprintf("SELECT goocoo%d FROM goocoo WHERE id=$1", i), cid).Scan(&data)
+		err := s.server.db.QueryRow(fmt.Sprintf("SELECT goocoo%d FROM goocoo WHERE id=$1", i), cid).Scan(&goocoo)
 		if err != nil {
 			s.server.db.Exec("INSERT INTO goocoo (id) VALUES ($1)", s.charID)
-			return 0, bf.Data()
+			return goocoos
 		}
-		if err == nil && data != nil {
-			count++
-			if s.charID == cid && count == 1 {
-				goocoo := byteframe.NewByteFrameFromBytes(data)
-				bf.WriteBytes(goocoo.ReadBytes(4))
-				d := goocoo.ReadBytes(2)
-				bf.WriteBytes(d)
-				bf.WriteBytes(d)
-				bf.WriteBytes(goocoo.DataFromCurrent())
-			} else {
-				bf.WriteBytes(data)
-			}
+		if err == nil && goocoo != nil {
+			goocoos = append(goocoos, goocoo)
 		}
 	}
-	return count, bf.Data()
+	return goocoos
 }
 
 func handleMsgMhfEnumerateGuacot(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateGuacot)
 	bf := byteframe.NewByteFrame()
-	count, data := getGookData(s, s.charID)
-	bf.WriteUint16(count)
-	bf.WriteBytes(data)
+	goocoos := getGoocooData(s, s.charID)
+	bf.WriteUint16(uint16(len(goocoos)))
+	bf.WriteUint16(0)
+	for _, goocoo := range goocoos {
+		bf.WriteBytes(goocoo)
+	}
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
@@ -1004,7 +996,7 @@ func handleMsgMhfUpdateGuacot(s *Session, p mhfpacket.MHFPacket) {
 			bf := byteframe.NewByteFrame()
 			bf.WriteUint32(goocoo.Index)
 			for i := range goocoo.Data1 {
-				bf.WriteUint16(goocoo.Data1[i])
+				bf.WriteInt16(goocoo.Data1[i])
 			}
 			for i := range goocoo.Data2 {
 				bf.WriteUint32(goocoo.Data2[i])
@@ -1155,9 +1147,9 @@ func handleMsgMhfGetEarthStatus(s *Session, p mhfpacket.MHFPacket) {
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint32(uint32(TimeWeekStart().Unix())) // Start
 	bf.WriteUint32(uint32(TimeWeekNext().Unix()))  // End
-	bf.WriteInt32(s.server.erupeConfig.DevModeOptions.EarthStatusOverride)
-	bf.WriteInt32(s.server.erupeConfig.DevModeOptions.EarthIDOverride)
-	for i, m := range s.server.erupeConfig.DevModeOptions.EarthMonsterOverride {
+	bf.WriteInt32(s.server.erupeConfig.EarthStatus)
+	bf.WriteInt32(s.server.erupeConfig.EarthID)
+	for i, m := range s.server.erupeConfig.EarthMonsters {
 		if _config.ErupeConfig.RealClientMode <= _config.G9 {
 			if i == 3 {
 				break

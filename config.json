@@ -13,29 +13,35 @@
   "DeleteOnSaveCorruption": false,
   "ClientMode": "ZZ",
   "QuestCacheExpiry": 300,
-  "ProxyPort": 0,
   "CommandPrefix": "!",
-  "DevMode": true,
-  "DevModeOptions": {
-    "AutoCreateAccount": true,
+  "AutoCreateAccount": true,
+  "DefaultCourses": [1, 23, 24],
+  "EarthStatus": 0,
+  "EarthID": 0,
+  "EarthMonsters": [0, 0, 0, 0],
+  "SaveDumps": {
+    "Enabled": true,
+    "RawEnabled": false,
+    "OutputDir": "save-backups"
+  },
+  "DebugOptions": {
     "CleanDB": false,
     "MaxLauncherHR": false,
     "LogInboundMessages": false,
     "LogOutboundMessages": false,
     "LogMessageData": false,
     "MaxHexdumpLength": 256,
-    "DivaEvent": 0,
-    "FestaEvent": -1,
-    "TournamentEvent": 0,
+    "DivaOverride": 0,
+    "FestaOverride": -1,
+    "TournamentOverride": 0,
     "DisableTokenCheck": false,
-    "QuestDebugTools": false,
-    "EarthStatusOverride": 0,
-    "EarthIDOverride": 0,
-    "EarthMonsterOverride": [0, 0, 0, 0],
-    "SaveDumps": {
-      "Enabled": true,
-      "RawEnabled": false,
-      "OutputDir": "save-backups"
+    "QuestTools": false,
+    "ProxyPort": 0,
+    "CapLink": {
+      "Values": [51728, 20000, 51729, 1, 20000],
+      "Key": "",
+      "Host": "",
+      "Port": 80
     }
   },
   "GameplayOptions": {
@@ -51,8 +57,6 @@
     "ClanMemberLimits": [[0, 30], [3, 40], [7, 50], [10, 60]],
     "BonusQuestAllowance": 3,
     "DailyQuestAllowance": 1,
-    "MezfesSoloTickets": 10,
-    "MezfesGroupTickets": 4,
     "LowLatencyRaviente": false,
     "RegularRavienteMaxPlayers": 8,
     "ViolentRavienteMaxPlayers": 8,
@@ -67,6 +71,8 @@
     "MaterialMultiplier": 1.00,
     "ExtraCarves": 0,
     "DisableHunterNavi": false,
+    "MezFesSoloTickets": 5,
+    "MezFesGroupTickets": 1,
     "MezFesDuration": 172800,
     "MezFesSwitchMinigame": false,
     "EnableKaijiEvent": false,

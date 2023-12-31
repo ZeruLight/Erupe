@@ -20,7 +20,7 @@ func handleMsgSysGetFile(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysGetFile)
 
 	if pkt.IsScenario {
-		if s.server.erupeConfig.DevModeOptions.QuestDebugTools && s.server.erupeConfig.DevMode {
+		if s.server.erupeConfig.DebugOptions.QuestTools {
 			s.logger.Debug(
 				"Scenario",
 				zap.Uint8("CategoryID", pkt.ScenarioIdentifer.CategoryID),
@@ -40,7 +40,7 @@ func handleMsgSysGetFile(s *Session, p mhfpacket.MHFPacket) {
 		}
 		doAckBufSucceed(s, pkt.AckHandle, data)
 	} else {
-		if s.server.erupeConfig.DevModeOptions.QuestDebugTools && s.server.erupeConfig.DevMode {
+		if s.server.erupeConfig.DebugOptions.QuestTools {
 			s.logger.Debug(
 				"Quest",
 				zap.String("Filename", pkt.Filename),

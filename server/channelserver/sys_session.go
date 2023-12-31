@@ -253,13 +253,9 @@ func ignored(opcode network.PacketID) bool {
 }
 
 func (s *Session) logMessage(opcode uint16, data []byte, sender string, recipient string) {
-	if !s.server.erupeConfig.DevMode {
+	if sender == "Server" && !s.server.erupeConfig.DebugOptions.LogOutboundMessages {
 		return
-	}
-
-	if sender == "Server" && !s.server.erupeConfig.DevModeOptions.LogOutboundMessages {
-		return
-	} else if sender != "Server" && !s.server.erupeConfig.DevModeOptions.LogInboundMessages {
+	} else if sender != "Server" && !s.server.erupeConfig.DebugOptions.LogInboundMessages {
 		return
 	}
 
@@ -277,8 +273,8 @@ func (s *Session) logMessage(opcode uint16, data []byte, sender string, recipien
 		fmt.Printf("[%s] -> [%s]\n", sender, recipient)
 	}
 	fmt.Printf("Opcode: %s\n", opcodePID)
-	if s.server.erupeConfig.DevModeOptions.LogMessageData {
-		if len(data) <= s.server.erupeConfig.DevModeOptions.MaxHexdumpLength {
+	if s.server.erupeConfig.DebugOptions.LogMessageData {
+		if len(data) <= s.server.erupeConfig.DebugOptions.MaxHexdumpLength {
 			fmt.Printf("Data [%d bytes]:\n%s\n", len(data), hex.Dump(data))
 		} else {
 			fmt.Printf("Data [%d bytes]: (Too long!)\n\n", len(data))

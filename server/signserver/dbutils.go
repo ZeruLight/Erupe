@@ -231,7 +231,7 @@ func (s *Server) validateLogin(user string, pass string) (uint32, RespID) {
 	if err != nil {
 		if err == sql.ErrNoRows {
 			s.logger.Info("User not found", zap.String("User", user))
-			if s.erupeConfig.DevMode && s.erupeConfig.DevModeOptions.AutoCreateAccount {
+			if s.erupeConfig.AutoCreateAccount {
 				uid, err = s.registerDBAccount(user, pass)
 				if err == nil {
 					return uid, SIGN_SUCCESS

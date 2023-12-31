@@ -45,7 +45,7 @@ func handleMsgMhfSavedata(s *Session, p mhfpacket.MHFPacket) {
 			doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 			return
 		}
-		if s.server.erupeConfig.DevModeOptions.SaveDumps.RawEnabled {
+		if s.server.erupeConfig.SaveDumps.RawEnabled {
 			dumpSaveData(s, saveData, "raw-savedata")
 		}
 		s.logger.Info("Updating save with blob")
@@ -112,11 +112,11 @@ func grpToGR(n int) uint16 {
 }
 
 func dumpSaveData(s *Session, data []byte, suffix string) {
-	if !s.server.erupeConfig.DevModeOptions.SaveDumps.Enabled {
+	if !s.server.erupeConfig.SaveDumps.Enabled {
 		return
 	} else {
-		dir := filepath.Join(s.server.erupeConfig.DevModeOptions.SaveDumps.OutputDir, fmt.Sprintf("%d", s.charID))
-		path := filepath.Join(s.server.erupeConfig.DevModeOptions.SaveDumps.OutputDir, fmt.Sprintf("%d", s.charID), fmt.Sprintf("%d_%s.bin", s.charID, suffix))
+		dir := filepath.Join(s.server.erupeConfig.SaveDumps.OutputDir, fmt.Sprintf("%d", s.charID))
+		path := filepath.Join(s.server.erupeConfig.SaveDumps.OutputDir, fmt.Sprintf("%d", s.charID), fmt.Sprintf("%d_%s.bin", s.charID, suffix))
 		_, err := os.Stat(dir)
 		if err != nil {
 			if os.IsNotExist(err) {

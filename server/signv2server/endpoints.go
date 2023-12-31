@@ -80,7 +80,7 @@ func (s *Server) newAuthData(userID uint32, userRights uint32, userTokenID uint3
 		PatchServer: s.erupeConfig.SignV2.PatchServer,
 		Notices:     []string{},
 	}
-	if s.erupeConfig.DevModeOptions.MaxLauncherHR {
+	if s.erupeConfig.DebugOptions.MaxLauncherHR {
 		for i := range resp.Characters {
 			resp.Characters[i].HR = 7
 		}
@@ -93,8 +93,8 @@ func (s *Server) newAuthData(userID uint32, userRights uint32, userTokenID uint3
 		ID:           uint32(channelserver.TimeWeekStart().Unix()),
 		Start:        uint32(channelserver.TimeWeekStart().Add(-time.Duration(s.erupeConfig.GameplayOptions.MezFesDuration) * time.Second).Unix()),
 		End:          uint32(channelserver.TimeWeekNext().Unix()),
-		SoloTickets:  s.erupeConfig.GameplayOptions.MezfesSoloTickets,
-		GroupTickets: s.erupeConfig.GameplayOptions.MezfesGroupTickets,
+		SoloTickets:  s.erupeConfig.GameplayOptions.MezFesSoloTickets,
+		GroupTickets: s.erupeConfig.GameplayOptions.MezFesGroupTickets,
 		Stalls:       stalls,
 	}
 	if !s.erupeConfig.HideLoginNotice {
@@ -226,7 +226,7 @@ func (s *Server) CreateCharacter(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(500)
 		return
 	}
-	if s.erupeConfig.DevModeOptions.MaxLauncherHR {
+	if s.erupeConfig.DebugOptions.MaxLauncherHR {
 		character.HR = 7
 	}
 	w.Header().Add("Content-Type", "application/json")

@@ -113,9 +113,9 @@ type DebugOptions struct {
 	LogOutboundMessages bool   // Log all messages sent to the clients
 	LogMessageData      bool   // Log all bytes transferred as a hexdump
 	MaxHexdumpLength    int    // Maximum number of bytes printed when logs are enabled
-	DivaEvent           int    // Diva Defense event status
-	FestaEvent          int    // Hunter's Festa event status
-	TournamentEvent     int    // VS Tournament event status
+	DivaOverride        int    // Diva Defense event status
+	FestaOverride       int    // Hunter's Festa event status
+	TournamentOverride  int    // VS Tournament event status
 	DisableTokenCheck   bool   // Disables checking login token exists in the DB (security risk!)
 	QuestTools          bool   // Enable various quest debug logs
 	ProxyPort           uint16 // Forces the game to connect to a channel server proxy

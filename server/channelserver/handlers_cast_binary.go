@@ -325,23 +325,15 @@ func parseChatCommand(s *Session, command string) {
 		}
 	case commands["Discord"].Prefix:
 		if commands["Discord"].Enabled {
-			randToken := make([]byte, 4)
-
-			_, err := rand.Read(randToken)
+			var _token string
+			err := s.server.db.QueryRow(`SELECT discord_token FROM users u WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$1)`, s.charID).Scan(&_token)
 			if err != nil {
-				sendServerChatMessage(s, fmt.Sprint("An error occurred while processing this command"))
-				s.logger.Error(fmt.Sprint(err))
-				return
+				randToken := make([]byte, 4)
+				rand.Read(randToken)
+				_token = fmt.Sprintf("%x-%x", randToken[:2], randToken[2:])
+				s.server.db.Exec(`UPDATE users u SET discord_token = $1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)`, _token, s.charID)
 			}
-
-			discordToken := fmt.Sprintf("%x-%x", randToken[:2], randToken[2:])
-			_, err = s.server.db.Exec("UPDATE users u SET discord_token = $1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)", fmt.Sprint(discordToken), s.charID)
-			if err != nil {
-				sendServerChatMessage(s, fmt.Sprint("An error occurred while processing this command"))
-				s.logger.Error(fmt.Sprint(err))
-				return
-			}
-			sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandDiscordSuccess"], discordToken))
+			sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandDiscordSuccess"], _token))
 		} else {
 			sendDisabledCommandMessage(s, commands["Discord"])
 		}

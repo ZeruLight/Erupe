@@ -133,6 +133,7 @@
     }, {
       "Name": "Discord",
       "Enabled": true,
+      "Description": "Generate a token to link your Discord account",
       "Prefix": "discord"
     }
   ],

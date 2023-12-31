@@ -1427,7 +1427,7 @@ func handleMsgMhfEnumerateGuildMember(s *Session, p mhfpacket.MHFPacket) {
 
 	bf := byteframe.NewByteFrame()
 
-	bf.WriteUint16(guild.MemberCount)
+	bf.WriteUint16(uint16(len(guildMembers)))
 
 	sort.Slice(guildMembers[:], func(i, j int) bool {
 		return guildMembers[i].OrderIndex < guildMembers[j].OrderIndex
@@ -1460,7 +1460,7 @@ func handleMsgMhfEnumerateGuildMember(s *Session, p mhfpacket.MHFPacket) {
 	}
 
 	if guild.AllianceID > 0 {
-		bf.WriteUint16(alliance.TotalMembers - guild.MemberCount)
+		bf.WriteUint16(alliance.TotalMembers - uint16(len(guildMembers)))
 		if guild.ID != alliance.ParentGuildID {
 			mems, err := GetGuildMembers(s, alliance.ParentGuildID, false)
 			if err != nil {

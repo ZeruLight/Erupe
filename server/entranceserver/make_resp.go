@@ -47,20 +47,15 @@ func encodeServerInfo(config *_config.Config, s *Server, local bool) []byte {
 			bf.WriteUint8(si.Recommended)
 		}
 
-		if s.erupeConfig.RealClientMode <= _config.F5 {
-			combined := append(stringsupport.UTF8ToSJIS(si.Name), []byte{0x00}...)
-			combined = append(combined, stringsupport.UTF8ToSJIS(si.Description)...)
-			bf.WriteBytes(stringsupport.PaddedString(string(combined), 65, false))
-		} else if s.erupeConfig.RealClientMode <= _config.G5 {
-			combined := append(stringsupport.UTF8ToSJIS(si.Name), []byte{0x00}...)
-			combined = append(combined, stringsupport.UTF8ToSJIS(si.Description)...)
-			bf.WriteUint8(uint8(len(combined)))
-			bf.WriteBytes(combined)
+		fullName := append(append(stringsupport.UTF8ToSJIS(si.Name), []byte{0x00}...), stringsupport.UTF8ToSJIS(si.Description)...)
+		if s.erupeConfig.RealClientMode >= _config.G1 && s.erupeConfig.RealClientMode <= _config.G5 {
+			bf.WriteUint8(uint8(len(fullName)))
+			bf.WriteBytes(fullName)
 		} else {
-			bf.WriteUint8(0) // Ignored
-			combined := append(stringsupport.UTF8ToSJIS(si.Name), []byte{0x00}...)
-			combined = append(combined, stringsupport.UTF8ToSJIS(si.Description)...)
-			bf.WriteBytes(stringsupport.PaddedString(string(combined), 65, false))
+			if s.erupeConfig.RealClientMode >= _config.G51 {
+				bf.WriteUint8(0) // Ignored
+			}
+			bf.WriteBytes(stringsupport.PaddedString(string(fullName), 65, false))
 		}
 
 		if s.erupeConfig.RealClientMode >= _config.GG {

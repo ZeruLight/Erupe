@@ -309,8 +309,8 @@ func handleMsgMhfInfoFesta(s *Session, p mhfpacket.MHFPacket) {
 		ps.Uint8(bf, "", true) // Guild Name
 	}
 
+	bf.WriteUint32(0) // Clan goal
 	// Final bonus rates
-	bf.WriteUint32(1)    // 5000-Infinity?
 	bf.WriteUint32(5000) // 5000+ souls
 	bf.WriteUint32(2000) // 2000-4999 souls
 	bf.WriteUint32(1000) // 1000-1999 souls
@@ -349,7 +349,6 @@ func handleMsgMhfStateFestaU(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteBool(false)
 		bf.WriteBool(true)
 	}
-	bf.WriteUint16(0) // Unk
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
@@ -364,18 +363,18 @@ func handleMsgMhfStateFestaG(s *Session, p mhfpacket.MHFPacket) {
 	resp := byteframe.NewByteFrame()
 	if err != nil || guild == nil || applicant {
 		resp.WriteUint32(0)
-		resp.WriteUint32(0)
-		resp.WriteUint32(0xFFFFFFFF)
-		resp.WriteUint32(0)
-		resp.WriteUint32(0)
+		resp.WriteInt32(0)
+		resp.WriteInt32(-1)
+		resp.WriteInt32(0)
+		resp.WriteInt32(0)
 		doAckBufSucceed(s, pkt.AckHandle, resp.Data())
 		return
 	}
 	resp.WriteUint32(guild.Souls)
-	resp.WriteUint32(1) // unk
-	resp.WriteUint32(1) // unk
-	resp.WriteUint32(1) // unk, rank?
-	resp.WriteUint32(1) // unk
+	resp.WriteInt32(0) // unk
+	resp.WriteInt32(1) // unk, rank?
+	resp.WriteInt32(0) // unk
+	resp.WriteInt32(0) // unk
 	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
 }
 
@@ -391,13 +390,19 @@ func handleMsgMhfEnumerateFestaMember(s *Session, p mhfpacket.MHFPacket) {
 		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
-	bf := byteframe.NewByteFrame()
-	bf.WriteUint16(uint16(len(members)))
-	bf.WriteUint16(0) // Unk
 	sort.Slice(members, func(i, j int) bool {
 		return members[i].Souls > members[j].Souls
 	})
+	var validMembers []*GuildMember
 	for _, member := range members {
+		if member.Souls > 0 {
+			validMembers = append(validMembers, member)
+		}
+	}
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint16(uint16(len(validMembers)))
+	bf.WriteUint16(0) // Unk
+	for _, member := range validMembers {
 		bf.WriteUint32(member.CharID)
 		bf.WriteUint32(member.Souls)
 	}

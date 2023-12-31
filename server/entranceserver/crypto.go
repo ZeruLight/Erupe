@@ -16,8 +16,8 @@ func CalcSum32(data []byte) uint32 {
 	tableIdx1 := int((data[len(data)>>1] + 1) & 0xFF)
 	out := make([]byte, 4)
 	for i := 0; i < len(data); i++ {
-		key := _sum32Table0[(tableIdx0+i)%7] ^ _sum32Table1[(tableIdx1+i)%9]
-		out[i&3] = (out[i&3] + (data[i] ^ key)) & 0xFF
+		key := data[i] ^ _sum32Table0[(tableIdx0+i)%7] ^ _sum32Table1[(tableIdx1+i)%9]
+		out[i&3] = (out[i&3] + key) & 0xFF
 	}
 	return binary.BigEndian.Uint32(out)
 }

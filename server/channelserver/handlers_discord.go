@@ -70,44 +70,46 @@ func getCharacterList(s *Server) string {
 // onInteraction handles slash commands
 func (s *Server) onInteraction(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 	switch i.Interaction.ApplicationCommandData().Name {
-	case "verify":
-		_, err := s.db.Exec("UPDATE users SET discord_id = $1 WHERE discord_token = $2", i.Member.User.ID, i.ApplicationCommandData().Options[0].StringValue())
-		if err != nil {
-			return
+	case "link":
+		var temp string
+		err := s.db.QueryRow(`UPDATE users SET discord_id = $1 WHERE discord_token = $2 RETURNING discord_id`, i.Member.User.ID, i.ApplicationCommandData().Options[0].StringValue()).Scan(&temp)
+		if err == nil {
+			ds.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "Your Erupe account was linked successfully.",
+					Flags:   discordgo.MessageFlagsEphemeral,
+				},
+			})
+		} else {
+			ds.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "Failed to link Erupe account.",
+					Flags:   discordgo.MessageFlagsEphemeral,
+				},
+			})
 		}
-
-		err = ds.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-			Type: discordgo.InteractionResponseChannelMessageWithSource,
-			Data: &discordgo.InteractionResponseData{
-				Content: "Erupe account successfully linked to Discord account.",
-				Flags:   discordgo.MessageFlagsEphemeral,
-			},
-		})
-
-		if err != nil {
-			return
-		}
-		break
 	case "password":
 		password, _ := bcrypt.GenerateFromPassword([]byte(i.ApplicationCommandData().Options[0].StringValue()), 10)
-
-		_, err := s.db.Exec("UPDATE users SET password = $1 WHERE discord_id = $2", password, i.Member.User.ID)
-		if err != nil {
-			s.logger.Error(fmt.Sprint(err))
-			return
+		_, err := s.db.Exec(`UPDATE users SET password = $1 WHERE discord_id = $2`, password, i.Member.User.ID)
+		if err == nil {
+			ds.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "Your Erupe account password has been updated.",
+					Flags:   discordgo.MessageFlagsEphemeral,
+				},
+			})
+		} else {
+			ds.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
+				Type: discordgo.InteractionResponseChannelMessageWithSource,
+				Data: &discordgo.InteractionResponseData{
+					Content: "Failed to update Erupe account password.",
+					Flags:   discordgo.MessageFlagsEphemeral,
+				},
+			})
 		}
-
-		err = ds.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
-			Type: discordgo.InteractionResponseChannelMessageWithSource,
-			Data: &discordgo.InteractionResponseData{
-				Content: "Password has been reset, you may login now.",
-				Flags:   discordgo.MessageFlagsEphemeral,
-			},
-		})
-		if err != nil {
-			return
-		}
-		break
 	}
 }
 

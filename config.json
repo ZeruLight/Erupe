@@ -86,6 +86,7 @@
     "BotToken": "",
     "RealTimeChannel": {
       "Enabled": false,
+      "MaxMessageLength": 183,
       "RealTimeChannelID": ""
     }
   },

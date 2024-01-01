@@ -171,14 +171,15 @@ type GameplayOptions struct {
 
 // Discord holds the discord integration config.
 type Discord struct {
-	Enabled         bool
-	BotToken        string
-	RealTimeChannel DiscordRealTime
+	Enabled      bool
+	BotToken     string
+	RelayChannel DiscordRelay
 }
 
-type DiscordRealTime struct {
-	Enabled           bool
-	RealtimeChannelID string
+type DiscordRelay struct {
+	Enabled          bool
+	MaxMessageLength int
+	RelayChannelID   string
 }
 
 // Command is a channelserver chat command

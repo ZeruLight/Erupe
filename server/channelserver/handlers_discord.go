@@ -113,8 +113,8 @@ func (s *Server) onInteraction(ds *discordgo.Session, i *discordgo.InteractionCr
 
 // onDiscordMessage handles receiving messages from discord and forwarding them ingame.
 func (s *Server) onDiscordMessage(ds *discordgo.Session, m *discordgo.MessageCreate) {
-	// Ignore messages from our bot, or ones that are not in the correct channel.
-	if m.Author.Bot || m.ChannelID != s.erupeConfig.Discord.RealTimeChannel.RealtimeChannelID {
+	// Ignore messages from bots, or messages that are not in the correct channel.
+	if m.Author.Bot || m.ChannelID != s.erupeConfig.Discord.RelayChannel.RelayChannelID {
 		return
 	}
 
@@ -124,11 +124,24 @@ func (s *Server) onDiscordMessage(ds *discordgo.Session, m *discordgo.MessageCre
 		}
 		return r
 	}, m.Author.Username))
-
 	for i := 0; i < 8-len(m.Author.Username); i++ {
 		paddedName += " "
 	}
+	message := s.discordBot.NormalizeDiscordMessage(fmt.Sprintf("[D] %s > %s", paddedName, m.Content))
+	if len(message) > s.erupeConfig.Discord.RelayChannel.MaxMessageLength {
+		return
+	}
 
-	message := fmt.Sprintf("[D] %s > %s", paddedName, m.Content)
-	s.BroadcastChatMessage(s.discordBot.NormalizeDiscordMessage(message))
+	var messages []string
+	lineLength := 61
+	for i := 0; i < len(message); i += lineLength {
+		end := i + lineLength
+		if end > len(message) {
+			end = len(message)
+		}
+		messages = append(messages, message[i:end])
+	}
+	for i := range messages {
+		s.BroadcastChatMessage(messages[i])
+	}
 }

@@ -3,7 +3,6 @@ package main
 import (
 	_config "erupe-ce/config"
 	"fmt"
-	"github.com/bwmarrin/discordgo"
 	"net"
 	"os"
 	"os/signal"
@@ -93,32 +92,7 @@ func main() {
 
 		discordBot = bot
 
-		_, err = discordBot.Session.ApplicationCommandBulkOverwrite(discordBot.Session.State.User.ID, "", []*discordgo.ApplicationCommand{
-			{
-				Name:        "verify",
-				Description: "Verify your account with Discord",
-				Options: []*discordgo.ApplicationCommandOption{
-					{
-						Type:        discordgo.ApplicationCommandOptionString,
-						Name:        "token",
-						Description: "The access token provided by !discord command within the game client.",
-						Required:    true,
-					},
-				},
-			},
-			{
-				Name:        "password",
-				Description: "Reset your account password on Erupe",
-				Options: []*discordgo.ApplicationCommandOption{
-					{
-						Type:        discordgo.ApplicationCommandOptionString,
-						Name:        "password",
-						Description: "The password to change your account to.",
-						Required:    true,
-					},
-				},
-			},
-		})
+		_, err = discordBot.Session.ApplicationCommandBulkOverwrite(discordBot.Session.State.User.ID, "", discordbot.Commands)
 		if err != nil {
 			preventClose(fmt.Sprintf("Discord: Failed to start, %s", err.Error()))
 		}

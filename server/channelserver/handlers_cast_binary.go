@@ -1,6 +1,7 @@
 package channelserver
 
 import (
+	"crypto/rand"
 	"encoding/hex"
 	"erupe-ce/common/byteframe"
 	"erupe-ce/common/mhfcourse"
@@ -321,6 +322,20 @@ func parseChatCommand(s *Session, command string) {
 			}
 		} else {
 			sendDisabledCommandMessage(s, commands["Teleport"])
+		}
+	case commands["Discord"].Prefix:
+		if commands["Discord"].Enabled {
+			var _token string
+			err := s.server.db.QueryRow(`SELECT discord_token FROM users u WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$1)`, s.charID).Scan(&_token)
+			if err != nil {
+				randToken := make([]byte, 4)
+				rand.Read(randToken)
+				_token = fmt.Sprintf("%x-%x", randToken[:2], randToken[2:])
+				s.server.db.Exec(`UPDATE users u SET discord_token = $1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)`, _token, s.charID)
+			}
+			sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandDiscordSuccess"], _token))
+		} else {
+			sendDisabledCommandMessage(s, commands["Discord"])
 		}
 	case commands["Help"].Prefix:
 		if commands["Help"].Enabled {

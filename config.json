@@ -84,7 +84,11 @@
   "Discord": {
     "Enabled": false,
     "BotToken": "",
-    "RealtimeChannelID": ""
+    "RealTimeChannel": {
+      "Enabled": false,
+      "MaxMessageLength": 183,
+      "RealTimeChannelID": ""
+    }
   },
   "Commands": [
     {
@@ -127,6 +131,11 @@
       "Enabled": true,
       "Description": "Link a PlayStation Network ID to your account",
       "Prefix": "psn"
+    }, {
+      "Name": "Discord",
+      "Enabled": true,
+      "Description": "Generate a token to link your Discord account",
+      "Prefix": "discord"
     }
   ],
   "Courses": [

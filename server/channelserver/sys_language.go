@@ -25,6 +25,8 @@ func getLangStrings(s *Server) map[string]string {
 		strings["commandPSNSuccess"] = "PSN「%s」が連携されています"
 		strings["commandPSNExists"] = "PSNは既存のユーザに接続されています"
 
+		strings["commandDiscordSuccess"] = "あなたのDiscordトークン：%s"
+
 		strings["commandRaviNoCommand"] = "ラヴィコマンドが指定されていません"
 		strings["commandRaviStartSuccess"] = "大討伐を開始します"
 		strings["commandRaviStartError"] = "大討伐は既に開催されています"
@@ -77,6 +79,8 @@ func getLangStrings(s *Server) map[string]string {
 		strings["commandPSNError"] = "Error in command. Format: %s <psn id>"
 		strings["commandPSNSuccess"] = "Connected PSN ID: %s"
 		strings["commandPSNExists"] = "PSN ID is connected to another account!"
+
+		strings["commandDiscordSuccess"] = "Your Discord token: %s"
 
 		strings["commandRaviNoCommand"] = "No Raviente command specified!"
 		strings["commandRaviStartSuccess"] = "The Great Slaying will begin in a moment"

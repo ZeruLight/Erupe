@@ -91,6 +91,12 @@ func main() {
 		}
 
 		discordBot = bot
+
+		_, err = discordBot.Session.ApplicationCommandBulkOverwrite(discordBot.Session.State.User.ID, "", discordbot.Commands)
+		if err != nil {
+			preventClose(fmt.Sprintf("Discord: Failed to start, %s", err.Error()))
+		}
+
 		logger.Info("Discord: Started successfully")
 	} else {
 		logger.Info("Discord: Disabled")

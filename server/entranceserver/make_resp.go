@@ -29,7 +29,6 @@ func encodeServerInfo(config *_config.Config, s *Server, local bool) []byte {
 			}
 		}
 
-		sid := (4096 + serverIdx*256) * 6000
 		if si.IP == "" {
 			si.IP = config.Host
 		}
@@ -38,8 +37,8 @@ func encodeServerInfo(config *_config.Config, s *Server, local bool) []byte {
 		} else {
 			bf.WriteUint32(binary.LittleEndian.Uint32(net.ParseIP(si.IP).To4()))
 		}
-		bf.WriteUint16(16 + uint16(serverIdx))
-		bf.WriteUint16(0x0000)
+		bf.WriteUint16(uint16(serverIdx | 16))
+		bf.WriteUint16(0)
 		bf.WriteUint16(uint16(len(si.Channels)))
 		bf.WriteUint8(si.Type)
 		bf.WriteUint8(uint8(((channelserver.TimeAdjusted().Unix() / 86400) + int64(serverIdx)) % 3))
@@ -63,31 +62,31 @@ func encodeServerInfo(config *_config.Config, s *Server, local bool) []byte {
 		}
 
 		for channelIdx, ci := range si.Channels {
-			sid = (4096 + serverIdx*256) + (16 + channelIdx)
+			sid := (serverIdx<<8 | 4096) + (channelIdx | 16)
 			if _config.ErupeConfig.DebugOptions.ProxyPort != 0 {
 				bf.WriteUint16(_config.ErupeConfig.DebugOptions.ProxyPort)
 			} else {
 				bf.WriteUint16(ci.Port)
 			}
-			bf.WriteUint16(16 + uint16(channelIdx))
+			bf.WriteUint16(uint16(channelIdx | 16))
 			bf.WriteUint16(ci.MaxPlayers)
 			var currentPlayers uint16
 			s.db.QueryRow("SELECT current_players FROM servers WHERE server_id=$1", sid).Scan(&currentPlayers)
 			bf.WriteUint16(currentPlayers)
-			bf.WriteUint16(0)     // Unk
-			bf.WriteUint16(0)     // Unk
-			bf.WriteUint16(0)     // Unk
-			bf.WriteUint16(0)     // Unk
-			bf.WriteUint16(0)     // Unk
-			bf.WriteUint16(0)     // Unk
-			bf.WriteUint16(319)   // Unk
-			bf.WriteUint16(252)   // Unk
-			bf.WriteUint16(248)   // Unk
-			bf.WriteUint16(12345) // Unk
+			bf.WriteUint16(0)
+			bf.WriteUint16(0)
+			bf.WriteUint16(0)
+			bf.WriteUint16(0)
+			bf.WriteUint16(0)
+			bf.WriteUint16(0)
+			bf.WriteUint16(319)                  // Unk
+			bf.WriteUint16(254 - currentPlayers) // Unk
+			bf.WriteUint16(255 - currentPlayers) // Unk
+			bf.WriteUint16(12345)
 		}
 	}
 	bf.WriteUint32(uint32(channelserver.TimeAdjusted().Unix()))
-	bf.WriteUint32(0x0000003C)
+	bf.WriteUint32(60)
 	return bf.Data()
 }
 
@@ -156,11 +155,11 @@ func makeUsrResp(pkt []byte, s *Server) []byte {
 		var sid uint16
 		err := s.db.QueryRow("SELECT(SELECT server_id FROM sign_sessions WHERE char_id=$1) AS _", cid).Scan(&sid)
 		if err != nil {
-			resp.WriteBytes(make([]byte, 4))
+			resp.WriteUint16(0)
 		} else {
 			resp.WriteUint16(sid)
-			resp.WriteUint16(0)
 		}
+		resp.WriteUint16(0)
 	}
 
 	if s.erupeConfig.DebugOptions.LogOutboundMessages {

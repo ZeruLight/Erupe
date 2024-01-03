@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"erupe-ce/common/byteframe"
+	"erupe-ce/common/mhfcid"
 	"erupe-ce/common/mhfcourse"
 	"erupe-ce/common/token"
 	"erupe-ce/config"
@@ -87,6 +88,62 @@ func sendServerChatMessage(s *Session, message string) {
 func parseChatCommand(s *Session, command string) {
 	args := strings.Split(command[len(s.server.erupeConfig.CommandPrefix):], " ")
 	switch args[0] {
+	case commands["Ban"].Prefix:
+		if s.isOp() {
+			if len(args) > 1 {
+				var expiry time.Time
+				if len(args) > 2 {
+					var length int
+					var unit string
+					n, err := fmt.Sscanf(args[2], `%d%s`, &length, &unit)
+					if err == nil && n == 2 {
+						switch unit {
+						case "s", "second", "seconds":
+							expiry = time.Now().Add(time.Duration(length) * time.Second)
+						case "m", "mi", "minute", "minutes":
+							expiry = time.Now().Add(time.Duration(length) * time.Minute)
+						case "h", "hour", "hours":
+							expiry = time.Now().Add(time.Duration(length) * time.Hour)
+						case "d", "day", "days":
+							expiry = time.Now().Add(time.Duration(length) * time.Hour * 24)
+						case "mo", "month", "months":
+							expiry = time.Now().Add(time.Duration(length) * time.Hour * 24 * 30)
+						case "y", "year", "years":
+							expiry = time.Now().Add(time.Duration(length) * time.Hour * 24 * 365)
+						}
+					} else {
+						sendServerChatMessage(s, s.server.i18n.commands.ban.error)
+						return
+					}
+				}
+				cid := mhfcid.ConvertCID(args[1])
+				if cid > 0 {
+					var uid uint32
+					var uname string
+					err := s.server.db.QueryRow(`SELECT id, username FROM users u WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$1)`, cid).Scan(&uid, &uname)
+					if err == nil {
+						if expiry.IsZero() {
+							s.server.db.Exec(`INSERT INTO bans VALUES ($1)
+                 				ON CONFLICT (user_id) DO UPDATE SET expires=NULL`, uid)
+							sendServerChatMessage(s, fmt.Sprintf(s.server.i18n.commands.ban.success, uname))
+						} else {
+							s.server.db.Exec(`INSERT INTO bans VALUES ($1, $2)
+                 				ON CONFLICT (user_id) DO UPDATE SET expires=$2`, uid, expiry)
+							sendServerChatMessage(s, fmt.Sprintf(s.server.i18n.commands.ban.success, uname)+fmt.Sprintf(s.server.i18n.commands.ban.length, expiry.Format(time.DateTime)))
+						}
+						s.server.DisconnectUser(uid)
+					} else {
+						sendServerChatMessage(s, s.server.i18n.commands.ban.noUser)
+					}
+				} else {
+					sendServerChatMessage(s, s.server.i18n.commands.ban.invalid)
+				}
+			} else {
+				sendServerChatMessage(s, s.server.i18n.commands.ban.error)
+			}
+		} else {
+			sendServerChatMessage(s, s.server.i18n.commands.noOp)
+		}
 	case commands["PSN"].Prefix:
 		if commands["PSN"].Enabled || s.isOp() {
 			if len(args) > 1 {

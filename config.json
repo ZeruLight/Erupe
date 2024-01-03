@@ -136,6 +136,11 @@
       "Enabled": true,
       "Description": "Generate a token to link your Discord account",
       "Prefix": "discord"
+    }, {
+      "Name": "Ban",
+      "Enabled": false,
+      "Description": "Ban/Temp Ban a user",
+      "Prefix": "ban"
     }
   ],
   "Courses": [

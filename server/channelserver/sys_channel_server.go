@@ -378,6 +378,26 @@ func (s *Server) FindSessionByCharID(charID uint32) *Session {
 	return nil
 }
 
+func (s *Server) DisconnectUser(uid uint32) {
+	var cid uint32
+	var cids []uint32
+	rows, _ := s.db.Query(`SELECT id FROM characters WHERE user_id=$1`, uid)
+	for rows.Next() {
+		rows.Scan(&cid)
+		cids = append(cids, cid)
+	}
+	for _, c := range s.Channels {
+		for _, session := range c.sessions {
+			for _, cid := range cids {
+				if session.charID == cid {
+					session.rawConn.Close()
+					break
+				}
+			}
+		}
+	}
+}
+
 func (s *Server) FindObjectByChar(charID uint32) *Object {
 	s.stagesLock.RLock()
 	defer s.stagesLock.RUnlock()

@@ -88,7 +88,7 @@ func parseChatCommand(s *Session, command string) {
 	args := strings.Split(command[len(s.server.erupeConfig.CommandPrefix):], " ")
 	switch args[0] {
 	case commands["PSN"].Prefix:
-		if commands["PSN"].Enabled {
+		if commands["PSN"].Enabled || s.isOp() {
 			if len(args) > 1 {
 				var exists int
 				s.server.db.QueryRow(`SELECT count(*) FROM users WHERE psn_id = $1`, args[1]).Scan(&exists)
@@ -107,7 +107,7 @@ func parseChatCommand(s *Session, command string) {
 			sendDisabledCommandMessage(s, commands["PSN"])
 		}
 	case commands["Reload"].Prefix:
-		if commands["Reload"].Enabled {
+		if commands["Reload"].Enabled || s.isOp() {
 			sendServerChatMessage(s, s.server.i18n.commands.reload)
 			var temp mhfpacket.MHFPacket
 			deleteNotif := byteframe.NewByteFrame()
@@ -168,7 +168,7 @@ func parseChatCommand(s *Session, command string) {
 			sendDisabledCommandMessage(s, commands["Reload"])
 		}
 	case commands["KeyQuest"].Prefix:
-		if commands["KeyQuest"].Enabled {
+		if commands["KeyQuest"].Enabled || s.isOp() {
 			if s.server.erupeConfig.RealClientMode < _config.G10 {
 				sendServerChatMessage(s, s.server.i18n.commands.kqf.version)
 			} else {
@@ -191,7 +191,7 @@ func parseChatCommand(s *Session, command string) {
 			sendDisabledCommandMessage(s, commands["KeyQuest"])
 		}
 	case commands["Rights"].Prefix:
-		if commands["Rights"].Enabled {
+		if commands["Rights"].Enabled || s.isOp() {
 			if len(args) > 1 {
 				v, _ := strconv.Atoi(args[1])
 				_, err := s.server.db.Exec("UPDATE users u SET rights=$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)", v, s.charID)
@@ -207,7 +207,7 @@ func parseChatCommand(s *Session, command string) {
 			sendDisabledCommandMessage(s, commands["Rights"])
 		}
 	case commands["Course"].Prefix:
-		if commands["Course"].Enabled {
+		if commands["Course"].Enabled || s.isOp() {
 			if len(args) > 1 {
 				for _, course := range mhfcourse.Courses() {
 					for _, alias := range course.Aliases() {
@@ -250,7 +250,7 @@ func parseChatCommand(s *Session, command string) {
 			sendDisabledCommandMessage(s, commands["Course"])
 		}
 	case commands["Raviente"].Prefix:
-		if commands["Raviente"].Enabled {
+		if commands["Raviente"].Enabled || s.isOp() {
 			if len(args) > 1 {
 				if s.server.getRaviSemaphore() != nil {
 					switch args[1] {
@@ -301,7 +301,7 @@ func parseChatCommand(s *Session, command string) {
 			sendDisabledCommandMessage(s, commands["Raviente"])
 		}
 	case commands["Teleport"].Prefix:
-		if commands["Teleport"].Enabled {
+		if commands["Teleport"].Enabled || s.isOp() {
 			if len(args) > 2 {
 				x, _ := strconv.ParseInt(args[1], 10, 16)
 				y, _ := strconv.ParseInt(args[2], 10, 16)
@@ -324,7 +324,7 @@ func parseChatCommand(s *Session, command string) {
 			sendDisabledCommandMessage(s, commands["Teleport"])
 		}
 	case commands["Discord"].Prefix:
-		if commands["Discord"].Enabled {
+		if commands["Discord"].Enabled || s.isOp() {
 			var _token string
 			err := s.server.db.QueryRow(`SELECT discord_token FROM users u WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$1)`, s.charID).Scan(&_token)
 			if err != nil {
@@ -338,9 +338,9 @@ func parseChatCommand(s *Session, command string) {
 			sendDisabledCommandMessage(s, commands["Discord"])
 		}
 	case commands["Help"].Prefix:
-		if commands["Help"].Enabled {
+		if commands["Help"].Enabled || s.isOp() {
 			for _, command := range commands {
-				if command.Enabled {
+				if command.Enabled || s.isOp() {
 					sendServerChatMessage(s, fmt.Sprintf("%s%s: %s", s.server.erupeConfig.CommandPrefix, command.Prefix, command.Description))
 				}
 			}

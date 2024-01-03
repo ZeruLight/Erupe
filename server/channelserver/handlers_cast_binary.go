@@ -59,7 +59,7 @@ func init() {
 }
 
 func sendDisabledCommandMessage(s *Session, cmd _config.Command) {
-	sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandDisabled"], cmd.Name))
+	sendServerChatMessage(s, fmt.Sprintf(s.server.i18n.commands.disabled, cmd.Name))
 }
 
 func sendServerChatMessage(s *Session, message string) {
@@ -95,20 +95,20 @@ func parseChatCommand(s *Session, command string) {
 				if exists == 0 {
 					_, err := s.server.db.Exec(`UPDATE users u SET psn_id=$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)`, args[1], s.charID)
 					if err == nil {
-						sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandPSNSuccess"], args[1]))
+						sendServerChatMessage(s, fmt.Sprintf(s.server.i18n.commands.psn.success, args[1]))
 					}
 				} else {
-					sendServerChatMessage(s, s.server.dict["commandPSNExists"])
+					sendServerChatMessage(s, s.server.i18n.commands.psn.exists)
 				}
 			} else {
-				sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandPSNError"], commands["PSN"].Prefix))
+				sendServerChatMessage(s, fmt.Sprintf(s.server.i18n.commands.psn.error, commands["PSN"].Prefix))
 			}
 		} else {
 			sendDisabledCommandMessage(s, commands["PSN"])
 		}
 	case commands["Reload"].Prefix:
 		if commands["Reload"].Enabled {
-			sendServerChatMessage(s, s.server.dict["commandReload"])
+			sendServerChatMessage(s, s.server.i18n.commands.reload)
 			var temp mhfpacket.MHFPacket
 			deleteNotif := byteframe.NewByteFrame()
 			for _, object := range s.stage.objects {
@@ -170,19 +170,19 @@ func parseChatCommand(s *Session, command string) {
 	case commands["KeyQuest"].Prefix:
 		if commands["KeyQuest"].Enabled {
 			if s.server.erupeConfig.RealClientMode < _config.G10 {
-				sendServerChatMessage(s, s.server.dict["commandKqfVersion"])
+				sendServerChatMessage(s, s.server.i18n.commands.kqf.version)
 			} else {
 				if len(args) > 1 {
 					if args[1] == "get" {
-						sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandKqfGet"], s.kqf))
+						sendServerChatMessage(s, fmt.Sprintf(s.server.i18n.commands.kqf.get, s.kqf))
 					} else if args[1] == "set" {
 						if len(args) > 2 && len(args[2]) == 16 {
 							hexd, _ := hex.DecodeString(args[2])
 							s.kqf = hexd
 							s.kqfOverride = true
-							sendServerChatMessage(s, s.server.dict["commandKqfSetSuccess"])
+							sendServerChatMessage(s, s.server.i18n.commands.kqf.set.success)
 						} else {
-							sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandKqfSetError"], commands["KeyQuest"].Prefix))
+							sendServerChatMessage(s, fmt.Sprintf(s.server.i18n.commands.kqf.set.error, commands["KeyQuest"].Prefix))
 						}
 					}
 				}
@@ -196,12 +196,12 @@ func parseChatCommand(s *Session, command string) {
 				v, _ := strconv.Atoi(args[1])
 				_, err := s.server.db.Exec("UPDATE users u SET rights=$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)", v, s.charID)
 				if err == nil {
-					sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandRightsSuccess"], v))
+					sendServerChatMessage(s, fmt.Sprintf(s.server.i18n.commands.rights.success, v))
 				} else {
-					sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandRightsError"], commands["Rights"].Prefix))
+					sendServerChatMessage(s, fmt.Sprintf(s.server.i18n.commands.rights.error, commands["Rights"].Prefix))
 				}
 			} else {
-				sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandRightsError"], commands["Rights"].Prefix))
+				sendServerChatMessage(s, fmt.Sprintf(s.server.i18n.commands.rights.error, commands["Rights"].Prefix))
 			}
 		} else {
 			sendDisabledCommandMessage(s, commands["Rights"])
@@ -225,11 +225,11 @@ func parseChatCommand(s *Session, command string) {
 									})
 									if ei != -1 {
 										delta = uint32(-1 * math.Pow(2, float64(course.ID)))
-										sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandCourseDisabled"], course.Aliases()[0]))
+										sendServerChatMessage(s, fmt.Sprintf(s.server.i18n.commands.course.disabled, course.Aliases()[0]))
 									}
 								} else {
 									delta = uint32(math.Pow(2, float64(course.ID)))
-									sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandCourseEnabled"], course.Aliases()[0]))
+									sendServerChatMessage(s, fmt.Sprintf(s.server.i18n.commands.course.enabled, course.Aliases()[0]))
 								}
 								err := s.server.db.QueryRow("SELECT rights FROM users u INNER JOIN characters c ON u.id = c.user_id WHERE c.id = $1", s.charID).Scan(&rightsInt)
 								if err == nil {
@@ -237,14 +237,14 @@ func parseChatCommand(s *Session, command string) {
 								}
 								updateRights(s)
 							} else {
-								sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandCourseLocked"], course.Aliases()[0]))
+								sendServerChatMessage(s, fmt.Sprintf(s.server.i18n.commands.course.locked, course.Aliases()[0]))
 							}
 							return
 						}
 					}
 				}
 			} else {
-				sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandCourseError"], commands["Course"].Prefix))
+				sendServerChatMessage(s, fmt.Sprintf(s.server.i18n.commands.course.error, commands["Course"].Prefix))
 			}
 		} else {
 			sendDisabledCommandMessage(s, commands["Course"])
@@ -257,45 +257,45 @@ func parseChatCommand(s *Session, command string) {
 					case "start":
 						if s.server.raviente.register[1] == 0 {
 							s.server.raviente.register[1] = s.server.raviente.register[3]
-							sendServerChatMessage(s, s.server.dict["commandRaviStartSuccess"])
+							sendServerChatMessage(s, s.server.i18n.commands.ravi.start.success)
 							s.notifyRavi()
 						} else {
-							sendServerChatMessage(s, s.server.dict["commandRaviStartError"])
+							sendServerChatMessage(s, s.server.i18n.commands.ravi.start.error)
 						}
 					case "cm", "check", "checkmultiplier", "multiplier":
-						sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandRaviMultiplier"], s.server.GetRaviMultiplier()))
+						sendServerChatMessage(s, fmt.Sprintf(s.server.i18n.commands.ravi.multiplier, s.server.GetRaviMultiplier()))
 					case "sr", "sendres", "resurrection", "ss", "sendsed", "rs", "reqsed":
 						if s.server.erupeConfig.RealClientMode == _config.ZZ {
 							switch args[1] {
 							case "sr", "sendres", "resurrection":
 								if s.server.raviente.state[28] > 0 {
-									sendServerChatMessage(s, s.server.dict["commandRaviResSuccess"])
+									sendServerChatMessage(s, s.server.i18n.commands.ravi.res.success)
 									s.server.raviente.state[28] = 0
 								} else {
-									sendServerChatMessage(s, s.server.dict["commandRaviResError"])
+									sendServerChatMessage(s, s.server.i18n.commands.ravi.res.error)
 								}
 							case "ss", "sendsed":
-								sendServerChatMessage(s, s.server.dict["commandRaviSedSuccess"])
+								sendServerChatMessage(s, s.server.i18n.commands.ravi.sed.success)
 								// Total BerRavi HP
 								HP := s.server.raviente.state[0] + s.server.raviente.state[1] + s.server.raviente.state[2] + s.server.raviente.state[3] + s.server.raviente.state[4]
 								s.server.raviente.support[1] = HP
 							case "rs", "reqsed":
-								sendServerChatMessage(s, s.server.dict["commandRaviRequest"])
+								sendServerChatMessage(s, s.server.i18n.commands.ravi.request)
 								// Total BerRavi HP
 								HP := s.server.raviente.state[0] + s.server.raviente.state[1] + s.server.raviente.state[2] + s.server.raviente.state[3] + s.server.raviente.state[4]
 								s.server.raviente.support[1] = HP + 1
 							}
 						} else {
-							sendServerChatMessage(s, s.server.dict["commandRaviVersion"])
+							sendServerChatMessage(s, s.server.i18n.commands.ravi.version)
 						}
 					default:
-						sendServerChatMessage(s, s.server.dict["commandRaviError"])
+						sendServerChatMessage(s, s.server.i18n.commands.ravi.error)
 					}
 				} else {
-					sendServerChatMessage(s, s.server.dict["commandRaviNoPlayers"])
+					sendServerChatMessage(s, s.server.i18n.commands.ravi.noPlayers)
 				}
 			} else {
-				sendServerChatMessage(s, s.server.dict["commandRaviError"])
+				sendServerChatMessage(s, s.server.i18n.commands.ravi.error)
 			}
 		} else {
 			sendDisabledCommandMessage(s, commands["Raviente"])
@@ -316,9 +316,9 @@ func parseChatCommand(s *Session, command string) {
 					MessageType:    BinaryMessageTypeState,
 					RawDataPayload: payloadBytes,
 				})
-				sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandTeleportSuccess"], x, y))
+				sendServerChatMessage(s, fmt.Sprintf(s.server.i18n.commands.teleport.success, x, y))
 			} else {
-				sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandTeleportError"], commands["Teleport"].Prefix))
+				sendServerChatMessage(s, fmt.Sprintf(s.server.i18n.commands.teleport.error, commands["Teleport"].Prefix))
 			}
 		} else {
 			sendDisabledCommandMessage(s, commands["Teleport"])
@@ -333,7 +333,7 @@ func parseChatCommand(s *Session, command string) {
 				_token = fmt.Sprintf("%x-%x", randToken[:2], randToken[2:])
 				s.server.db.Exec(`UPDATE users u SET discord_token = $1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)`, _token, s.charID)
 			}
-			sendServerChatMessage(s, fmt.Sprintf(s.server.dict["commandDiscordSuccess"], _token))
+			sendServerChatMessage(s, fmt.Sprintf(s.server.i18n.commands.discord.success, _token))
 		} else {
 			sendDisabledCommandMessage(s, commands["Discord"])
 		}

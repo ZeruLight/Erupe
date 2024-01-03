@@ -57,7 +57,7 @@ type Server struct {
 	stages     map[string]*Stage
 
 	// Used to map different languages
-	dict map[string]string
+	i18n i18n
 
 	// UserBinary
 	userBinaryPartsLock sync.RWMutex
@@ -192,7 +192,7 @@ func NewServer(config *Config) *Server {
 	// MezFes
 	s.stages["sl1Ns462p0a0u0"] = NewStage("sl1Ns462p0a0u0")
 
-	s.dict = getLangStrings(s)
+	s.i18n = getLangStrings(s)
 
 	return s
 }
@@ -337,13 +337,13 @@ func (s *Server) BroadcastRaviente(ip uint32, port uint16, stage []byte, _type u
 	var text string
 	switch _type {
 	case 2:
-		text = s.dict["ravienteBerserk"]
+		text = s.i18n.raviente.berserk
 	case 3:
-		text = s.dict["ravienteExtreme"]
+		text = s.i18n.raviente.extreme
 	case 4:
-		text = s.dict["ravienteExtremeLimited"]
+		text = s.i18n.raviente.extremeLimited
 	case 5:
-		text = s.dict["ravienteBerserkSmall"]
+		text = s.i18n.raviente.berserkSmall
 	default:
 		s.logger.Error("Unk raviente type", zap.Uint8("_type", _type))
 	}

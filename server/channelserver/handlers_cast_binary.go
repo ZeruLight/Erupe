@@ -377,24 +377,20 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 
 	// Parse out the real casted binary payload
 	var msgBinTargeted *binpacket.MsgBinTargeted
-	var authorLen, msgLen uint16
-	var msg []byte
-
-	isDiceCommand := false
+	var message, author string
+	var returnToSender bool
 	if pkt.MessageType == BinaryMessageTypeChat {
 		tmp.SetLE()
-		tmp.Seek(int64(0), 0)
-		_ = tmp.ReadUint32()
-		authorLen = tmp.ReadUint16()
-		msgLen = tmp.ReadUint16()
-		msg = tmp.ReadNullTerminatedBytes()
+		tmp.Seek(8, 0)
+		message = string(tmp.ReadNullTerminatedBytes())
+		author = string(tmp.ReadNullTerminatedBytes())
 	}
 
 	// Customise payload
 	realPayload := pkt.RawDataPayload
 	if pkt.BroadcastType == BroadcastTypeTargeted {
 		tmp.SetBE()
-		tmp.Seek(int64(0), 0)
+		tmp.Seek(0, 0)
 		msgBinTargeted = &binpacket.MsgBinTargeted{}
 		err := msgBinTargeted.Parse(tmp)
 		if err != nil {
@@ -403,18 +399,18 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 		}
 		realPayload = msgBinTargeted.RawDataPayload
 	} else if pkt.MessageType == BinaryMessageTypeChat {
-		if msgLen == 6 && string(msg) == "@dice" {
-			isDiceCommand = true
-			roll := byteframe.NewByteFrame()
-			roll.WriteInt16(1) // Unk
-			roll.SetLE()
-			roll.WriteUint16(4) // Unk
-			roll.WriteUint16(authorLen)
-			dice := fmt.Sprintf("%d", token.RNG().Intn(100)+1)
-			roll.WriteUint16(uint16(len(dice) + 1))
-			roll.WriteNullTerminatedBytes([]byte(dice))
-			roll.WriteNullTerminatedBytes(tmp.ReadNullTerminatedBytes())
-			realPayload = roll.Data()
+		if message == "@dice" {
+			returnToSender = true
+			m := binpacket.MsgBinChat{
+				Type:       BinaryMessageTypeChat,
+				Flags:      4,
+				Message:    fmt.Sprintf(`%d`, token.RNG().Intn(100)+1),
+				SenderName: author,
+			}
+			bf := byteframe.NewByteFrame()
+			bf.SetLE()
+			m.Build(bf)
+			realPayload = bf.Data()
 		} else {
 			bf := byteframe.NewByteFrameFromBytes(pkt.RawDataPayload)
 			bf.SetLE()

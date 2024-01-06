@@ -439,8 +439,8 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 	case BroadcastTypeWorld:
 		s.server.WorldcastMHF(resp, s, nil)
 	case BroadcastTypeStage:
-		if isDiceCommand {
-			s.stage.BroadcastMHF(resp, nil) // send dice result back to caller
+		if returnToSender {
+			s.stage.BroadcastMHF(resp, nil)
 		} else {
 			s.stage.BroadcastMHF(resp, s)
 		}

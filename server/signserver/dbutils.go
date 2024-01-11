@@ -229,7 +229,7 @@ func (s *Server) validateLogin(user string, pass string) (uint32, RespID) {
 	var passDB string
 	err := s.db.QueryRow(`SELECT id, password FROM users WHERE username = $1`, user).Scan(&uid, &passDB)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			s.logger.Info("User not found", zap.String("User", user))
 			if s.erupeConfig.AutoCreateAccount {
 				uid, err = s.registerDBAccount(user, pass)

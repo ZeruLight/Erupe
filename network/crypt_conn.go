@@ -4,11 +4,10 @@ import (
 	"encoding/hex"
 	"errors"
 	_config "erupe-ce/config"
+	"erupe-ce/network/crypto"
 	"fmt"
 	"io"
 	"net"
-
-	"erupe-ce/network/crypto"
 )
 
 // CryptConn represents a MHF encrypted two-way connection,
@@ -67,7 +66,7 @@ func (cc *CryptConn) ReadPacket() ([]byte, error) {
 		cc.readKeyRot = uint32(cph.KeyRotDelta) * (cc.readKeyRot + 1)
 	}
 
-	out, combinedCheck, check0, check1, check2 := crypto.Decrypt(encryptedPacketBody, cc.readKeyRot, nil)
+	out, combinedCheck, check0, check1, check2 := crypto.Crypto(encryptedPacketBody, cc.readKeyRot, false, nil)
 	if cph.Check0 != check0 || cph.Check1 != check1 || cph.Check2 != check2 {
 		fmt.Printf("got c0 %X, c1 %X, c2 %X\n", check0, check1, check2)
 		fmt.Printf("want c0 %X, c1 %X, c2 %X\n", cph.Check0, cph.Check1, cph.Check2)
@@ -77,7 +76,7 @@ func (cc *CryptConn) ReadPacket() ([]byte, error) {
 		// Attempt to bruteforce it.
 		fmt.Println("Crypto out of sync? Attempting bruteforce")
 		for key := byte(0); key < 255; key++ {
-			out, combinedCheck, check0, check1, check2 = crypto.Decrypt(encryptedPacketBody, 0, &key)
+			out, combinedCheck, check0, check1, check2 = crypto.Crypto(encryptedPacketBody, 0, false, &key)
 			//fmt.Printf("Key: 0x%X\n%s\n", key, hex.Dump(out))
 			if cph.Check0 == check0 && cph.Check1 == check1 && cph.Check2 == check2 {
 				fmt.Printf("Bruceforce successful, override key: 0x%X\n", key)
@@ -106,7 +105,7 @@ func (cc *CryptConn) SendPacket(data []byte) error {
 	}
 
 	// Encrypt the data
-	encData, combinedCheck, check0, check1, check2 := crypto.Encrypt(data, cc.sendKeyRot, nil)
+	encData, combinedCheck, check0, check1, check2 := crypto.Crypto(data, cc.sendKeyRot, true, nil)
 
 	header := &CryptPacketHeader{}
 	header.Pf0 = byte(((uint(len(encData)) >> 12) & 0xF3) | 3)
@@ -123,9 +122,7 @@ func (cc *CryptConn) SendPacket(data []byte) error {
 		return err
 	}
 
-	cc.conn.Write(headerBytes)
-	cc.conn.Write(encData)
-
+	cc.conn.Write(append(headerBytes, encData...))
 	cc.sentPackets++
 	cc.prevSendPacketCombinedCheck = combinedCheck
 

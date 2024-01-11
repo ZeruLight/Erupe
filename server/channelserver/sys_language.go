@@ -6,6 +6,7 @@ type i18n struct {
 		reset string
 	}
 	commands struct {
+		noOp     string
 		disabled string
 		reload   string
 		kqf      struct {
@@ -37,6 +38,13 @@ type i18n struct {
 		}
 		discord struct {
 			success string
+		}
+		ban struct {
+			success string
+			noUser  string
+			invalid string
+			error   string
+			length  string
 		}
 		ravi struct {
 			noCommand string
@@ -95,6 +103,7 @@ func getLangStrings(s *Server) i18n {
 		i.language = "日本語"
 		i.cafe.reset = "%d/%dにリセット"
 
+		i.commands.noOp = "You don't have permission to use this command"
 		i.commands.disabled = "%sのコマンドは無効です"
 		i.commands.reload = "リロードします"
 		i.commands.kqf.get = "現在のキークエストフラグ：%x"
@@ -114,6 +123,12 @@ func getLangStrings(s *Server) i18n {
 		i.commands.psn.exists = "PSNは既存のユーザに接続されています"
 
 		i.commands.discord.success = "あなたのDiscordトークン：%s"
+
+		i.commands.ban.noUser = "Could not find user"
+		i.commands.ban.success = "Successfully banned %s"
+		i.commands.ban.invalid = "Invalid Character ID"
+		i.commands.ban.error = "Error in command. Format: %s <id> [length]"
+		i.commands.ban.length = " until %s"
 
 		i.commands.ravi.noCommand = "ラヴィコマンドが指定されていません"
 		i.commands.ravi.start.success = "大討伐を開始します"
@@ -150,6 +165,7 @@ func getLangStrings(s *Server) i18n {
 		i.language = "English"
 		i.cafe.reset = "Resets on %d/%d"
 
+		i.commands.noOp = "You don't have permission to use this command"
 		i.commands.disabled = "%s command is disabled"
 		i.commands.reload = "Reloading players..."
 		i.commands.kqf.get = "KQF: %x"
@@ -169,6 +185,12 @@ func getLangStrings(s *Server) i18n {
 		i.commands.psn.exists = "PSN ID is connected to another account!"
 
 		i.commands.discord.success = "Your Discord token: %s"
+
+		i.commands.ban.noUser = "Could not find user"
+		i.commands.ban.success = "Successfully banned %s"
+		i.commands.ban.invalid = "Invalid Character ID"
+		i.commands.ban.error = "Error in command. Format: %s <id> [length]"
+		i.commands.ban.length = " until %s"
 
 		i.commands.ravi.noCommand = "No Raviente command specified!"
 		i.commands.ravi.start.success = "The Great Slaying will begin in a moment"

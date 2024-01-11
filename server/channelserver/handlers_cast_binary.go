@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"erupe-ce/common/byteframe"
+	"erupe-ce/common/mhfcid"
 	"erupe-ce/common/mhfcourse"
 	"erupe-ce/common/token"
 	"erupe-ce/config"
@@ -87,8 +88,64 @@ func sendServerChatMessage(s *Session, message string) {
 func parseChatCommand(s *Session, command string) {
 	args := strings.Split(command[len(s.server.erupeConfig.CommandPrefix):], " ")
 	switch args[0] {
+	case commands["Ban"].Prefix:
+		if s.isOp() {
+			if len(args) > 1 {
+				var expiry time.Time
+				if len(args) > 2 {
+					var length int
+					var unit string
+					n, err := fmt.Sscanf(args[2], `%d%s`, &length, &unit)
+					if err == nil && n == 2 {
+						switch unit {
+						case "s", "second", "seconds":
+							expiry = time.Now().Add(time.Duration(length) * time.Second)
+						case "m", "mi", "minute", "minutes":
+							expiry = time.Now().Add(time.Duration(length) * time.Minute)
+						case "h", "hour", "hours":
+							expiry = time.Now().Add(time.Duration(length) * time.Hour)
+						case "d", "day", "days":
+							expiry = time.Now().Add(time.Duration(length) * time.Hour * 24)
+						case "mo", "month", "months":
+							expiry = time.Now().Add(time.Duration(length) * time.Hour * 24 * 30)
+						case "y", "year", "years":
+							expiry = time.Now().Add(time.Duration(length) * time.Hour * 24 * 365)
+						}
+					} else {
+						sendServerChatMessage(s, s.server.i18n.commands.ban.error)
+						return
+					}
+				}
+				cid := mhfcid.ConvertCID(args[1])
+				if cid > 0 {
+					var uid uint32
+					var uname string
+					err := s.server.db.QueryRow(`SELECT id, username FROM users u WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$1)`, cid).Scan(&uid, &uname)
+					if err == nil {
+						if expiry.IsZero() {
+							s.server.db.Exec(`INSERT INTO bans VALUES ($1)
+                 				ON CONFLICT (user_id) DO UPDATE SET expires=NULL`, uid)
+							sendServerChatMessage(s, fmt.Sprintf(s.server.i18n.commands.ban.success, uname))
+						} else {
+							s.server.db.Exec(`INSERT INTO bans VALUES ($1, $2)
+                 				ON CONFLICT (user_id) DO UPDATE SET expires=$2`, uid, expiry)
+							sendServerChatMessage(s, fmt.Sprintf(s.server.i18n.commands.ban.success, uname)+fmt.Sprintf(s.server.i18n.commands.ban.length, expiry.Format(time.DateTime)))
+						}
+						s.server.DisconnectUser(uid)
+					} else {
+						sendServerChatMessage(s, s.server.i18n.commands.ban.noUser)
+					}
+				} else {
+					sendServerChatMessage(s, s.server.i18n.commands.ban.invalid)
+				}
+			} else {
+				sendServerChatMessage(s, s.server.i18n.commands.ban.error)
+			}
+		} else {
+			sendServerChatMessage(s, s.server.i18n.commands.noOp)
+		}
 	case commands["PSN"].Prefix:
-		if commands["PSN"].Enabled {
+		if commands["PSN"].Enabled || s.isOp() {
 			if len(args) > 1 {
 				var exists int
 				s.server.db.QueryRow(`SELECT count(*) FROM users WHERE psn_id = $1`, args[1]).Scan(&exists)
@@ -107,7 +164,7 @@ func parseChatCommand(s *Session, command string) {
 			sendDisabledCommandMessage(s, commands["PSN"])
 		}
 	case commands["Reload"].Prefix:
-		if commands["Reload"].Enabled {
+		if commands["Reload"].Enabled || s.isOp() {
 			sendServerChatMessage(s, s.server.i18n.commands.reload)
 			var temp mhfpacket.MHFPacket
 			deleteNotif := byteframe.NewByteFrame()
@@ -168,7 +225,7 @@ func parseChatCommand(s *Session, command string) {
 			sendDisabledCommandMessage(s, commands["Reload"])
 		}
 	case commands["KeyQuest"].Prefix:
-		if commands["KeyQuest"].Enabled {
+		if commands["KeyQuest"].Enabled || s.isOp() {
 			if s.server.erupeConfig.RealClientMode < _config.G10 {
 				sendServerChatMessage(s, s.server.i18n.commands.kqf.version)
 			} else {
@@ -191,7 +248,7 @@ func parseChatCommand(s *Session, command string) {
 			sendDisabledCommandMessage(s, commands["KeyQuest"])
 		}
 	case commands["Rights"].Prefix:
-		if commands["Rights"].Enabled {
+		if commands["Rights"].Enabled || s.isOp() {
 			if len(args) > 1 {
 				v, _ := strconv.Atoi(args[1])
 				_, err := s.server.db.Exec("UPDATE users u SET rights=$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)", v, s.charID)
@@ -207,7 +264,7 @@ func parseChatCommand(s *Session, command string) {
 			sendDisabledCommandMessage(s, commands["Rights"])
 		}
 	case commands["Course"].Prefix:
-		if commands["Course"].Enabled {
+		if commands["Course"].Enabled || s.isOp() {
 			if len(args) > 1 {
 				for _, course := range mhfcourse.Courses() {
 					for _, alias := range course.Aliases() {
@@ -250,7 +307,7 @@ func parseChatCommand(s *Session, command string) {
 			sendDisabledCommandMessage(s, commands["Course"])
 		}
 	case commands["Raviente"].Prefix:
-		if commands["Raviente"].Enabled {
+		if commands["Raviente"].Enabled || s.isOp() {
 			if len(args) > 1 {
 				if s.server.getRaviSemaphore() != nil {
 					switch args[1] {
@@ -301,7 +358,7 @@ func parseChatCommand(s *Session, command string) {
 			sendDisabledCommandMessage(s, commands["Raviente"])
 		}
 	case commands["Teleport"].Prefix:
-		if commands["Teleport"].Enabled {
+		if commands["Teleport"].Enabled || s.isOp() {
 			if len(args) > 2 {
 				x, _ := strconv.ParseInt(args[1], 10, 16)
 				y, _ := strconv.ParseInt(args[2], 10, 16)
@@ -324,7 +381,7 @@ func parseChatCommand(s *Session, command string) {
 			sendDisabledCommandMessage(s, commands["Teleport"])
 		}
 	case commands["Discord"].Prefix:
-		if commands["Discord"].Enabled {
+		if commands["Discord"].Enabled || s.isOp() {
 			var _token string
 			err := s.server.db.QueryRow(`SELECT discord_token FROM users u WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$1)`, s.charID).Scan(&_token)
 			if err != nil {
@@ -338,9 +395,9 @@ func parseChatCommand(s *Session, command string) {
 			sendDisabledCommandMessage(s, commands["Discord"])
 		}
 	case commands["Help"].Prefix:
-		if commands["Help"].Enabled {
+		if commands["Help"].Enabled || s.isOp() {
 			for _, command := range commands {
-				if command.Enabled {
+				if command.Enabled || s.isOp() {
 					sendServerChatMessage(s, fmt.Sprintf("%s%s: %s", s.server.erupeConfig.CommandPrefix, command.Prefix, command.Description))
 				}
 			}

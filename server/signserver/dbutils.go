@@ -244,6 +244,15 @@ func (s *Server) validateLogin(user string, pass string) (uint32, RespID) {
 		return 0, SIGN_EABORT
 	} else {
 		if bcrypt.CompareHashAndPassword([]byte(passDB), []byte(pass)) == nil {
+			var bans int
+			err = s.db.QueryRow(`SELECT count(*) FROM bans WHERE user_id=$1 AND expires IS NULL`, uid).Scan(&bans)
+			if err == nil && bans > 0 {
+				return uid, SIGN_EELIMINATE
+			}
+			err = s.db.QueryRow(`SELECT count(*) FROM bans WHERE user_id=$1 AND expires > now()`, uid).Scan(&bans)
+			if err == nil && bans > 0 {
+				return uid, SIGN_ESUSPEND
+			}
 			return uid, SIGN_SUCCESS
 		}
 		return 0, SIGN_EPASS

@@ -309,3 +309,12 @@ func (s *Session) NextObjectID() uint32 {
 	bf.Seek(0, 0)
 	return bf.ReadUint32()
 }
+
+func (s *Session) isOp() bool {
+	var op bool
+	err := s.server.db.QueryRow(`SELECT op FROM users u WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$1)`, s.charID).Scan(&op)
+	if err == nil && op {
+		return true
+	}
+	return false
+}

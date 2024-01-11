@@ -86,13 +86,11 @@ func NewSession(server *Server, conn net.Conn) *Session {
 
 // Start starts the session packet send and recv loop(s).
 func (s *Session) Start() {
-	go func() {
-		s.logger.Debug("New connection", zap.String("RemoteAddr", s.rawConn.RemoteAddr().String()))
-		// Unlike the sign and entrance server,
-		// the client DOES NOT initalize the channel connection with 8 NULL bytes.
-		go s.sendLoop()
-		s.recvLoop()
-	}()
+	s.logger.Debug("New connection", zap.String("RemoteAddr", s.rawConn.RemoteAddr().String()))
+	// Unlike the sign and entrance server,
+	// the client DOES NOT initalize the channel connection with 8 NULL bytes.
+	go s.sendLoop()
+	go s.recvLoop()
 }
 
 // QueueSend queues a packet (raw []byte) to be sent.
@@ -150,16 +148,19 @@ func (s *Session) QueueAck(ackHandle uint32, data []byte) {
 }
 
 func (s *Session) sendLoop() {
+	var pkt packet
 	for {
 		if s.closed {
 			return
 		}
-		pkt := <-s.sendPackets
-		err := s.cryptConn.SendPacket(append(pkt.data, []byte{0x00, 0x10}...))
-		if err != nil {
-			s.logger.Warn("Failed to send packet")
+		for len(s.sendPackets) > 0 {
+			pkt = <-s.sendPackets
+			err := s.cryptConn.SendPacket(append(pkt.data, []byte{0x00, 0x10}...))
+			if err != nil {
+				s.logger.Warn("Failed to send packet")
+			}
 		}
-		time.Sleep(10 * time.Millisecond)
+		time.Sleep(5 * time.Millisecond)
 	}
 }
 
@@ -178,14 +179,13 @@ func (s *Session) recvLoop() {
 			s.logger.Info(fmt.Sprintf("[%s] Disconnected", s.Name))
 			logoutPlayer(s)
 			return
-		}
-		if err != nil {
+		} else if err != nil {
 			s.logger.Warn("Error on ReadPacket, exiting recv loop", zap.Error(err))
 			logoutPlayer(s)
 			return
 		}
 		s.handlePacketGroup(pkt)
-		time.Sleep(10 * time.Millisecond)
+		time.Sleep(5 * time.Millisecond)
 	}
 }
 

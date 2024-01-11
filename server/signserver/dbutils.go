@@ -198,17 +198,17 @@ func (s *Server) checkToken(uid uint32) (bool, error) {
 }
 
 func (s *Server) registerUidToken(uid uint32) (uint32, string, error) {
-	token := token.Generate(16)
+	_token := token.Generate(16)
 	var tid uint32
-	err := s.db.QueryRow(`INSERT INTO sign_sessions (user_id, token) VALUES ($1, $2) RETURNING id`, uid, token).Scan(&tid)
-	return tid, token, err
+	err := s.db.QueryRow(`INSERT INTO sign_sessions (user_id, token) VALUES ($1, $2) RETURNING id`, uid, _token).Scan(&tid)
+	return tid, _token, err
 }
 
 func (s *Server) registerPsnToken(psn string) (uint32, string, error) {
-	token := token.Generate(16)
+	_token := token.Generate(16)
 	var tid uint32
-	err := s.db.QueryRow(`INSERT INTO sign_sessions (psn_id, token) VALUES ($1, $2) RETURNING id`, psn, token).Scan(&tid)
-	return tid, token, err
+	err := s.db.QueryRow(`INSERT INTO sign_sessions (psn_id, token) VALUES ($1, $2) RETURNING id`, psn, _token).Scan(&tid)
+	return tid, _token, err
 }
 
 func (s *Server) validateToken(token string, tokenID uint32) bool {

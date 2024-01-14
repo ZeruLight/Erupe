@@ -322,40 +322,40 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 		{ID: 67, Value: 1},
 		{ID: 80, Value: 1},
 		{ID: 94, Value: 1},
-		{ID: 1010, Value: 300},
-		{ID: 1011, Value: 300},
-		{ID: 1012, Value: 300},
-		{ID: 1013, Value: 300},
-		{ID: 1014, Value: 200},
-		{ID: 1015, Value: 200},
-		{ID: 1021, Value: 400},
+		{ID: 1010, Value: 300}, // get_hrp_rate_netcafe
+		{ID: 1011, Value: 300}, // get_zeny_rate_netcafe
+		{ID: 1012, Value: 300}, // get_hrp_rate_ncource
+		{ID: 1013, Value: 300}, // get_zeny_rate_ncource
+		{ID: 1014, Value: 200}, // get_hrp_rate_premium
+		{ID: 1015, Value: 200}, // get_zeny_rate_premium
+		{ID: 1021, Value: 400}, // get_gcp_rate_assist
 		{ID: 1023, Value: 8},
-		{ID: 1024, Value: 150},
+		{ID: 1024, Value: 150}, // get_hrp_rate_ptbonus
 		{ID: 1025, Value: 1},
 		{ID: 1026, Value: 999}, // get_grank_cap
-		{ID: 1027, Value: 100},
-		{ID: 1028, Value: 100},
-		{ID: 1030, Value: 8},
-		{ID: 1031, Value: 100},
+		{ID: 1027, Value: 100}, // get_exchange_rate_festa
+		{ID: 1028, Value: 100}, // get_exchange_rate_cafe
+		{ID: 1030, Value: 8},   // get_gquest_cap
+		{ID: 1031, Value: 100}, // get_exchange_rate_guild (GCP)
 		{ID: 1032, Value: 0},   // isValid_partner
 		{ID: 1044, Value: 200}, // get_rate_tload_time_out
 		{ID: 1045, Value: 0},   // get_rate_tower_treasure_preset
-		{ID: 1046, Value: 99},
-		{ID: 1048, Value: 0},  // get_rate_tower_log_disable
-		{ID: 1049, Value: 10}, // get_rate_tower_gem_max
-		{ID: 1050, Value: 1},  // get_rate_tower_gem_set
+		{ID: 1046, Value: 99},  // get_hunter_life_cap
+		{ID: 1048, Value: 0},   // get_rate_tower_log_disable
+		{ID: 1049, Value: 10},  // get_rate_tower_gem_max
+		{ID: 1050, Value: 1},   // get_rate_tower_gem_set
 		{ID: 1051, Value: 200},
-		{ID: 1052, Value: 200},
-		{ID: 1063, Value: 50000},
-		{ID: 1064, Value: 50000},
-		{ID: 1065, Value: 25000},
-		{ID: 1066, Value: 25000},
-		{ID: 1067, Value: 90},  // get_lobby_member_upper_for_making_room Lv1?
-		{ID: 1068, Value: 80},  // get_lobby_member_upper_for_making_room Lv2?
-		{ID: 1069, Value: 70},  // get_lobby_member_upper_for_making_room Lv3?
-		{ID: 1072, Value: 300}, // get_rate_premium_ravi_tama
-		{ID: 1073, Value: 300}, // get_rate_premium_ravi_ax_tama
-		{ID: 1074, Value: 300}, // get_rate_premium_ravi_g_tama
+		{ID: 1052, Value: 200},   // get_trp_rate_premium
+		{ID: 1063, Value: 50000}, // get_nboost_quest_point_from_hrank
+		{ID: 1064, Value: 50000}, // get_nboost_quest_point_from_srank
+		{ID: 1065, Value: 25000}, // get_nboost_quest_point_from_grank
+		{ID: 1066, Value: 25000}, // get_nboost_quest_point_from_gsrank
+		{ID: 1067, Value: 90},    // get_lobby_member_upper_for_making_room Lv1?
+		{ID: 1068, Value: 80},    // get_lobby_member_upper_for_making_room Lv2?
+		{ID: 1069, Value: 70},    // get_lobby_member_upper_for_making_room Lv3?
+		{ID: 1072, Value: 300},   // get_rate_premium_ravi_tama
+		{ID: 1073, Value: 300},   // get_rate_premium_ravi_ax_tama
+		{ID: 1074, Value: 300},   // get_rate_premium_ravi_g_tama
 		{ID: 1078, Value: 0},
 		{ID: 1079, Value: 1},
 		{ID: 1080, Value: 1},

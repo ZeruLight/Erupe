@@ -249,6 +249,7 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 
 			err = rows.Scan(&id, &maxPlayers, &questType, &questId, &mark, &flags, &startTime, &activeDays, &inactiveDays)
 			if err != nil {
+				s.logger.Error("Failed to scan event quest row", zap.Error(err))
 				continue
 			}
 
@@ -283,9 +284,11 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 
 			data, err := makeEventQuest(s, rows)
 			if err != nil {
+				s.logger.Error("Failed to make event quest", zap.Error(err))
 				continue
 			} else {
 				if len(data) > 896 || len(data) < 352 {
+					s.logger.Error("Invalid quest data length", zap.Int("len", len(data)))
 					continue
 				} else {
 					totalCount++

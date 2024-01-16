@@ -163,7 +163,7 @@ func makeEventQuest(s *Session, rows *sql.Rows) ([]byte, error) {
 
 	data := loadQuestFile(s, questId)
 	if data == nil {
-		return nil, fmt.Errorf("failed to load quest file")
+		return nil, fmt.Errorf(fmt.Sprintf("failed to load quest file (%d)", questId))
 	}
 
 	bf := byteframe.NewByteFrame()
@@ -278,7 +278,7 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 
 				// Check if the quest is currently active
 				if currentTime.Before(startTime) || currentTime.After(startTime.Add(time.Duration(activeDays)*24*time.Hour)) {
-					break
+					continue
 				}
 			}
 

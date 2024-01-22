@@ -8,6 +8,7 @@ services:
   db:
     image: postgres
     environment:
+    # (Make sure these match config.json)
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=password
       - POSTGRES_DB=erupe
@@ -17,8 +18,8 @@ services:
     image: dpage/pgadmin4
     restart: always
     environment:
-      PGADMIN_DEFAULT_EMAIL: test@test.com
-      PGADMIN_DEFAULT_PASSWORD: root
+      PGADMIN_DEFAULT_EMAIL: user@pgadmin.com
+      PGADMIN_DEFAULT_PASSWORD: password
     ports:
       - "5050:80"
     depends_on:
@@ -34,6 +35,7 @@ services:
       - ../bin:/app/erupe/bin
       - ../savedata:/app/erupe/savedata
     ports:
+      # (Make sure these match config.json)
       - "53312:53312" #Sign V1
       - "8080:8080"   #Sign V2
       - "53310:53310" #Entrance

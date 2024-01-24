@@ -17,6 +17,8 @@ Docker compose allows you to run multiple containers at once. The docker compose
 - pg admin (Admin interface to make db changes)
 - erupe
 
+We automatically populate the database to the latest version on start. If you you are updating you will need to apply the new schemas manually.
+
 Before we get started you should make sure the database info matches whats in the docker compose file for the environment variables `POSTGRES_PASSWORD`,`POSTGRES_USER` and `POSTGRES_DB`. You can set the host to be the service name `db`.
 
 Here is a example of what you would put in the config.json if you was to leave the defaults. It is strongly recommended to change the password. 
@@ -30,29 +32,29 @@ Here is a example of what you would put in the config.json if you was to leave t
   },
 ```
 
-### Running up the database for the first time
-First we need to set up the database. This requires the schema and the patch schemas to be applied. This can be done by runnnig up both the db and pgadmin.
+Place this file within ./docker/config.json
 
-1. Pull the remote images and build a container image for erupe
-```bash
-docker-compose pull 
-docker-compose build
-```
-2. Run up pgadmin and login using the username and password provided in `PGADMIN_DEFAULT_EMAIL` and `PGADMIN_DEFAULT_PASSWORD` note you will need to set up a new connection to the database internally. You will use the same host, database, username and password as above. 
-```bash
-docker-compose run db pgadmin -d
-```
-3. Use pgadmin to restore the schema using the restore functionaltiy and they query tool for the patch-schemas.
+You will need to do the same for your bins place these in ./docker/bin
 
-4. Now run up the server you should see the server start correctly now. 
-```bash
-docker-compose run server -d
-```
+# Setting up the web hosted materials
+Clone the Severs repo into ./docker/Severs
+
+Make sure your hosts are pointing to where this is hosted
+
+
 
 ## Turning off the server safely
 ```bash
 docker-compose stop
 ```
+
+## Turning off the server destructive
+```bash
+docker-compose down
+```
+Make sure if you want to delete your data you delete the folders that persisted
+- ./docker/savedata
+- ./docker/db-data
 ## Turning on the server again 
 This boots the db pgadmin and the server in a detached state
 ```bash

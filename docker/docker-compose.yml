@@ -14,6 +14,15 @@ services:
       - POSTGRES_DB=erupe
     ports: 
       - "5432:5432"
+    volumes:
+      - ./db-data/:/var/lib/postgresql/data/
+      - ../schemas/:/schemas/
+      - ./init/setup.sh:/docker-entrypoint-initdb.d/setup.sh
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
   pgadmin:
     image: dpage/pgadmin4
     restart: always
@@ -23,17 +32,19 @@ services:
     ports:
       - "5050:80"
     depends_on:
-      - db
+      db:
+        condition: service_healthy
   server:
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     # If using prebuilt container change paths and config
     build:
       context: ../
     volumes:
-      - ../config.json:/app/erupe/config.json
-      - ../bin:/app/erupe/bin
-      - ../savedata:/app/erupe/savedata
+      - ./config.json:/app/erupe/config.json
+      - ./bin:/app/erupe/bin
+      - ./savedata:/app/erupe/savedata
     ports:
       # (Make sure these match config.json)
       - "53312:53312" #Sign V1
@@ -48,4 +59,13 @@ services:
       - "54006:54006"
       - "54007:54007"
       - "54008:54008"
-      
+  web:
+    image: httpd:latest
+    container_name: my-apache-app
+    ports:
+      - '80:80'
+    volumes:
+      - ./Servers:/usr/local/apache2/htdocs
+    depends_on:
+      db:
+        condition: service_healthy

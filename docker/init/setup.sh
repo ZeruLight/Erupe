@@ -1,7 +1,7 @@
 #!/bin/bash
 set -e
 echo "INIT!"
-pg_restore --username="$POSTGRES_USER" --dbname="$POSTGRES_DB" --verbose /schemas/9.1-init.sql
+pg_restore --username="$POSTGRES_USER" --dbname="$POSTGRES_DB" --verbose /schemas/initialisation-schema/9.1-init.sql
 
 
 

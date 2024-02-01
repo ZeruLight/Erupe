@@ -157,10 +157,10 @@
     {"Name": "EXRenewing", "Enabled": true}
   ],
   "Database": {
-    "Host": "localhost",
+    "Host": "db",
     "Port": 5432,
     "User": "postgres",
-    "Password": "",
+    "Password": "password",
     "Database": "erupe"
   },
   "Sign": {

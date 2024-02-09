@@ -23,7 +23,7 @@ func (m *MsgSysOperateRegister) Opcode() network.PacketID {
 func (m *MsgSysOperateRegister) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
 	m.SemaphoreID = bf.ReadUint32()
-	_ = bf.ReadUint16()
+	bf.ReadUint16() // Zeroed
 	dataSize := bf.ReadUint16()
 	m.RawDataPayload = bf.ReadBytes(uint(dataSize))
 	return nil

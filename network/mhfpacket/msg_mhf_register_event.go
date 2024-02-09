@@ -12,8 +12,7 @@ type MsgMhfRegisterEvent struct {
 	Unk0      uint16
 	WorldID   uint16
 	LandID    uint16
-	Unk3      uint8
-	Unk4      uint8
+	Unk1      bool
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -27,8 +26,8 @@ func (m *MsgMhfRegisterEvent) Parse(bf *byteframe.ByteFrame, ctx *clientctx.Clie
 	m.Unk0 = bf.ReadUint16()
 	m.WorldID = bf.ReadUint16()
 	m.LandID = bf.ReadUint16()
-	m.Unk3 = bf.ReadUint8()
-	m.Unk4 = bf.ReadUint8()
+	m.Unk1 = bf.ReadBool()
+	bf.ReadUint8() // Zeroed
 	return nil
 }
 

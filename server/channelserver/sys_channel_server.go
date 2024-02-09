@@ -5,10 +5,11 @@ import (
 	"net"
 	"strings"
 	"sync"
+	"time"
 
 	"erupe-ce/common/byteframe"
 	ps "erupe-ce/common/pascalstring"
-	"erupe-ce/config"
+	_config "erupe-ce/config"
 	"erupe-ce/network/binpacket"
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/server/discordbot"
@@ -56,7 +57,7 @@ type Server struct {
 	stages     map[string]*Stage
 
 	// Used to map different languages
-	dict map[string]string
+	i18n i18n
 
 	// UserBinary
 	userBinaryPartsLock sync.RWMutex
@@ -73,6 +74,9 @@ type Server struct {
 	name string
 
 	raviente *Raviente
+
+	questCacheData map[int][]byte
+	questCacheTime map[int]time.Time
 }
 
 type Raviente struct {
@@ -163,6 +167,8 @@ func NewServer(config *Config) *Server {
 			state:    make([]uint32, 30),
 			support:  make([]uint32, 30),
 		},
+		questCacheData: make(map[int][]byte),
+		questCacheTime: make(map[int]time.Time),
 	}
 
 	// Mezeporta
@@ -186,7 +192,7 @@ func NewServer(config *Config) *Server {
 	// MezFes
 	s.stages["sl1Ns462p0a0u0"] = NewStage("sl1Ns462p0a0u0")
 
-	s.dict = getLangStrings(s)
+	s.i18n = getLangStrings(s)
 
 	return s
 }
@@ -205,6 +211,7 @@ func (s *Server) Start() error {
 	// Start the discord bot for chat integration.
 	if s.erupeConfig.Discord.Enabled && s.discordBot != nil {
 		s.discordBot.Session.AddHandler(s.onDiscordMessage)
+		s.discordBot.Session.AddHandler(s.onInteraction)
 	}
 
 	return nil
@@ -316,7 +323,6 @@ func (s *Server) BroadcastChatMessage(message string) {
 	msgBinChat.Build(bf)
 
 	s.BroadcastMHF(&mhfpacket.MsgSysCastedBinary{
-		CharID:         0xFFFFFFFF,
 		MessageType:    BinaryMessageTypeChat,
 		RawDataPayload: bf.Data(),
 	}, nil)
@@ -331,13 +337,13 @@ func (s *Server) BroadcastRaviente(ip uint32, port uint16, stage []byte, _type u
 	var text string
 	switch _type {
 	case 2:
-		text = s.dict["ravienteBerserk"]
+		text = s.i18n.raviente.berserk
 	case 3:
-		text = s.dict["ravienteExtreme"]
+		text = s.i18n.raviente.extreme
 	case 4:
-		text = s.dict["ravienteExtremeLimited"]
+		text = s.i18n.raviente.extremeLimited
 	case 5:
-		text = s.dict["ravienteBerserkSmall"]
+		text = s.i18n.raviente.berserkSmall
 	default:
 		s.logger.Error("Unk raviente type", zap.Uint8("_type", _type))
 	}
@@ -348,7 +354,6 @@ func (s *Server) BroadcastRaviente(ip uint32, port uint16, stage []byte, _type u
 	bf.WriteUint16(0)    // Unk
 	bf.WriteBytes(stage)
 	s.WorldcastMHF(&mhfpacket.MsgSysCastedBinary{
-		CharID:         0x00000000,
 		BroadcastType:  BroadcastTypeServer,
 		MessageType:    BinaryMessageTypeChat,
 		RawDataPayload: bf.Data(),
@@ -371,6 +376,26 @@ func (s *Server) FindSessionByCharID(charID uint32) *Session {
 		}
 	}
 	return nil
+}
+
+func (s *Server) DisconnectUser(uid uint32) {
+	var cid uint32
+	var cids []uint32
+	rows, _ := s.db.Query(`SELECT id FROM characters WHERE user_id=$1`, uid)
+	for rows.Next() {
+		rows.Scan(&cid)
+		cids = append(cids, cid)
+	}
+	for _, c := range s.Channels {
+		for _, session := range c.sessions {
+			for _, cid := range cids {
+				if session.charID == cid {
+					session.rawConn.Close()
+					break
+				}
+			}
+		}
+	}
 }
 
 func (s *Server) FindObjectByChar(charID uint32) *Object {

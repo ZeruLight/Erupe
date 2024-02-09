@@ -6,46 +6,30 @@ var (
 	_sharedCryptKey = []byte{0xDD, 0xA8, 0x5F, 0x1E, 0x57, 0xAF, 0xC0, 0xCC, 0x43, 0x35, 0x8F, 0xBB, 0x6F, 0xE6, 0xA1, 0xD6, 0x60, 0xB9, 0x1A, 0xAE, 0x20, 0x49, 0x24, 0x81, 0x21, 0xFE, 0x86, 0x2B, 0x98, 0xB7, 0xB3, 0xD2, 0x91, 0x01, 0x3A, 0x4C, 0x65, 0x92, 0x1C, 0xF4, 0xBE, 0xDD, 0xD9, 0x08, 0xE6, 0x81, 0x98, 0x1B, 0x8D, 0x60, 0xF3, 0x6F, 0xA1, 0x47, 0x24, 0xF1, 0x53, 0x45, 0xC8, 0x7B, 0x88, 0x80, 0x4E, 0x36, 0xC3, 0x0D, 0xC9, 0xD6, 0x8B, 0x08, 0x19, 0x0B, 0xA5, 0xC1, 0x11, 0x4C, 0x60, 0xF8, 0x5D, 0xFC, 0x15, 0x68, 0x7E, 0x32, 0xC0, 0x50, 0xAB, 0x64, 0x1F, 0x8A, 0xD4, 0x08, 0x39, 0x7F, 0xC2, 0xFB, 0xBA, 0x6C, 0xF0, 0xE6, 0xB0, 0x31, 0x10, 0xC1, 0xBF, 0x75, 0x43, 0xBB, 0x18, 0x04, 0x0D, 0xD1, 0x97, 0xF7, 0x23, 0x21, 0x83, 0x8B, 0xCA, 0x25, 0x2B, 0xA3, 0x03, 0x13, 0xEA, 0xAE, 0xFE, 0xF0, 0xEB, 0xFD, 0x85, 0x57, 0x53, 0x65, 0x41, 0x2A, 0x40, 0x99, 0xC0, 0x94, 0x65, 0x7E, 0x7C, 0x93, 0x82, 0xB0, 0xB3, 0xE5, 0xC0, 0x21, 0x09, 0x84, 0xD5, 0xEF, 0x9F, 0xD1, 0x7E, 0xDC, 0x4D, 0xF5, 0x7E, 0xCD, 0x45, 0x3C, 0x7F, 0xF5, 0x59, 0x98, 0xC6, 0x55, 0xFC, 0x9F, 0xA3, 0xB7, 0x74, 0xEE, 0x31, 0x98, 0xE6, 0xB7, 0xBE, 0x26, 0xF4, 0x3C, 0x76, 0xF1, 0x23, 0x7E, 0x02, 0x4E, 0x3C, 0xD1, 0xC7, 0x28, 0x23, 0x73, 0xC4, 0xD9, 0x5E, 0x0D, 0xA1, 0x80, 0xA5, 0xAA, 0x26, 0x0A, 0xA3, 0x44, 0x82, 0x74, 0xE6, 0x3C, 0x44, 0x27, 0x51, 0x0D, 0x5F, 0xC7, 0x9C, 0xD6, 0x63, 0x67, 0xA5, 0x27, 0x97, 0x38, 0xFB, 0x2D, 0xD3, 0xD6, 0x60, 0x25, 0x83, 0x4D, 0x37, 0x5B, 0x40, 0x59, 0x11, 0x77, 0x51, 0x11, 0x14, 0x18, 0x07, 0x63, 0xB1, 0x34, 0x3D, 0xB8, 0x60, 0x13, 0xC2, 0xE8, 0x13, 0x82}
 )
 
-// Encrypt encrypts the given data using MHF's custom encryption+checksum method.
-// if a overrideByteKey value is supplied (!= nil), it will be used to override the derived/truncated key byte.
-func Encrypt(data []byte, key uint32, overrideByteKey *byte) (outputData []byte, combinedCheck uint16, check0 uint16, check1 uint16, check2 uint16) {
-	return _generalCrypt(data, key, 0, overrideByteKey)
-}
-
-// Decrypt decrypts the given data using MHF's custom decryption+checksum method.
-// if a overrideByteKey value is supplied (!= nil), it will be used to override the derived/truncated key byte.
-func Decrypt(data []byte, key uint32, overrideByteKey *byte) (outputData []byte, combinedCheck uint16, check0 uint16, check1 uint16, check2 uint16) {
-	return _generalCrypt(data, key, 1, overrideByteKey)
-}
-
-// _generalCrypt is a generalized MHF crypto function that can perform both encryption and decryption,
+// Crypto is a generalized MHF crypto function that can perform both encryption and decryption,
 // these two crypto operations are combined into a single function because they shared most of their logic.
-//		encrypt: cryptType==0
-//		decrypt: cryptType==1
-func _generalCrypt(data []byte, rotKey uint32, cryptType int, overrideByteKey *byte) ([]byte, uint16, uint16, uint16, uint16) {
+func Crypto(data []byte, rotKey uint32, encrypt bool, overrideByteKey *byte) ([]byte, uint16, uint16, uint16, uint16) {
 	cryptKeyTruncByte := byte(((rotKey >> 1) % 999983) & 0xFF)
 	if overrideByteKey != nil {
 		cryptKeyTruncByte = *overrideByteKey
 	}
 
-	derivedCryptKey := int32((uint32(len(data)) * (uint32(cryptKeyTruncByte) + 1)) & 0xFFFFFFFF)
+	derivedCryptKey := (uint32(len(data)) * (uint32(cryptKeyTruncByte) + 1)) & 0xFFFFFFFF
 	sharedBufIdx := byte(1)
-	accumulator0 := uint32(0)
-	accumulator1 := uint32(0)
-	accumulator2 := uint32(0)
+	var accumulator0, accumulator1, accumulator2 uint32
 
 	var outputData []byte
-	if cryptType == 0 {
+	if encrypt {
 		for i := 0; i < len(data); i++ {
 			// Do the encryption for this iteration
-			encKeyIdx := int32(((uint32(derivedCryptKey) >> 10) ^ uint32(data[i])) & 0xFF)
-			derivedCryptKey = (0x4FD * (derivedCryptKey + 1))
+			encKeyIdx := ((derivedCryptKey >> 10) ^ uint32(data[i])) & 0xFF
+			derivedCryptKey = 1277*derivedCryptKey + 1277
 			encKeyByte := _encryptKey[encKeyIdx]
 
 			// Update the checksum accumulators.
-			accumulator2 = uint32((accumulator2 + (uint32(sharedBufIdx) * uint32(data[i]))) & 0xFFFFFFFF)
-			accumulator1 = uint32((accumulator1 + uint32(encKeyIdx)) & 0xFFFFFFFF)
-			accumulator0 = uint32((accumulator0 + (uint32(encKeyByte)<<(i&7))&0xFFFFFFFF) & 0xFFFFFFFF)
+			accumulator2 = accumulator2 + (uint32(sharedBufIdx) * uint32(data[i]))
+			accumulator1 = accumulator1 + encKeyIdx
+			accumulator0 = accumulator0 + uint32(encKeyByte)<<(i&7)
 
 			// Append the output.
 			outputData = append(outputData, _sharedCryptKey[sharedBufIdx]^encKeyByte)
@@ -53,32 +37,32 @@ func _generalCrypt(data []byte, rotKey uint32, cryptType int, overrideByteKey *b
 			// Update the sharedBufIdx for the next iteration.
 			sharedBufIdx = data[i]
 		}
-
-	} else if cryptType == 1 {
+	} else {
 		for i := 0; i < len(data); i++ {
 			// Do the decryption for this iteration
 			oldSharedBufIdx := sharedBufIdx
 			tIdx := data[i] ^ _sharedCryptKey[sharedBufIdx]
 			decKeyByte := _decryptKey[tIdx]
-			sharedBufIdx = byte(((uint32(derivedCryptKey) >> 10) ^ uint32(decKeyByte)) & 0xFF)
+			sharedBufIdx = byte((derivedCryptKey >> 10) ^ uint32(decKeyByte))
 
 			// Update the checksum accumulators.
-			accumulator0 = (accumulator0 + ((uint32(tIdx) << (i & 7)) & 0xFFFFFFFF))
-			accumulator1 = (accumulator1 + uint32(decKeyByte)) & 0xFFFFFFFF
-			accumulator2 = (accumulator2 + ((uint32(oldSharedBufIdx) * uint32(sharedBufIdx)) & 0xFFFFFFFF)) & 0xFFFFFFFF
+			accumulator0 = accumulator0 + uint32(tIdx)<<(i&7)
+			accumulator1 = accumulator1 + uint32(decKeyByte)
+			accumulator2 = accumulator2 + uint32(oldSharedBufIdx)*uint32(sharedBufIdx)
 
 			// Append the output.
 			outputData = append(outputData, sharedBufIdx)
 
 			// Update the key pos for next iteration.
-			derivedCryptKey = (0x4FD * (derivedCryptKey + 1))
+			derivedCryptKey = 1277*derivedCryptKey + 1277
 		}
 	}
 
-	combinedCheck := uint16((accumulator1 + (accumulator0 >> 1) + (accumulator2 >> 2)) & 0xFFFF)
-	check0 := uint16((accumulator0 ^ ((accumulator0 & 0xFFFF0000) >> 16)) & 0xFFFF)
-	check1 := uint16((accumulator1 ^ ((accumulator1 & 0xFFFF0000) >> 16)) & 0xFFFF)
-	check2 := uint16((accumulator2 ^ ((accumulator2 & 0xFFFF0000) >> 16)) & 0xFFFF)
+	var check [4]uint16
+	check[0] = uint16(accumulator1 + (accumulator0 >> 1) + (accumulator2 >> 2))
+	check[1] = uint16(accumulator0 ^ ((accumulator0 & 0xFFFF0000) >> 16))
+	check[2] = uint16(accumulator1 ^ ((accumulator1 & 0xFFFF0000) >> 16))
+	check[3] = uint16(accumulator2 ^ ((accumulator2 & 0xFFFF0000) >> 16))
 
-	return outputData, combinedCheck, check0, check1, check2
+	return outputData, check[0], check[1], check[2], check[3]
 }

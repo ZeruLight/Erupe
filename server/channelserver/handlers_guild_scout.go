@@ -60,9 +60,9 @@ func handleMsgMhfPostGuildScout(s *Session, p mhfpacket.MHFPacket) {
 	mail := &Mail{
 		SenderID:    s.charID,
 		RecipientID: pkt.CharID,
-		Subject:     s.server.dict["guildInviteName"],
+		Subject:     s.server.i18n.guild.invite.title,
 		Body: fmt.Sprintf(
-			s.server.dict["guildInvite"],
+			s.server.i18n.guild.invite.body,
 			guildInfo.Name,
 		),
 		IsGuildInvite: true,
@@ -146,30 +146,30 @@ func handleMsgMhfAnswerGuildScout(s *Session, p mhfpacket.MHFPacket) {
 		err = guild.AcceptApplication(s, s.charID)
 		mail = append(mail, Mail{
 			RecipientID:     s.charID,
-			Subject:         s.server.dict["guildInviteSuccessName"],
-			Body:            fmt.Sprintf(s.server.dict["guildInviteSuccess"], guild.Name),
+			Subject:         s.server.i18n.guild.invite.success.title,
+			Body:            fmt.Sprintf(s.server.i18n.guild.invite.success.body, guild.Name),
 			IsSystemMessage: true,
 		})
 		mail = append(mail, Mail{
 			SenderID:        s.charID,
 			RecipientID:     pkt.LeaderID,
-			Subject:         s.server.dict["guildInviteAcceptedName"],
-			Body:            fmt.Sprintf(s.server.dict["guildInviteAccepted"], guild.Name),
+			Subject:         s.server.i18n.guild.invite.accepted.title,
+			Body:            fmt.Sprintf(s.server.i18n.guild.invite.accepted.body, guild.Name),
 			IsSystemMessage: true,
 		})
 	} else {
 		err = guild.RejectApplication(s, s.charID)
 		mail = append(mail, Mail{
 			RecipientID:     s.charID,
-			Subject:         s.server.dict["guildInviteRejectName"],
-			Body:            fmt.Sprintf(s.server.dict["guildInviteReject"], guild.Name),
+			Subject:         s.server.i18n.guild.invite.rejected.title,
+			Body:            fmt.Sprintf(s.server.i18n.guild.invite.rejected.body, guild.Name),
 			IsSystemMessage: true,
 		})
 		mail = append(mail, Mail{
 			SenderID:        s.charID,
 			RecipientID:     pkt.LeaderID,
-			Subject:         s.server.dict["guildInviteDeclined"],
-			Body:            fmt.Sprintf(s.server.dict["guildInviteDeclined"], guild.Name),
+			Subject:         s.server.i18n.guild.invite.declined.title,
+			Body:            fmt.Sprintf(s.server.i18n.guild.invite.declined.body, guild.Name),
 			IsSystemMessage: true,
 		})
 	}

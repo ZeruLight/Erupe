@@ -24,8 +24,8 @@ func (m *MsgSysLoadRegister) Parse(bf *byteframe.ByteFrame, ctx *clientctx.Clien
 	m.AckHandle = bf.ReadUint32()
 	m.RegisterID = bf.ReadUint32()
 	m.Values = bf.ReadUint8()
-	_ = bf.ReadUint8()
-	_ = bf.ReadUint16()
+	bf.ReadUint8()  // Zeroed
+	bf.ReadUint16() // Zeroed
 	return nil
 }
 

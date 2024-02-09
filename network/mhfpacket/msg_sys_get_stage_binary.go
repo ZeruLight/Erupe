@@ -2,7 +2,6 @@ package mhfpacket
 
 import (
 	"erupe-ce/common/byteframe"
-	"erupe-ce/common/bfutil"
 	"erupe-ce/network"
 	"erupe-ce/network/clientctx"
 )
@@ -27,8 +26,8 @@ func (m *MsgSysGetStageBinary) Parse(bf *byteframe.ByteFrame, ctx *clientctx.Cli
 	m.BinaryType0 = bf.ReadUint8()
 	m.BinaryType1 = bf.ReadUint8()
 	m.Unk0 = bf.ReadUint32()
-	stageIDLength := bf.ReadUint8()
-	m.StageID = string(bfutil.UpToNull(bf.ReadBytes(uint(stageIDLength))))
+	bf.ReadUint8() // StageID length
+	m.StageID = string(bf.ReadNullTerminatedBytes())
 	return nil
 }
 

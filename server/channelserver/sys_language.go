@@ -1,186 +1,311 @@
 package channelserver
+type Bead struct{
+	name   string
+	description string 
+}
+type i18n struct {
+	language string
+	cafe     struct {
+		reset string
+	}
+	commands struct {
+		noOp     string
+		disabled string
+		reload   string
+		kqf      struct {
+			get string
+			set struct {
+				error   string
+				success string
+			}
+			version string
+		}
+		rights struct {
+			error   string
+			success string
+		}
+		course struct {
+			error    string
+			disabled string
+			enabled  string
+			locked   string
+		}
+		teleport struct {
+			error   string
+			success string
+		}
+		psn struct {
+			error   string
+			success string
+			exists  string
+		}
+		discord struct {
+			success string
+		}
+		ban struct {
+			success string
+			noUser  string
+			invalid string
+			error   string
+			length  string
+		}
+		ravi struct {
+			noCommand string
+			start     struct {
+				success string
+				error   string
+			}
+			multiplier string
+			res        struct {
+				success string
+				error   string
+			}
+			sed struct {
+				success string
+			}
+			request   string
+			error     string
+			noPlayers string
+			version   string
+		}
+	}
+	raviente struct {
+		berserk        string
+		extreme        string
+		extremeLimited string
+		berserkSmall   string
+	}
+	guild struct {
+		invite struct {
+			title   string
+			body    string
+			success struct {
+				title string
+				body  string
+			}
+			accepted struct {
+				title string
+				body  string
+			}
+			rejected struct {
+				title string
+				body  string
+			}
+			declined struct {
+				title string
+				body  string
+			}
+		}
+	}
+	diva struct {
+		prayer struct {
+			beads []Bead
+		}
+	}
+}
 
-func getLangStrings(s *Server) map[string]string {
-	strings := make(map[string]string)
+func getLangStrings(s *Server) i18n {
+	var i i18n
 	switch s.erupeConfig.Language {
 	case "jp":
-		strings["language"] = "日本語"
-		strings["cafeReset"] = "%d/%dにリセット"
+		i.language = "日本語"
+		i.cafe.reset = "%d/%dにリセット"
 
-		strings["prayerBead1Name"] = "暴風の祈珠"
-		strings["prayerBead1Description"] = "ーあらしまかぜのきじゅー\n暴風とは猛る思い。\n聞く者に勇気を与える。"
-		strings["prayerBead3Name"] = "断力の祈珠"
-		strings["prayerBead3Description"] = "ーだんりきのきじゅー\n断力とは断ち切る思い。\n聴く者に新たな利からを授ける。"
-		strings["prayerBead4Name"] = "風韻の祈珠"
-		strings["prayerBead4Description"] = "ーふういんのきじゅー\n風韻とは歌姫の艶。\n時々で異なる趣を醸し出す。"
-		strings["prayerBead8Name"] = "斬刃の祈珠"
-		strings["prayerBead8Description"] = "ーざんばのきじゅー\n斬刃とはすべてを切り裂く力。\n集めるほどに声の透明感は増す。"
-		strings["prayerBead9Name"] = "打明の祈珠"
-		strings["prayerBead9Description"] = "ーうちあかりのきじゅー\n打明とは熱い力。\n聴く者に活力を与える。"
-		strings["prayerBead10Name"] = "弾起の祈珠"
-		strings["prayerBead10Description"] = "ーたまおこしのきじゅー\n弾起とは悠遠の記憶。\n聴く者に更なる力を授ける。"
-		strings["prayerBead11Name"] = "変続の祈珠"
-		strings["prayerBead11Description"] = "ーへんぞくのきじゅー\n変続とは永久の言葉。\n聴く者に継続力を授ける。"
-		strings["prayerBead14Name"] = "万雷の祈珠"
-		strings["prayerBead14Description"] = "ーばんらいのきじゅー\n万雷とは歌姫に集う民の意識。\n歌姫の声を伝播させる。"
-		strings["prayerBead15Name"] = "不動の祈珠"
-		strings["prayerBead15Description"] = "ーうごかずのきじゅー\n不動とは圧力。聞く者に圧倒する力を与える。"
-		strings["prayerBead17Name"] = "結集の祈珠"
-		strings["prayerBead17Description"] = "ーけっしゅうのきじゅー\n結集とは確固たる信頼。\n集めるほどに狩人たちの精神力となる。"
-		strings["prayerBead18Name"] = "歌護の祈珠"
-		strings["prayerBead18Description"] = "ーうたまもりのきじゅー\n歌護とは歌姫の護り。\n集めるほどに狩人たちの支えとなる。"
-		strings["prayerBead19Name"] = "強撃の祈珠"
-		strings["prayerBead19Description"] = "ーきょうげきのきじゅー\n強撃とは強い声色。\n聞く者の力を研ぎ澄ます。"
-		strings["prayerBead20Name"] = "封火の祈珠"
-		strings["prayerBead20Description"] = "ーふうかのきじゅー"
-		strings["prayerBead21Name"] = "封水の祈珠"
-		strings["prayerBead21Description"] = "ーふうすいのきじゅー"
-		strings["prayerBead22Name"] = "封氷の祈珠"
-		strings["prayerBead22Description"] = "ーふうひょうのきじゅー"
-		strings["prayerBead23Name"] = "封龍の祈珠"
-		strings["prayerBead23Description"] = "ーふうりゅうのきじゅー"
-		strings["prayerBead24Name"] = "封雷の祈珠"
-		strings["prayerBead24Description"] = "ーふうらいのきじゅー"
-		strings["prayerBead25Name"] = "封属の祈珠"
-		strings["prayerBead25Description"] = "ーふうぞくのきじゅー"
+		i.diva.prayer.beads[1].name = "暴風の祈珠"
+		i.diva.prayer.beads[1].description = "ーあらしまかぜのきじゅー\n暴風とは猛る思い。\n聞く者に勇気を与える。"
+		i.diva.prayer.beads[3].name = "断力の祈珠"
+		i.diva.prayer.beads[3].description = "ーだんりきのきじゅー\n断力とは断ち切る思い。\n聴く者に新たな利からを授ける。"
+		i.diva.prayer.beads[4].name = "風韻の祈珠"
+		i.diva.prayer.beads[4].description = "ーふういんのきじゅー\n風韻とは歌姫の艶。\n時々で異なる趣を醸し出す。"
+		i.diva.prayer.beads[8].name = "斬刃の祈珠"
+		i.diva.prayer.beads[8].description  = "ーざんばのきじゅー\n斬刃とはすべてを切り裂く力。\n集めるほどに声の透明感は増す。"
+		i.diva.prayer.beads[9].name = "打明の祈珠"
+		i.diva.prayer.beads[9].description  = "ーうちあかりのきじゅー\n打明とは熱い力。\n聴く者に活力を与える。"
+		i.diva.prayer.beads[10].name = "弾起の祈珠"
+		i.diva.prayer.beads[10].description = "ーたまおこしのきじゅー\n弾起とは悠遠の記憶。\n聴く者に更なる力を授ける。"
+		i.diva.prayer.beads[11].name = "変続の祈珠"
+		i.diva.prayer.beads[11].description = "ーへんぞくのきじゅー\n変続とは永久の言葉。\n聴く者に継続力を授ける。"
+		i.diva.prayer.beads[14].name = "万雷の祈珠"
+		i.diva.prayer.beads[14].description = "ーばんらいのきじゅー\n万雷とは歌姫に集う民の意識。\n歌姫の声を伝播させる。"
+		i.diva.prayer.beads[15].name = "不動の祈珠"
+		i.diva.prayer.beads[15].description = "ーうごかずのきじゅー\n不動とは圧力。聞く者に圧倒する力を与える。"
+		i.diva.prayer.beads[17].name = "結集の祈珠"
+		i.diva.prayer.beads[17].description = "ーけっしゅうのきじゅー\n結集とは確固たる信頼。\n集めるほどに狩人たちの精神力となる。"
+		i.diva.prayer.beads[18].name = "歌護の祈珠"
+		i.diva.prayer.beads[18].description = "ーうたまもりのきじゅー\n歌護とは歌姫の護り。\n集めるほどに狩人たちの支えとなる。"
+		i.diva.prayer.beads[19].name = "強撃の祈珠"
+		i.diva.prayer.beads[19].description = "ーきょうげきのきじゅー\n強撃とは強い声色。\n聞く者の力を研ぎ澄ます。"
+		i.diva.prayer.beads[20].name = "封火の祈珠"
+		i.diva.prayer.beads[20].description = "ーふうかのきじゅー"
+		i.diva.prayer.beads[21].name = "封水の祈珠"
+		i.diva.prayer.beads[21].description = "ーふうすいのきじゅー"
+		i.diva.prayer.beads[22].name = "封氷の祈珠"
+		i.diva.prayer.beads[22].description = "ーふうひょうのきじゅー"
+		i.diva.prayer.beads[23].name = "封龍の祈珠"
+		i.diva.prayer.beads[23].description = "ーふうりゅうのきじゅー"
+		i.diva.prayer.beads[24].name = "封雷の祈珠"
+		i.diva.prayer.beads[24].description = "ーふうらいのきじゅー"
+		i.diva.prayer.beads[25].name = "封属の祈珠"
+		i.diva.prayer.beads[25].description = "ーふうぞくのきじゅー"
 
-		strings["commandDisabled"] = "%sのコマンドは無効です"
-		strings["commandReload"] = "リロードします"
-		strings["commandKqfGet"] = "現在のキークエストフラグ：%x"
-		strings["commandKqfSetError"] = "キークエコマンドエラー　例：%s set xxxxxxxxxxxxxxxx"
-		strings["commandKqfSetSuccess"] = "キークエストのフラグが更新されました。ワールド／ランドを移動してください"
-		strings["commandRightsError"] = "コース更新コマンドエラー　例：%s x"
-		strings["commandRightsSuccess"] = "コース情報を更新しました：%d"
-		strings["commandCourseError"] = "コース確認コマンドエラー　例：%s <name>"
-		strings["commandCourseDisabled"] = "%sコースは無効です"
-		strings["commandCourseEnabled"] = "%sコースは有効です"
-		strings["commandCourseLocked"] = "%sコースはロックされています"
-		strings["commandTeleportError"] = "テレポートコマンドエラー　構文：%s x y"
-		strings["commandTeleportSuccess"] = "%d %dにテレポート"
-		strings["commandPSNError"] = "PSN連携コマンドエラー　例：%s <psn id>"
-		strings["commandPSNSuccess"] = "PSN「%s」が連携されています"
-		strings["commandPSNExists"] = "PSNは既存のユーザに接続されています"
+	
+		i.commands.noOp = "You don't have permission to use this command"
+		i.commands.disabled = "%sのコマンドは無効です"
+		i.commands.reload = "リロードします"
+		i.commands.kqf.get = "現在のキークエストフラグ：%x"
+		i.commands.kqf.set.error = "キークエコマンドエラー　例：%s set xxxxxxxxxxxxxxxx"
+		i.commands.kqf.set.success = "キークエストのフラグが更新されました。ワールド／ランドを移動してください"
+		i.commands.kqf.version = "This command is disabled prior to MHFG10"
+		i.commands.rights.error = "コース更新コマンドエラー　例：%s x"
+		i.commands.rights.success = "コース情報を更新しました：%d"
+		i.commands.course.error = "コース確認コマンドエラー　例：%s <name>"
+		i.commands.course.disabled = "%sコースは無効です"
+		i.commands.course.enabled = "%sコースは有効です"
+		i.commands.course.locked = "%sコースはロックされています"
+		i.commands.teleport.error = "テレポートコマンドエラー　構文：%s x y"
+		i.commands.teleport.success = "%d %dにテレポート"
+		i.commands.psn.error = "PSN連携コマンドエラー　例：%s <psn id>"
+		i.commands.psn.success = "PSN「%s」が連携されています"
+		i.commands.psn.exists = "PSNは既存のユーザに接続されています"
 
-		strings["commandRaviNoCommand"] = "ラヴィコマンドが指定されていません"
-		strings["commandRaviStartSuccess"] = "大討伐を開始します"
-		strings["commandRaviStartError"] = "大討伐は既に開催されています"
-		strings["commandRaviMultiplier"] = "ラヴィダメージ倍率：ｘ%.2f"
-		strings["commandRaviResSuccess"] = "復活支援を実行します"
-		strings["commandRaviResError"] = "復活支援は実行されませんでした"
-		strings["commandRaviSedSuccess"] = "鎮静支援を実行します"
-		strings["commandRaviRequest"] = "鎮静支援を要請します"
-		strings["commandRaviError"] = "ラヴィコマンドが認識されません"
-		strings["commandRaviNoPlayers"] = "誰も大討伐に参加していません"
-		strings["commandRaviVersion"] = "This command is disabled outside of MHFZZ"
+		i.commands.discord.success = "あなたのDiscordトークン：%s"
 
-		strings["ravienteBerserk"] = "<大討伐：猛狂期>が開催されました！"
-		strings["ravienteExtreme"] = "<大討伐：猛狂期【極】>が開催されました！"
-		strings["ravienteExtremeLimited"] = "<大討伐：猛狂期【極】(制限付)>が開催されました！"
-		strings["ravienteBerserkSmall"] = "<大討伐：猛狂期(小数)>が開催されました！"
+		i.commands.ban.noUser = "Could not find user"
+		i.commands.ban.success = "Successfully banned %s"
+		i.commands.ban.invalid = "Invalid Character ID"
+		i.commands.ban.error = "Error in command. Format: %s <id> [length]"
+		i.commands.ban.length = " until %s"
 
-		strings["guildInviteName"] = "猟団勧誘のご案内"
-		strings["guildInvite"] = "猟団「%s」からの勧誘通知です。\n「勧誘に返答」より、返答を行ってください。"
+		i.commands.ravi.noCommand = "ラヴィコマンドが指定されていません"
+		i.commands.ravi.start.success = "大討伐を開始します"
+		i.commands.ravi.start.error = "大討伐は既に開催されています"
+		i.commands.ravi.multiplier = "ラヴィダメージ倍率：ｘ%.2f"
+		i.commands.ravi.res.success = "復活支援を実行します"
+		i.commands.ravi.res.error = "復活支援は実行されませんでした"
+		i.commands.ravi.sed.success = "鎮静支援を実行します"
+		i.commands.ravi.request = "鎮静支援を要請します"
+		i.commands.ravi.error = "ラヴィコマンドが認識されません"
+		i.commands.ravi.noPlayers = "誰も大討伐に参加していません"
+		i.commands.ravi.version = "This command is disabled outside of MHFZZ"
 
-		strings["guildInviteSuccessName"] = "成功"
-		strings["guildInviteSuccess"] = "あなたは「%s」に参加できました。"
+		i.raviente.berserk = "<大討伐：猛狂期>が開催されました！"
+		i.raviente.extreme = "<大討伐：猛狂期【極】>が開催されました！"
+		i.raviente.extremeLimited = "<大討伐：猛狂期【極】(制限付)>が開催されました！"
+		i.raviente.berserkSmall = "<大討伐：猛狂期(小数)>が開催されました！"
 
-		strings["guildInviteAcceptedName"] = "承諾されました"
-		strings["guildInviteAccepted"] = "招待した狩人が「%s」への招待を承諾しました。"
+		i.guild.invite.title = "猟団勧誘のご案内"
+		i.guild.invite.body = "猟団「%s」からの勧誘通知です。\n「勧誘に返答」より、返答を行ってください。"
 
-		strings["guildInviteRejectName"] = "却下しました"
-		strings["guildInviteReject"] = "あなたは「%s」への参加を却下しました。"
+		i.guild.invite.success.title = "成功"
+		i.guild.invite.success.body = "あなたは「%s」に参加できました。"
 
-		strings["guildInviteDeclinedName"] = "辞退しました"
-		strings["guildInviteDeclined"] = "招待した狩人が「%s」への招待を辞退しました。"
+		i.guild.invite.accepted.title = "承諾されました"
+		i.guild.invite.accepted.body = "招待した狩人が「%s」への招待を承諾しました。"
+
+		i.guild.invite.rejected.title = "却下しました"
+		i.guild.invite.rejected.body = "あなたは「%s」への参加を却下しました。"
+
+		i.guild.invite.declined.title = "辞退しました"
+		i.guild.invite.declined.body = "招待した狩人が「%s」への招待を辞退しました。"
 	default:
-		strings["language"] = "English"
-		strings["cafeReset"] = "Resets on %d/%d"
+		i.language = "English"
+		i.cafe.reset = "Resets on %d/%d"
 
-		strings["prayerBead1Name"] = "Bead of Storms"
-		strings["prayerBead1Description"] = "ーあらしまかぜのきじゅー\n暴風とは猛る思い。\n聞く者に勇気を与える。"
-		strings["prayerBead3Name"] = "Bead of Severing"
-		strings["prayerBead3Description"] = "All damage types can sever tails\nPower to sever, inspire with might.\nEmpower those who hear, in new light."
-		strings["prayerBead4Name"] = "Bead of Vitality"
-		strings["prayerBead4Description"] = "Increased red health recovery speed\nDiva's allure, a soothing balm.\nRenews one's vigor, with vitality and calm."
-		strings["prayerBead8Name"] = "Bead of Slashing"
-		strings["prayerBead8Description"] = "Damage up for slashing weapons\nWith every slash, its voice rings out.\nGrowing ever sharper, without a doubt."
-		strings["prayerBead9Name"] = "Bead of Striking"
-		strings["prayerBead9Description"] = "Damage up for striking weapons\nWith every blow, you strike with force.\nLet the power guide your course."
-		strings["prayerBead10Name"] = "Bead of Firing"
-		strings["prayerBead10Description"] = "Damage up for shooting weapons\nA memory of might, empowering those who hear.\nBullet and body, soaring without fear."
-		strings["prayerBead11Name"] = "Bead of Tenacity"
-		strings["prayerBead11Description"] = "ーへんぞくのきじゅー\n変続とは永久の言葉。\n聴く者に継続力を授ける。"
-		strings["prayerBead14Name"] = "Bead of Elements"
-		strings["prayerBead14Description"] = "ーばんらいのきじゅー\n万雷とは歌姫に集う民の意識。\n歌姫の声を伝播させる。"
-		strings["prayerBead15Name"] = "Bead of Restraint"
-		strings["prayerBead15Description"] = "ーうごかずのきじゅー\n不動とは圧力。聞く者に圧倒する力を与える。"
-		strings["prayerBead17Name"] = "Bead of Unity"
-		strings["prayerBead17Description"] = "ーけっしゅうのきじゅー\n結集とは確固たる信頼。\n集めるほどに狩人たちの精神力となる。"
-		strings["prayerBead18Name"] = "Bead of Warding"
-		strings["prayerBead18Description"] = "ーうたまもりのきじゅー\n歌護とは歌姫の護り。\n集めるほどに狩人たちの支えとなる。"
-		strings["prayerBead19Name"] = "Bead of Fury"
-		strings["prayerBead19Description"] = "ーきょうげきのきじゅー\n強撃とは強い声色。\n聞く者の力を研ぎ澄ます。"
-		strings["prayerBead20Name"] = "Bead of Fireproof"
-		strings["prayerBead20Description"] = "ーふうかのきじゅー"
-		strings["prayerBead21Name"] = "Bead of Waterproof"
-		strings["prayerBead21Description"] = "ーふうすいのきじゅー"
-		strings["prayerBead22Name"] = "Bead of Iceproof"
-		strings["prayerBead22Description"] = "ーふうひょうのきじゅー"
-		strings["prayerBead23Name"] = "Bead of Dragonproof"
-		strings["prayerBead23Description"] = "ーふうりゅうのきじゅー"
-		strings["prayerBead24Name"] = "Bead of Thunderproof"
-		strings["prayerBead24Description"] = "ーふうらいのきじゅー"
-		strings["prayerBead25Name"] = "Bead of Immunity"
-		strings["prayerBead25Description"] = "ーふうぞくのきじゅー"
+		i.diva.prayer.beads[1].name = "Bead of Storms"
+		i.diva.prayer.beads[1].description = "ーあらしまかぜのきじゅー\n暴風とは猛る思い。\n聞く者に勇気を与える。"
+		i.diva.prayer.beads[3].name = "Bead of Severing"
+		i.diva.prayer.beads[3].description = "All damage types can sever tails\nPower to sever, inspire with might.\nEmpower those who hear, in new light."
+		i.diva.prayer.beads[4].name = "Bead of Vitality"
+		i.diva.prayer.beads[4].description = "Increased red health recovery speed\nDiva's allure, a soothing balm.\nRenews one's vigor, with vitality and calm."
+		i.diva.prayer.beads[8].name = "Bead of Slashing"
+		i.diva.prayer.beads[8].description = "Damage up for slashing weapons\nWith every slash, its voice rings out.\nGrowing ever sharper, without a doubt."
+		i.diva.prayer.beads[9].name = "Bead of Striking"
+		i.diva.prayer.beads[9].description = "Damage up for striking weapons\nWith every blow, you strike with force.\nLet the power guide your course."
+		i.diva.prayer.beads[10].name = "Bead of Firing"
+		i.diva.prayer.beads[10].description = "Damage up for shooting weapons\nA memory of might, empowering those who hear.\nBullet and body, soaring without fear."
+		i.diva.prayer.beads[11].name = "Bead of Tenacity"
+		i.diva.prayer.beads[11].description = "ーへんぞくのきじゅー\n変続とは永久の言葉。\n聴く者に継続力を授ける。"
+		i.diva.prayer.beads[14].name = "Bead of Elements"
+		i.diva.prayer.beads[14].description = "ーばんらいのきじゅー\n万雷とは歌姫に集う民の意識。\n歌姫の声を伝播させる。"
+		i.diva.prayer.beads[15].name = "Bead of Restraint"
+		i.diva.prayer.beads[15].description = "ーうごかずのきじゅー\n不動とは圧力。聞く者に圧倒する力を与える。"
+		i.diva.prayer.beads[17].name = "Bead of Unity"
+		i.diva.prayer.beads[17].description = "ーけっしゅうのきじゅー\n結集とは確固たる信頼。\n集めるほどに狩人たちの精神力となる。"
+		i.diva.prayer.beads[18].name = "Bead of Warding"
+		i.diva.prayer.beads[18].description = "ーうたまもりのきじゅー\n歌護とは歌姫の護り。\n集めるほどに狩人たちの支えとなる。"
+		i.diva.prayer.beads[19].name = "Bead of Fury"
+		i.diva.prayer.beads[19].description = "ーきょうげきのきじゅー\n強撃とは強い声色。\n聞く者の力を研ぎ澄ます。"
+		i.diva.prayer.beads[20].name = "Bead of Fireproof"
+		i.diva.prayer.beads[20].description = "ーふうかのきじゅー"
+		i.diva.prayer.beads[21].name = "Bead of Waterproof"
+		i.diva.prayer.beads[21].description = "ーふうすいのきじゅー"
+		i.diva.prayer.beads[22].name = "Bead of Iceproof"
+		i.diva.prayer.beads[22].description = "ーふうひょうのきじゅー"
+		i.diva.prayer.beads[23].name = "Bead of Dragonproof"
+		i.diva.prayer.beads[23].description = "ーふうりゅうのきじゅー"
+		i.diva.prayer.beads[24].name = "Bead of Thunderproof"
+		i.diva.prayer.beads[24].description = "ーふうらいのきじゅー"
+		i.diva.prayer.beads[25].name = "Bead of Immunity"
+		i.diva.prayer.beads[25].description = "ーふうぞくのきじゅー"
 
-		strings["commandDisabled"] = "%s command is disabled"
-		strings["commandReload"] = "Reloading players..."
-		strings["commandKqfGet"] = "KQF: %x"
-		strings["commandKqfSetError"] = "Error in command. Format: %s set xxxxxxxxxxxxxxxx"
-		strings["commandKqfSetSuccess"] = "KQF set, please switch Land/World"
-		strings["commandRightsError"] = "Error in command. Format: %s x"
-		strings["commandRightsSuccess"] = "Set rights integer: %d"
-		strings["commandCourseError"] = "Error in command. Format: %s <name>"
-		strings["commandCourseDisabled"] = "%s Course disabled"
-		strings["commandCourseEnabled"] = "%s Course enabled"
-		strings["commandCourseLocked"] = "%s Course is locked"
-		strings["commandTeleportError"] = "Error in command. Format: %s x y"
-		strings["commandTeleportSuccess"] = "Teleporting to %d %d"
-		strings["commandPSNError"] = "Error in command. Format: %s <psn id>"
-		strings["commandPSNSuccess"] = "Connected PSN ID: %s"
-		strings["commandPSNExists"] = "PSN ID is connected to another account!"
+		i.commands.noOp = "You don't have permission to use this command"
+		i.commands.disabled = "%s command is disabled"
+		i.commands.reload = "Reloading players..."
+		i.commands.kqf.get = "KQF: %x"
+		i.commands.kqf.set.error = "Error in command. Format: %s set xxxxxxxxxxxxxxxx"
+		i.commands.kqf.set.success = "KQF set, please switch Land/World"
+		i.commands.kqf.version = "This command is disabled prior to MHFG10"
+		i.commands.rights.error = "Error in command. Format: %s x"
+		i.commands.rights.success = "Set rights integer: %d"
+		i.commands.course.error = "Error in command. Format: %s <name>"
+		i.commands.course.disabled = "%s Course disabled"
+		i.commands.course.enabled = "%s Course enabled"
+		i.commands.course.locked = "%s Course is locked"
+		i.commands.teleport.error = "Error in command. Format: %s x y"
+		i.commands.teleport.success = "Teleporting to %d %d"
+		i.commands.psn.error = "Error in command. Format: %s <psn id>"
+		i.commands.psn.success = "Connected PSN ID: %s"
+		i.commands.psn.exists = "PSN ID is connected to another account!"
 
-		strings["commandRaviNoCommand"] = "No Raviente command specified!"
-		strings["commandRaviStartSuccess"] = "The Great Slaying will begin in a moment"
-		strings["commandRaviStartError"] = "The Great Slaying has already begun!"
-		strings["commandRaviMultiplier"] = "Raviente multiplier is currently %.2fx"
-		strings["commandRaviResSuccess"] = "Sending resurrection support!"
-		strings["commandRaviResError"] = "Resurrection support has not been requested!"
-		strings["commandRaviSedSuccess"] = "Sending sedation support if requested!"
-		strings["commandRaviRequest"] = "Requesting sedation support!"
-		strings["commandRaviError"] = "Raviente command not recognised!"
-		strings["commandRaviNoPlayers"] = "No one has joined the Great Slaying!"
-		strings["commandRaviVersion"] = "This command is disabled outside of MHFZZ"
+		i.commands.discord.success = "Your Discord token: %s"
 
-		strings["ravienteBerserk"] = "<Great Slaying: Berserk> is being held!"
-		strings["ravienteExtreme"] = "<Great Slaying: Extreme> is being held!"
-		strings["ravienteExtremeLimited"] = "<Great Slaying: Extreme (Limited)> is being held!"
-		strings["ravienteBerserkSmall"] = "<Great Slaying: Berserk (Small)> is being held!"
+		i.commands.ban.noUser = "Could not find user"
+		i.commands.ban.success = "Successfully banned %s"
+		i.commands.ban.invalid = "Invalid Character ID"
+		i.commands.ban.error = "Error in command. Format: %s <id> [length]"
+		i.commands.ban.length = " until %s"
 
-		strings["guildInviteName"] = "Invitation!"
-		strings["guildInvite"] = "You have been invited to join\n「%s」\nDo you want to accept?"
+		i.commands.ravi.noCommand = "No Raviente command specified!"
+		i.commands.ravi.start.success = "The Great Slaying will begin in a moment"
+		i.commands.ravi.start.error = "The Great Slaying has already begun!"
+		i.commands.ravi.multiplier = "Raviente multiplier is currently %.2fx"
+		i.commands.ravi.res.success = "Sending resurrection support!"
+		i.commands.ravi.res.error = "Resurrection support has not been requested!"
+		i.commands.ravi.sed.success = "Sending sedation support if requested!"
+		i.commands.ravi.request = "Requesting sedation support!"
+		i.commands.ravi.error = "Raviente command not recognised!"
+		i.commands.ravi.noPlayers = "No one has joined the Great Slaying!"
+		i.commands.ravi.version = "This command is disabled outside of MHFZZ"
 
-		strings["guildInviteSuccessName"] = "Success!"
-		strings["guildInviteSuccess"] = "You have successfully joined\n「%s」."
+		i.raviente.berserk = "<Great Slaying: Berserk> is being held!"
+		i.raviente.extreme = "<Great Slaying: Extreme> is being held!"
+		i.raviente.extremeLimited = "<Great Slaying: Extreme (Limited)> is being held!"
+		i.raviente.berserkSmall = "<Great Slaying: Berserk (Small)> is being held!"
 
-		strings["guildInviteAcceptedName"] = "Accepted"
-		strings["guildInviteAccepted"] = "The recipient accepted your invitation to join\n「%s」."
+		i.guild.invite.title = "Invitation!"
+		i.guild.invite.body = "You have been invited to join\n「%s」\nDo you want to accept?"
 
-		strings["guildInviteRejectName"] = "Rejected"
-		strings["guildInviteReject"] = "You rejected the invitation to join\n「%s」."
+		i.guild.invite.success.title = "Success!"
+		i.guild.invite.success.body = "You have successfully joined\n「%s」."
 
-		strings["guildInviteDeclinedName"] = "Declined"
-		strings["guildInviteDeclined"] = "The recipient declined your invitation to join\n「%s」."
+		i.guild.invite.accepted.title = "Accepted"
+		i.guild.invite.accepted.body = "The recipient accepted your invitation to join\n「%s」."
+
+		i.guild.invite.rejected.title = "Rejected"
+		i.guild.invite.rejected.body = "You rejected the invitation to join\n「%s」."
+
+		i.guild.invite.declined.title = "Declined"
+		i.guild.invite.declined.body = "The recipient declined your invitation to join\n「%s」."
 	}
-	return strings
+	return i
 }

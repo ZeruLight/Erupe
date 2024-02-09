@@ -19,7 +19,6 @@ type MsgMhfReadMail struct {
 
 	// This is the index within the current mail list
 	Index uint8
-	Unk0  uint16
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -32,7 +31,7 @@ func (m *MsgMhfReadMail) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientCon
 	m.AckHandle = bf.ReadUint32()
 	m.AccIndex = bf.ReadUint8()
 	m.Index = bf.ReadUint8()
-	m.Unk0 = bf.ReadUint16()
+	bf.ReadUint16() // Zeroed
 	return nil
 }
 

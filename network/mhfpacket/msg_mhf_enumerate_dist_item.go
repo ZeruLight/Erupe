@@ -3,6 +3,7 @@ package mhfpacket
 import (
 	"errors"
 	"erupe-ce/common/byteframe"
+	_config "erupe-ce/config"
 	"erupe-ce/network"
 	"erupe-ce/network/clientctx"
 )
@@ -10,7 +11,7 @@ import (
 // MsgMhfEnumerateDistItem represents the MSG_MHF_ENUMERATE_DIST_ITEM
 type MsgMhfEnumerateDistItem struct {
 	AckHandle uint32
-	Unk0      uint8
+	DistType  uint8
 	Unk1      uint8
 	Unk2      uint16
 	Unk3      []byte
@@ -24,10 +25,12 @@ func (m *MsgMhfEnumerateDistItem) Opcode() network.PacketID {
 // Parse parses the packet from binary
 func (m *MsgMhfEnumerateDistItem) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
-	m.Unk0 = bf.ReadUint8()
+	m.DistType = bf.ReadUint8()
 	m.Unk1 = bf.ReadUint8()
-	m.Unk2 = bf.ReadUint16()
-	m.Unk3 = bf.ReadBytes(uint(bf.ReadUint8()))
+	m.Unk2 = bf.ReadUint16() // Maximum? Hardcoded to 256
+	if _config.ErupeConfig.RealClientMode >= _config.Z1 {
+		m.Unk3 = bf.ReadBytes(uint(bf.ReadUint8()))
+	}
 	return nil
 }
 

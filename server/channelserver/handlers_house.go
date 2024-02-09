@@ -215,10 +215,12 @@ func handleMsgMhfLoadHouse(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteBytes(houseFurniture)
 	case 10: // Garden
 		bf.WriteBytes(garden)
-		c, d := getGookData(s, pkt.CharID)
-		bf.WriteUint16(c)
+		goocoos := getGoocooData(s, pkt.CharID)
+		bf.WriteUint16(uint16(len(goocoos)))
 		bf.WriteUint16(0)
-		bf.WriteBytes(d)
+		for _, goocoo := range goocoos {
+			bf.WriteBytes(goocoo)
+		}
 	}
 	if len(bf.Data()) == 0 {
 		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
@@ -252,71 +254,65 @@ func handleMsgMhfLoadDecoMyset(s *Session, p mhfpacket.MHFPacket) {
 		s.logger.Error("Failed to load decomyset", zap.Error(err))
 	}
 	if len(data) == 0 {
+		data = []byte{0x01, 0x00}
 		if s.server.erupeConfig.RealClientMode < _config.G10 {
 			data = []byte{0x00, 0x00}
 		}
-		data = []byte{0x01, 0x00}
 	}
 	doAckBufSucceed(s, pkt.AckHandle, data)
 }
 
 func handleMsgMhfSaveDecoMyset(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSaveDecoMyset)
-	// https://gist.github.com/Andoryuuta/9c524da7285e4b5ca7e52e0fc1ca1daf
-	var loadData []byte
-	bf := byteframe.NewByteFrameFromBytes(pkt.RawDataPayload[1:]) // skip first unk byte
-	err := s.server.db.QueryRow("SELECT decomyset FROM characters WHERE id = $1", s.charID).Scan(&loadData)
+	var temp []byte
+	err := s.server.db.QueryRow("SELECT decomyset FROM characters WHERE id = $1", s.charID).Scan(&temp)
 	if err != nil {
 		s.logger.Error("Failed to load decomyset", zap.Error(err))
-	} else {
-		numSets := bf.ReadUint8() // sets being written
-		// empty save
-		if len(loadData) == 0 {
-			loadData = []byte{0x01, 0x00}
-		}
-
-		savedSets := loadData[1] // existing saved sets
-		// no sets, new slice with just first 2 bytes for appends later
-		if savedSets == 0 {
-			loadData = []byte{0x01, 0x00}
-		}
-		for i := 0; i < int(numSets); i++ {
-			writeSet := bf.ReadUint16()
-			dataChunk := bf.ReadBytes(76)
-			setBytes := append([]byte{uint8(writeSet >> 8), uint8(writeSet & 0xff)}, dataChunk...)
-			for x := 0; true; x++ {
-				if x == int(savedSets) {
-					// appending set
-					if loadData[len(loadData)-1] == 0x10 {
-						// sanity check for if there was a messy manual import
-						loadData = append(loadData[:len(loadData)-2], setBytes...)
-					} else {
-						loadData = append(loadData, setBytes...)
-					}
-					savedSets++
-					break
-				}
-				currentSet := loadData[3+(x*78)]
-				if int(currentSet) == int(writeSet) {
-					// replacing a set
-					loadData = append(loadData[:2+(x*78)], append(setBytes, loadData[2+((x+1)*78):]...)...)
-					break
-				} else if int(currentSet) > int(writeSet) {
-					// inserting before current set
-					loadData = append(loadData[:2+((x)*78)], append(setBytes, loadData[2+((x)*78):]...)...)
-					savedSets++
-					break
-				}
-			}
-			loadData[1] = savedSets // update set count
-		}
-		dumpSaveData(s, loadData, "decomyset")
-		_, err := s.server.db.Exec("UPDATE characters SET decomyset=$1 WHERE id=$2", loadData, s.charID)
-		if err != nil {
-			s.logger.Error("Failed to save decomyset", zap.Error(err))
-		}
+		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+		return
 	}
-	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+
+	// Version handling
+	bf := byteframe.NewByteFrame()
+	var size uint
+	if s.server.erupeConfig.RealClientMode >= _config.G10 {
+		size = 76
+		bf.WriteUint8(1)
+	} else {
+		size = 68
+		bf.WriteUint8(0)
+	}
+
+	// Handle nil data
+	if len(temp) == 0 {
+		temp = append(bf.Data(), uint8(0))
+	}
+
+	// Build a map of set data
+	sets := make(map[uint16][]byte)
+	oldSets := byteframe.NewByteFrameFromBytes(temp[2:])
+	for i := uint8(0); i < temp[1]; i++ {
+		index := oldSets.ReadUint16()
+		sets[index] = oldSets.ReadBytes(size)
+	}
+
+	// Overwrite existing sets
+	newSets := byteframe.NewByteFrameFromBytes(pkt.RawDataPayload[2:])
+	for i := uint8(0); i < pkt.RawDataPayload[1]; i++ {
+		index := newSets.ReadUint16()
+		sets[index] = newSets.ReadBytes(size)
+	}
+
+	// Serialise the set data
+	bf.WriteUint8(uint8(len(sets)))
+	for u, b := range sets {
+		bf.WriteUint16(u)
+		bf.WriteBytes(b)
+	}
+
+	dumpSaveData(s, bf.Data(), "decomyset")
+	s.server.db.Exec("UPDATE characters SET decomyset=$1 WHERE id=$2", bf.Data(), s.charID)
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 type Title struct {
@@ -355,12 +351,14 @@ func handleMsgMhfEnumerateTitle(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfAcquireTitle(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfAcquireTitle)
-	var exists int
-	err := s.server.db.QueryRow("SELECT count(*) FROM titles WHERE id=$1 AND char_id=$2", pkt.TitleID, s.charID).Scan(&exists)
-	if err != nil || exists == 0 {
-		s.server.db.Exec("INSERT INTO titles VALUES ($1, $2, now(), now())", pkt.TitleID, s.charID)
-	} else {
-		s.server.db.Exec("UPDATE titles SET updated_at=now()")
+	for _, title := range pkt.TitleIDs {
+		var exists int
+		err := s.server.db.QueryRow(`SELECT count(*) FROM titles WHERE id=$1 AND char_id=$2`, title, s.charID).Scan(&exists)
+		if err != nil || exists == 0 {
+			s.server.db.Exec(`INSERT INTO titles VALUES ($1, $2, now(), now())`, title, s.charID)
+		} else {
+			s.server.db.Exec(`UPDATE titles SET updated_at=now() WHERE id=$1 AND char_id=$2`, title, s.charID)
+		}
 	}
 	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }

@@ -2,7 +2,6 @@ package channelserver
 
 import (
 	"encoding/binary"
-	"encoding/hex"
 	"erupe-ce/common/mhfcourse"
 	"erupe-ce/common/mhfmon"
 	ps "erupe-ce/common/pascalstring"
@@ -32,7 +31,7 @@ func stubEnumerateNoResults(s *Session, ackHandle uint32) {
 
 func doAckEarthSucceed(s *Session, ackHandle uint32, data []*byteframe.ByteFrame) {
 	bf := byteframe.NewByteFrame()
-	bf.WriteUint32(uint32(s.server.erupeConfig.DevModeOptions.EarthIDOverride))
+	bf.WriteUint32(uint32(s.server.erupeConfig.EarthID))
 	bf.WriteUint32(0)
 	bf.WriteUint32(0)
 	bf.WriteUint32(uint32(len(data)))
@@ -128,9 +127,9 @@ func handleMsgSysTerminalLog(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgSysLogin(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysLogin)
 
-	if !s.server.erupeConfig.DevModeOptions.DisableTokenCheck {
+	if !s.server.erupeConfig.DebugOptions.DisableTokenCheck {
 		var token string
-		err := s.server.db.QueryRow("SELECT token FROM sign_sessions WHERE token=$1", pkt.LoginTokenString).Scan(&token)
+		err := s.server.db.QueryRow("SELECT token FROM sign_sessions ss INNER JOIN public.users u on ss.user_id = u.id WHERE token=$1 AND ss.id=$2 AND u.id=(SELECT c.user_id FROM characters c WHERE c.id=$3)", pkt.LoginTokenString, pkt.LoginTokenNumber, pkt.CharID0).Scan(&token)
 		if err != nil {
 			s.rawConn.Close()
 			s.logger.Warn(fmt.Sprintf("Invalid login token, offending CID: (%d)", pkt.CharID0))
@@ -366,143 +365,117 @@ func handleMsgSysRightsReload(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfTransitMessage(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfTransitMessage)
+
+	local := false
+	if strings.Split(s.rawConn.RemoteAddr().String(), ":")[0] == "127.0.0.1" {
+		local = true
+	}
+
+	var maxResults, port, count uint16
+	var cid uint32
+	var term, ip string
+	bf := byteframe.NewByteFrameFromBytes(pkt.MessageData)
+	switch pkt.SearchType {
+	case 1:
+		maxResults = 1
+		cid = bf.ReadUint32()
+	case 2:
+		bf.ReadUint16() // term length
+		maxResults = bf.ReadUint16()
+		bf.ReadUint8() // Unk
+		term = stringsupport.SJISToUTF8(bf.ReadNullTerminatedBytes())
+	case 3:
+		_ip := bf.ReadBytes(4)
+		ip = fmt.Sprintf("%d.%d.%d.%d", _ip[3], _ip[2], _ip[1], _ip[0])
+		port = bf.ReadUint16()
+		bf.ReadUint16() // term length
+		maxResults = bf.ReadUint16()
+		bf.ReadUint8()
+		term = string(bf.ReadNullTerminatedBytes())
+	}
+
 	resp := byteframe.NewByteFrame()
 	resp.WriteUint16(0)
-	var count uint16
 	switch pkt.SearchType {
-	case 1: // CID
-		bf := byteframe.NewByteFrameFromBytes(pkt.MessageData)
-		CharID := bf.ReadUint32()
+	case 1, 2, 3: // usersearchidx, usersearchname, lobbysearchname
 		for _, c := range s.server.Channels {
 			for _, session := range c.sessions {
-				if session.charID == CharID {
-					count++
-					sessionName := stringsupport.UTF8ToSJIS(session.Name)
-					sessionStage := stringsupport.UTF8ToSJIS(session.stageID)
-					resp.WriteUint32(binary.LittleEndian.Uint32(net.ParseIP(c.IP).To4()))
-					resp.WriteUint16(c.Port)
-					resp.WriteUint32(session.charID)
-					resp.WriteBool(true)
-					resp.WriteUint8(uint8(len(sessionName) + 1))
-					resp.WriteUint16(uint16(len(c.userBinaryParts[userBinaryPartID{charID: session.charID, index: 3}])))
-					resp.WriteBytes(make([]byte, 40))
-					resp.WriteUint8(uint8(len(sessionStage) + 1))
-					resp.WriteBytes(make([]byte, 8))
-					resp.WriteNullTerminatedBytes(sessionName)
-					resp.WriteBytes(c.userBinaryParts[userBinaryPartID{session.charID, 3}])
-					resp.WriteNullTerminatedBytes(sessionStage)
-				}
-			}
-		}
-	case 2: // Name
-		bf := byteframe.NewByteFrameFromBytes(pkt.MessageData)
-		bf.ReadUint16() // lenSearchTerm
-		bf.ReadUint16() // maxResults
-		bf.ReadUint8()  // Unk
-		searchTerm := stringsupport.SJISToUTF8(bf.ReadNullTerminatedBytes())
-		for _, c := range s.server.Channels {
-			for _, session := range c.sessions {
-				if count == 100 {
+				if count == maxResults {
 					break
 				}
-				if strings.Contains(session.Name, searchTerm) {
-					count++
-					sessionName := stringsupport.UTF8ToSJIS(session.Name)
-					sessionStage := stringsupport.UTF8ToSJIS(session.stageID)
+				if pkt.SearchType == 1 && session.charID != cid {
+					continue
+				}
+				if pkt.SearchType == 2 && !strings.Contains(session.Name, term) {
+					continue
+				}
+				if pkt.SearchType == 3 && session.server.IP != ip && session.server.Port != port && session.stage.id != term {
+					continue
+				}
+				count++
+				sessionName := stringsupport.UTF8ToSJIS(session.Name)
+				sessionStage := stringsupport.UTF8ToSJIS(session.stage.id)
+				if !local {
 					resp.WriteUint32(binary.LittleEndian.Uint32(net.ParseIP(c.IP).To4()))
-					resp.WriteUint16(c.Port)
-					resp.WriteUint32(session.charID)
-					resp.WriteBool(true)
-					resp.WriteUint8(uint8(len(sessionName) + 1))
-					resp.WriteUint16(uint16(len(c.userBinaryParts[userBinaryPartID{session.charID, 3}])))
-					resp.WriteBytes(make([]byte, 40))
-					resp.WriteUint8(uint8(len(sessionStage) + 1))
+				} else {
+					resp.WriteUint32(0x0100007F)
+				}
+				resp.WriteUint16(c.Port)
+				resp.WriteUint32(session.charID)
+				resp.WriteUint8(uint8(len(sessionStage) + 1))
+				resp.WriteUint8(uint8(len(sessionName) + 1))
+				resp.WriteUint16(uint16(len(c.userBinaryParts[userBinaryPartID{charID: session.charID, index: 3}])))
+
+				// TODO: This case might be <=G2
+				if _config.ErupeConfig.RealClientMode <= _config.G1 {
 					resp.WriteBytes(make([]byte, 8))
-					resp.WriteNullTerminatedBytes(sessionName)
-					resp.WriteBytes(c.userBinaryParts[userBinaryPartID{charID: session.charID, index: 3}])
-					resp.WriteNullTerminatedBytes(sessionStage)
+				} else {
+					resp.WriteBytes(make([]byte, 40))
 				}
+				resp.WriteBytes(make([]byte, 8))
+
+				resp.WriteNullTerminatedBytes(sessionStage)
+				resp.WriteNullTerminatedBytes(sessionName)
+				resp.WriteBytes(c.userBinaryParts[userBinaryPartID{session.charID, 3}])
 			}
 		}
-	case 3: // Enumerate Party
-		bf := byteframe.NewByteFrameFromBytes(pkt.MessageData)
-		ip := bf.ReadBytes(4)
-		ipString := fmt.Sprintf("%d.%d.%d.%d", ip[3], ip[2], ip[1], ip[0])
-		port := bf.ReadUint16()
-		bf.ReadUint16() // lenStage
-		maxResults := bf.ReadUint16()
-		bf.ReadBytes(1)
-		stageID := stringsupport.SJISToUTF8(bf.ReadNullTerminatedBytes())
-		for _, c := range s.server.Channels {
-			if c.IP == ipString && c.Port == port {
-				for _, stage := range c.stages {
-					if stage.id == stageID {
-						if count == maxResults {
-							break
-						}
-						for session := range stage.clients {
-							count++
-							hrp := uint16(1)
-							gr := uint16(0)
-							s.server.db.QueryRow("SELECT hrp, gr FROM characters WHERE id=$1", session.charID).Scan(&hrp, &gr)
-							sessionStage := stringsupport.UTF8ToSJIS(session.stageID)
-							sessionName := stringsupport.UTF8ToSJIS(session.Name)
-							resp.WriteUint32(binary.LittleEndian.Uint32(net.ParseIP(c.IP).To4()))
-							resp.WriteUint16(c.Port)
-							resp.WriteUint32(session.charID)
-							resp.WriteUint8(uint8(len(sessionStage) + 1))
-							resp.WriteUint8(uint8(len(sessionName) + 1))
-							resp.WriteUint8(0)
-							resp.WriteUint8(7) // lenBinary
-							resp.WriteBytes(make([]byte, 48))
-							resp.WriteNullTerminatedBytes(sessionStage)
-							resp.WriteNullTerminatedBytes(sessionName)
-							resp.WriteUint16(hrp)
-							resp.WriteUint16(gr)
-							resp.WriteBytes([]byte{0x06, 0x10, 0x00}) // Unk
-						}
-					}
-				}
-			}
-		}
-	case 4: // Find Party
+	case 4: // lobbysearch
 		type FindPartyParams struct {
 			StagePrefix     string
-			RankRestriction uint16
-			Targets         []uint16
-			Unk0            []uint16
-			Unk1            []uint16
-			QuestID         []uint16
+			RankRestriction int16
+			Targets         []int16
+			Unk0            []int16
+			Unk1            []int16
+			QuestID         []int16
 		}
 		findPartyParams := FindPartyParams{
 			StagePrefix: "sl2Ls210",
 		}
-		bf := byteframe.NewByteFrameFromBytes(pkt.MessageData)
-		numParams := int(bf.ReadUint8())
-		maxResults := bf.ReadUint16()
-		for i := 0; i < numParams; i++ {
+		numParams := bf.ReadUint8()
+		maxResults = bf.ReadUint16()
+		for i := uint8(0); i < numParams; i++ {
 			switch bf.ReadUint8() {
 			case 0:
-				values := int(bf.ReadUint8())
-				for i := 0; i < values; i++ {
+				values := bf.ReadUint8()
+				for i := uint8(0); i < values; i++ {
 					if _config.ErupeConfig.RealClientMode >= _config.Z1 {
-						findPartyParams.RankRestriction = bf.ReadUint16()
+						findPartyParams.RankRestriction = bf.ReadInt16()
 					} else {
-						findPartyParams.RankRestriction = uint16(bf.ReadInt8())
+						findPartyParams.RankRestriction = int16(bf.ReadInt8())
 					}
 				}
 			case 1:
-				values := int(bf.ReadUint8())
-				for i := 0; i < values; i++ {
+				values := bf.ReadUint8()
+				for i := uint8(0); i < values; i++ {
 					if _config.ErupeConfig.RealClientMode >= _config.Z1 {
-						findPartyParams.Targets = append(findPartyParams.Targets, bf.ReadUint16())
+						findPartyParams.Targets = append(findPartyParams.Targets, bf.ReadInt16())
 					} else {
-						findPartyParams.Targets = append(findPartyParams.Targets, uint16(bf.ReadInt8()))
+						findPartyParams.Targets = append(findPartyParams.Targets, int16(bf.ReadInt8()))
 					}
 				}
 			case 2:
-				values := int(bf.ReadUint8())
-				for i := 0; i < values; i++ {
+				values := bf.ReadUint8()
+				for i := uint8(0); i < values; i++ {
 					var value int16
 					if _config.ErupeConfig.RealClientMode >= _config.Z1 {
 						value = bf.ReadInt16()
@@ -523,30 +496,30 @@ func handleMsgMhfTransitMessage(s *Session, p mhfpacket.MHFPacket) {
 					}
 				}
 			case 3: // Unknown
-				values := int(bf.ReadUint8())
-				for i := 0; i < values; i++ {
+				values := bf.ReadUint8()
+				for i := uint8(0); i < values; i++ {
 					if _config.ErupeConfig.RealClientMode >= _config.Z1 {
-						findPartyParams.Unk0 = append(findPartyParams.Unk0, bf.ReadUint16())
+						findPartyParams.Unk0 = append(findPartyParams.Unk0, bf.ReadInt16())
 					} else {
-						findPartyParams.Unk0 = append(findPartyParams.Unk0, uint16(bf.ReadInt8()))
+						findPartyParams.Unk0 = append(findPartyParams.Unk0, int16(bf.ReadInt8()))
 					}
 				}
 			case 4: // Looking for n or already have n
-				values := int(bf.ReadUint8())
-				for i := 0; i < values; i++ {
+				values := bf.ReadUint8()
+				for i := uint8(0); i < values; i++ {
 					if _config.ErupeConfig.RealClientMode >= _config.Z1 {
-						findPartyParams.Unk1 = append(findPartyParams.Unk1, bf.ReadUint16())
+						findPartyParams.Unk1 = append(findPartyParams.Unk1, bf.ReadInt16())
 					} else {
-						findPartyParams.Unk1 = append(findPartyParams.Unk1, uint16(bf.ReadInt8()))
+						findPartyParams.Unk1 = append(findPartyParams.Unk1, int16(bf.ReadInt8()))
 					}
 				}
 			case 5:
-				values := int(bf.ReadUint8())
-				for i := 0; i < values; i++ {
+				values := bf.ReadUint8()
+				for i := uint8(0); i < values; i++ {
 					if _config.ErupeConfig.RealClientMode >= _config.Z1 {
-						findPartyParams.QuestID = append(findPartyParams.QuestID, bf.ReadUint16())
+						findPartyParams.QuestID = append(findPartyParams.QuestID, bf.ReadInt16())
 					} else {
-						findPartyParams.QuestID = append(findPartyParams.QuestID, uint16(bf.ReadInt8()))
+						findPartyParams.QuestID = append(findPartyParams.QuestID, int16(bf.ReadInt8()))
 					}
 				}
 			}
@@ -559,46 +532,80 @@ func handleMsgMhfTransitMessage(s *Session, p mhfpacket.MHFPacket) {
 				if strings.HasPrefix(stage.id, findPartyParams.StagePrefix) {
 					sb3 := byteframe.NewByteFrameFromBytes(stage.rawBinaryData[stageBinaryKey{1, 3}])
 					sb3.Seek(4, 0)
-					stageRankRestriction := sb3.ReadUint16()
-					stageTarget := sb3.ReadUint16()
-					if stageRankRestriction > findPartyParams.RankRestriction {
-						continue
+
+					stageDataParams := 7
+					if _config.ErupeConfig.RealClientMode <= _config.G10 {
+						stageDataParams = 4
+					} else if _config.ErupeConfig.RealClientMode <= _config.Z1 {
+						stageDataParams = 6
 					}
+
+					var stageData []int16
+					for i := 0; i < stageDataParams; i++ {
+						if _config.ErupeConfig.RealClientMode >= _config.Z1 {
+							stageData = append(stageData, sb3.ReadInt16())
+						} else {
+							stageData = append(stageData, int16(sb3.ReadInt8()))
+						}
+					}
+
+					if findPartyParams.RankRestriction >= 0 {
+						if stageData[0] > findPartyParams.RankRestriction {
+							continue
+						}
+					}
+
+					var hasTarget bool
 					if len(findPartyParams.Targets) > 0 {
 						for _, target := range findPartyParams.Targets {
-							if target == stageTarget {
+							if target == stageData[1] {
+								hasTarget = true
 								break
 							}
 						}
-						continue
+						if !hasTarget {
+							continue
+						}
 					}
+
 					count++
-					sessionStage := stringsupport.UTF8ToSJIS(stage.id)
-					resp.WriteUint32(binary.LittleEndian.Uint32(net.ParseIP(c.IP).To4()))
+					if !local {
+						resp.WriteUint32(binary.LittleEndian.Uint32(net.ParseIP(c.IP).To4()))
+					} else {
+						resp.WriteUint32(0x0100007F)
+					}
 					resp.WriteUint16(c.Port)
+
 					resp.WriteUint16(0) // Static?
-					resp.WriteUint16(0) // Unk
-					resp.WriteUint16(uint16(len(stage.clients)))
+					resp.WriteUint16(0) // Unk, [0 1 2]
+					resp.WriteUint16(uint16(len(stage.clients) + len(stage.reservedClientSlots)))
 					resp.WriteUint16(stage.maxPlayers)
-					resp.WriteUint16(0) // Num clients entered from stage
-					resp.WriteUint16(stage.maxPlayers)
+					// TODO: Retail returned the number of clients in quests, not workshop/my series
+					resp.WriteUint16(uint16(len(stage.reservedClientSlots)))
+
+					resp.WriteUint8(0) // Static?
+					resp.WriteUint8(uint8(stage.maxPlayers))
 					resp.WriteUint8(1) // Static?
-					resp.WriteUint8(uint8(len(sessionStage) + 1))
+					resp.WriteUint8(uint8(len(stage.id) + 1))
 					resp.WriteUint8(uint8(len(stage.rawBinaryData[stageBinaryKey{1, 0}])))
 					resp.WriteUint8(uint8(len(stage.rawBinaryData[stageBinaryKey{1, 1}])))
-					resp.WriteUint16(stageRankRestriction)
-					resp.WriteUint16(stageTarget)
-					resp.WriteBytes(make([]byte, 12))
-					resp.WriteNullTerminatedBytes(sessionStage)
+
+					for i := range stageData {
+						if _config.ErupeConfig.RealClientMode >= _config.Z1 {
+							resp.WriteInt16(stageData[i])
+						} else {
+							resp.WriteInt8(int8(stageData[i]))
+						}
+					}
+					resp.WriteUint8(0) // Unk
+					resp.WriteUint8(0) // Unk
+
+					resp.WriteNullTerminatedBytes([]byte(stage.id))
 					resp.WriteBytes(stage.rawBinaryData[stageBinaryKey{1, 0}])
 					resp.WriteBytes(stage.rawBinaryData[stageBinaryKey{1, 1}])
 				}
 			}
 		}
-	}
-	if (pkt.SearchType == 1 || pkt.SearchType == 3) && count == 0 {
-		doAckBufFail(s, pkt.AckHandle, make([]byte, 4))
-		return
 	}
 	resp.Seek(0, io.SeekStart)
 	resp.WriteUint16(count)
@@ -611,7 +618,7 @@ func handleMsgMhfServerCommand(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfAnnounce(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfAnnounce)
-	s.server.BroadcastRaviente(pkt.IPAddress, pkt.Port, pkt.StageID, pkt.Type)
+	s.server.BroadcastRaviente(pkt.IPAddress, pkt.Port, pkt.StageID, pkt.Data.ReadUint8())
 	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
@@ -640,12 +647,167 @@ func handleMsgMhfTransferItem(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfEnumeratePrice(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumeratePrice)
-	//resp := byteframe.NewByteFrame()
-	//resp.WriteUint16(0) // Entry type 1 count
-	//resp.WriteUint16(0) // Entry type 2 count
-	// directly lifted for now because lacking it crashes the counter on having actual events present
-	data, _ := hex.DecodeString("0000000066000003E800000000007300640100000320000000000006006401000003200000000000300064010000044C00000000007200640100000384000000000034006401000003840000000000140064010000051400000000006E006401000003E8000000000016006401000003E8000000000001006401000003200000000000430064010000057800000000006F006401000003840000000000330064010000044C00000000000B006401000003E800000000000F006401000006400000000000700064010000044C0000000000110064010000057800000000004C006401000003E8000000000059006401000006A400000000006D006401000005DC00000000004B006401000005DC000000000050006401000006400000000000350064010000070800000000006C0064010000044C000000000028006401000005DC00000000005300640100000640000000000060006401000005DC00000000005E0064010000051400000000007B006401000003E80000000000740064010000070800000000006B0064010000025800000000001B0064010000025800000000001C006401000002BC00000000001F006401000006A400000000007900640100000320000000000008006401000003E80000000000150064010000070800000000007A0064010000044C00000000000E00640100000640000000000055006401000007D0000000000002006401000005DC00000000002F0064010000064000000000002A0064010000076C00000000007E006401000002BC0000000000440064010000038400000000005C0064010000064000000000005B006401000006A400000000007D0064010000076C00000000007F006401000005DC0000000000540064010000064000000000002900640100000960000000000024006401000007D0000000000081006401000008340000000000800064010000038400000000001A006401000003E800000000002D0064010000038400000000004A006401000006A400000000005A00640100000384000000000027006401000007080000000000830064010000076C000000000040006401000006400000000000690064010000044C000000000025006401000004B000000000003100640100000708000000000082006401000003E800000000006500640100000640000000000051006401000007D000000000008C0064010000070800000000004D0064010000038400000000004E0064010000089800000000008B006401000004B000000000002E006401000009600000000000920064010000076C00000000008E00640100000514000000000068006401000004B000000000002B006401000003E800000000002C00640100000BB8000000000093006401000008FC00000000009000640100000AF0000000000094006401000006A400000000008D0064010000044C000000000052006401000005DC00000000004F006401000008980000000000970064010000070800000000006A0064010000064000000000005F00640100000384000000000026006401000008FC000000000096006401000007D00000000000980064010000076C000000000041006401000006A400000000003B006401000007080000000000360064010000083400000000009F00640100000A2800000000009A0064010000076C000000000021006401000007D000000000006300640100000A8C0000000000990064010000089800000000009E006401000007080000000000A100640100000C1C0000000000A200640100000C800000000000A400640100000DAC0000000000A600640100000C800000000000A50064010010")
-	doAckBufSucceed(s, pkt.AckHandle, data)
+	bf := byteframe.NewByteFrame()
+	var lbPrices []struct {
+		Unk0 uint16
+		Unk1 uint16
+		Unk2 uint32
+	}
+	var wantedList []struct {
+		Unk0 uint32
+		Unk1 uint32
+		Unk2 uint32
+		Unk3 uint16
+		Unk4 uint16
+		Unk5 uint16
+		Unk6 uint16
+		Unk7 uint16
+		Unk8 uint16
+		Unk9 uint16
+	}
+	gzPrices := []struct {
+		Unk0  uint16
+		Gz    uint16
+		Unk1  uint16
+		Unk2  uint16
+		MonID uint16
+		Unk3  uint16
+		Unk4  uint8
+	}{
+		{0, 1000, 0, 0, mhfmon.Pokaradon, 100, 1},
+		{0, 800, 0, 0, mhfmon.YianKutKu, 100, 1},
+		{0, 800, 0, 0, mhfmon.DaimyoHermitaur, 100, 1},
+		{0, 1100, 0, 0, mhfmon.Farunokku, 100, 1},
+		{0, 900, 0, 0, mhfmon.Congalala, 100, 1},
+		{0, 900, 0, 0, mhfmon.Gypceros, 100, 1},
+		{0, 1300, 0, 0, mhfmon.Hyujikiki, 100, 1},
+		{0, 1000, 0, 0, mhfmon.Basarios, 100, 1},
+		{0, 1000, 0, 0, mhfmon.Rathian, 100, 1},
+		{0, 800, 0, 0, mhfmon.ShogunCeanataur, 100, 1},
+		{0, 1400, 0, 0, mhfmon.Midogaron, 100, 1},
+		{0, 900, 0, 0, mhfmon.Blangonga, 100, 1},
+		{0, 1100, 0, 0, mhfmon.Rathalos, 100, 1},
+		{0, 1000, 0, 0, mhfmon.Khezu, 100, 1},
+		{0, 1600, 0, 0, mhfmon.Giaorugu, 100, 1},
+		{0, 1100, 0, 0, mhfmon.Gravios, 100, 1},
+		{0, 1400, 0, 0, mhfmon.Tigrex, 100, 1},
+		{0, 1000, 0, 0, mhfmon.Pariapuria, 100, 1},
+		{0, 1700, 0, 0, mhfmon.Anorupatisu, 100, 1},
+		{0, 1500, 0, 0, mhfmon.Lavasioth, 100, 1},
+		{0, 1500, 0, 0, mhfmon.Espinas, 100, 1},
+		{0, 1600, 0, 0, mhfmon.Rajang, 100, 1},
+		{0, 1800, 0, 0, mhfmon.Rebidiora, 100, 1},
+		{0, 1100, 0, 0, mhfmon.YianGaruga, 100, 1},
+		{0, 1500, 0, 0, mhfmon.AqraVashimu, 100, 1},
+		{0, 1600, 0, 0, mhfmon.Gurenzeburu, 100, 1},
+		{0, 1500, 0, 0, mhfmon.Dyuragaua, 100, 1},
+		{0, 1300, 0, 0, mhfmon.Gougarf, 100, 1},
+		{0, 1000, 0, 0, mhfmon.Shantien, 100, 1},
+		{0, 1800, 0, 0, mhfmon.Disufiroa, 100, 1},
+		{0, 600, 0, 0, mhfmon.Velocidrome, 100, 1},
+		{0, 600, 0, 0, mhfmon.Gendrome, 100, 1},
+		{0, 700, 0, 0, mhfmon.Iodrome, 100, 1},
+		{0, 1700, 0, 0, mhfmon.Baruragaru, 100, 1},
+		{0, 800, 0, 0, mhfmon.Cephadrome, 100, 1},
+		{0, 1000, 0, 0, mhfmon.Plesioth, 100, 1},
+		{0, 1800, 0, 0, mhfmon.Zerureusu, 100, 1},
+		{0, 1100, 0, 0, mhfmon.Diablos, 100, 1},
+		{0, 1600, 0, 0, mhfmon.Berukyurosu, 100, 1},
+		{0, 2000, 0, 0, mhfmon.Fatalis, 100, 1},
+		{0, 1500, 0, 0, mhfmon.BlackGravios, 100, 1},
+		{0, 1600, 0, 0, mhfmon.GoldRathian, 100, 1},
+		{0, 1900, 0, 0, mhfmon.Meraginasu, 100, 1},
+		{0, 700, 0, 0, mhfmon.Bulldrome, 100, 1},
+		{0, 900, 0, 0, mhfmon.NonoOrugaron, 100, 1},
+		{0, 1600, 0, 0, mhfmon.KamuOrugaron, 100, 1},
+		{0, 1700, 0, 0, mhfmon.Forokururu, 100, 1},
+		{0, 1900, 0, 0, mhfmon.Diorex, 100, 1},
+		{0, 1500, 0, 0, mhfmon.AqraJebia, 100, 1},
+		{0, 1600, 0, 0, mhfmon.SilverRathalos, 100, 1},
+		{0, 2400, 0, 0, mhfmon.CrimsonFatalis, 100, 1},
+		{0, 2000, 0, 0, mhfmon.Inagami, 100, 1},
+		{0, 2100, 0, 0, mhfmon.GarubaDaora, 100, 1},
+		{0, 900, 0, 0, mhfmon.Monoblos, 100, 1},
+		{0, 1000, 0, 0, mhfmon.RedKhezu, 100, 1},
+		{0, 900, 0, 0, mhfmon.Hypnocatrice, 100, 1},
+		{0, 1700, 0, 0, mhfmon.PearlEspinas, 100, 1},
+		{0, 900, 0, 0, mhfmon.PurpleGypceros, 100, 1},
+		{0, 1800, 0, 0, mhfmon.Poborubarumu, 100, 1},
+		{0, 1900, 0, 0, mhfmon.Lunastra, 100, 1},
+		{0, 1600, 0, 0, mhfmon.Kuarusepusu, 100, 1},
+		{0, 1100, 0, 0, mhfmon.PinkRathian, 100, 1},
+		{0, 1200, 0, 0, mhfmon.AzureRathalos, 100, 1},
+		{0, 1800, 0, 0, mhfmon.Varusaburosu, 100, 1},
+		{0, 1000, 0, 0, mhfmon.Gogomoa, 100, 1},
+		{0, 1600, 0, 0, mhfmon.BurningEspinas, 100, 1},
+		{0, 2000, 0, 0, mhfmon.Harudomerugu, 100, 1},
+		{0, 1800, 0, 0, mhfmon.Akantor, 100, 1},
+		{0, 900, 0, 0, mhfmon.BrightHypnoc, 100, 1},
+		{0, 2200, 0, 0, mhfmon.Gureadomosu, 100, 1},
+		{0, 1200, 0, 0, mhfmon.GreenPlesioth, 100, 1},
+		{0, 2400, 0, 0, mhfmon.Zinogre, 100, 1},
+		{0, 1900, 0, 0, mhfmon.Gasurabazura, 100, 1},
+		{0, 1300, 0, 0, mhfmon.Abiorugu, 100, 1},
+		{0, 1200, 0, 0, mhfmon.BlackDiablos, 100, 1},
+		{0, 1000, 0, 0, mhfmon.WhiteMonoblos, 100, 1},
+		{0, 3000, 0, 0, mhfmon.Deviljho, 100, 1},
+		{0, 2300, 0, 0, mhfmon.YamaKurai, 100, 1},
+		{0, 2800, 0, 0, mhfmon.Brachydios, 100, 1},
+		{0, 1700, 0, 0, mhfmon.Toridcless, 100, 1},
+		{0, 1100, 0, 0, mhfmon.WhiteHypnoc, 100, 1},
+		{0, 1500, 0, 0, mhfmon.RedLavasioth, 100, 1},
+		{0, 2200, 0, 0, mhfmon.Barioth, 100, 1},
+		{0, 1800, 0, 0, mhfmon.Odibatorasu, 100, 1},
+		{0, 1600, 0, 0, mhfmon.Doragyurosu, 100, 1},
+		{0, 900, 0, 0, mhfmon.BlueYianKutKu, 100, 1},
+		{0, 2300, 0, 0, mhfmon.ToaTesukatora, 100, 1},
+		{0, 2000, 0, 0, mhfmon.Uragaan, 100, 1},
+		{0, 1900, 0, 0, mhfmon.Teostra, 100, 1},
+		{0, 1700, 0, 0, mhfmon.Chameleos, 100, 1},
+		{0, 1800, 0, 0, mhfmon.KushalaDaora, 100, 1},
+		{0, 2100, 0, 0, mhfmon.Nargacuga, 100, 1},
+		{0, 2600, 0, 0, mhfmon.Guanzorumu, 100, 1},
+		{0, 1900, 0, 0, mhfmon.Kirin, 100, 1},
+		{0, 2000, 0, 0, mhfmon.Rukodiora, 100, 1},
+		{0, 2700, 0, 0, mhfmon.StygianZinogre, 100, 1},
+		{0, 2200, 0, 0, mhfmon.Voljang, 100, 1},
+		{0, 1800, 0, 0, mhfmon.Zenaserisu, 100, 1},
+		{0, 3100, 0, 0, mhfmon.GoreMagala, 100, 1},
+		{0, 3200, 0, 0, mhfmon.ShagaruMagala, 100, 1},
+		{0, 3500, 0, 0, mhfmon.Eruzerion, 100, 1},
+		{0, 3200, 0, 0, mhfmon.Amatsu, 100, 1},
+	}
+
+	bf.WriteUint16(uint16(len(lbPrices)))
+	for _, lb := range lbPrices {
+		bf.WriteUint16(lb.Unk0)
+		bf.WriteUint16(lb.Unk1)
+		bf.WriteUint32(lb.Unk2)
+	}
+	bf.WriteUint16(uint16(len(wantedList)))
+	for _, wanted := range wantedList {
+		bf.WriteUint32(wanted.Unk0)
+		bf.WriteUint32(wanted.Unk1)
+		bf.WriteUint32(wanted.Unk2)
+		bf.WriteUint16(wanted.Unk3)
+		bf.WriteUint16(wanted.Unk4)
+		bf.WriteUint16(wanted.Unk5)
+		bf.WriteUint16(wanted.Unk6)
+		bf.WriteUint16(wanted.Unk7)
+		bf.WriteUint16(wanted.Unk8)
+		bf.WriteUint16(wanted.Unk9)
+	}
+	bf.WriteUint8(uint8(len(gzPrices)))
+	for _, gz := range gzPrices {
+		bf.WriteUint16(gz.Unk0)
+		bf.WriteUint16(gz.Gz)
+		bf.WriteUint16(gz.Unk1)
+		bf.WriteUint16(gz.Unk2)
+		bf.WriteUint16(gz.MonID)
+		bf.WriteUint16(gz.Unk3)
+		bf.WriteUint8(gz.Unk4)
+	}
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfEnumerateOrder(s *Session, p mhfpacket.MHFPacket) {
@@ -705,16 +867,16 @@ func handleMsgMhfUpdateUnionItem(s *Session, p mhfpacket.MHFPacket) {
 	// Update item stacks
 	newItems := make([]Item, len(oldItems))
 	copy(newItems, oldItems)
-	for i := 0; i < int(pkt.Amount); i++ {
+	for i := 0; i < len(pkt.Items); i++ {
 		for j := 0; j <= len(oldItems); j++ {
 			if j == len(oldItems) {
 				var newItem Item
-				newItem.ItemId = pkt.Items[i].ItemId
+				newItem.ItemId = pkt.Items[i].ItemID
 				newItem.Amount = pkt.Items[i].Amount
 				newItems = append(newItems, newItem)
 				break
 			}
-			if pkt.Items[i].ItemId == oldItems[j].ItemId {
+			if pkt.Items[i].ItemID == oldItems[j].ItemId {
 				newItems[j].Amount = pkt.Items[i].Amount
 				break
 			}
@@ -797,39 +959,31 @@ func handleMsgMhfExchangeWeeklyStamp(s *Session, p mhfpacket.MHFPacket) {
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
-func getGookData(s *Session, cid uint32) (uint16, []byte) {
-	var data []byte
-	var count uint16
-	bf := byteframe.NewByteFrame()
+func getGoocooData(s *Session, cid uint32) [][]byte {
+	var goocoo []byte
+	var goocoos [][]byte
 	for i := 0; i < 5; i++ {
-		err := s.server.db.QueryRow(fmt.Sprintf("SELECT goocoo%d FROM goocoo WHERE id=$1", i), cid).Scan(&data)
+		err := s.server.db.QueryRow(fmt.Sprintf("SELECT goocoo%d FROM goocoo WHERE id=$1", i), cid).Scan(&goocoo)
 		if err != nil {
 			s.server.db.Exec("INSERT INTO goocoo (id) VALUES ($1)", s.charID)
-			return 0, bf.Data()
+			return goocoos
 		}
-		if err == nil && data != nil {
-			count++
-			if s.charID == cid && count == 1 {
-				goocoo := byteframe.NewByteFrameFromBytes(data)
-				bf.WriteBytes(goocoo.ReadBytes(4))
-				d := goocoo.ReadBytes(2)
-				bf.WriteBytes(d)
-				bf.WriteBytes(d)
-				bf.WriteBytes(goocoo.DataFromCurrent())
-			} else {
-				bf.WriteBytes(data)
-			}
+		if err == nil && goocoo != nil {
+			goocoos = append(goocoos, goocoo)
 		}
 	}
-	return count, bf.Data()
+	return goocoos
 }
 
 func handleMsgMhfEnumerateGuacot(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateGuacot)
 	bf := byteframe.NewByteFrame()
-	count, data := getGookData(s, s.charID)
-	bf.WriteUint16(count)
-	bf.WriteBytes(data)
+	goocoos := getGoocooData(s, s.charID)
+	bf.WriteUint16(uint16(len(goocoos)))
+	bf.WriteUint16(0)
+	for _, goocoo := range goocoos {
+		bf.WriteBytes(goocoo)
+	}
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
@@ -842,7 +996,7 @@ func handleMsgMhfUpdateGuacot(s *Session, p mhfpacket.MHFPacket) {
 			bf := byteframe.NewByteFrame()
 			bf.WriteUint32(goocoo.Index)
 			for i := range goocoo.Data1 {
-				bf.WriteUint16(goocoo.Data1[i])
+				bf.WriteInt16(goocoo.Data1[i])
 			}
 			for i := range goocoo.Data2 {
 				bf.WriteUint32(goocoo.Data2[i])
@@ -938,10 +1092,10 @@ func handleMsgMhfUpdateEtcPoint(s *Session, p mhfpacket.MHFPacket) {
 		column = "promo_points"
 	}
 
-	var value int
+	var value int16
 	err := s.server.db.QueryRow(fmt.Sprintf(`SELECT %s FROM characters WHERE id = $1`, column), s.charID).Scan(&value)
 	if err == nil {
-		if value-int(pkt.Delta) < 0 {
+		if value+pkt.Delta < 0 {
 			s.server.db.Exec(fmt.Sprintf(`UPDATE characters SET %s = 0 WHERE id = $1`, column), s.charID)
 		} else {
 			s.server.db.Exec(fmt.Sprintf(`UPDATE characters SET %s = %s + $1 WHERE id = $2`, column, column), pkt.Delta, s.charID)
@@ -981,21 +1135,31 @@ func handleMsgMhfStampcardStamp(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfStampcardPrize(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfUnreserveSrg(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfUnreserveSrg(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfUnreserveSrg)
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+}
 
 func handleMsgMhfKickExportForce(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfGetEarthStatus(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetEarthStatus)
 	bf := byteframe.NewByteFrame()
-	bf.WriteUint32(uint32(TimeWeekStart().Add(time.Hour * -24).Unix())) // Start
-	bf.WriteUint32(uint32(TimeWeekNext().Add(time.Hour * 24).Unix()))   // End
-	bf.WriteInt32(s.server.erupeConfig.DevModeOptions.EarthStatusOverride)
-	bf.WriteInt32(s.server.erupeConfig.DevModeOptions.EarthIDOverride)
-	bf.WriteInt32(s.server.erupeConfig.DevModeOptions.EarthMonsterOverride)
-	bf.WriteInt32(0)
-	bf.WriteInt32(0)
-	bf.WriteInt32(0)
+	bf.WriteUint32(uint32(TimeWeekStart().Unix())) // Start
+	bf.WriteUint32(uint32(TimeWeekNext().Unix()))  // End
+	bf.WriteInt32(s.server.erupeConfig.EarthStatus)
+	bf.WriteInt32(s.server.erupeConfig.EarthID)
+	for i, m := range s.server.erupeConfig.EarthMonsters {
+		if _config.ErupeConfig.RealClientMode <= _config.G9 {
+			if i == 3 {
+				break
+			}
+		}
+		if i == 4 {
+			break
+		}
+		bf.WriteInt32(m)
+	}
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
@@ -1195,7 +1359,10 @@ func handleMsgMhfGetSeibattle(s *Session, p mhfpacket.MHFPacket) {
 	doAckEarthSucceed(s, pkt.AckHandle, data)
 }
 
-func handleMsgMhfPostSeibattle(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfPostSeibattle(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfPostSeibattle)
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+}
 
 func handleMsgMhfGetDailyMissionMaster(s *Session, p mhfpacket.MHFPacket) {}
 

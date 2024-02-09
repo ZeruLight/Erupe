@@ -6,11 +6,11 @@ import (
 	"encoding/json"
 	"erupe-ce/common/stringsupport"
 	_config "erupe-ce/config"
-	"fmt"
-	"go.uber.org/zap"
-	"golang.org/x/exp/slices"
 	"math/rand"
 	"time"
+
+	"go.uber.org/zap"
+	"golang.org/x/exp/slices"
 
 	"erupe-ce/common/byteframe"
 	"erupe-ce/network/mhfpacket"
@@ -87,21 +87,21 @@ func handleMsgMhfGetUdSchedule(s *Session, p mhfpacket.MHFPacket) {
 	_ = s.server.db.QueryRow("SELECT id, (EXTRACT(epoch FROM start_time)::int) as start_time FROM events WHERE event_type='diva'").Scan(&id, &start)
 
 	var timestamps []uint32
-	if s.server.erupeConfig.DevMode && s.server.erupeConfig.DevModeOptions.DivaEvent >= 0 {
-		if s.server.erupeConfig.DevModeOptions.DivaEvent == 0 {
-			if s.server.erupeConfig.RealClientMode <= _config.Z1 {
-				doAckBufSucceed(s, pkt.AckHandle, make([]byte, 32))
-			} else {
+	if s.server.erupeConfig.DebugOptions.DivaOverride >= 0 {
+		if s.server.erupeConfig.DebugOptions.DivaOverride == 0 {
+			if s.server.erupeConfig.RealClientMode >= _config.Z2 {
 				doAckBufSucceed(s, pkt.AckHandle, make([]byte, 36))
+			} else {
+				doAckBufSucceed(s, pkt.AckHandle, make([]byte, 32))
 			}
 			return
 		}
-		timestamps = generateDivaTimestamps(s, uint32(s.server.erupeConfig.DevModeOptions.DivaEvent), true)
+		timestamps = generateDivaTimestamps(s, uint32(s.server.erupeConfig.DebugOptions.DivaOverride), true)
 	} else {
 		timestamps = generateDivaTimestamps(s, start, false)
 	}
 
-	if s.server.erupeConfig.RealClientMode > _config.Z1 {
+	if s.server.erupeConfig.RealClientMode >= _config.Z2 {
 		bf.WriteUint32(id)
 	}
 	for i := range timestamps {
@@ -162,8 +162,8 @@ func handleMsgMhfGetKijuInfo(s *Session, p mhfpacket.MHFPacket) {
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint8(uint8(len(kijuInfo)))
 	for _, kiju := range kijuInfo {
-		bf.WriteBytes(stringsupport.PaddedString(s.server.dict[fmt.Sprintf(`prayerBead%dName`, kiju.Effect)], 32, true))
-		bf.WriteBytes(stringsupport.PaddedString(s.server.dict[fmt.Sprintf(`prayerBead%dDescription`, kiju.Effect)], 512, true))
+		bf.WriteBytes(stringsupport.PaddedString(s.server.i18n.diva.prayer.beads[kiju.Effect].name, 32, true))
+		bf.WriteBytes(stringsupport.PaddedString(s.server.i18n.diva.prayer.beads[kiju.Effect].description, 512, true))
 		bf.WriteUint8(kiju.Color)
 		bf.WriteUint8(kiju.Effect)
 	}

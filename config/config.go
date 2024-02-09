@@ -58,7 +58,7 @@ const (
 )
 
 var versionStrings = []string{"S1.0", "S1.5", "S2.0", "S2.5", "S3.0", "S3.5", "S4.0", "S5.0", "S5.5", "S6.0", "S7.0",
-	"S8.0", "S8.5", "S9", "S10", "FW.1", "FW.2", "FW.3", "FW.4", "FW.5", "G1", "G2", "G3", "G3.1", "G3.2", "GG", "G5",
+	"S8.0", "S8.5", "S9.0", "S10", "FW.1", "FW.2", "FW.3", "FW.4", "FW.5", "G1", "G2", "G3", "G3.1", "G3.2", "GG", "G5",
 	"G5.1", "G5.2", "G6", "G6.1", "G7", "G8", "G8.1", "G9", "G9.1", "G10", "G10.1", "Z1", "Z2", "ZZ"}
 
 func (m Mode) String() string {
@@ -79,63 +79,72 @@ type Config struct {
 	DeleteOnSaveCorruption bool     // Attempts to save corrupted data will flag the save for deletion
 	ClientMode             string
 	RealClientMode         Mode
-	DevMode                bool
-
-	DevModeOptions  DevModeOptions
-	GameplayOptions GameplayOptions
-	Discord         Discord
-	Commands        []Command
-	Courses         []Course
-	Database        Database
-	Sign            Sign
-	SignV2          SignV2
-	Channel         Channel
-	Entrance        Entrance
-}
-
-// DevModeOptions holds various debug/temporary options for use while developing Erupe.
-type DevModeOptions struct {
-	AutoCreateAccount    bool // Automatically create accounts if they don't exist
-	CleanDB              bool // Automatically wipes the DB on server reset.
-	MaxLauncherHR        bool // Sets the HR returned in the launcher to HR7 so that you can join non-beginner worlds.
-	LogInboundMessages   bool // Log all messages sent to the server
-	LogOutboundMessages  bool // Log all messages sent to the clients
-	MaxHexdumpLength     int  // Maximum number of bytes printed when logs are enabled
-	DivaEvent            int  // Diva Defense event status
-	FestaEvent           int  // Hunter's Festa event status
-	TournamentEvent      int  // VS Tournament event status
-	MezFesEvent          bool // MezFes status
-	MezFesAlt            bool // Swaps out Volpakkun for Tokotoko
-	DisableTokenCheck    bool // Disables checking login token exists in the DB (security risk!)
-	QuestDebugTools      bool // Enable various quest debug logs
-	EarthStatusOverride  int32
-	EarthIDOverride      int32
-	EarthMonsterOverride int32
-	SaveDumps            SaveDumpOptions
+	QuestCacheExpiry       int    // Number of seconds to keep quest data cached
+	CommandPrefix          string // The prefix for commands
+	AutoCreateAccount      bool   // Automatically create accounts if they don't exist
+	DefaultCourses         []uint16
+	EarthStatus            int32
+	EarthID                int32
+	EarthMonsters          []int32
+	SaveDumps              SaveDumpOptions
+	DebugOptions           DebugOptions
+	GameplayOptions        GameplayOptions
+	Discord                Discord
+	Commands               []Command
+	Courses                []Course
+	Database               Database
+	Sign                   Sign
+	SignV2                 SignV2
+	Channel                Channel
+	Entrance               Entrance
 }
 
 type SaveDumpOptions struct {
-	Enabled   bool
-	OutputDir string
+	Enabled    bool
+	RawEnabled bool
+	OutputDir  string
+}
+
+// DebugOptions holds various debug/temporary options for use while developing Erupe.
+type DebugOptions struct {
+	CleanDB             bool   // Automatically wipes the DB on server reset.
+	MaxLauncherHR       bool   // Sets the HR returned in the launcher to HR7 so that you can join non-beginner worlds.
+	LogInboundMessages  bool   // Log all messages sent to the server
+	LogOutboundMessages bool   // Log all messages sent to the clients
+	LogMessageData      bool   // Log all bytes transferred as a hexdump
+	MaxHexdumpLength    int    // Maximum number of bytes printed when logs are enabled
+	DivaOverride        int    // Diva Defense event status
+	FestaOverride       int    // Hunter's Festa event status
+	TournamentOverride  int    // VS Tournament event status
+	DisableTokenCheck   bool   // Disables checking login token exists in the DB (security risk!)
+	QuestTools          bool   // Enable various quest debug logs
+	ProxyPort           uint16 // Forces the game to connect to a channel server proxy
+	CapLink             CapLinkOptions
+}
+
+type CapLinkOptions struct {
+	Values []uint16
+	Key    string
+	Host   string
+	Port   int
 }
 
 // GameplayOptions has various gameplay modifiers
 type GameplayOptions struct {
-	FeaturedWeapons                int    // Number of Active Feature weapons to generate daily
-	MaximumNP                      int    // Maximum number of NP held by a player
-	MaximumRP                      uint16 // Maximum number of RP held by a player
-	MaximumFP                      uint32 // Maximum number of FP held by a player
-	TreasureHuntExpiry             uint32 // Seconds until a Clan Treasure Hunt will expire
-	TreasureHuntPartnyaCooldown    uint32 // Seconds until a Partnya can be assigned to another Clan Treasure Hunt
-	DisableLoginBoost              bool   // Disables the Login Boost system
-	DisableBoostTime               bool   // Disables the daily NetCafe Boost Time
-	BoostTimeDuration              int    // The number of minutes NetCafe Boost Time lasts for
-	GuildMealDuration              int    // The number of minutes a Guild Meal can be activated for after cooking
-	BonusQuestAllowance            uint32 // Number of Bonus Point Quests to allow daily
-	DailyQuestAllowance            uint32 // Number of Daily Quests to allow daily
-	MezfesSoloTickets              uint32 // Number of solo tickets given weekly
-	MezfesGroupTickets             uint32 // Number of group tickets given weekly
-	LowLatencyRaviente             bool   // Toggles low latency mode for Raviente, can be network intensive
+	FeaturedWeapons                int       // Number of Active Feature weapons to generate daily
+	MaximumNP                      int       // Maximum number of NP held by a player
+	MaximumRP                      uint16    // Maximum number of RP held by a player
+	MaximumFP                      uint32    // Maximum number of FP held by a player
+	TreasureHuntExpiry             uint32    // Seconds until a Clan Treasure Hunt will expire
+	TreasureHuntPartnyaCooldown    uint32    // Seconds until a Partnya can be assigned to another Clan Treasure Hunt
+	DisableLoginBoost              bool      // Disables the Login Boost system
+	DisableBoostTime               bool      // Disables the daily NetCafe Boost Time
+	BoostTimeDuration              int       // Second that the NetCafe Boost Time lasts
+	ClanMealDuration               int       // Second that a Clan Meal can be activated for after cooking
+	ClanMemberLimits               [][]uint8 // Array of maximum Clan Members -> [Rank, Members]
+	BonusQuestAllowance            uint32    // Number of Bonus Point Quests to allow daily
+	DailyQuestAllowance            uint32    // Number of Daily Quests to allow daily
+	LowLatencyRaviente             bool      // Toggles low latency mode for Raviente, can be network intensive
 	RegularRavienteMaxPlayers      uint8
 	ViolentRavienteMaxPlayers      uint8
 	BerserkRavienteMaxPlayers      uint8
@@ -149,6 +158,10 @@ type GameplayOptions struct {
 	MaterialMultiplier             float32 // Adjusts the multiplier of Monster Materials rewarded for quest completion
 	ExtraCarves                    uint16  // Grant n extra chances to carve ALL carcasses
 	DisableHunterNavi              bool    // Disables the Hunter Navi
+	MezFesSoloTickets              uint32  // Number of solo tickets given weekly
+	MezFesGroupTickets             uint32  // Number of group tickets given weekly
+	MezFesDuration                 int     // Seconds that MezFes will last for weekly (from 12AM Mon backwards)
+	MezFesSwitchMinigame           bool    // Swaps out Volpakkun Together for Tokotoko Partnya
 	EnableKaijiEvent               bool    // Enables the Kaiji event in the Rasta Bar
 	EnableHiganjimaEvent           bool    // Enables the Higanjima event in the Rasta Bar
 	EnableNierEvent                bool    // Enables the Nier event in the Rasta Bar
@@ -158,16 +171,23 @@ type GameplayOptions struct {
 
 // Discord holds the discord integration config.
 type Discord struct {
-	Enabled           bool
-	BotToken          string
-	RealtimeChannelID string
+	Enabled      bool
+	BotToken     string
+	RelayChannel DiscordRelay
+}
+
+type DiscordRelay struct {
+	Enabled          bool
+	MaxMessageLength int
+	RelayChannelID   string
 }
 
 // Command is a channelserver chat command
 type Command struct {
-	Name    string
-	Enabled bool
-	Prefix  string
+	Name        string
+	Enabled     bool
+	Description string
+	Prefix      string
 }
 
 // Course represents a course within MHF
@@ -193,8 +213,30 @@ type Sign struct {
 
 // SignV2 holds the new sign server config
 type SignV2 struct {
-	Enabled bool
-	Port    int
+	Enabled     bool
+	Port        int
+	PatchServer string
+	Banners     []SignV2Banner
+	Messages    []SignV2Message
+	Links       []SignV2Link
+}
+
+type SignV2Banner struct {
+	Src  string `json:"src"`  // Displayed image URL
+	Link string `json:"link"` // Link accessed on click
+}
+
+type SignV2Message struct {
+	Message string `json:"message"` // Displayed message
+	Date    int64  `json:"date"`    // Displayed date
+	Kind    int    `json:"kind"`    // 0 for 'Default', 1 for 'New'
+	Link    string `json:"link"`    // Link accessed on click
+}
+
+type SignV2Link struct {
+	Name string `json:"name"` // Displayed name
+	Icon string `json:"icon"` // Displayed icon. It will be cast as a monochrome color as long as it is transparent.
+	Link string `json:"link"` // Link accessed on click
 }
 
 type Channel struct {

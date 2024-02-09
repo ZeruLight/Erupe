@@ -3,7 +3,6 @@ package mhfpacket
 import (
 	"errors"
 
-	"erupe-ce/common/bfutil"
 	"erupe-ce/common/byteframe"
 	"erupe-ce/network"
 	"erupe-ce/network/clientctx"
@@ -27,8 +26,8 @@ func (m *MsgSysEnumerateClient) Parse(bf *byteframe.ByteFrame, ctx *clientctx.Cl
 	m.AckHandle = bf.ReadUint32()
 	m.Unk0 = bf.ReadUint8()
 	m.Get = bf.ReadUint8()
-	stageIDLength := bf.ReadUint8()
-	m.StageID = string(bfutil.UpToNull(bf.ReadBytes(uint(stageIDLength))))
+	bf.ReadUint8() // StageID length
+	m.StageID = string(bf.ReadNullTerminatedBytes())
 	return nil
 }
 

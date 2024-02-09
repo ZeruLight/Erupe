@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"erupe-ce/common/byteframe"
-	"erupe-ce/common/bfutil"
 	"erupe-ce/network"
 	"erupe-ce/network/clientctx"
 )
@@ -12,7 +11,7 @@ import (
 // MsgSysEnterStage represents the MSG_SYS_ENTER_STAGE
 type MsgSysEnterStage struct {
 	AckHandle uint32
-	UnkBool   uint8
+	Unk       bool
 	StageID   string
 }
 
@@ -24,9 +23,9 @@ func (m *MsgSysEnterStage) Opcode() network.PacketID {
 // Parse parses the packet from binary
 func (m *MsgSysEnterStage) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
-	m.UnkBool = bf.ReadUint8()
-	stageIDLength := bf.ReadUint8()
-	m.StageID = string(bfutil.UpToNull(bf.ReadBytes(uint(stageIDLength))))
+	m.Unk = bf.ReadBool() // IsQuest?
+	bf.ReadUint8()        // Length StageID
+	m.StageID = string(bf.ReadNullTerminatedBytes())
 	return nil
 }
 

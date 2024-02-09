@@ -105,7 +105,7 @@ func handleMsgMhfGetTowerInfo(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfPostTowerInfo(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfPostTowerInfo)
 
-	if s.server.erupeConfig.DevModeOptions.QuestDebugTools {
+	if s.server.erupeConfig.DebugOptions.QuestTools {
 		s.logger.Debug(
 			p.Opcode().String(),
 			zap.Uint32("InfoType", pkt.InfoType),
@@ -126,8 +126,9 @@ func handleMsgMhfPostTowerInfo(s *Session, p mhfpacket.MHFPacket) {
 		skills := "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0"
 		s.server.db.QueryRow(`SELECT skills FROM tower WHERE char_id=$1`, s.charID).Scan(&skills)
 		s.server.db.Exec(`UPDATE tower SET skills=$1, tsp=tsp-$2 WHERE char_id=$3`, stringsupport.CSVSetIndex(skills, int(pkt.Skill), stringsupport.CSVGetIndex(skills, int(pkt.Skill))+1), pkt.Cost, s.charID)
-	case 7:
-		s.server.db.Exec(`UPDATE tower SET tr=$1, trp=trp+$2, block1=block1+$3 WHERE char_id=$4`, pkt.TR, pkt.TRP, pkt.Block1, s.charID)
+	case 1, 7:
+		// This might give too much TSP? No idea what the rate is supposed to be
+		s.server.db.Exec(`UPDATE tower SET tr=$1, trp=COALESCE(trp, 0)+$2, tsp=COALESCE(tsp, 0)+$3, block1=COALESCE(block1, 0)+$4 WHERE char_id=$5`, pkt.TR, pkt.TRP, pkt.Cost, pkt.Block1, s.charID)
 	}
 	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
@@ -327,7 +328,7 @@ func handleMsgMhfGetTenrouirai(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfPostTenrouirai(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfPostTenrouirai)
 
-	if s.server.erupeConfig.DevModeOptions.QuestDebugTools {
+	if s.server.erupeConfig.DebugOptions.QuestTools {
 		s.logger.Debug(
 			p.Opcode().String(),
 			zap.Uint8("Unk0", pkt.Unk0),
@@ -441,7 +442,7 @@ func handleMsgMhfGetGemInfo(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfPostGemInfo(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfPostGemInfo)
 
-	if s.server.erupeConfig.DevModeOptions.QuestDebugTools {
+	if s.server.erupeConfig.DebugOptions.QuestTools {
 		s.logger.Debug(
 			p.Opcode().String(),
 			zap.Uint32("Op", pkt.Op),

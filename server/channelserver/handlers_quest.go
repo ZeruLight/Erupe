@@ -16,6 +16,11 @@ import (
 	"go.uber.org/zap"
 )
 
+type tuneValue struct {
+	ID    uint16
+	Value uint16
+}
+
 func handleMsgSysGetFile(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysGetFile)
 
@@ -305,11 +310,6 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 		tx.Commit()
 	}
 
-	type tuneValue struct {
-		ID    uint16
-		Value uint16
-	}
-
 	tuneValues := []tuneValue{
 		{ID: 20, Value: 1},
 		{ID: 26, Value: 1},
@@ -322,29 +322,30 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 		{ID: 67, Value: 1},
 		{ID: 80, Value: 1},
 		{ID: 94, Value: 1},
-		{ID: 1010, Value: 300}, // get_hrp_rate_netcafe
-		{ID: 1011, Value: 300}, // get_zeny_rate_netcafe
-		{ID: 1012, Value: 300}, // get_hrp_rate_ncource
-		{ID: 1013, Value: 300}, // get_zeny_rate_ncource
-		{ID: 1014, Value: 200}, // get_hrp_rate_premium
-		{ID: 1015, Value: 200}, // get_zeny_rate_premium
-		{ID: 1021, Value: 400}, // get_gcp_rate_assist
-		{ID: 1023, Value: 8},
-		{ID: 1024, Value: 150}, // get_hrp_rate_ptbonus
-		{ID: 1025, Value: 1},
-		{ID: 1026, Value: 999}, // get_grank_cap
-		{ID: 1027, Value: 100}, // get_exchange_rate_festa
-		{ID: 1028, Value: 100}, // get_exchange_rate_cafe
-		{ID: 1030, Value: 8},   // get_gquest_cap
-		{ID: 1031, Value: 100}, // get_exchange_rate_guild (GCP)
-		{ID: 1032, Value: 0},   // isValid_partner
-		{ID: 1044, Value: 200}, // get_rate_tload_time_out
-		{ID: 1045, Value: 0},   // get_rate_tower_treasure_preset
-		{ID: 1046, Value: 99},  // get_hunter_life_cap
-		{ID: 1048, Value: 0},   // get_rate_tower_log_disable
-		{ID: 1049, Value: 10},  // get_rate_tower_gem_max
-		{ID: 1050, Value: 1},   // get_rate_tower_gem_set
-		{ID: 1051, Value: 200},
+		{ID: 1001, Value: 100},   // get_hrp_rate
+		{ID: 1010, Value: 300},   // get_hrp_rate_netcafe
+		{ID: 1011, Value: 300},   // get_zeny_rate_netcafe
+		{ID: 1012, Value: 300},   // get_hrp_rate_ncource
+		{ID: 1013, Value: 300},   // get_zeny_rate_ncource
+		{ID: 1014, Value: 200},   // get_hrp_rate_premium
+		{ID: 1015, Value: 200},   // get_zeny_rate_premium
+		{ID: 1021, Value: 400},   // get_gcp_rate_assist
+		{ID: 1023, Value: 8},     // unused?
+		{ID: 1024, Value: 150},   // get_hrp_rate_ptbonus
+		{ID: 1025, Value: 1},     // isValid_stampcard
+		{ID: 1026, Value: 999},   // get_grank_cap
+		{ID: 1027, Value: 100},   // get_exchange_rate_festa
+		{ID: 1028, Value: 100},   // get_exchange_rate_cafe
+		{ID: 1030, Value: 8},     // get_gquest_cap
+		{ID: 1031, Value: 100},   // get_exchange_rate_guild (GCP)
+		{ID: 1032, Value: 0},     // isValid_partner
+		{ID: 1044, Value: 200},   // get_rate_tload_time_out
+		{ID: 1045, Value: 0},     // get_rate_tower_treasure_preset
+		{ID: 1046, Value: 99},    // get_hunter_life_cap
+		{ID: 1048, Value: 0},     // get_rate_tower_hint_sec
+		{ID: 1049, Value: 10},    // get_rate_tower_gem_max
+		{ID: 1050, Value: 1},     // get_rate_tower_gem_set
+		{ID: 1051, Value: 200},   // get_pallone_score_rate_premium
 		{ID: 1052, Value: 200},   // get_trp_rate_premium
 		{ID: 1063, Value: 50000}, // get_nboost_quest_point_from_hrank
 		{ID: 1064, Value: 50000}, // get_nboost_quest_point_from_srank
@@ -356,9 +357,11 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 		{ID: 1072, Value: 300},   // get_rate_premium_ravi_tama
 		{ID: 1073, Value: 300},   // get_rate_premium_ravi_ax_tama
 		{ID: 1074, Value: 300},   // get_rate_premium_ravi_g_tama
-		{ID: 1078, Value: 0},
-		{ID: 1079, Value: 1},
-		{ID: 1080, Value: 1},
+		{ID: 1078, Value: 0},     // isCapped_tenrou_irai
+		{ID: 1079, Value: 1},     // get_add_tower_level_assist
+		{ID: 1080, Value: 1},     // get_tune_add_tower_level_w_assist_nboost
+
+		// get_tune_secret_book_item
 		{ID: 1081, Value: 1},
 		{ID: 1082, Value: 4},
 		{ID: 1083, Value: 2},
@@ -383,14 +386,17 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 		{ID: 1102, Value: 5},
 		{ID: 1103, Value: 2},
 		{ID: 1104, Value: 10},
-		{ID: 1145, Value: 200},
-		{ID: 1146, Value: 0}, // isTower_invisible
-		{ID: 1147, Value: 0}, // isVenom_playable
-		{ID: 1149, Value: 20},
-		{ID: 1152, Value: 1130},
-		{ID: 1154, Value: 0}, // isDisabled_object_season
-		{ID: 1158, Value: 1},
-		{ID: 1160, Value: 300},
+
+		{ID: 1145, Value: 200},  // get_ud_point_rate_premium
+		{ID: 1146, Value: 0},    // isTower_invisible
+		{ID: 1147, Value: 0},    // isVenom_playable
+		{ID: 1149, Value: 20},   // get_ud_break_parts_point
+		{ID: 1152, Value: 1130}, // unused?
+		{ID: 1154, Value: 0},    // isDisabled_object_season
+		{ID: 1158, Value: 1},    // isDelivery_venom_ult_quest
+		{ID: 1160, Value: 300},  // get_rate_premium_ravi_g_enhance_tama
+
+		// unknown
 		{ID: 1162, Value: 1},
 		{ID: 1163, Value: 3},
 		{ID: 1164, Value: 5},
@@ -410,240 +416,6 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 		{ID: 1178, Value: 10},
 		{ID: 1179, Value: 2},
 		{ID: 1180, Value: 5},
-		{ID: 3000, Value: 100},
-		{ID: 3001, Value: 100},
-		{ID: 3002, Value: 100},
-		{ID: 3003, Value: 100},
-		{ID: 3004, Value: 100},
-		{ID: 3005, Value: 100},
-		{ID: 3006, Value: 100},
-		{ID: 3007, Value: 100},
-		{ID: 3008, Value: 100},
-		{ID: 3009, Value: 100},
-		{ID: 3010, Value: 100},
-		{ID: 3011, Value: 100},
-		{ID: 3012, Value: 100},
-		{ID: 3013, Value: 100},
-		{ID: 3014, Value: 100},
-		{ID: 3015, Value: 100},
-		{ID: 3016, Value: 100},
-		{ID: 3017, Value: 100},
-		{ID: 3018, Value: 100},
-		{ID: 3019, Value: 100},
-		{ID: 3020, Value: 100},
-		{ID: 3021, Value: 100},
-		{ID: 3022, Value: 100},
-		{ID: 3023, Value: 100},
-		{ID: 3024, Value: 100},
-		{ID: 3025, Value: 100},
-		{ID: 3286, Value: 200},
-		{ID: 3287, Value: 200},
-		{ID: 3288, Value: 200},
-		{ID: 3289, Value: 200},
-		{ID: 3290, Value: 200},
-		{ID: 3291, Value: 200},
-		{ID: 3292, Value: 200},
-		{ID: 3293, Value: 200},
-		{ID: 3294, Value: 200},
-		{ID: 3295, Value: 200},
-		{ID: 3296, Value: 200},
-		{ID: 3297, Value: 200},
-		{ID: 3298, Value: 200},
-		{ID: 3299, Value: 200},
-		{ID: 3300, Value: 200},
-		{ID: 3301, Value: 200},
-		{ID: 3302, Value: 200},
-		{ID: 3303, Value: 200},
-		{ID: 3304, Value: 200},
-		{ID: 3305, Value: 200},
-		{ID: 3306, Value: 200},
-		{ID: 3307, Value: 200},
-		{ID: 3308, Value: 200},
-		{ID: 3309, Value: 200},
-		{ID: 3310, Value: 200},
-		{ID: 3311, Value: 200},
-		{ID: 3312, Value: 300},
-		{ID: 3313, Value: 300},
-		{ID: 3314, Value: 300},
-		{ID: 3315, Value: 300},
-		{ID: 3316, Value: 300},
-		{ID: 3317, Value: 300},
-		{ID: 3318, Value: 300},
-		{ID: 3319, Value: 300},
-		{ID: 3320, Value: 300},
-		{ID: 3321, Value: 300},
-		{ID: 3322, Value: 300},
-		{ID: 3323, Value: 300},
-		{ID: 3324, Value: 300},
-		{ID: 3325, Value: 300},
-		{ID: 3326, Value: 300},
-		{ID: 3327, Value: 300},
-		{ID: 3328, Value: 300},
-		{ID: 3329, Value: 300},
-		{ID: 3330, Value: 300},
-		{ID: 3331, Value: 300},
-		{ID: 3332, Value: 300},
-		{ID: 3333, Value: 300},
-		{ID: 3334, Value: 300},
-		{ID: 3335, Value: 300},
-		{ID: 3336, Value: 300},
-		{ID: 3337, Value: 300},
-		{ID: 3338, Value: 100},
-		{ID: 3339, Value: 100},
-		{ID: 3340, Value: 100},
-		{ID: 3341, Value: 100},
-		{ID: 3342, Value: 100},
-		{ID: 3343, Value: 100},
-		{ID: 3344, Value: 100},
-		{ID: 3345, Value: 100},
-		{ID: 3346, Value: 100},
-		{ID: 3347, Value: 100},
-		{ID: 3348, Value: 100},
-		{ID: 3349, Value: 100},
-		{ID: 3350, Value: 100},
-		{ID: 3351, Value: 100},
-		{ID: 3352, Value: 100},
-		{ID: 3353, Value: 100},
-		{ID: 3354, Value: 100},
-		{ID: 3355, Value: 100},
-		{ID: 3356, Value: 100},
-		{ID: 3357, Value: 100},
-		{ID: 3358, Value: 100},
-		{ID: 3359, Value: 100},
-		{ID: 3360, Value: 100},
-		{ID: 3361, Value: 100},
-		{ID: 3362, Value: 100},
-		{ID: 3363, Value: 100},
-		{ID: 3364, Value: 100},
-		{ID: 3365, Value: 100},
-		{ID: 3366, Value: 100},
-		{ID: 3367, Value: 100},
-		{ID: 3368, Value: 100},
-		{ID: 3369, Value: 100},
-		{ID: 3370, Value: 100},
-		{ID: 3371, Value: 100},
-		{ID: 3372, Value: 100},
-		{ID: 3373, Value: 100},
-		{ID: 3374, Value: 100},
-		{ID: 3375, Value: 100},
-		{ID: 3376, Value: 100},
-		{ID: 3377, Value: 100},
-		{ID: 3378, Value: 100},
-		{ID: 3379, Value: 100},
-		{ID: 3380, Value: 100},
-		{ID: 3381, Value: 100},
-		{ID: 3382, Value: 100},
-		{ID: 3383, Value: 100},
-		{ID: 3384, Value: 100},
-		{ID: 3385, Value: 100},
-		{ID: 3386, Value: 100},
-		{ID: 3387, Value: 100},
-		{ID: 3388, Value: 100},
-		{ID: 3389, Value: 100},
-		{ID: 3390, Value: 100},
-		{ID: 3391, Value: 100},
-		{ID: 3392, Value: 100},
-		{ID: 3393, Value: 100},
-		{ID: 3394, Value: 100},
-		{ID: 3395, Value: 100},
-		{ID: 3396, Value: 100},
-		{ID: 3397, Value: 100},
-		{ID: 3398, Value: 100},
-		{ID: 3399, Value: 100},
-		{ID: 3400, Value: 100},
-		{ID: 3401, Value: 100},
-		{ID: 3402, Value: 100},
-		{ID: 3416, Value: 100},
-		{ID: 3417, Value: 100},
-		{ID: 3418, Value: 100},
-		{ID: 3419, Value: 100},
-		{ID: 3420, Value: 100},
-		{ID: 3421, Value: 100},
-		{ID: 3422, Value: 100},
-		{ID: 3423, Value: 100},
-		{ID: 3424, Value: 100},
-		{ID: 3425, Value: 100},
-		{ID: 3426, Value: 100},
-		{ID: 3427, Value: 100},
-		{ID: 3428, Value: 100},
-		{ID: 3442, Value: 100},
-		{ID: 3443, Value: 100},
-		{ID: 3444, Value: 100},
-		{ID: 3445, Value: 100},
-		{ID: 3446, Value: 100},
-		{ID: 3447, Value: 100},
-		{ID: 3448, Value: 100},
-		{ID: 3449, Value: 100},
-		{ID: 3450, Value: 100},
-		{ID: 3451, Value: 100},
-		{ID: 3452, Value: 100},
-		{ID: 3453, Value: 100},
-		{ID: 3454, Value: 100},
-		{ID: 3468, Value: 100},
-		{ID: 3469, Value: 100},
-		{ID: 3470, Value: 100},
-		{ID: 3471, Value: 100},
-		{ID: 3472, Value: 100},
-		{ID: 3473, Value: 100},
-		{ID: 3474, Value: 100},
-		{ID: 3475, Value: 100},
-		{ID: 3476, Value: 100},
-		{ID: 3477, Value: 100},
-		{ID: 3478, Value: 100},
-		{ID: 3479, Value: 100},
-		{ID: 3480, Value: 100},
-		{ID: 3494, Value: 0},
-		{ID: 3495, Value: 0},
-		{ID: 3496, Value: 0},
-		{ID: 3497, Value: 0},
-		{ID: 3498, Value: 0},
-		{ID: 3499, Value: 0},
-		{ID: 3500, Value: 0},
-		{ID: 3501, Value: 0},
-		{ID: 3502, Value: 0},
-		{ID: 3503, Value: 0},
-		{ID: 3504, Value: 0},
-		{ID: 3505, Value: 0},
-		{ID: 3506, Value: 0},
-		{ID: 3520, Value: 0},
-		{ID: 3521, Value: 0},
-		{ID: 3522, Value: 0},
-		{ID: 3523, Value: 0},
-		{ID: 3524, Value: 0},
-		{ID: 3525, Value: 0},
-		{ID: 3526, Value: 0},
-		{ID: 3527, Value: 0},
-		{ID: 3528, Value: 0},
-		{ID: 3529, Value: 0},
-		{ID: 3530, Value: 0},
-		{ID: 3531, Value: 0},
-		{ID: 3532, Value: 0},
-		{ID: 3546, Value: 0},
-		{ID: 3547, Value: 0},
-		{ID: 3548, Value: 0},
-		{ID: 3549, Value: 0},
-		{ID: 3550, Value: 0},
-		{ID: 3551, Value: 0},
-		{ID: 3552, Value: 0},
-		{ID: 3553, Value: 0},
-		{ID: 3554, Value: 0},
-		{ID: 3555, Value: 0},
-		{ID: 3556, Value: 0},
-		{ID: 3557, Value: 0},
-		{ID: 3558, Value: 0},
-		{ID: 3572, Value: 0},
-		{ID: 3573, Value: 0},
-		{ID: 3574, Value: 0},
-		{ID: 3575, Value: 0},
-		{ID: 3576, Value: 0},
-		{ID: 3577, Value: 0},
-		{ID: 3578, Value: 0},
-		{ID: 3579, Value: 0},
-		{ID: 3580, Value: 0},
-		{ID: 3581, Value: 0},
-		{ID: 3582, Value: 0},
-		{ID: 3583, Value: 0},
-		{ID: 3584, Value: 0},
 	}
 
 	tuneValues = append(tuneValues, tuneValue{1020, uint16(s.server.erupeConfig.GameplayOptions.GCPMultiplier * 100)})
@@ -656,62 +428,62 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 
 	if s.server.erupeConfig.GameplayOptions.EnableKaijiEvent {
 		tuneValues = append(tuneValues, tuneValue{1106, 1})
-	} else {
-		tuneValues = append(tuneValues, tuneValue{1106, 0})
 	}
 
 	if s.server.erupeConfig.GameplayOptions.EnableHiganjimaEvent {
 		tuneValues = append(tuneValues, tuneValue{1144, 1})
-	} else {
-		tuneValues = append(tuneValues, tuneValue{1144, 0})
 	}
 
 	if s.server.erupeConfig.GameplayOptions.EnableNierEvent {
 		tuneValues = append(tuneValues, tuneValue{1153, 1})
-	} else {
-		tuneValues = append(tuneValues, tuneValue{1153, 0})
 	}
 
 	if s.server.erupeConfig.GameplayOptions.DisableRoad {
 		tuneValues = append(tuneValues, tuneValue{1155, 1})
-	} else {
-		tuneValues = append(tuneValues, tuneValue{1155, 0})
 	}
 
-	for i := uint16(0); i < 13; i++ {
-		tuneValues = append(tuneValues, tuneValue{i + 3026, uint16(s.server.erupeConfig.GameplayOptions.GRPMultiplier * 100)})
-	}
-
-	for i := uint16(0); i < 13; i++ {
-		tuneValues = append(tuneValues, tuneValue{i + 3039, uint16(s.server.erupeConfig.GameplayOptions.GSRPMultiplier * 100)})
-	}
-
-	for i := uint16(0); i < 13; i++ {
-		tuneValues = append(tuneValues, tuneValue{i + 3052, uint16(s.server.erupeConfig.GameplayOptions.GZennyMultiplier * 100)})
-	}
-	for i := uint16(0); i < 13; i++ {
-		tuneValues = append(tuneValues, tuneValue{i + 3078, uint16(s.server.erupeConfig.GameplayOptions.GZennyMultiplier * 100)})
-	}
-
-	for i := uint16(0); i < 13; i++ {
-		tuneValues = append(tuneValues, tuneValue{i + 3104, uint16(s.server.erupeConfig.GameplayOptions.MaterialMultiplier * 100)})
-	}
-	for i := uint16(0); i < 13; i++ {
-		tuneValues = append(tuneValues, tuneValue{i + 3130, uint16(s.server.erupeConfig.GameplayOptions.MaterialMultiplier * 100)})
-	}
-
-	for i := uint16(0); i < 13; i++ {
-		tuneValues = append(tuneValues, tuneValue{i + 3156, s.server.erupeConfig.GameplayOptions.ExtraCarves})
-	}
-	for i := uint16(0); i < 13; i++ {
-		tuneValues = append(tuneValues, tuneValue{i + 3182, s.server.erupeConfig.GameplayOptions.ExtraCarves})
-	}
-	for i := uint16(0); i < 13; i++ {
-		tuneValues = append(tuneValues, tuneValue{i + 3208, s.server.erupeConfig.GameplayOptions.ExtraCarves})
-	}
-	for i := uint16(0); i < 13; i++ {
-		tuneValues = append(tuneValues, tuneValue{i + 3234, s.server.erupeConfig.GameplayOptions.ExtraCarves})
-	}
+	// get_hrp_rate_from_rank
+	tuneValues = append(tuneValues, getTuneValueRange(3000, uint16(s.server.erupeConfig.GameplayOptions.HRPMultiplier*100))...)
+	tuneValues = append(tuneValues, getTuneValueRange(3338, uint16(s.server.erupeConfig.GameplayOptions.HRPMultiplierNC*100))...)
+	// get_srp_rate_from_rank
+	tuneValues = append(tuneValues, getTuneValueRange(3013, uint16(s.server.erupeConfig.GameplayOptions.SRPMultiplier*100))...)
+	tuneValues = append(tuneValues, getTuneValueRange(3351, uint16(s.server.erupeConfig.GameplayOptions.SRPMultiplierNC*100))...)
+	// get_grp_rate_from_rank
+	tuneValues = append(tuneValues, getTuneValueRange(3026, uint16(s.server.erupeConfig.GameplayOptions.GRPMultiplier*100))...)
+	tuneValues = append(tuneValues, getTuneValueRange(3364, uint16(s.server.erupeConfig.GameplayOptions.GRPMultiplierNC*100))...)
+	// get_gsrp_rate_from_rank
+	tuneValues = append(tuneValues, getTuneValueRange(3039, uint16(s.server.erupeConfig.GameplayOptions.GSRPMultiplier*100))...)
+	tuneValues = append(tuneValues, getTuneValueRange(3377, uint16(s.server.erupeConfig.GameplayOptions.GSRPMultiplierNC*100))...)
+	// get_zeny_rate_from_hrank
+	tuneValues = append(tuneValues, getTuneValueRange(3052, uint16(s.server.erupeConfig.GameplayOptions.ZennyMultiplier*100))...)
+	tuneValues = append(tuneValues, getTuneValueRange(3390, uint16(s.server.erupeConfig.GameplayOptions.ZennyMultiplierNC*100))...)
+	// get_zeny_rate_from_grank
+	tuneValues = append(tuneValues, getTuneValueRange(3078, uint16(s.server.erupeConfig.GameplayOptions.GZennyMultiplier*100))...)
+	tuneValues = append(tuneValues, getTuneValueRange(3416, uint16(s.server.erupeConfig.GameplayOptions.GZennyMultiplierNC*100))...)
+	// get_reward_rate_from_hrank
+	tuneValues = append(tuneValues, getTuneValueRange(3104, uint16(s.server.erupeConfig.GameplayOptions.MaterialMultiplier*100))...)
+	tuneValues = append(tuneValues, getTuneValueRange(3442, uint16(s.server.erupeConfig.GameplayOptions.MaterialMultiplierNC*100))...)
+	// get_reward_rate_from_grank
+	tuneValues = append(tuneValues, getTuneValueRange(3130, uint16(s.server.erupeConfig.GameplayOptions.GMaterialMultiplier*100))...)
+	tuneValues = append(tuneValues, getTuneValueRange(3468, uint16(s.server.erupeConfig.GameplayOptions.GMaterialMultiplierNC*100))...)
+	// get_lottery_rate_from_hrank
+	tuneValues = append(tuneValues, getTuneValueRange(3156, 0)...)
+	tuneValues = append(tuneValues, getTuneValueRange(3494, 0)...)
+	// get_lottery_rate_from_grank
+	tuneValues = append(tuneValues, getTuneValueRange(3182, 0)...)
+	tuneValues = append(tuneValues, getTuneValueRange(3520, 0)...)
+	// get_hagi_rate_from_hrank
+	tuneValues = append(tuneValues, getTuneValueRange(3208, s.server.erupeConfig.GameplayOptions.ExtraCarves)...)
+	tuneValues = append(tuneValues, getTuneValueRange(3546, s.server.erupeConfig.GameplayOptions.ExtraCarvesNC)...)
+	// get_hagi_rate_from_grank
+	tuneValues = append(tuneValues, getTuneValueRange(3234, s.server.erupeConfig.GameplayOptions.GExtraCarves)...)
+	tuneValues = append(tuneValues, getTuneValueRange(3572, s.server.erupeConfig.GameplayOptions.GExtraCarvesNC)...)
+	// get_nboost_transcend_rate_from_hrank
+	tuneValues = append(tuneValues, getTuneValueRange(3286, 200)...)
+	tuneValues = append(tuneValues, getTuneValueRange(3312, 300)...)
+	// get_nboost_transcend_rate_from_grank
+	tuneValues = append(tuneValues, getTuneValueRange(3299, 200)...)
+	tuneValues = append(tuneValues, getTuneValueRange(3325, 300)...)
 
 	offset := uint16(time.Now().Unix())
 	bf.WriteUint16(offset)
@@ -779,6 +551,14 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 	bf.WriteUint16(returnedCount)
 
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+}
+
+func getTuneValueRange(start uint16, value uint16) []tuneValue {
+	var tv []tuneValue
+	for i := uint16(0); i < 13; i++ {
+		tv = append(tv, tuneValue{start + i, value})
+	}
+	return tv
 }
 
 func handleMsgMhfEnterTournamentQuest(s *Session, p mhfpacket.MHFPacket) {}

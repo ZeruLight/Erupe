@@ -1,7 +1,9 @@
 package channelserver
-type Bead struct{
-	name   string
-	description string 
+
+type Bead struct {
+	id          int
+	name        string
+	description string
 }
 type i18n struct {
 	language string
@@ -111,44 +113,27 @@ func getLangStrings(s *Server) i18n {
 		i.language = "日本語"
 		i.cafe.reset = "%d/%dにリセット"
 
-		i.diva.prayer.beads[1].name = "暴風の祈珠"
-		i.diva.prayer.beads[1].description = "ーあらしまかぜのきじゅー\n暴風とは猛る思い。\n聞く者に勇気を与える。"
-		i.diva.prayer.beads[3].name = "断力の祈珠"
-		i.diva.prayer.beads[3].description = "ーだんりきのきじゅー\n断力とは断ち切る思い。\n聴く者に新たな利からを授ける。"
-		i.diva.prayer.beads[4].name = "風韻の祈珠"
-		i.diva.prayer.beads[4].description = "ーふういんのきじゅー\n風韻とは歌姫の艶。\n時々で異なる趣を醸し出す。"
-		i.diva.prayer.beads[8].name = "斬刃の祈珠"
-		i.diva.prayer.beads[8].description  = "ーざんばのきじゅー\n斬刃とはすべてを切り裂く力。\n集めるほどに声の透明感は増す。"
-		i.diva.prayer.beads[9].name = "打明の祈珠"
-		i.diva.prayer.beads[9].description  = "ーうちあかりのきじゅー\n打明とは熱い力。\n聴く者に活力を与える。"
-		i.diva.prayer.beads[10].name = "弾起の祈珠"
-		i.diva.prayer.beads[10].description = "ーたまおこしのきじゅー\n弾起とは悠遠の記憶。\n聴く者に更なる力を授ける。"
-		i.diva.prayer.beads[11].name = "変続の祈珠"
-		i.diva.prayer.beads[11].description = "ーへんぞくのきじゅー\n変続とは永久の言葉。\n聴く者に継続力を授ける。"
-		i.diva.prayer.beads[14].name = "万雷の祈珠"
-		i.diva.prayer.beads[14].description = "ーばんらいのきじゅー\n万雷とは歌姫に集う民の意識。\n歌姫の声を伝播させる。"
-		i.diva.prayer.beads[15].name = "不動の祈珠"
-		i.diva.prayer.beads[15].description = "ーうごかずのきじゅー\n不動とは圧力。聞く者に圧倒する力を与える。"
-		i.diva.prayer.beads[17].name = "結集の祈珠"
-		i.diva.prayer.beads[17].description = "ーけっしゅうのきじゅー\n結集とは確固たる信頼。\n集めるほどに狩人たちの精神力となる。"
-		i.diva.prayer.beads[18].name = "歌護の祈珠"
-		i.diva.prayer.beads[18].description = "ーうたまもりのきじゅー\n歌護とは歌姫の護り。\n集めるほどに狩人たちの支えとなる。"
-		i.diva.prayer.beads[19].name = "強撃の祈珠"
-		i.diva.prayer.beads[19].description = "ーきょうげきのきじゅー\n強撃とは強い声色。\n聞く者の力を研ぎ澄ます。"
-		i.diva.prayer.beads[20].name = "封火の祈珠"
-		i.diva.prayer.beads[20].description = "ーふうかのきじゅー"
-		i.diva.prayer.beads[21].name = "封水の祈珠"
-		i.diva.prayer.beads[21].description = "ーふうすいのきじゅー"
-		i.diva.prayer.beads[22].name = "封氷の祈珠"
-		i.diva.prayer.beads[22].description = "ーふうひょうのきじゅー"
-		i.diva.prayer.beads[23].name = "封龍の祈珠"
-		i.diva.prayer.beads[23].description = "ーふうりゅうのきじゅー"
-		i.diva.prayer.beads[24].name = "封雷の祈珠"
-		i.diva.prayer.beads[24].description = "ーふうらいのきじゅー"
-		i.diva.prayer.beads[25].name = "封属の祈珠"
-		i.diva.prayer.beads[25].description = "ーふうぞくのきじゅー"
+		i.diva.prayer.beads = []Bead{
+			{id: 1, name: "暴風の祈珠", description: "ーあらしまかぜのきじゅー\n暴風とは猛る思い。\n聞く者に勇気を与える。"},
+			{id: 3, name: "断力の祈珠", description: "ーだんりきのきじゅー\n断力とは断ち切る思い。\n聴く者に新たな利からを授ける。"},
+			{id: 4, name: "風韻の祈珠", description: "ーふういんのきじゅー\n風韻とは歌姫の艶。\n時々で異なる趣を醸し出す。"},
+			{id: 8, name: "斬刃の祈珠", description: "ーざんばのきじゅー\n斬刃とはすべてを切り裂く力。\n集めるほどに声の透明感は増す。"},
+			{id: 9, name: "打明の祈珠", description: "ーうちあかりのきじゅー\n打明とは熱い力。\n聴く者に活力を与える。"},
+			{id: 10, name: "弾起の祈珠", description: "ーたまおこしのきじゅー\n弾起とは悠遠の記憶。\n聴く者に更なる力を授ける。"},
+			{id: 11, name: "変続の祈珠", description: "ーへんぞくのきじゅー\n変続とは永久の言葉。\n聴く者に継続力を授ける。"},
+			{id: 14, name: "万雷の祈珠", description: "ーばんらいのきじゅー\n万雷とは歌姫に集う民の意識。\n歌姫の声を伝播させる。"},
+			{id: 15, name: "不動の祈珠", description: "ーうごかずのきじゅー\n不動とは圧力。聞く者に圧倒する力を与える。"},
+			{id: 17, name: "結集の祈珠", description: "ーけっしゅうのきじゅー\n結集とは確固たる信頼。\n集めるほどに狩人たちの精神力となる。"},
+			{id: 18, name: "歌護の祈珠", description: "ーうたまもりのきじゅー\n歌護とは歌姫の護り。\n集めるほどに狩人たちの支えとなる。"},
+			{id: 19, name: "強撃の祈珠", description: "ーきょうげきのきじゅー\n強撃とは強い声色。\n聞く者の力を研ぎ澄ます。"},
+			{id: 20, name: "封火の祈珠", description: "ーふうかのきじゅー"},
+			{id: 21, name: "封水の祈珠", description: "ーふうすいのきじゅー"},
+			{id: 22, name: "封氷の祈珠", description: "ーふうひょうのきじゅー"},
+			{id: 23, name: "封龍の祈珠", description: "ーふうりゅうのきじゅー"},
+			{id: 24, name: "封雷の祈珠", description: "ーふうらいのきじゅー"},
+			{id: 25, name: "封属の祈珠", description: "ーふうぞくのきじゅー"},
+		}
 
-	
 		i.commands.noOp = "You don't have permission to use this command"
 		i.commands.disabled = "%sのコマンドは無効です"
 		i.commands.reload = "リロードします"
@@ -210,43 +195,26 @@ func getLangStrings(s *Server) i18n {
 	default:
 		i.language = "English"
 		i.cafe.reset = "Resets on %d/%d"
-
-		i.diva.prayer.beads[1].name = "Bead of Storms"
-		i.diva.prayer.beads[1].description = "ーあらしまかぜのきじゅー\n暴風とは猛る思い。\n聞く者に勇気を与える。"
-		i.diva.prayer.beads[3].name = "Bead of Severing"
-		i.diva.prayer.beads[3].description = "All damage types can sever tails\nPower to sever, inspire with might.\nEmpower those who hear, in new light."
-		i.diva.prayer.beads[4].name = "Bead of Vitality"
-		i.diva.prayer.beads[4].description = "Increased red health recovery speed\nDiva's allure, a soothing balm.\nRenews one's vigor, with vitality and calm."
-		i.diva.prayer.beads[8].name = "Bead of Slashing"
-		i.diva.prayer.beads[8].description = "Damage up for slashing weapons\nWith every slash, its voice rings out.\nGrowing ever sharper, without a doubt."
-		i.diva.prayer.beads[9].name = "Bead of Striking"
-		i.diva.prayer.beads[9].description = "Damage up for striking weapons\nWith every blow, you strike with force.\nLet the power guide your course."
-		i.diva.prayer.beads[10].name = "Bead of Firing"
-		i.diva.prayer.beads[10].description = "Damage up for shooting weapons\nA memory of might, empowering those who hear.\nBullet and body, soaring without fear."
-		i.diva.prayer.beads[11].name = "Bead of Tenacity"
-		i.diva.prayer.beads[11].description = "ーへんぞくのきじゅー\n変続とは永久の言葉。\n聴く者に継続力を授ける。"
-		i.diva.prayer.beads[14].name = "Bead of Elements"
-		i.diva.prayer.beads[14].description = "ーばんらいのきじゅー\n万雷とは歌姫に集う民の意識。\n歌姫の声を伝播させる。"
-		i.diva.prayer.beads[15].name = "Bead of Restraint"
-		i.diva.prayer.beads[15].description = "ーうごかずのきじゅー\n不動とは圧力。聞く者に圧倒する力を与える。"
-		i.diva.prayer.beads[17].name = "Bead of Unity"
-		i.diva.prayer.beads[17].description = "ーけっしゅうのきじゅー\n結集とは確固たる信頼。\n集めるほどに狩人たちの精神力となる。"
-		i.diva.prayer.beads[18].name = "Bead of Warding"
-		i.diva.prayer.beads[18].description = "ーうたまもりのきじゅー\n歌護とは歌姫の護り。\n集めるほどに狩人たちの支えとなる。"
-		i.diva.prayer.beads[19].name = "Bead of Fury"
-		i.diva.prayer.beads[19].description = "ーきょうげきのきじゅー\n強撃とは強い声色。\n聞く者の力を研ぎ澄ます。"
-		i.diva.prayer.beads[20].name = "Bead of Fireproof"
-		i.diva.prayer.beads[20].description = "ーふうかのきじゅー"
-		i.diva.prayer.beads[21].name = "Bead of Waterproof"
-		i.diva.prayer.beads[21].description = "ーふうすいのきじゅー"
-		i.diva.prayer.beads[22].name = "Bead of Iceproof"
-		i.diva.prayer.beads[22].description = "ーふうひょうのきじゅー"
-		i.diva.prayer.beads[23].name = "Bead of Dragonproof"
-		i.diva.prayer.beads[23].description = "ーふうりゅうのきじゅー"
-		i.diva.prayer.beads[24].name = "Bead of Thunderproof"
-		i.diva.prayer.beads[24].description = "ーふうらいのきじゅー"
-		i.diva.prayer.beads[25].name = "Bead of Immunity"
-		i.diva.prayer.beads[25].description = "ーふうぞくのきじゅー"
+		i.diva.prayer.beads = []Bead{
+			{id: 1, name: "Bead of Storms", description: "ーあらしまかぜのきじゅー\n暴風とは猛る思い。\n聞く者に勇気を与える。"},
+			{id: 3, name: "Bead of Severing", description: "All damage types can sever tails\nPower to sever, inspire with might.\nEmpower those who hear, in new light."},
+			{id: 4, name: "Bead of Vitality", description: "Increased red health recovery speed\nDiva's allure, a soothing balm.\nRenews one's vigor, with vitality and calm."},
+			{id: 8, name: "Bead of Slashing", description: "Damage up for slashing weapons\nWith every slash, its voice rings out.\nGrowing ever sharper, without a doubt."},
+			{id: 9, name: "Bead of Striking", description: "Damage up for striking weapons\nWith every blow, you strike with force.\nLet the power guide your course."},
+			{id: 10, name: "Bead of Firing", description: "Damage up for shooting weapons\nA memory of might, empowering those who hear.\nBullet and body, soaring without fear."},
+			{id: 11, name: "Bead of Tenacity", description: "ーへんぞくのきじゅー\n変続とは永久の言葉。\n聴く者に継続力を授ける。"},
+			{id: 14, name: "Bead of Elements", description: "ーばんらいのきじゅー\n万雷とは歌姫に集う民の意識。\n歌姫の声を伝播させる。"},
+			{id: 15, name: "Bead of Restraint", description: "ーうごかずのきじゅー\n不動とは圧力。聞く者に圧倒する力を与える。"},
+			{id: 17, name: "Bead of Unity", description: "ーけっしゅうのきじゅー\n結集とは確固たる信頼。\n集めるほどに狩人たちの精神力となる。"},
+			{id: 18, name: "Bead of Warding", description: "ーうたまもりのきじゅー\n歌護とは歌姫の護り。\n集めるほどに狩人たちの支えとなる。"},
+			{id: 19, name: "Bead of Fury", description: "ーきょうげきのきじゅー\n強撃とは強い声色。\n聞く者の力を研ぎ澄ます。"},
+			{id: 20, name: "Bead of Fireproof", description: "ーふうかのきじゅー"},
+			{id: 21, name: "Bead of Waterproof", description: "ーふうすいのきじゅー"},
+			{id: 22, name: "Bead of Iceproof", description: "ーふうひょうのきじゅー"},
+			{id: 23, name: "Bead of Dragonproof", description: "ーふうりゅうのきじゅー"},
+			{id: 24, name: "Bead of Thunderproof", description: "ーふうらいのきじゅー"},
+			{id: 25, name: "Bead of Immunity", description: "ーふうぞくのきじゅー"},
+		}
 
 		i.commands.noOp = "You don't have permission to use this command"
 		i.commands.disabled = "%s command is disabled"

@@ -162,8 +162,15 @@ func handleMsgMhfGetKijuInfo(s *Session, p mhfpacket.MHFPacket) {
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint8(uint8(len(kijuInfo)))
 	for _, kiju := range kijuInfo {
-		bf.WriteBytes(stringsupport.PaddedString(s.server.i18n.diva.prayer.beads[kiju.Effect].name, 32, true))
-		bf.WriteBytes(stringsupport.PaddedString(s.server.i18n.diva.prayer.beads[kiju.Effect].description, 512, true))
+		for _, bead := range s.server.i18n.diva.prayer.beads {
+			if bead.id == int(kiju.Effect) {
+				// Found the bead with the desired ID
+				bf.WriteBytes(stringsupport.PaddedString(bead.name, 32, true))
+				bf.WriteBytes(stringsupport.PaddedString(bead.description, 512, true))
+				break // Exit the loop once found
+			}
+		}
+
 		bf.WriteUint8(kiju.Color)
 		bf.WriteUint8(kiju.Effect)
 	}

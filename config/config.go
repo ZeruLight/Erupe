@@ -152,11 +152,26 @@ type GameplayOptions struct {
 	SmallBerserkRavienteMaxPlayers uint8
 	GUrgentRate                    float32 // Adjusts the rate of G Urgent quests spawning
 	GCPMultiplier                  float32 // Adjusts the multiplier of GCP rewarded for quest completion
+	HRPMultiplier                  float32 // Adjusts the multiplier of Hunter Rank Points rewarded for quest completion
+	HRPMultiplierNC                float32 // Adjusts the multiplier of Hunter Rank Points rewarded for quest completion in a NetCafe
+	SRPMultiplier                  float32 // Adjusts the multiplier of Skill Rank Points rewarded for quest completion
+	SRPMultiplierNC                float32 // Adjusts the multiplier of Skill Rank Points rewarded for quest completion in a NetCafe
 	GRPMultiplier                  float32 // Adjusts the multiplier of G Rank Points rewarded for quest completion
+	GRPMultiplierNC                float32 // Adjusts the multiplier of G Rank Points rewarded for quest completion in a NetCafe
 	GSRPMultiplier                 float32 // Adjusts the multiplier of G Skill Rank Points rewarded for quest completion
+	GSRPMultiplierNC               float32 // Adjusts the multiplier of G Skill Rank Points rewarded for quest completion in a NetCafe
+	ZennyMultiplier                float32 // Adjusts the multiplier of Zenny rewarded for quest completion
+	ZennyMultiplierNC              float32 // Adjusts the multiplier of Zenny rewarded for quest completion in a NetCafe
 	GZennyMultiplier               float32 // Adjusts the multiplier of G Zenny rewarded for quest completion
+	GZennyMultiplierNC             float32 // Adjusts the multiplier of G Zenny rewarded for quest completion in a NetCafe
 	MaterialMultiplier             float32 // Adjusts the multiplier of Monster Materials rewarded for quest completion
+	MaterialMultiplierNC           float32 // Adjusts the multiplier of Monster Materials rewarded for quest completion in a NetCafe
+	GMaterialMultiplier            float32 // Adjusts the multiplier of G Rank Monster Materials rewarded for quest completion
+	GMaterialMultiplierNC          float32 // Adjusts the multiplier of G Rank Monster Materials rewarded for quest completion in a NetCafe
 	ExtraCarves                    uint16  // Grant n extra chances to carve ALL carcasses
+	ExtraCarvesNC                  uint16  // Grant n extra chances to carve ALL carcasses in a NetCafe
+	GExtraCarves                   uint16  // Grant n extra chances to carve ALL G Rank carcasses
+	GExtraCarvesNC                 uint16  // Grant n extra chances to carve ALL G Rank carcasses in a NetCafe
 	DisableHunterNavi              bool    // Disables the Hunter Navi
 	MezFesSoloTickets              uint32  // Number of solo tickets given weekly
 	MezFesGroupTickets             uint32  // Number of group tickets given weekly

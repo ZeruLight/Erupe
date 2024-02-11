@@ -2,6 +2,7 @@ package channelserver
 
 import (
 	"database/sql"
+	"encoding/binary"
 	"erupe-ce/common/byteframe"
 	"erupe-ce/common/decryption"
 	ps "erupe-ce/common/pascalstring"
@@ -19,6 +20,20 @@ import (
 type tuneValue struct {
 	ID    uint16
 	Value uint16
+}
+
+func BackportQuest(data []byte) []byte {
+	wp := binary.LittleEndian.Uint32(data[0:4]) + 96
+	rp := wp + 4
+	for i := uint32(0); i < 6; i++ {
+		if i != 0 {
+			wp += 4
+			rp += 8
+		}
+		copy(data[wp:wp+4], data[rp:rp+4])
+	}
+	copy(data[wp:wp+180], data[rp:rp+180])
+	return data
 }
 
 func handleMsgSysGetFile(s *Session, p mhfpacket.MHFPacket) {
@@ -62,6 +77,9 @@ func handleMsgSysGetFile(s *Session, p mhfpacket.MHFPacket) {
 			// This will crash the game.
 			doAckBufSucceed(s, pkt.AckHandle, data)
 			return
+		}
+		if _config.ErupeConfig.RealClientMode <= _config.Z1 && s.server.erupeConfig.DebugOptions.AutoQuestBackport {
+			data = BackportQuest(decryption.UnpackSimple(data))
 		}
 		doAckBufSucceed(s, pkt.AckHandle, data)
 	}
@@ -124,6 +142,9 @@ func loadQuestFile(s *Session, questId int) []byte {
 	}
 
 	decrypted := decryption.UnpackSimple(file)
+	if _config.ErupeConfig.RealClientMode <= _config.Z1 && s.server.erupeConfig.DebugOptions.AutoQuestBackport {
+		decrypted = BackportQuest(decrypted)
+	}
 	fileBytes := byteframe.NewByteFrameFromBytes(decrypted)
 	fileBytes.SetLE()
 	fileBytes.Seek(int64(fileBytes.ReadUint32()), 0)

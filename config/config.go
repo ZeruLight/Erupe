@@ -118,6 +118,7 @@ type DebugOptions struct {
 	TournamentOverride  int    // VS Tournament event status
 	DisableTokenCheck   bool   // Disables checking login token exists in the DB (security risk!)
 	QuestTools          bool   // Enable various quest debug logs
+	AutoQuestBackport   bool   // Automatically backport quest files
 	ProxyPort           uint16 // Forces the game to connect to a channel server proxy
 	CapLink             CapLinkOptions
 }

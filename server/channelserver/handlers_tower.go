@@ -426,7 +426,7 @@ func handleMsgMhfGetGemInfo(s *Session, p mhfpacket.MHFPacket) {
 	gemHistory := []GemHistory{}
 
 	var tempGems string
-	s.server.db.QueryRow(`SELECT COALESCE(gems, $1) FROM tower WHERE char_id=$1`, EmptyTowerCSV(30), s.charID).Scan(&tempGems)
+	s.server.db.QueryRow(`SELECT COALESCE(gems, $1) FROM tower WHERE char_id=$2`, EmptyTowerCSV(30), s.charID).Scan(&tempGems)
 	for i, v := range stringsupport.CSVElems(tempGems) {
 		gemInfo = append(gemInfo, GemInfo{uint16(((i / 5) * 256) + ((i % 5) + 1)), uint16(v)})
 	}
@@ -469,7 +469,7 @@ func handleMsgMhfPostGemInfo(s *Session, p mhfpacket.MHFPacket) {
 	}
 
 	var gems string
-	s.server.db.QueryRow(`SELECT COALESCE(gems, $1) FROM tower WHERE char_id=$1`, EmptyTowerCSV(30), s.charID).Scan(&gems)
+	s.server.db.QueryRow(`SELECT COALESCE(gems, $1) FROM tower WHERE char_id=$2`, EmptyTowerCSV(30), s.charID).Scan(&gems)
 	switch pkt.Op {
 	case 1: // Add gem
 		i := int(((pkt.Gem / 256) * 5) + (((pkt.Gem - ((pkt.Gem / 256) * 256)) - 1) % 5))

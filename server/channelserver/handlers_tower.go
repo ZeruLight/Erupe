@@ -428,7 +428,7 @@ func handleMsgMhfGetGemInfo(s *Session, p mhfpacket.MHFPacket) {
 	var tempGems string
 	s.server.db.QueryRow(`SELECT COALESCE(gems, $1) FROM tower WHERE char_id=$2`, EmptyTowerCSV(30), s.charID).Scan(&tempGems)
 	for i, v := range stringsupport.CSVElems(tempGems) {
-		gemInfo = append(gemInfo, GemInfo{uint16(((i / 5) * 256) + ((i % 5) + 1)), uint16(v)})
+		gemInfo = append(gemInfo, GemInfo{uint16((i / 5 << 8) + (i%5 + 1)), uint16(v)})
 	}
 
 	switch pkt.Unk0 {
@@ -472,7 +472,7 @@ func handleMsgMhfPostGemInfo(s *Session, p mhfpacket.MHFPacket) {
 	s.server.db.QueryRow(`SELECT COALESCE(gems, $1) FROM tower WHERE char_id=$2`, EmptyTowerCSV(30), s.charID).Scan(&gems)
 	switch pkt.Op {
 	case 1: // Add gem
-		i := int(((pkt.Gem / 256) * 5) + (((pkt.Gem - ((pkt.Gem / 256) * 256)) - 1) % 5))
+		i := int((pkt.Gem >> 8 * 5) + (pkt.Gem - pkt.Gem&0xFF00 - 1%5))
 		s.server.db.Exec(`UPDATE tower SET gems=$1 WHERE char_id=$2`, stringsupport.CSVSetIndex(gems, i, stringsupport.CSVGetIndex(gems, i)+int(pkt.Quantity)), s.charID)
 	case 2: // Transfer gem
 		// no way im doing this for now

@@ -1,8 +1,10 @@
 package channelserver
 
 import (
+	_config "erupe-ce/config"
 	"fmt"
 	"go.uber.org/zap"
+	"strings"
 	"time"
 
 	"erupe-ce/common/byteframe"
@@ -16,8 +18,8 @@ type TowerInfoTRP struct {
 }
 
 type TowerInfoSkill struct {
-	TSP  int32
-	Unk1 []int16 // 40
+	TSP    int32
+	Skills []int16 // 64
 }
 
 type TowerInfoHistory struct {
@@ -32,6 +34,14 @@ type TowerInfoLevel struct {
 	Unk3   int32
 }
 
+func EmptyTowerCSV(len int) string {
+	temp := make([]string, len)
+	for i := range temp {
+		temp[i] = "0"
+	}
+	return strings.Join(temp, ",")
+}
+
 func handleMsgMhfGetTowerInfo(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetTowerInfo)
 	var data []*byteframe.ByteFrame
@@ -44,21 +54,24 @@ func handleMsgMhfGetTowerInfo(s *Session, p mhfpacket.MHFPacket) {
 
 	towerInfo := TowerInfo{
 		TRP:     []TowerInfoTRP{{0, 0}},
-		Skill:   []TowerInfoSkill{{0, make([]int16, 40)}},
+		Skill:   []TowerInfoSkill{{0, make([]int16, 64)}},
 		History: []TowerInfoHistory{{make([]int16, 5), make([]int16, 5)}},
 		Level:   []TowerInfoLevel{{0, 0, 0, 0}, {0, 0, 0, 0}},
 	}
 
-	tempSkills := "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0"
-
-	err := s.server.db.QueryRow(`SELECT COALESCE(tr, 0),  COALESCE(trp, 0),  COALESCE(tsp, 0), COALESCE(block1, 0), COALESCE(block2, 0), skills FROM tower WHERE char_id=$1
-		`, s.charID).Scan(&towerInfo.TRP[0].TR, &towerInfo.TRP[0].TRP, &towerInfo.Skill[0].TSP, &towerInfo.Level[0].Floors, &towerInfo.Level[1].Floors, &tempSkills)
+	var tempSkills string
+	err := s.server.db.QueryRow(`SELECT COALESCE(tr, 0),  COALESCE(trp, 0),  COALESCE(tsp, 0), COALESCE(block1, 0), COALESCE(block2, 0), COALESCE(skills, $1) FROM tower WHERE char_id=$2
+		`, EmptyTowerCSV(64), s.charID).Scan(&towerInfo.TRP[0].TR, &towerInfo.TRP[0].TRP, &towerInfo.Skill[0].TSP, &towerInfo.Level[0].Floors, &towerInfo.Level[1].Floors, &tempSkills)
 	if err != nil {
 		s.server.db.Exec(`INSERT INTO tower (char_id) VALUES ($1)`, s.charID)
 	}
 
+	if _config.ErupeConfig.RealClientMode <= _config.G7 {
+		towerInfo.Level = towerInfo.Level[:1]
+	}
+
 	for i, skill := range stringsupport.CSVElems(tempSkills) {
-		towerInfo.Skill[0].Unk1[i] = int16(skill)
+		towerInfo.Skill[0].Skills[i] = int16(skill)
 	}
 
 	switch pkt.InfoType {
@@ -73,8 +86,8 @@ func handleMsgMhfGetTowerInfo(s *Session, p mhfpacket.MHFPacket) {
 		for _, skills := range towerInfo.Skill {
 			bf := byteframe.NewByteFrame()
 			bf.WriteInt32(skills.TSP)
-			for i := range skills.Unk1 {
-				bf.WriteInt16(skills.Unk1[i])
+			for i := range skills.Skills {
+				bf.WriteInt16(skills.Skills[i])
 			}
 			data = append(data, bf)
 		}
@@ -89,7 +102,7 @@ func handleMsgMhfGetTowerInfo(s *Session, p mhfpacket.MHFPacket) {
 			}
 			data = append(data, bf)
 		}
-	case 5:
+	case 3, 5:
 		for _, level := range towerInfo.Level {
 			bf := byteframe.NewByteFrame()
 			bf.WriteInt32(level.Floors)
@@ -123,8 +136,8 @@ func handleMsgMhfPostTowerInfo(s *Session, p mhfpacket.MHFPacket) {
 
 	switch pkt.InfoType {
 	case 2:
-		skills := "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0"
-		s.server.db.QueryRow(`SELECT skills FROM tower WHERE char_id=$1`, s.charID).Scan(&skills)
+		var skills string
+		s.server.db.QueryRow(`SELECT COALESCE(skills, $1) FROM tower WHERE char_id=$2`, EmptyTowerCSV(64), s.charID).Scan(&skills)
 		s.server.db.Exec(`UPDATE tower SET skills=$1, tsp=tsp-$2 WHERE char_id=$3`, stringsupport.CSVSetIndex(skills, int(pkt.Skill), stringsupport.CSVGetIndex(skills, int(pkt.Skill))+1), pkt.Cost, s.charID)
 	case 1, 7:
 		// This might give too much TSP? No idea what the rate is supposed to be
@@ -412,10 +425,10 @@ func handleMsgMhfGetGemInfo(s *Session, p mhfpacket.MHFPacket) {
 	gemInfo := []GemInfo{}
 	gemHistory := []GemHistory{}
 
-	tempGems := "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0"
-	s.server.db.QueryRow(`SELECT gems FROM tower WHERE char_id=$1`, s.charID).Scan(&tempGems)
+	var tempGems string
+	s.server.db.QueryRow(`SELECT COALESCE(gems, $1) FROM tower WHERE char_id=$2`, EmptyTowerCSV(30), s.charID).Scan(&tempGems)
 	for i, v := range stringsupport.CSVElems(tempGems) {
-		gemInfo = append(gemInfo, GemInfo{uint16(((i / 5) * 256) + ((i % 5) + 1)), uint16(v)})
+		gemInfo = append(gemInfo, GemInfo{uint16((i / 5 << 8) + (i%5 + 1)), uint16(v)})
 	}
 
 	switch pkt.Unk0 {
@@ -455,11 +468,11 @@ func handleMsgMhfPostGemInfo(s *Session, p mhfpacket.MHFPacket) {
 		)
 	}
 
-	gems := "0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0"
-	s.server.db.QueryRow(`SELECT gems FROM tower WHERE char_id=$1`, s.charID).Scan(&gems)
+	var gems string
+	s.server.db.QueryRow(`SELECT COALESCE(gems, $1) FROM tower WHERE char_id=$2`, EmptyTowerCSV(30), s.charID).Scan(&gems)
 	switch pkt.Op {
 	case 1: // Add gem
-		i := int(((pkt.Gem / 256) * 5) + (((pkt.Gem - ((pkt.Gem / 256) * 256)) - 1) % 5))
+		i := int((pkt.Gem >> 8 * 5) + (pkt.Gem - pkt.Gem&0xFF00 - 1%5))
 		s.server.db.Exec(`UPDATE tower SET gems=$1 WHERE char_id=$2`, stringsupport.CSVSetIndex(gems, i, stringsupport.CSVGetIndex(gems, i)+int(pkt.Quantity)), s.charID)
 	case 2: // Transfer gem
 		// no way im doing this for now

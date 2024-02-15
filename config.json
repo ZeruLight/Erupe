@@ -36,6 +36,7 @@
     "TournamentOverride": 0,
     "DisableTokenCheck": false,
     "QuestTools": false,
+    "AutoQuestBackport": true,
     "ProxyPort": 0,
     "CapLink": {
       "Values": [51728, 20000, 51729, 1, 20000],

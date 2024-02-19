@@ -144,6 +144,19 @@ func parseChatCommand(s *Session, command string) {
 		} else {
 			sendServerChatMessage(s, s.server.i18n.commands.noOp)
 		}
+	case commands["Timer"].Prefix:
+		if commands["Timer"].Enabled || s.isOp() {
+			var state bool
+			s.server.db.QueryRow(`SELECT COALESCE(timer, false) FROM users u WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$1)`, s.charID).Scan(&state)
+			s.server.db.Exec(`UPDATE users u SET timer=$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)`, !state, s.charID)
+			if state {
+				sendServerChatMessage(s, s.server.i18n.commands.timer.disabled)
+			} else {
+				sendServerChatMessage(s, s.server.i18n.commands.timer.enabled)
+			}
+		} else {
+			sendDisabledCommandMessage(s, commands["Timer"])
+		}
 	case commands["PSN"].Prefix:
 		if commands["PSN"].Enabled || s.isOp() {
 			if len(args) > 1 {
@@ -413,10 +426,14 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 
 	if pkt.BroadcastType == 0x03 && pkt.MessageType == 0x03 && len(pkt.RawDataPayload) == 0x10 {
 		if tmp.ReadUint16() == 0x0002 && tmp.ReadUint8() == 0x18 {
-			_ = tmp.ReadBytes(9)
-			tmp.SetLE()
-			frame := tmp.ReadUint32()
-			sendServerChatMessage(s, fmt.Sprintf("TIME : %d'%d.%03d (%dframe)", frame/30/60, frame/30%60, int(math.Round(float64(frame%30*100)/3)), frame))
+			var timer bool
+			s.server.db.QueryRow(`SELECT COALESCE(timer, false) FROM users u WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$1)`, s.charID).Scan(&timer)
+			if timer {
+				_ = tmp.ReadBytes(9)
+				tmp.SetLE()
+				frame := tmp.ReadUint32()
+				sendServerChatMessage(s, fmt.Sprintf(s.server.i18n.timer, frame/30/60/60, frame/30/60, frame/30%60, int(math.Round(float64(frame%30*100)/3)), frame))
+			}
 		}
 	}
 

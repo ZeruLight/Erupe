@@ -5,6 +5,7 @@ type i18n struct {
 	cafe     struct {
 		reset string
 	}
+	timer    string
 	commands struct {
 		noOp     string
 		disabled string
@@ -45,6 +46,10 @@ type i18n struct {
 			invalid string
 			error   string
 			length  string
+		}
+		timer struct {
+			enabled  string
+			disabled string
 		}
 		ravi struct {
 			noCommand string
@@ -102,6 +107,7 @@ func getLangStrings(s *Server) i18n {
 	case "jp":
 		i.language = "日本語"
 		i.cafe.reset = "%d/%dにリセット"
+		i.timer = "タイマー：%02d'%02d\"%02d.%03d (%df)"
 
 		i.commands.noOp = "You don't have permission to use this command"
 		i.commands.disabled = "%sのコマンドは無効です"
@@ -164,6 +170,7 @@ func getLangStrings(s *Server) i18n {
 	default:
 		i.language = "English"
 		i.cafe.reset = "Resets on %d/%d"
+		i.timer = "Time: %02d:%02d:%02d.%03d (%df)"
 
 		i.commands.noOp = "You don't have permission to use this command"
 		i.commands.disabled = "%s command is disabled"
@@ -191,6 +198,9 @@ func getLangStrings(s *Server) i18n {
 		i.commands.ban.invalid = "Invalid Character ID"
 		i.commands.ban.error = "Error in command. Format: %s <id> [length]"
 		i.commands.ban.length = " until %s"
+
+		i.commands.timer.enabled = "Quest timer enabled"
+		i.commands.timer.disabled = "Quest timer disabled"
 
 		i.commands.ravi.noCommand = "No Raviente command specified!"
 		i.commands.ravi.start.success = "The Great Slaying will begin in a moment"

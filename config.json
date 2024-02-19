@@ -157,6 +157,11 @@
       "Enabled": false,
       "Description": "Ban/Temp Ban a user",
       "Prefix": "ban"
+    }, {
+      "Name": "Timer",
+      "Enabled": true,
+      "Description": "Toggle the Quest timer",
+      "Prefix": "timer"
     }
   ],
   "Courses": [

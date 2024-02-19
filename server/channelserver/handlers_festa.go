@@ -141,13 +141,13 @@ func generateFestaTimestamps(s *Session, start uint32, debug bool) []uint32 {
 }
 
 type FestaTrial struct {
-	ID        uint32         `db:"id"`
-	Objective uint16         `db:"objective"`
-	GoalID    uint32         `db:"goal_id"`
-	TimesReq  uint16         `db:"times_req"`
-	Locale    uint16         `db:"locale_req"`
-	Reward    uint16         `db:"reward"`
-	Monopoly  FestivalColour `db:"monopoly"`
+	ID        uint32        `db:"id"`
+	Objective uint16        `db:"objective"`
+	GoalID    uint32        `db:"goal_id"`
+	TimesReq  uint16        `db:"times_req"`
+	Locale    uint16        `db:"locale_req"`
+	Reward    uint16        `db:"reward"`
+	Monopoly  FestivalColor `db:"monopoly"`
 	Unk       uint16
 }
 
@@ -233,7 +233,7 @@ func handleMsgMhfInfoFesta(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint16(trial.TimesReq)
 		bf.WriteUint16(trial.Locale)
 		bf.WriteUint16(trial.Reward)
-		bf.WriteInt16(int16(FestivalColourCodes[trial.Monopoly]))
+		bf.WriteInt16(FestivalColorCodes[trial.Monopoly])
 		if _config.ErupeConfig.RealClientMode >= _config.F4 { // Not in S6.0
 			bf.WriteUint16(trial.Unk)
 		}

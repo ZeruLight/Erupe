@@ -234,7 +234,9 @@ func handleMsgMhfInfoFesta(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint16(trial.Locale)
 		bf.WriteUint16(trial.Reward)
 		bf.WriteInt16(int16(FestivalColourCodes[trial.Monopoly]))
-		bf.WriteUint16(trial.Unk)
+		if _config.ErupeConfig.RealClientMode >= _config.F4 { // Not in S6.0
+			bf.WriteUint16(trial.Unk)
+		}
 	}
 
 	// The Winner and Loser Armor IDs are missing

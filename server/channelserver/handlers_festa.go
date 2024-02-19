@@ -95,8 +95,9 @@ func handleMsgMhfEnumerateRanking(s *Session, p mhfpacket.MHFPacket) {
 func cleanupFesta(s *Session) {
 	s.server.db.Exec("DELETE FROM events WHERE event_type='festa'")
 	s.server.db.Exec("DELETE FROM festa_registrations")
+	s.server.db.Exec("DELETE FROM festa_submissions")
 	s.server.db.Exec("DELETE FROM festa_prizes_accepted")
-	s.server.db.Exec("UPDATE guild_characters SET souls=0, trial_vote=NULL")
+	s.server.db.Exec("UPDATE guild_characters SET trial_vote=NULL")
 }
 
 func generateFestaTimestamps(s *Session, start uint32, debug bool) []uint32 {
@@ -293,22 +294,45 @@ func handleMsgMhfInfoFesta(s *Session, p mhfpacket.MHFPacket) {
 	}
 	bf.WriteUint16(500)
 
-	categoryWinners := uint16(4) // NYI
-	bf.WriteUint16(categoryWinners)
-	for i := uint16(0); i < categoryWinners; i++ {
-		bf.WriteUint32(0)                                             // Guild ID
-		bf.WriteUint16(i + 1)                                         // Category ID
-		bf.WriteInt16(int16(FestivalColourCodes[FestivalColourNone])) // Festa Team
-		ps.Uint8(bf, "", true)                                        // Guild Name
+	var temp uint32
+	bf.WriteUint16(4)
+	for i := uint16(0); i < 4; i++ {
+		var guildID uint32
+		var guildName string
+		var guildTeam = FestivalColorNone
+		s.server.db.QueryRow(`
+				SELECT fs.guild_id, g.name, fr.team, SUM(fs.souls) as _
+				FROM festa_submissions fs
+				LEFT JOIN festa_registrations fr ON fs.guild_id = fr.guild_id
+				LEFT JOIN guilds g ON fs.guild_id = g.id
+				WHERE fs.trial_type = $1
+				GROUP BY fs.guild_id, g.name, fr.team
+				ORDER BY _ DESC LIMIT 1
+			`, i+1).Scan(&guildID, &guildName, &guildTeam, &temp)
+		bf.WriteUint32(guildID)
+		bf.WriteUint16(i + 1)
+		bf.WriteInt16(FestivalColorCodes[guildTeam])
+		ps.Uint8(bf, guildName, true)
 	}
-
-	dailyWinners := uint16(7) // NYI
-	bf.WriteUint16(dailyWinners)
-	for i := uint16(0); i < dailyWinners; i++ {
-		bf.WriteUint32(0)                                             // Guild ID
-		bf.WriteUint16(i + 1)                                         // Category ID
-		bf.WriteInt16(int16(FestivalColourCodes[FestivalColourNone])) // Festa Team
-		ps.Uint8(bf, "", true)                                        // Guild Name
+	bf.WriteUint16(7)
+	for i := uint16(0); i < 7; i++ {
+		var guildID uint32
+		var guildName string
+		var guildTeam = FestivalColorNone
+		offset := 86400 * uint32(i)
+		s.server.db.QueryRow(`
+				SELECT fs.guild_id, g.name, fr.team, SUM(fs.souls) as _
+				FROM festa_submissions fs
+				LEFT JOIN festa_registrations fr ON fs.guild_id = fr.guild_id
+				LEFT JOIN guilds g ON fs.guild_id = g.id
+				WHERE EXTRACT(EPOCH FROM fs.timestamp)::int > $1 AND EXTRACT(EPOCH FROM fs.timestamp)::int < $2
+				GROUP BY fs.guild_id, g.name, fr.team
+				ORDER BY _ DESC LIMIT 1
+			`, timestamps[1]+offset, timestamps[1]+offset+86400).Scan(&guildID, &guildName, &guildTeam, &temp)
+		bf.WriteUint32(guildID)
+		bf.WriteUint16(i + 1)
+		bf.WriteInt16(FestivalColorCodes[guildTeam])
+		ps.Uint8(bf, guildName, true)
 	}
 
 	bf.WriteUint32(0) // Clan goal
@@ -445,7 +469,14 @@ func handleMsgMhfEntryFesta(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfChargeFesta(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfChargeFesta)
-	s.server.db.Exec("UPDATE guild_characters SET souls=souls+$1 WHERE character_id=$2", pkt.Souls, s.charID)
+	tx, _ := s.server.db.Begin()
+	for i := range pkt.Souls {
+		if pkt.Souls[i] == 0 {
+			continue
+		}
+		_, _ = tx.Exec(`INSERT INTO festa_submissions VALUES ($1, $2, $3, $4, now())`, s.charID, pkt.GuildID, i, pkt.Souls[i])
+	}
+	_ = tx.Commit()
 	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 

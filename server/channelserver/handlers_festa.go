@@ -293,22 +293,22 @@ func handleMsgMhfInfoFesta(s *Session, p mhfpacket.MHFPacket) {
 	}
 	bf.WriteUint16(500)
 
-	categoryWinners := uint16(0) // NYI
+	categoryWinners := uint16(4) // NYI
 	bf.WriteUint16(categoryWinners)
 	for i := uint16(0); i < categoryWinners; i++ {
-		bf.WriteUint32(0)      // Guild ID
-		bf.WriteUint16(i + 1)  // Category ID
-		bf.WriteUint16(0)      // Festa Team
-		ps.Uint8(bf, "", true) // Guild Name
+		bf.WriteUint32(0)                                             // Guild ID
+		bf.WriteUint16(i + 1)                                         // Category ID
+		bf.WriteInt16(int16(FestivalColourCodes[FestivalColourNone])) // Festa Team
+		ps.Uint8(bf, "", true)                                        // Guild Name
 	}
 
-	dailyWinners := uint16(0) // NYI
+	dailyWinners := uint16(7) // NYI
 	bf.WriteUint16(dailyWinners)
 	for i := uint16(0); i < dailyWinners; i++ {
-		bf.WriteUint32(0)      // Guild ID
-		bf.WriteUint16(i + 1)  // Category ID
-		bf.WriteUint16(0)      // Festa Team
-		ps.Uint8(bf, "", true) // Guild Name
+		bf.WriteUint32(0)                                             // Guild ID
+		bf.WriteUint16(i + 1)                                         // Category ID
+		bf.WriteInt16(int16(FestivalColourCodes[FestivalColourNone])) // Festa Team
+		ps.Uint8(bf, "", true)                                        // Guild Name
 	}
 
 	bf.WriteUint32(0) // Clan goal

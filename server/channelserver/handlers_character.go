@@ -97,6 +97,17 @@ func getPointers() map[SavePointer]int {
 		pointers[pGalleryData] = 72064
 		pointers[pGardenData] = 74424
 		pointers[pRP] = 74614
+	case _config.S6:
+		pointers[pWeaponID] = 12522
+		pointers[pWeaponType] = 12789
+		pointers[pHouseTier] = 13900
+		pointers[pToreData] = 14228
+		pointers[pHRP] = 14550
+		pointers[pHouseData] = 14561
+		pointers[pBookshelfData] = 9118 // Probably same here
+		pointers[pGalleryData] = 24064
+		pointers[pGardenData] = 26424
+		pointers[pRP] = 26614
 	}
 	if _config.ErupeConfig.RealClientMode == _config.G5 {
 		pointers[lBookshelfData] = 5548
@@ -212,7 +223,7 @@ func (save *CharacterSaveData) updateStructWithSaveData() {
 		save.Gender = false
 	}
 	if !save.IsNewCharacter {
-		if _config.ErupeConfig.RealClientMode >= _config.F4 {
+		if _config.ErupeConfig.RealClientMode >= _config.S6 {
 			save.RP = binary.LittleEndian.Uint16(save.decompSave[save.Pointers[pRP] : save.Pointers[pRP]+2])
 			save.HouseTier = save.decompSave[save.Pointers[pHouseTier] : save.Pointers[pHouseTier]+5]
 			save.HouseData = save.decompSave[save.Pointers[pHouseData] : save.Pointers[pHouseData]+195]

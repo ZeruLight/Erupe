@@ -569,8 +569,13 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 	tuneValues = append(tuneValues, getTuneValueRange(3299, 200)...)
 	tuneValues = append(tuneValues, getTuneValueRange(3325, 300)...)
 
-	offset := uint16(time.Now().Unix())
-	bf.WriteUint16(offset)
+	var temp []tuneValue
+	for i := range tuneValues {
+		if tuneValues[i].Value > 0 {
+			temp = append(temp, tuneValues[i])
+		}
+	}
+	tuneValues = temp
 
 	tuneLimit := 770
 	if _config.ErupeConfig.RealClientMode <= _config.F5 {
@@ -595,6 +600,9 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 	if len(tuneValues) > tuneLimit {
 		tuneValues = tuneValues[:tuneLimit]
 	}
+
+	offset := uint16(time.Now().Unix())
+	bf.WriteUint16(offset)
 
 	bf.WriteUint16(uint16(len(tuneValues)))
 	for i := range tuneValues {

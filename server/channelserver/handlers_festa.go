@@ -321,7 +321,9 @@ func handleMsgMhfInfoFesta(s *Session, p mhfpacket.MHFPacket) {
 	bf.WriteUint16(100)  // Normal rate
 	bf.WriteUint16(50)   // 50% penalty
 
-	ps.Uint16(bf, "", false)
+	if _config.ErupeConfig.RealClientMode >= _config.G52 {
+		ps.Uint16(bf, "", false)
+	}
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 

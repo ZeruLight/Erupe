@@ -408,7 +408,12 @@ func handleMsgMhfEnumerateFestaMember(s *Session, p mhfpacket.MHFPacket) {
 	bf.WriteUint16(0) // Unk
 	for _, member := range validMembers {
 		bf.WriteUint32(member.CharID)
-		bf.WriteUint32(member.Souls)
+		if _config.ErupeConfig.RealClientMode <= _config.Z1 {
+			bf.WriteUint16(uint16(member.Souls))
+			bf.WriteUint16(0)
+		} else {
+			bf.WriteUint32(member.Souls)
+		}
 	}
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }

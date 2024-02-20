@@ -60,7 +60,7 @@ type Guild struct {
 	PugiOutfit3   uint8         `db:"pugi_outfit_3"`
 	PugiOutfits   uint32        `db:"pugi_outfits"`
 	Recruiting    bool          `db:"recruiting"`
-	FestivalColor FestivalColor `db:"festival_colour"`
+	FestivalColor FestivalColor `db:"festival_color"`
 	Souls         uint32        `db:"souls"`
 	AllianceID    uint32        `db:"alliance_id"`
 	Icon          *GuildIcon    `db:"icon"`
@@ -157,7 +157,7 @@ SELECT
 	sub_motto,
 	created_at,
 	leader_id,
-	lc.name as leader_name,
+	c.name AS leader_name,
 	comment,
 	COALESCE(pugi_name_1, '') AS pugi_name_1,
 	COALESCE(pugi_name_2, '') AS pugi_name_2,
@@ -167,8 +167,8 @@ SELECT
 	pugi_outfit_3,
 	pugi_outfits,
 	recruiting,
-	COALESCE((SELECT team FROM festa_registrations fr WHERE fr.guild_id = g.id), 'none') AS festival_colour,
-	(SELECT SUM(souls) FROM guild_characters gc WHERE gc.guild_id = g.id) AS souls,
+	COALESCE((SELECT team FROM festa_registrations fr WHERE fr.guild_id = g.id), 'none') AS festival_color,
+	COALESCE((SELECT SUM(fs.souls) FROM festa_submissions fs WHERE fs.guild_id=g.id), 0) AS souls,
 	COALESCE((
 		SELECT id FROM guild_alliances ga WHERE
 	 	ga.parent_id = g.id OR
@@ -178,8 +178,8 @@ SELECT
 	icon,
 	(SELECT count(1) FROM guild_characters gc WHERE gc.guild_id = g.id) AS member_count
 	FROM guilds g
-	JOIN guild_characters lgc ON lgc.character_id = leader_id
-	JOIN characters lc on leader_id = lc.id
+	JOIN guild_characters gc ON gc.character_id = leader_id
+	JOIN characters c on leader_id = c.id
 `
 
 func (guild *Guild) Save(s *Session) error {

@@ -1,11 +1,11 @@
 package channelserver
 
 import (
-	"crypto/rand"
 	"erupe-ce/common/byteframe"
 	"erupe-ce/common/mhfitem"
 	ps "erupe-ce/common/pascalstring"
 	"erupe-ce/common/stringsupport"
+	"erupe-ce/common/token"
 	_config "erupe-ce/config"
 	"erupe-ce/network/mhfpacket"
 	"fmt"
@@ -521,10 +521,7 @@ func handleMsgMhfUpdateWarehouse(s *Session, p mhfpacket.MHFPacket) {
 				}
 			}
 			if !exists {
-				newID := make([]byte, 4)
-				_, _ = rand.Read(newID)
-				bf := byteframe.NewByteFrameFromBytes(newID)
-				uItem.WarehouseID = bf.ReadUint32()
+				uItem.WarehouseID = token.RNG().Uint32()
 				fItems = append(fItems, uItem)
 			}
 		}
@@ -542,10 +539,7 @@ func handleMsgMhfUpdateWarehouse(s *Session, p mhfpacket.MHFPacket) {
 				}
 			}
 			if !exists {
-				newID := make([]byte, 4)
-				_, _ = rand.Read(newID)
-				bf := byteframe.NewByteFrameFromBytes(newID)
-				uEquip.WarehouseID = bf.ReadUint32()
+				uEquip.WarehouseID = token.RNG().Uint32()
 				fEquip = append(fEquip, uEquip)
 			}
 		}

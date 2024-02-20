@@ -21,18 +21,18 @@ import (
 	"go.uber.org/zap"
 )
 
-type FestivalColour string
+type FestivalColor string
 
 const (
-	FestivalColourNone FestivalColour = "none"
-	FestivalColourBlue FestivalColour = "blue"
-	FestivalColourRed  FestivalColour = "red"
+	FestivalColorNone FestivalColor = "none"
+	FestivalColorBlue FestivalColor = "blue"
+	FestivalColorRed  FestivalColor = "red"
 )
 
-var FestivalColourCodes = map[FestivalColour]int8{
-	FestivalColourNone: -1,
-	FestivalColourBlue: 0,
-	FestivalColourRed:  1,
+var FestivalColorCodes = map[FestivalColor]int16{
+	FestivalColorNone: -1,
+	FestivalColorBlue: 0,
+	FestivalColorRed:  1,
 }
 
 type GuildApplicationType string
@@ -43,27 +43,27 @@ const (
 )
 
 type Guild struct {
-	ID             uint32         `db:"id"`
-	Name           string         `db:"name"`
-	MainMotto      uint8          `db:"main_motto"`
-	SubMotto       uint8          `db:"sub_motto"`
-	CreatedAt      time.Time      `db:"created_at"`
-	MemberCount    uint16         `db:"member_count"`
-	RankRP         uint32         `db:"rank_rp"`
-	EventRP        uint32         `db:"event_rp"`
-	Comment        string         `db:"comment"`
-	PugiName1      string         `db:"pugi_name_1"`
-	PugiName2      string         `db:"pugi_name_2"`
-	PugiName3      string         `db:"pugi_name_3"`
-	PugiOutfit1    uint8          `db:"pugi_outfit_1"`
-	PugiOutfit2    uint8          `db:"pugi_outfit_2"`
-	PugiOutfit3    uint8          `db:"pugi_outfit_3"`
-	PugiOutfits    uint32         `db:"pugi_outfits"`
-	Recruiting     bool           `db:"recruiting"`
-	FestivalColour FestivalColour `db:"festival_colour"`
-	Souls          uint32         `db:"souls"`
-	AllianceID     uint32         `db:"alliance_id"`
-	Icon           *GuildIcon     `db:"icon"`
+	ID            uint32        `db:"id"`
+	Name          string        `db:"name"`
+	MainMotto     uint8         `db:"main_motto"`
+	SubMotto      uint8         `db:"sub_motto"`
+	CreatedAt     time.Time     `db:"created_at"`
+	MemberCount   uint16        `db:"member_count"`
+	RankRP        uint32        `db:"rank_rp"`
+	EventRP       uint32        `db:"event_rp"`
+	Comment       string        `db:"comment"`
+	PugiName1     string        `db:"pugi_name_1"`
+	PugiName2     string        `db:"pugi_name_2"`
+	PugiName3     string        `db:"pugi_name_3"`
+	PugiOutfit1   uint8         `db:"pugi_outfit_1"`
+	PugiOutfit2   uint8         `db:"pugi_outfit_2"`
+	PugiOutfit3   uint8         `db:"pugi_outfit_3"`
+	PugiOutfits   uint32        `db:"pugi_outfits"`
+	Recruiting    bool          `db:"recruiting"`
+	FestivalColor FestivalColor `db:"festival_colour"`
+	Souls         uint32        `db:"souls"`
+	AllianceID    uint32        `db:"alliance_id"`
+	Icon          *GuildIcon    `db:"icon"`
 
 	GuildLeader
 }
@@ -967,7 +967,7 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint8(uint8(len(guildLeaderName)))
 		bf.WriteBytes(guildName)
 		bf.WriteBytes(guildComment)
-		bf.WriteInt8(FestivalColourCodes[guild.FestivalColour])
+		bf.WriteInt8(int8(FestivalColorCodes[guild.FestivalColor]))
 		bf.WriteUint32(guild.RankRP)
 		bf.WriteBytes(guildLeaderName)
 		bf.WriteUint32(0)   // Unk
@@ -1427,7 +1427,7 @@ func handleMsgMhfEnumerateGuildMember(s *Session, p mhfpacket.MHFPacket) {
 
 	bf := byteframe.NewByteFrame()
 
-	bf.WriteUint16(guild.MemberCount)
+	bf.WriteUint16(uint16(len(guildMembers)))
 
 	sort.Slice(guildMembers[:], func(i, j int) bool {
 		return guildMembers[i].OrderIndex < guildMembers[j].OrderIndex
@@ -1460,7 +1460,7 @@ func handleMsgMhfEnumerateGuildMember(s *Session, p mhfpacket.MHFPacket) {
 	}
 
 	if guild.AllianceID > 0 {
-		bf.WriteUint16(alliance.TotalMembers - guild.MemberCount)
+		bf.WriteUint16(alliance.TotalMembers - uint16(len(guildMembers)))
 		if guild.ID != alliance.ParentGuildID {
 			mems, err := GetGuildMembers(s, alliance.ParentGuildID, false)
 			if err != nil {

@@ -32,6 +32,20 @@ If you want to modify or compile Erupe yourself, please read on.
 3. Edit [config.json](./config.json) such that the database password matches your PostgreSQL setup.
 4. Run `go build` or `go run .` to compile Erupe.
 
+## Docker
+
+Please see the readme in [docker/README.md](./docker/README.md). At the moment this is only really good for quick installs and checking out development not for production. 
+
+## Schemas 
+
+We source control the following schemas: 
+- Initialisation Schemas: These initialise the application database to a clean install from a specific version.
+- Update Schemas: These are update files they should be ran in order of version to get to the latest schema.
+- Patch Schemas: These are for development and should be ran from the lastest available update schema or initial schema. These eventually get condensed into `Update Schemas` and then deleted when updated to a new version.
+- Bundled Schemas: These are demo reference files to allow servers to be able to roll their own shops, distributions gachas and scenarios set ups. 
+
+Note: Patch schemas are subject to change! You should only be using them if you are following along with development. 
+
 ## Resources
 
 - [Quest and Scenario Binary Files](https://files.catbox.moe/xf0l7w.7z)

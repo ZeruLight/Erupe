@@ -7,3 +7,4 @@ savedata/*/
 *.exe
 *.lnk
 *.bat
+/docker/db-data

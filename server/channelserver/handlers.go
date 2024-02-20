@@ -32,7 +32,7 @@ func stubEnumerateNoResults(s *Session, ackHandle uint32) {
 
 func doAckEarthSucceed(s *Session, ackHandle uint32, data []*byteframe.ByteFrame) {
 	bf := byteframe.NewByteFrame()
-	bf.WriteUint32(uint32(s.server.erupeConfig.DevModeOptions.EarthIDOverride))
+	bf.WriteUint32(uint32(s.server.erupeConfig.EarthID))
 	bf.WriteUint32(0)
 	bf.WriteUint32(0)
 	bf.WriteUint32(uint32(len(data)))
@@ -128,7 +128,7 @@ func handleMsgSysTerminalLog(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgSysLogin(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysLogin)
 
-	if !s.server.erupeConfig.DevModeOptions.DisableTokenCheck {
+	if !s.server.erupeConfig.DebugOptions.DisableTokenCheck {
 		var token string
 		err := s.server.db.QueryRow("SELECT token FROM sign_sessions ss INNER JOIN public.users u on ss.user_id = u.id WHERE token=$1 AND ss.id=$2 AND u.id=(SELECT c.user_id FROM characters c WHERE c.id=$3)", pkt.LoginTokenString, pkt.LoginTokenNumber, pkt.CharID0).Scan(&token)
 		if err != nil {
@@ -1148,9 +1148,9 @@ func handleMsgMhfGetEarthStatus(s *Session, p mhfpacket.MHFPacket) {
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint32(uint32(TimeWeekStart().Unix())) // Start
 	bf.WriteUint32(uint32(TimeWeekNext().Unix()))  // End
-	bf.WriteInt32(s.server.erupeConfig.DevModeOptions.EarthStatusOverride)
-	bf.WriteInt32(s.server.erupeConfig.DevModeOptions.EarthIDOverride)
-	for i, m := range s.server.erupeConfig.DevModeOptions.EarthMonsterOverride {
+	bf.WriteInt32(s.server.erupeConfig.EarthStatus)
+	bf.WriteInt32(s.server.erupeConfig.EarthID)
+	for i, m := range s.server.erupeConfig.EarthMonsters {
 		if _config.ErupeConfig.RealClientMode <= _config.G9 {
 			if i == 3 {
 				break

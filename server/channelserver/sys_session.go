@@ -86,13 +86,11 @@ func NewSession(server *Server, conn net.Conn) *Session {
 
 // Start starts the session packet send and recv loop(s).
 func (s *Session) Start() {
-	go func() {
-		s.logger.Debug("New connection", zap.String("RemoteAddr", s.rawConn.RemoteAddr().String()))
-		// Unlike the sign and entrance server,
-		// the client DOES NOT initalize the channel connection with 8 NULL bytes.
-		go s.sendLoop()
-		s.recvLoop()
-	}()
+	s.logger.Debug("New connection", zap.String("RemoteAddr", s.rawConn.RemoteAddr().String()))
+	// Unlike the sign and entrance server,
+	// the client DOES NOT initalize the channel connection with 8 NULL bytes.
+	go s.sendLoop()
+	go s.recvLoop()
 }
 
 // QueueSend queues a packet (raw []byte) to be sent.
@@ -150,16 +148,19 @@ func (s *Session) QueueAck(ackHandle uint32, data []byte) {
 }
 
 func (s *Session) sendLoop() {
+	var pkt packet
 	for {
 		if s.closed {
 			return
 		}
-		pkt := <-s.sendPackets
-		err := s.cryptConn.SendPacket(append(pkt.data, []byte{0x00, 0x10}...))
-		if err != nil {
-			s.logger.Warn("Failed to send packet")
+		for len(s.sendPackets) > 0 {
+			pkt = <-s.sendPackets
+			err := s.cryptConn.SendPacket(append(pkt.data, []byte{0x00, 0x10}...))
+			if err != nil {
+				s.logger.Warn("Failed to send packet")
+			}
 		}
-		time.Sleep(10 * time.Millisecond)
+		time.Sleep(5 * time.Millisecond)
 	}
 }
 
@@ -178,14 +179,13 @@ func (s *Session) recvLoop() {
 			s.logger.Info(fmt.Sprintf("[%s] Disconnected", s.Name))
 			logoutPlayer(s)
 			return
-		}
-		if err != nil {
+		} else if err != nil {
 			s.logger.Warn("Error on ReadPacket, exiting recv loop", zap.Error(err))
 			logoutPlayer(s)
 			return
 		}
 		s.handlePacketGroup(pkt)
-		time.Sleep(10 * time.Millisecond)
+		time.Sleep(5 * time.Millisecond)
 	}
 }
 
@@ -253,13 +253,9 @@ func ignored(opcode network.PacketID) bool {
 }
 
 func (s *Session) logMessage(opcode uint16, data []byte, sender string, recipient string) {
-	if !s.server.erupeConfig.DevMode {
+	if sender == "Server" && !s.server.erupeConfig.DebugOptions.LogOutboundMessages {
 		return
-	}
-
-	if sender == "Server" && !s.server.erupeConfig.DevModeOptions.LogOutboundMessages {
-		return
-	} else if sender != "Server" && !s.server.erupeConfig.DevModeOptions.LogInboundMessages {
+	} else if sender != "Server" && !s.server.erupeConfig.DebugOptions.LogInboundMessages {
 		return
 	}
 
@@ -277,8 +273,8 @@ func (s *Session) logMessage(opcode uint16, data []byte, sender string, recipien
 		fmt.Printf("[%s] -> [%s]\n", sender, recipient)
 	}
 	fmt.Printf("Opcode: %s\n", opcodePID)
-	if s.server.erupeConfig.DevModeOptions.LogMessageData {
-		if len(data) <= s.server.erupeConfig.DevModeOptions.MaxHexdumpLength {
+	if s.server.erupeConfig.DebugOptions.LogMessageData {
+		if len(data) <= s.server.erupeConfig.DebugOptions.MaxHexdumpLength {
 			fmt.Printf("Data [%d bytes]:\n%s\n", len(data), hex.Dump(data))
 		} else {
 			fmt.Printf("Data [%d bytes]: (Too long!)\n\n", len(data))
@@ -312,4 +308,13 @@ func (s *Session) NextObjectID() uint32 {
 	bf.WriteUint16(s.objectIndex)
 	bf.Seek(0, 0)
 	return bf.ReadUint32()
+}
+
+func (s *Session) isOp() bool {
+	var op bool
+	err := s.server.db.QueryRow(`SELECT op FROM users u WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$1)`, s.charID).Scan(&op)
+	if err == nil && op {
+		return true
+	}
+	return false
 }

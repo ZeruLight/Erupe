@@ -72,7 +72,7 @@ func (s *Session) makeSignResponse(uid uint32) []byte {
 		bf.WriteUint32(char.ID)
 
 		// Exp, HR[x] is split by 0, 1, 30, 50, 99, 299, 998, 999
-		if s.server.erupeConfig.DevMode && s.server.erupeConfig.DevModeOptions.MaxLauncherHR {
+		if s.server.erupeConfig.DebugOptions.MaxLauncherHR {
 			bf.WriteUint16(999)
 		} else {
 			bf.WriteUint16(char.HRP)
@@ -144,20 +144,38 @@ func (s *Session) makeSignResponse(uid uint32) []byte {
 		s.server.db.QueryRow("SELECT psn_id FROM users WHERE id = $1", uid).Scan(&psnUser)
 		bf.WriteBytes(stringsupport.PaddedString(psnUser, 20, true))
 	}
-	bf.WriteUint16(0xCA10)
-	bf.WriteUint16(0x4E20)
-	ps.Uint16(bf, "", false) // unk key
-	bf.WriteUint8(0x00)
-	bf.WriteUint16(0xCA11)
-	bf.WriteUint16(0x0001)
-	bf.WriteUint16(0x4E20)
-	ps.Uint16(bf, "", false) // unk ipv4
+
+	bf.WriteUint16(s.server.erupeConfig.DebugOptions.CapLink.Values[0])
+	if s.server.erupeConfig.DebugOptions.CapLink.Values[0] == 51728 {
+		bf.WriteUint16(s.server.erupeConfig.DebugOptions.CapLink.Values[1])
+		if s.server.erupeConfig.DebugOptions.CapLink.Values[1] == 20000 || s.server.erupeConfig.DebugOptions.CapLink.Values[1] == 20002 {
+			ps.Uint16(bf, s.server.erupeConfig.DebugOptions.CapLink.Key, false)
+		}
+	}
+	caStruct := []struct {
+		Unk0 uint8
+		Unk1 uint32
+		Unk2 string
+	}{}
+	bf.WriteUint8(uint8(len(caStruct)))
+	for i := range caStruct {
+		bf.WriteUint8(caStruct[i].Unk0)
+		bf.WriteUint32(caStruct[i].Unk1)
+		ps.Uint8(bf, caStruct[i].Unk2, false)
+	}
+	bf.WriteUint16(s.server.erupeConfig.DebugOptions.CapLink.Values[2])
+	bf.WriteUint16(s.server.erupeConfig.DebugOptions.CapLink.Values[3])
+	bf.WriteUint16(s.server.erupeConfig.DebugOptions.CapLink.Values[4])
+	if s.server.erupeConfig.DebugOptions.CapLink.Values[2] == 51729 && s.server.erupeConfig.DebugOptions.CapLink.Values[3] == 1 && s.server.erupeConfig.DebugOptions.CapLink.Values[4] == 20000 {
+		ps.Uint16(bf, fmt.Sprintf(`%s:%d`, s.server.erupeConfig.DebugOptions.CapLink.Host, s.server.erupeConfig.DebugOptions.CapLink.Port), false)
+	}
+
 	bf.WriteUint32(uint32(s.server.getReturnExpiry(uid).Unix()))
 	bf.WriteUint32(0)
 
 	tickets := []uint32{
-		s.server.erupeConfig.GameplayOptions.MezfesSoloTickets,
-		s.server.erupeConfig.GameplayOptions.MezfesGroupTickets,
+		s.server.erupeConfig.GameplayOptions.MezFesSoloTickets,
+		s.server.erupeConfig.GameplayOptions.MezFesGroupTickets,
 	}
 	stalls := []uint8{
 		10, 3, 6, 9, 4, 8, 5, 7,

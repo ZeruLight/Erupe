@@ -11,7 +11,8 @@ type ChatType uint8
 
 // Chat types
 const (
-	ChatTypeLocal    ChatType = 1
+	ChatTypeWorld    ChatType = 0
+	ChatTypeStage             = 1
 	ChatTypeGuild             = 2
 	ChatTypeAlliance          = 3
 	ChatTypeParty             = 4

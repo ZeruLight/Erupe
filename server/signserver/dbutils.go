@@ -198,17 +198,17 @@ func (s *Server) checkToken(uid uint32) (bool, error) {
 }
 
 func (s *Server) registerUidToken(uid uint32) (uint32, string, error) {
-	token := token.Generate(16)
+	_token := token.Generate(16)
 	var tid uint32
-	err := s.db.QueryRow(`INSERT INTO sign_sessions (user_id, token) VALUES ($1, $2) RETURNING id`, uid, token).Scan(&tid)
-	return tid, token, err
+	err := s.db.QueryRow(`INSERT INTO sign_sessions (user_id, token) VALUES ($1, $2) RETURNING id`, uid, _token).Scan(&tid)
+	return tid, _token, err
 }
 
 func (s *Server) registerPsnToken(psn string) (uint32, string, error) {
-	token := token.Generate(16)
+	_token := token.Generate(16)
 	var tid uint32
-	err := s.db.QueryRow(`INSERT INTO sign_sessions (psn_id, token) VALUES ($1, $2) RETURNING id`, psn, token).Scan(&tid)
-	return tid, token, err
+	err := s.db.QueryRow(`INSERT INTO sign_sessions (psn_id, token) VALUES ($1, $2) RETURNING id`, psn, _token).Scan(&tid)
+	return tid, _token, err
 }
 
 func (s *Server) validateToken(token string, tokenID uint32) bool {
@@ -229,9 +229,9 @@ func (s *Server) validateLogin(user string, pass string) (uint32, RespID) {
 	var passDB string
 	err := s.db.QueryRow(`SELECT id, password FROM users WHERE username = $1`, user).Scan(&uid, &passDB)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			s.logger.Info("User not found", zap.String("User", user))
-			if s.erupeConfig.DevMode && s.erupeConfig.DevModeOptions.AutoCreateAccount {
+			if s.erupeConfig.AutoCreateAccount {
 				uid, err = s.registerDBAccount(user, pass)
 				if err == nil {
 					return uid, SIGN_SUCCESS
@@ -244,6 +244,15 @@ func (s *Server) validateLogin(user string, pass string) (uint32, RespID) {
 		return 0, SIGN_EABORT
 	} else {
 		if bcrypt.CompareHashAndPassword([]byte(passDB), []byte(pass)) == nil {
+			var bans int
+			err = s.db.QueryRow(`SELECT count(*) FROM bans WHERE user_id=$1 AND expires IS NULL`, uid).Scan(&bans)
+			if err == nil && bans > 0 {
+				return uid, SIGN_EELIMINATE
+			}
+			err = s.db.QueryRow(`SELECT count(*) FROM bans WHERE user_id=$1 AND expires > now()`, uid).Scan(&bans)
+			if err == nil && bans > 0 {
+				return uid, SIGN_ESUSPEND
+			}
 			return uid, SIGN_SUCCESS
 		}
 		return 0, SIGN_EPASS

@@ -54,7 +54,7 @@ func (s *Session) handlePacket(pkt []byte) error {
 	bf := byteframe.NewByteFrameFromBytes(pkt)
 	reqType := string(bf.ReadNullTerminatedBytes())
 	switch reqType[:len(reqType)-3] {
-	case "DLTSKEYSIGN:", "DSGN:":
+	case "DLTSKEYSIGN:", "DSGN:", "SIGN:":
 		s.handleDSGN(bf)
 	case "PS3SGN:":
 		s.client = PS3

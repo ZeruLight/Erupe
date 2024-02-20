@@ -190,8 +190,8 @@ func handleMsgMhfInfoFesta(s *Session, p mhfpacket.MHFPacket) {
 	}
 
 	var blueSouls, redSouls uint32
-	s.server.db.QueryRow("SELECT SUM(gc.souls) FROM guild_characters gc INNER JOIN festa_registrations fr ON fr.guild_id = gc.guild_id WHERE fr.team = 'blue'").Scan(&blueSouls)
-	s.server.db.QueryRow("SELECT SUM(gc.souls) FROM guild_characters gc INNER JOIN festa_registrations fr ON fr.guild_id = gc.guild_id WHERE fr.team = 'red'").Scan(&redSouls)
+	s.server.db.QueryRow(`SELECT COALESCE(SUM(fs.souls), 0) AS souls FROM festa_registrations fr LEFT JOIN festa_submissions fs ON fr.guild_id = fs.guild_id AND fr.team = 'blue'`).Scan(&blueSouls)
+	s.server.db.QueryRow(`SELECT COALESCE(SUM(fs.souls), 0) AS souls FROM festa_registrations fr LEFT JOIN festa_submissions fs ON fr.guild_id = fs.guild_id AND fr.team = 'red'`).Scan(&redSouls)
 
 	bf.WriteUint32(id)
 	for _, timestamp := range timestamps {
@@ -210,11 +210,11 @@ func handleMsgMhfInfoFesta(s *Session, p mhfpacket.MHFPacket) {
 		COALESCE(CASE
 			WHEN COUNT(gc.id) FILTER (WHERE fr.team = 'blue' AND gc.trial_vote = ft.id) >
 				 COUNT(gc.id) FILTER (WHERE fr.team = 'red' AND gc.trial_vote = ft.id)
-			THEN CAST('blue' AS public.festival_colour)
+			THEN CAST('blue' AS public.festival_color)
 			WHEN COUNT(gc.id) FILTER (WHERE fr.team = 'red' AND gc.trial_vote = ft.id) >
 				 COUNT(gc.id) FILTER (WHERE fr.team = 'blue' AND gc.trial_vote = ft.id)
-			THEN CAST('red' AS public.festival_colour)
-		END, CAST('none' AS public.festival_colour)) AS monopoly
+			THEN CAST('red' AS public.festival_color)
+		END, CAST('none' AS public.festival_color)) AS monopoly
 		FROM public.festa_trials ft
 		LEFT JOIN public.guild_characters gc ON ft.id = gc.trial_vote
 		LEFT JOIN public.festa_registrations fr ON gc.guild_id = fr.guild_id
@@ -366,7 +366,7 @@ func handleMsgMhfStateFestaU(s *Session, p mhfpacket.MHFPacket) {
 		return
 	}
 	var souls, exists uint32
-	s.server.db.QueryRow("SELECT souls FROM guild_characters WHERE character_id=$1", s.charID).Scan(&souls)
+	s.server.db.QueryRow(`SELECT COALESCE((SELECT SUM(souls) FROM festa_submissions WHERE character_id=$1), 0)`, s.charID).Scan(&souls)
 	err = s.server.db.QueryRow("SELECT prize_id FROM festa_prizes_accepted WHERE prize_id=0 AND character_id=$1", s.charID).Scan(&exists)
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint32(souls)

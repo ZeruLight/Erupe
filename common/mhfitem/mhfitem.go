@@ -2,6 +2,7 @@ package mhfitem
 
 import (
 	"erupe-ce/common/byteframe"
+	"erupe-ce/common/token"
 	_config "erupe-ce/config"
 )
 
@@ -43,6 +44,9 @@ type MHFItemStack struct {
 func ReadWarehouseItem(bf *byteframe.ByteFrame) MHFItemStack {
 	var item MHFItemStack
 	item.WarehouseID = bf.ReadUint32()
+	if item.WarehouseID == 0 {
+		item.WarehouseID = token.RNG.Uint32()
+	}
 	item.Item.ItemID = bf.ReadUint16()
 	item.Quantity = bf.ReadUint16()
 	item.Unk0 = bf.ReadUint32()
@@ -76,6 +80,9 @@ func ReadWarehouseEquipment(bf *byteframe.ByteFrame) MHFEquipment {
 		equipment.Sigils[i].Effects = make([]MHFSigilEffect, 3)
 	}
 	equipment.WarehouseID = bf.ReadUint32()
+	if equipment.WarehouseID == 0 {
+		equipment.WarehouseID = token.RNG.Uint32()
+	}
 	equipment.ItemType = bf.ReadUint8()
 	equipment.Unk0 = bf.ReadUint8()
 	equipment.ItemID = bf.ReadUint16()

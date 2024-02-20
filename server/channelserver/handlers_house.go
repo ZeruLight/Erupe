@@ -433,13 +433,14 @@ func handleMsgMhfOperateWarehouse(s *Session, p mhfpacket.MHFPacket) {
 
 func addWarehouseItem(s *Session, item mhfitem.MHFItemStack) {
 	giftBox := warehouseGetItems(s, 10)
-	item.WarehouseID = token.RNG().Uint32()
+	item.WarehouseID = token.RNG.Uint32()
 	giftBox = append(giftBox, item)
 	s.server.db.Exec("UPDATE warehouse SET item10=$1 WHERE character_id=$2", mhfitem.SerializeWarehouseItems(giftBox), s.charID)
 }
 
 func addWarehouseEquipment(s *Session, equipment mhfitem.MHFEquipment) {
 	giftBox := warehouseGetEquipment(s, 10)
+	equipment.WarehouseID = token.RNG.Uint32()
 	giftBox = append(giftBox, equipment)
 	s.server.db.Exec("UPDATE warehouse SET equip10=$1 WHERE character_id=$2", mhfitem.SerializeWarehouseEquipment(giftBox), s.charID)
 }
@@ -509,7 +510,7 @@ func handleMsgMhfUpdateWarehouse(s *Session, p mhfpacket.MHFPacket) {
 				}
 			}
 			if !exists {
-				uItem.WarehouseID = token.RNG().Uint32()
+				uItem.WarehouseID = token.RNG.Uint32()
 				fItems = append(fItems, uItem)
 			}
 		}
@@ -532,7 +533,7 @@ func handleMsgMhfUpdateWarehouse(s *Session, p mhfpacket.MHFPacket) {
 				}
 			}
 			if !exists {
-				uEquip.WarehouseID = token.RNG().Uint32()
+				uEquip.WarehouseID = token.RNG.Uint32()
 				fEquip = append(fEquip, uEquip)
 			}
 		}

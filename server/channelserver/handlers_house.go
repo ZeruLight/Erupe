@@ -433,17 +433,8 @@ func handleMsgMhfOperateWarehouse(s *Session, p mhfpacket.MHFPacket) {
 
 func addWarehouseItem(s *Session, item mhfitem.MHFItemStack) {
 	giftBox := warehouseGetItems(s, 10)
-	exists := false
-	for i, stack := range giftBox {
-		if stack.Item.ItemID == item.Item.ItemID {
-			exists = true
-			giftBox[i].Quantity += item.Quantity
-			break
-		}
-	}
-	if !exists {
-		giftBox = append(giftBox, item)
-	}
+	item.WarehouseID = token.RNG().Uint32()
+	giftBox = append(giftBox, item)
 	s.server.db.Exec("UPDATE warehouse SET item10=$1 WHERE character_id=$2", mhfitem.SerializeWarehouseItems(giftBox), s.charID)
 }
 
@@ -511,18 +502,20 @@ func handleMsgMhfUpdateWarehouse(s *Session, p mhfpacket.MHFPacket) {
 		oItems := warehouseGetItems(s, pkt.BoxIndex)
 		for _, uItem := range pkt.UpdatedItems {
 			exists := false
-			for _, oItem := range oItems {
-				if uItem.Item.ItemID == oItem.Item.ItemID {
-					if uItem.Quantity > 0 {
-						fItems = append(fItems, uItem)
-					}
+			for i := range oItems {
+				if oItems[i].WarehouseID == uItem.WarehouseID {
 					exists = true
-					break
+					oItems[i].Quantity = uItem.Quantity
 				}
 			}
 			if !exists {
 				uItem.WarehouseID = token.RNG().Uint32()
 				fItems = append(fItems, uItem)
+			}
+		}
+		for _, oItem := range oItems {
+			if oItem.Quantity > 0 {
+				fItems = append(fItems, oItem)
 			}
 		}
 		s.server.db.Exec(fmt.Sprintf(`UPDATE warehouse SET item%d=$1 WHERE character_id=$2`, pkt.BoxIndex), mhfitem.SerializeWarehouseItems(fItems), s.charID)

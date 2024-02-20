@@ -399,10 +399,10 @@ func handleMsgMhfStateFestaG(s *Session, p mhfpacket.MHFPacket) {
 		return
 	}
 	resp.WriteUint32(guild.Souls)
-	resp.WriteInt32(0) // unk
+	resp.WriteInt32(1) // unk
 	resp.WriteInt32(1) // unk, rank?
-	resp.WriteInt32(0) // unk
-	resp.WriteInt32(0) // unk
+	resp.WriteInt32(1) // unk
+	resp.WriteInt32(1) // unk
 	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
 }
 

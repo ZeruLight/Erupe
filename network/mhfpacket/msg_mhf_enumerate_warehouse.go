@@ -25,7 +25,8 @@ func (m *MsgMhfEnumerateWarehouse) Parse(bf *byteframe.ByteFrame, ctx *clientctx
 	m.AckHandle = bf.ReadUint32()
 	m.BoxType = bf.ReadUint8()
 	m.BoxIndex = bf.ReadUint8()
-	bf.ReadBytes(2) // Zeroed
+	bf.ReadUint8() // Zeroed
+	bf.ReadUint8() // Zeroed
 	return nil
 }
 

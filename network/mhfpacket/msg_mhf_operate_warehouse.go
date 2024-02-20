@@ -29,9 +29,11 @@ func (m *MsgMhfOperateWarehouse) Parse(bf *byteframe.ByteFrame, ctx *clientctx.C
 	m.Operation = bf.ReadUint8()
 	m.BoxType = bf.ReadUint8()
 	m.BoxIndex = bf.ReadUint8()
-	_ = bf.ReadUint8() // lenName
-	bf.ReadUint16()    // Zeroed
-	m.Name = stringsupport.SJISToUTF8(bf.ReadNullTerminatedBytes())
+	lenName := bf.ReadUint8()
+	bf.ReadUint16() // Zeroed
+	if lenName > 0 {
+		m.Name = stringsupport.SJISToUTF8(bf.ReadNullTerminatedBytes())
+	}
 	return nil
 }
 

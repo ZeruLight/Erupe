@@ -21,18 +21,18 @@ import (
 	"go.uber.org/zap"
 )
 
-type FestivalColour string
+type FestivalColor string
 
 const (
-	FestivalColourNone FestivalColour = "none"
-	FestivalColourBlue FestivalColour = "blue"
-	FestivalColourRed  FestivalColour = "red"
+	FestivalColorNone FestivalColor = "none"
+	FestivalColorBlue FestivalColor = "blue"
+	FestivalColorRed  FestivalColor = "red"
 )
 
-var FestivalColourCodes = map[FestivalColour]int8{
-	FestivalColourNone: -1,
-	FestivalColourBlue: 0,
-	FestivalColourRed:  1,
+var FestivalColorCodes = map[FestivalColor]int16{
+	FestivalColorNone: -1,
+	FestivalColorBlue: 0,
+	FestivalColorRed:  1,
 }
 
 type GuildApplicationType string
@@ -43,27 +43,27 @@ const (
 )
 
 type Guild struct {
-	ID             uint32         `db:"id"`
-	Name           string         `db:"name"`
-	MainMotto      uint8          `db:"main_motto"`
-	SubMotto       uint8          `db:"sub_motto"`
-	CreatedAt      time.Time      `db:"created_at"`
-	MemberCount    uint16         `db:"member_count"`
-	RankRP         uint32         `db:"rank_rp"`
-	EventRP        uint32         `db:"event_rp"`
-	Comment        string         `db:"comment"`
-	PugiName1      string         `db:"pugi_name_1"`
-	PugiName2      string         `db:"pugi_name_2"`
-	PugiName3      string         `db:"pugi_name_3"`
-	PugiOutfit1    uint8          `db:"pugi_outfit_1"`
-	PugiOutfit2    uint8          `db:"pugi_outfit_2"`
-	PugiOutfit3    uint8          `db:"pugi_outfit_3"`
-	PugiOutfits    uint32         `db:"pugi_outfits"`
-	Recruiting     bool           `db:"recruiting"`
-	FestivalColour FestivalColour `db:"festival_colour"`
-	Souls          uint32         `db:"souls"`
-	AllianceID     uint32         `db:"alliance_id"`
-	Icon           *GuildIcon     `db:"icon"`
+	ID            uint32        `db:"id"`
+	Name          string        `db:"name"`
+	MainMotto     uint8         `db:"main_motto"`
+	SubMotto      uint8         `db:"sub_motto"`
+	CreatedAt     time.Time     `db:"created_at"`
+	MemberCount   uint16        `db:"member_count"`
+	RankRP        uint32        `db:"rank_rp"`
+	EventRP       uint32        `db:"event_rp"`
+	Comment       string        `db:"comment"`
+	PugiName1     string        `db:"pugi_name_1"`
+	PugiName2     string        `db:"pugi_name_2"`
+	PugiName3     string        `db:"pugi_name_3"`
+	PugiOutfit1   uint8         `db:"pugi_outfit_1"`
+	PugiOutfit2   uint8         `db:"pugi_outfit_2"`
+	PugiOutfit3   uint8         `db:"pugi_outfit_3"`
+	PugiOutfits   uint32        `db:"pugi_outfits"`
+	Recruiting    bool          `db:"recruiting"`
+	FestivalColor FestivalColor `db:"festival_color"`
+	Souls         uint32        `db:"souls"`
+	AllianceID    uint32        `db:"alliance_id"`
+	Icon          *GuildIcon    `db:"icon"`
 
 	GuildLeader
 }
@@ -157,7 +157,7 @@ SELECT
 	sub_motto,
 	created_at,
 	leader_id,
-	lc.name as leader_name,
+	c.name AS leader_name,
 	comment,
 	COALESCE(pugi_name_1, '') AS pugi_name_1,
 	COALESCE(pugi_name_2, '') AS pugi_name_2,
@@ -167,8 +167,8 @@ SELECT
 	pugi_outfit_3,
 	pugi_outfits,
 	recruiting,
-	COALESCE((SELECT team FROM festa_registrations fr WHERE fr.guild_id = g.id), 'none') AS festival_colour,
-	(SELECT SUM(souls) FROM guild_characters gc WHERE gc.guild_id = g.id) AS souls,
+	COALESCE((SELECT team FROM festa_registrations fr WHERE fr.guild_id = g.id), 'none') AS festival_color,
+	COALESCE((SELECT SUM(fs.souls) FROM festa_submissions fs WHERE fs.guild_id=g.id), 0) AS souls,
 	COALESCE((
 		SELECT id FROM guild_alliances ga WHERE
 	 	ga.parent_id = g.id OR
@@ -178,8 +178,8 @@ SELECT
 	icon,
 	(SELECT count(1) FROM guild_characters gc WHERE gc.guild_id = g.id) AS member_count
 	FROM guilds g
-	JOIN guild_characters lgc ON lgc.character_id = leader_id
-	JOIN characters lc on leader_id = lc.id
+	JOIN guild_characters gc ON gc.character_id = leader_id
+	JOIN characters c on leader_id = c.id
 `
 
 func (guild *Guild) Save(s *Session) error {
@@ -967,7 +967,7 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint8(uint8(len(guildLeaderName)))
 		bf.WriteBytes(guildName)
 		bf.WriteBytes(guildComment)
-		bf.WriteInt8(FestivalColourCodes[guild.FestivalColour])
+		bf.WriteInt8(int8(FestivalColorCodes[guild.FestivalColor]))
 		bf.WriteUint32(guild.RankRP)
 		bf.WriteBytes(guildLeaderName)
 		bf.WriteUint32(0)   // Unk

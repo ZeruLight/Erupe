@@ -22,6 +22,32 @@ type tuneValue struct {
 	Value uint16
 }
 
+func findSubSliceIndices(data []byte, sub []byte) []int {
+	var indices []int
+	lenSub := len(sub)
+	for i := 0; i < len(data); i++ {
+		if i+lenSub > len(data) {
+			break
+		}
+		if equal(data[i:i+lenSub], sub) {
+			indices = append(indices, i)
+		}
+	}
+	return indices
+}
+
+func equal(a, b []byte) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i, v := range a {
+		if v != b[i] {
+			return false
+		}
+	}
+	return true
+}
+
 func BackportQuest(data []byte) []byte {
 	wp := binary.LittleEndian.Uint32(data[0:4]) + 96
 	rp := wp + 4
@@ -32,7 +58,33 @@ func BackportQuest(data []byte) []byte {
 		}
 		copy(data[wp:wp+4], data[rp:rp+4])
 	}
-	copy(data[wp:wp+180], data[rp:rp+180])
+
+	fillLength := uint32(108)
+	if _config.ErupeConfig.RealClientMode <= _config.S6 {
+		fillLength = 44
+	} else if _config.ErupeConfig.RealClientMode <= _config.F5 {
+		fillLength = 52
+	} else if _config.ErupeConfig.RealClientMode <= _config.G101 {
+		fillLength = 76
+	}
+
+	copy(data[wp:wp+fillLength], data[rp:rp+fillLength])
+	if _config.ErupeConfig.RealClientMode <= _config.G91 {
+		patterns := [][]byte{
+			{0x0A, 0x00, 0x01, 0x33, 0xD7, 0x00}, // 10% Armor Sphere -> Stone
+			{0x06, 0x00, 0x02, 0x33, 0xD8, 0x00}, // 6% Armor Sphere+ -> Iron Ore
+			{0x0A, 0x00, 0x03, 0x33, 0xD7, 0x00}, // 10% Adv Armor Sphere -> Stone
+			{0x06, 0x00, 0x04, 0x33, 0xDB, 0x00}, // 6% Hard Armor Sphere -> Dragonite Ore
+			{0x0A, 0x00, 0x05, 0x33, 0xD9, 0x00}, // 10% Heaven Armor Sphere -> Earth Crystal
+			{0x06, 0x00, 0x06, 0x33, 0xDB, 0x00}, // 6% True Armor Sphere -> Dragonite Ore
+		}
+		for i := range patterns {
+			j := findSubSliceIndices(data, patterns[i][0:4])
+			for k := range j {
+				copy(data[j[k]+2:j[k]+4], patterns[i][4:6])
+			}
+		}
+	}
 	return data
 }
 
@@ -149,21 +201,32 @@ func loadQuestFile(s *Session, questId int) []byte {
 	fileBytes.SetLE()
 	fileBytes.Seek(int64(fileBytes.ReadUint32()), 0)
 
-	// The 320 bytes directly following the data pointer must go directly into the event's body, after the header and before the string pointers.
-	questBody := byteframe.NewByteFrameFromBytes(fileBytes.ReadBytes(320))
+	bodyLength := 320
+	if _config.ErupeConfig.RealClientMode <= _config.S6 {
+		bodyLength = 160
+	} else if _config.ErupeConfig.RealClientMode <= _config.F5 {
+		bodyLength = 168
+	} else if _config.ErupeConfig.RealClientMode <= _config.G101 {
+		bodyLength = 192
+	} else if _config.ErupeConfig.RealClientMode <= _config.Z1 {
+		bodyLength = 224
+	}
+
+	// The n bytes directly following the data pointer must go directly into the event's body, after the header and before the string pointers.
+	questBody := byteframe.NewByteFrameFromBytes(fileBytes.ReadBytes(uint(bodyLength)))
 	questBody.SetLE()
 	// Find the master quest string pointer
 	questBody.Seek(40, 0)
 	fileBytes.Seek(int64(questBody.ReadUint32()), 0)
 	questBody.Seek(40, 0)
 	// Overwrite it
-	questBody.WriteUint32(320)
+	questBody.WriteUint32(uint32(bodyLength))
 	questBody.Seek(0, 2)
 
 	// Rewrite the quest strings and their pointers
 	var tempString []byte
 	newStrings := byteframe.NewByteFrame()
-	tempPointer := 352
+	tempPointer := bodyLength + 32
 	for i := 0; i < 8; i++ {
 		questBody.WriteUint32(uint32(tempPointer))
 		temp := int64(fileBytes.Index())
@@ -506,8 +569,13 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 	tuneValues = append(tuneValues, getTuneValueRange(3299, 200)...)
 	tuneValues = append(tuneValues, getTuneValueRange(3325, 300)...)
 
-	offset := uint16(time.Now().Unix())
-	bf.WriteUint16(offset)
+	var temp []tuneValue
+	for i := range tuneValues {
+		if tuneValues[i].Value > 0 {
+			temp = append(temp, tuneValues[i])
+		}
+	}
+	tuneValues = temp
 
 	tuneLimit := 770
 	if _config.ErupeConfig.RealClientMode <= _config.F5 {
@@ -532,6 +600,9 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 	if len(tuneValues) > tuneLimit {
 		tuneValues = tuneValues[:tuneLimit]
 	}
+
+	offset := uint16(time.Now().Unix())
+	bf.WriteUint16(offset)
 
 	bf.WriteUint16(uint16(len(tuneValues)))
 	for i := range tuneValues {

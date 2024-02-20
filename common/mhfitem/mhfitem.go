@@ -1,6 +1,9 @@
 package mhfitem
 
-import "erupe-ce/common/byteframe"
+import (
+	"erupe-ce/common/byteframe"
+	_config "erupe-ce/config"
+)
 
 type MHFItem struct {
 	ItemID uint16
@@ -80,19 +83,23 @@ func ReadWarehouseEquipment(bf *byteframe.ByteFrame) MHFEquipment {
 	for i := 0; i < 3; i++ {
 		equipment.Decorations[i].ItemID = bf.ReadUint16()
 	}
-	for i := 0; i < 3; i++ {
-		for j := 0; j < 3; j++ {
-			equipment.Sigils[i].Effects[j].ID = bf.ReadUint16()
+	if _config.ErupeConfig.RealClientMode >= _config.G1 {
+		for i := 0; i < 3; i++ {
+			for j := 0; j < 3; j++ {
+				equipment.Sigils[i].Effects[j].ID = bf.ReadUint16()
+			}
+			for j := 0; j < 3; j++ {
+				equipment.Sigils[i].Effects[j].Level = bf.ReadUint16()
+			}
+			equipment.Sigils[i].Unk0 = bf.ReadUint8()
+			equipment.Sigils[i].Unk1 = bf.ReadUint8()
+			equipment.Sigils[i].Unk2 = bf.ReadUint8()
+			equipment.Sigils[i].Unk3 = bf.ReadUint8()
 		}
-		for j := 0; j < 3; j++ {
-			equipment.Sigils[i].Effects[j].Level = bf.ReadUint16()
-		}
-		equipment.Sigils[i].Unk0 = bf.ReadUint8()
-		equipment.Sigils[i].Unk1 = bf.ReadUint8()
-		equipment.Sigils[i].Unk2 = bf.ReadUint8()
-		equipment.Sigils[i].Unk3 = bf.ReadUint8()
 	}
-	equipment.Unk1 = bf.ReadUint16()
+	if _config.ErupeConfig.RealClientMode >= _config.Z1 {
+		equipment.Unk1 = bf.ReadUint16()
+	}
 	return equipment
 }
 
@@ -106,19 +113,23 @@ func (e MHFEquipment) ToBytes() []byte {
 	for i := 0; i < 3; i++ {
 		bf.WriteUint16(e.Decorations[i].ItemID)
 	}
-	for i := 0; i < 3; i++ {
-		for j := 0; j < 3; j++ {
-			bf.WriteUint16(e.Sigils[i].Effects[j].ID)
+	if _config.ErupeConfig.RealClientMode >= _config.G1 {
+		for i := 0; i < 3; i++ {
+			for j := 0; j < 3; j++ {
+				bf.WriteUint16(e.Sigils[i].Effects[j].ID)
+			}
+			for j := 0; j < 3; j++ {
+				bf.WriteUint16(e.Sigils[i].Effects[j].Level)
+			}
+			bf.WriteUint8(e.Sigils[i].Unk0)
+			bf.WriteUint8(e.Sigils[i].Unk1)
+			bf.WriteUint8(e.Sigils[i].Unk2)
+			bf.WriteUint8(e.Sigils[i].Unk3)
 		}
-		for j := 0; j < 3; j++ {
-			bf.WriteUint16(e.Sigils[i].Effects[j].Level)
-		}
-		bf.WriteUint8(e.Sigils[i].Unk0)
-		bf.WriteUint8(e.Sigils[i].Unk1)
-		bf.WriteUint8(e.Sigils[i].Unk2)
-		bf.WriteUint8(e.Sigils[i].Unk3)
 	}
-	bf.WriteUint16(e.Unk1)
+	if _config.ErupeConfig.RealClientMode >= _config.Z1 {
+		bf.WriteUint16(e.Unk1)
+	}
 	return bf.Data()
 }
 

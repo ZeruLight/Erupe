@@ -533,11 +533,11 @@ func handleMsgMhfUpdateWarehouse(s *Session, p mhfpacket.MHFPacket) {
 		oEquips := warehouseGetEquipment(s, pkt.BoxIndex)
 		for _, uEquip := range pkt.UpdatedEquipment {
 			exists := false
-			for _, oEquip := range oEquips {
-				if oEquip.WarehouseID == uEquip.WarehouseID {
+			for i := range oEquips {
+				if oEquips[i].WarehouseID == uEquip.WarehouseID {
 					exists = true
 					// Will set removed items to 0
-					oEquip.ItemID = uEquip.ItemID
+					oEquips[i].ItemID = uEquip.ItemID
 					break
 				}
 			}

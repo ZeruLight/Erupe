@@ -42,7 +42,7 @@ func handleMsgMhfSavePlateData(s *Session, p mhfpacket.MHFPacket) {
 			}
 		} else {
 			// create empty save if absent
-			data = make([]byte, 0x1AF20)
+			data = make([]byte, 140000)
 		}
 
 		// Perform diff and compress it to write back to db
@@ -110,7 +110,7 @@ func handleMsgMhfSavePlateBox(s *Session, p mhfpacket.MHFPacket) {
 			}
 		} else {
 			// create empty save if absent
-			data = make([]byte, 0x820)
+			data = make([]byte, 4800)
 		}
 
 		// Perform diff and compress it to write back to db
@@ -147,7 +147,7 @@ func handleMsgMhfLoadPlateMyset(s *Session, p mhfpacket.MHFPacket) {
 	err := s.server.db.QueryRow("SELECT platemyset FROM characters WHERE id = $1", s.charID).Scan(&data)
 	if len(data) == 0 {
 		s.logger.Error("Failed to load platemyset", zap.Error(err))
-		data = make([]byte, 0x780)
+		data = make([]byte, 1920)
 	}
 	doAckBufSucceed(s, pkt.AckHandle, data)
 }

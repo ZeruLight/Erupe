@@ -12,7 +12,6 @@ import (
 type MsgMhfTransitMessage struct {
 	AckHandle   uint32
 	Unk0        uint8
-	Unk1        uint8
 	SearchType  uint16
 	MessageData []byte
 }
@@ -26,7 +25,7 @@ func (m *MsgMhfTransitMessage) Opcode() network.PacketID {
 func (m *MsgMhfTransitMessage) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
 	m.Unk0 = bf.ReadUint8()
-	m.Unk1 = bf.ReadUint8()
+	bf.ReadUint8() // Zeroed
 	m.SearchType = bf.ReadUint16()
 	m.MessageData = bf.ReadBytes(uint(bf.ReadUint16()))
 	return nil

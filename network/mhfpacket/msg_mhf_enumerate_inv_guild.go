@@ -10,8 +10,13 @@ import (
 
 // MsgMhfEnumerateInvGuild represents the MSG_MHF_ENUMERATE_INV_GUILD
 type MsgMhfEnumerateInvGuild struct {
-	AckHandle uint32
-	Unk       []byte
+	AckHandle    uint32
+	Unk          uint32
+	Operation    uint8
+	ActiveHours  uint8
+	DaysActive   uint8
+	PlayStyle    uint8
+	GuildRequest uint8
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -22,7 +27,12 @@ func (m *MsgMhfEnumerateInvGuild) Opcode() network.PacketID {
 // Parse parses the packet from binary
 func (m *MsgMhfEnumerateInvGuild) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
-	m.Unk = bf.ReadBytes(9)
+	m.Unk = bf.ReadUint32()
+	m.Operation = bf.ReadUint8()
+	m.ActiveHours = bf.ReadUint8()
+	m.DaysActive = bf.ReadUint8()
+	m.PlayStyle = bf.ReadUint8()
+	m.GuildRequest = bf.ReadUint8()
 	return nil
 }
 

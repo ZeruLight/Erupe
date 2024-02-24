@@ -10,13 +10,13 @@ import (
 
 type ShopItem struct {
 	ID           uint32 `db:"id"`
-	ItemID       uint16 `db:"item_id"`
+	ItemID       uint32 `db:"item_id"`
 	Cost         uint32 `db:"cost"`
 	Quantity     uint16 `db:"quantity"`
 	MinHR        uint16 `db:"min_hr"`
 	MinSR        uint16 `db:"min_sr"`
 	MinGR        uint16 `db:"min_gr"`
-	StoreLevel   uint16 `db:"store_level"`
+	StoreLevel   uint8  `db:"store_level"`
 	MaxQuantity  uint16 `db:"max_quantity"`
 	UsedQuantity uint16 `db:"used_quantity"`
 	RoadFloors   uint16 `db:"road_floors"`
@@ -61,19 +61,30 @@ func writeShopItems(bf *byteframe.ByteFrame, items []ShopItem) {
 	bf.WriteUint16(uint16(len(items)))
 	bf.WriteUint16(uint16(len(items)))
 	for _, item := range items {
-		bf.WriteUint32(item.ID)
-		bf.WriteUint16(0)
-		bf.WriteUint16(item.ItemID)
+		if _config.ErupeConfig.RealClientMode >= _config.Z2 {
+			bf.WriteUint32(item.ID)
+		}
+		bf.WriteUint32(item.ItemID)
 		bf.WriteUint32(item.Cost)
 		bf.WriteUint16(item.Quantity)
 		bf.WriteUint16(item.MinHR)
 		bf.WriteUint16(item.MinSR)
-		bf.WriteUint16(item.MinGR)
-		bf.WriteUint16(item.StoreLevel)
-		bf.WriteUint16(item.MaxQuantity)
-		bf.WriteUint16(item.UsedQuantity)
-		bf.WriteUint16(item.RoadFloors)
-		bf.WriteUint16(item.RoadFatalis)
+		if _config.ErupeConfig.RealClientMode >= _config.Z2 {
+			bf.WriteUint16(item.MinGR)
+		}
+		bf.WriteUint8(0) // Unk
+		bf.WriteUint8(item.StoreLevel)
+		if _config.ErupeConfig.RealClientMode >= _config.Z2 {
+			bf.WriteUint16(item.MaxQuantity)
+			bf.WriteUint16(item.UsedQuantity)
+		}
+		if _config.ErupeConfig.RealClientMode == _config.Z1 {
+			bf.WriteUint8(uint8(item.RoadFloors))
+			bf.WriteUint8(uint8(item.RoadFatalis))
+		} else if _config.ErupeConfig.RealClientMode >= _config.Z2 {
+			bf.WriteUint16(item.RoadFloors)
+			bf.WriteUint16(item.RoadFatalis)
+		}
 	}
 }
 
@@ -116,103 +127,113 @@ func handleMsgMhfEnumerateShop(s *Session, p mhfpacket.MHFPacket) {
 			return
 		}
 
-		var count uint16
-		shopEntries, err := s.server.db.Queryx("SELECT id, min_gr, min_hr, name, url_banner, url_feature, url_thumbnail, wide, recommended, gacha_type, hidden FROM gacha_shop")
+		rows, err := s.server.db.Queryx("SELECT id, min_gr, min_hr, name, url_banner, url_feature, url_thumbnail, wide, recommended, gacha_type, hidden FROM gacha_shop")
 		if err != nil {
 			doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
 			return
 		}
-		resp := byteframe.NewByteFrame()
-		resp.WriteUint32(0)
+		bf := byteframe.NewByteFrame()
 		var gacha Gacha
-		for shopEntries.Next() {
-			err = shopEntries.StructScan(&gacha)
-			if err != nil {
-				continue
+		var gachas []Gacha
+		for rows.Next() {
+			err = rows.StructScan(&gacha)
+			if err == nil {
+				gachas = append(gachas, gacha)
 			}
-			resp.WriteUint32(gacha.ID)
-			resp.WriteBytes(make([]byte, 16)) // Rank restriction
-			resp.WriteUint32(gacha.MinGR)
-			resp.WriteUint32(gacha.MinHR)
-			resp.WriteUint32(0) // only 0 in known packet
-			ps.Uint8(resp, gacha.Name, true)
-			ps.Uint8(resp, gacha.URLBanner, false)
-			ps.Uint8(resp, gacha.URLFeature, false)
-			resp.WriteBool(gacha.Wide)
-			ps.Uint8(resp, gacha.URLThumbnail, false)
-			resp.WriteUint8(0) // Unk
-			if gacha.Recommended {
-				resp.WriteUint8(2)
-			} else {
-				resp.WriteUint8(0)
-			}
-			resp.WriteUint8(gacha.GachaType)
-			resp.WriteBool(gacha.Hidden)
-			count++
 		}
-		resp.Seek(0, 0)
-		resp.WriteUint16(count)
-		resp.WriteUint16(count)
-		doAckBufSucceed(s, pkt.AckHandle, resp.Data())
+		bf.WriteUint16(uint16(len(gachas)))
+		bf.WriteUint16(uint16(len(gachas)))
+		for _, g := range gachas {
+			bf.WriteUint32(g.ID)
+			bf.WriteUint32(0) // Unknown rank restrictions
+			bf.WriteUint32(0)
+			bf.WriteUint32(0)
+			bf.WriteUint32(0)
+			bf.WriteUint32(g.MinGR)
+			bf.WriteUint32(g.MinHR)
+			bf.WriteUint32(0) // only 0 in known packet
+			ps.Uint8(bf, g.Name, true)
+			ps.Uint8(bf, g.URLBanner, false)
+			ps.Uint8(bf, g.URLFeature, false)
+			if _config.ErupeConfig.RealClientMode >= _config.G10 {
+				bf.WriteBool(g.Wide)
+				ps.Uint8(bf, g.URLThumbnail, false)
+			}
+			if g.Recommended {
+				bf.WriteUint16(2)
+			} else {
+				bf.WriteUint16(0)
+			}
+			bf.WriteUint8(g.GachaType)
+			if _config.ErupeConfig.RealClientMode >= _config.G10 {
+				bf.WriteBool(g.Hidden)
+			}
+		}
+		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 	case 2: // Actual gacha
 		bf := byteframe.NewByteFrame()
 		bf.WriteUint32(pkt.ShopID)
 		var gachaType int
 		s.server.db.QueryRow(`SELECT gacha_type FROM gacha_shop WHERE id = $1`, pkt.ShopID).Scan(&gachaType)
-		entries, err := s.server.db.Queryx(`SELECT entry_type, id, item_type, item_number, item_quantity, weight, rarity, rolls, daily_limit, frontier_points, name FROM gacha_entries WHERE gacha_id = $1 ORDER BY weight DESC`, pkt.ShopID)
+		rows, err := s.server.db.Queryx(`SELECT entry_type, id, item_type, item_number, item_quantity, weight, rarity, rolls, daily_limit, frontier_points, COALESCE(name, '') AS name FROM gacha_entries WHERE gacha_id = $1 ORDER BY weight DESC`, pkt.ShopID)
 		if err != nil {
 			doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
 			return
 		}
 		var divisor float64
 		s.server.db.QueryRow(`SELECT COALESCE(SUM(weight) / 100000.0, 0) AS chance FROM gacha_entries WHERE gacha_id = $1`, pkt.ShopID).Scan(&divisor)
-		var entryCount uint16
-		bf.WriteUint16(0)
-		gachaEntry := GachaEntry{}
-		gachaItem := GachaItem{}
-		for entries.Next() {
-			entryCount++
-			entries.StructScan(&gachaEntry)
-			bf.WriteUint8(gachaEntry.EntryType)
-			bf.WriteUint32(gachaEntry.ID)
-			bf.WriteUint8(gachaEntry.ItemType)
-			bf.WriteUint32(gachaEntry.ItemNumber)
-			bf.WriteUint16(gachaEntry.ItemQuantity)
+
+		var entry GachaEntry
+		var entries []GachaEntry
+		var item GachaItem
+		for rows.Next() {
+			err = rows.StructScan(&entry)
+			if err == nil {
+				entries = append(entries, entry)
+			}
+		}
+		bf.WriteUint16(uint16(len(entries)))
+		for _, ge := range entries {
+			var items []GachaItem
+			bf.WriteUint8(ge.EntryType)
+			bf.WriteUint32(ge.ID)
+			bf.WriteUint8(ge.ItemType)
+			bf.WriteUint32(ge.ItemNumber)
+			bf.WriteUint16(ge.ItemQuantity)
 			if gachaType >= 4 { // If box
 				bf.WriteUint16(1)
 			} else {
-				bf.WriteUint16(uint16(gachaEntry.Weight / divisor))
+				bf.WriteUint16(uint16(ge.Weight / divisor))
 			}
-			bf.WriteUint8(gachaEntry.Rarity)
-			bf.WriteUint8(gachaEntry.Rolls)
+			bf.WriteUint8(ge.Rarity)
+			bf.WriteUint8(ge.Rolls)
 
-			var itemCount uint8
-			temp := byteframe.NewByteFrame()
-			items, err := s.server.db.Queryx(`SELECT item_type, item_id, quantity FROM gacha_items WHERE entry_id=$1`, gachaEntry.ID)
+			rows, err = s.server.db.Queryx(`SELECT item_type, item_id, quantity FROM gacha_items WHERE entry_id=$1`, ge.ID)
 			if err != nil {
 				bf.WriteUint8(0)
 			} else {
-				for items.Next() {
-					itemCount++
-					items.StructScan(&gachaItem)
-					temp.WriteUint16(uint16(gachaItem.ItemType))
-					temp.WriteUint16(gachaItem.ItemID)
-					temp.WriteUint16(gachaItem.Quantity)
+				for rows.Next() {
+					err = rows.StructScan(&item)
+					if err == nil {
+						items = append(items, item)
+					}
 				}
-				bf.WriteUint8(itemCount)
+				bf.WriteUint8(uint8(len(items)))
 			}
 
-			bf.WriteUint16(gachaEntry.FrontierPoints)
-			bf.WriteUint8(gachaEntry.DailyLimit)
-			if gachaEntry.EntryType < 10 {
-				ps.Uint8(bf, gachaEntry.Name, true)
+			bf.WriteUint16(ge.FrontierPoints)
+			bf.WriteUint8(ge.DailyLimit)
+			if ge.EntryType < 10 {
+				ps.Uint8(bf, ge.Name, true)
 			} else {
 				bf.WriteUint8(0)
 			}
-			bf.WriteBytes(temp.Data())
+			for _, gi := range items {
+				bf.WriteUint16(uint16(gi.ItemType))
+				bf.WriteUint16(gi.ItemID)
+				bf.WriteUint16(gi.Quantity)
+			}
 		}
-		bf.Seek(4, 0)
-		bf.WriteUint16(entryCount)
 		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 	case 3: // Hunting Festival Exchange
 		fallthrough
@@ -231,6 +252,9 @@ func handleMsgMhfEnumerateShop(s *Session, p mhfpacket.MHFPacket) {
 	case 10: // Item shop, 0-8
 		bf := byteframe.NewByteFrame()
 		items := getShopItems(s, pkt.ShopType, pkt.ShopID)
+		if len(items) > int(pkt.Limit) {
+			items = items[:pkt.Limit]
+		}
 		writeShopItems(bf, items)
 		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 	}
@@ -424,7 +448,7 @@ func handleMsgMhfReceiveGachaItem(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfPlayNormalGacha(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfPlayNormalGacha)
 	bf := byteframe.NewByteFrame()
-	var gachaEntries []GachaEntry
+	var entries []GachaEntry
 	var entry GachaEntry
 	var rewards []GachaItem
 	var reward GachaItem
@@ -433,31 +457,40 @@ func handleMsgMhfPlayNormalGacha(s *Session, p mhfpacket.MHFPacket) {
 		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 1))
 		return
 	}
-	temp := byteframe.NewByteFrame()
-	entries, err := s.server.db.Queryx(`SELECT id, weight, rarity FROM gacha_entries WHERE gacha_id = $1 AND entry_type = 100 ORDER BY weight DESC`, pkt.GachaID)
+
+	rows, err := s.server.db.Queryx(`SELECT id, weight, rarity FROM gacha_entries WHERE gacha_id = $1 AND entry_type = 100 ORDER BY weight DESC`, pkt.GachaID)
 	if err != nil {
 		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 1))
 		return
 	}
-	for entries.Next() {
-		entries.StructScan(&entry)
-		gachaEntries = append(gachaEntries, entry)
-	}
-	rewardEntries, err := getRandomEntries(gachaEntries, rolls, false)
-	for i := range rewardEntries {
-		items, err := s.server.db.Queryx(`SELECT item_type, item_id, quantity FROM gacha_items WHERE entry_id = $1`, rewardEntries[i].ID)
+	for rows.Next() {
+		err = rows.StructScan(&entry)
 		if err != nil {
 			continue
 		}
-		for items.Next() {
-			items.StructScan(&reward)
+		entries = append(entries, entry)
+	}
+
+	rewardEntries, err := getRandomEntries(entries, rolls, false)
+	temp := byteframe.NewByteFrame()
+	for i := range rewardEntries {
+		rows, err = s.server.db.Queryx(`SELECT item_type, item_id, quantity FROM gacha_items WHERE entry_id = $1`, rewardEntries[i].ID)
+		if err != nil {
+			continue
+		}
+		for rows.Next() {
+			err = rows.StructScan(&reward)
+			if err != nil {
+				continue
+			}
 			rewards = append(rewards, reward)
 			temp.WriteUint8(reward.ItemType)
 			temp.WriteUint16(reward.ItemID)
 			temp.WriteUint16(reward.Quantity)
-			temp.WriteUint8(entry.Rarity)
+			temp.WriteUint8(rewardEntries[i].Rarity)
 		}
 	}
+
 	bf.WriteUint8(uint8(len(rewards)))
 	bf.WriteBytes(temp.Data())
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
@@ -467,7 +500,7 @@ func handleMsgMhfPlayNormalGacha(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfPlayStepupGacha(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfPlayStepupGacha)
 	bf := byteframe.NewByteFrame()
-	var gachaEntries []GachaEntry
+	var entries []GachaEntry
 	var entry GachaEntry
 	var rewards []GachaItem
 	var reward GachaItem
@@ -479,40 +512,49 @@ func handleMsgMhfPlayStepupGacha(s *Session, p mhfpacket.MHFPacket) {
 	s.server.db.Exec("UPDATE users u SET frontier_points=frontier_points+(SELECT frontier_points FROM gacha_entries WHERE gacha_id = $1 AND entry_type = $2) WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$3)", pkt.GachaID, pkt.RollType, s.charID)
 	s.server.db.Exec(`DELETE FROM gacha_stepup WHERE gacha_id = $1 AND character_id = $2`, pkt.GachaID, s.charID)
 	s.server.db.Exec(`INSERT INTO gacha_stepup (gacha_id, step, character_id) VALUES ($1, $2, $3)`, pkt.GachaID, pkt.RollType+1, s.charID)
-	temp := byteframe.NewByteFrame()
-	guaranteedItems := getGuaranteedItems(s, pkt.GachaID, pkt.RollType)
-	for _, item := range guaranteedItems {
-		temp.WriteUint8(item.ItemType)
-		temp.WriteUint16(item.ItemID)
-		temp.WriteUint16(item.Quantity)
-		temp.WriteUint8(0)
-	}
-	entries, err := s.server.db.Queryx(`SELECT id, weight, rarity FROM gacha_entries WHERE gacha_id = $1 AND entry_type = 100 ORDER BY weight DESC`, pkt.GachaID)
+
+	rows, err := s.server.db.Queryx(`SELECT id, weight, rarity FROM gacha_entries WHERE gacha_id = $1 AND entry_type = 100 ORDER BY weight DESC`, pkt.GachaID)
 	if err != nil {
 		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 1))
 		return
 	}
-	for entries.Next() {
-		entries.StructScan(&entry)
-		gachaEntries = append(gachaEntries, entry)
-	}
-	rewardEntries, err := getRandomEntries(gachaEntries, rolls, false)
-	for i := range rewardEntries {
-		items, err := s.server.db.Queryx(`SELECT item_type, item_id, quantity FROM gacha_items WHERE entry_id = $1`, rewardEntries[i].ID)
+	for rows.Next() {
+		err = rows.StructScan(&entry)
 		if err != nil {
 			continue
 		}
-		for items.Next() {
-			items.StructScan(&reward)
+		entries = append(entries, entry)
+	}
+
+	guaranteedItems := getGuaranteedItems(s, pkt.GachaID, pkt.RollType)
+	rewardEntries, err := getRandomEntries(entries, rolls, false)
+	temp := byteframe.NewByteFrame()
+	for i := range rewardEntries {
+		rows, err = s.server.db.Queryx(`SELECT item_type, item_id, quantity FROM gacha_items WHERE entry_id = $1`, rewardEntries[i].ID)
+		if err != nil {
+			continue
+		}
+		for rows.Next() {
+			err = rows.StructScan(&reward)
+			if err != nil {
+				continue
+			}
 			rewards = append(rewards, reward)
 			temp.WriteUint8(reward.ItemType)
 			temp.WriteUint16(reward.ItemID)
 			temp.WriteUint16(reward.Quantity)
-			temp.WriteUint8(entry.Rarity)
+			temp.WriteUint8(rewardEntries[i].Rarity)
 		}
 	}
+
 	bf.WriteUint8(uint8(len(rewards) + len(guaranteedItems)))
 	bf.WriteUint8(uint8(len(rewards)))
+	for _, item := range guaranteedItems {
+		bf.WriteUint8(item.ItemType)
+		bf.WriteUint16(item.ItemID)
+		bf.WriteUint16(item.Quantity)
+		bf.WriteUint8(0)
+	}
 	bf.WriteBytes(temp.Data())
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 	addGachaItem(s, rewards)
@@ -561,7 +603,7 @@ func handleMsgMhfGetBoxGachaInfo(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfPlayBoxGacha(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfPlayBoxGacha)
 	bf := byteframe.NewByteFrame()
-	var gachaEntries []GachaEntry
+	var entries []GachaEntry
 	var entry GachaEntry
 	var rewards []GachaItem
 	var reward GachaItem
@@ -570,17 +612,18 @@ func handleMsgMhfPlayBoxGacha(s *Session, p mhfpacket.MHFPacket) {
 		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 1))
 		return
 	}
-	temp := byteframe.NewByteFrame()
-	entries, err := s.server.db.Queryx(`SELECT id, weight, rarity FROM gacha_entries WHERE gacha_id = $1 AND entry_type = 100 ORDER BY weight DESC`, pkt.GachaID)
+	rows, err := s.server.db.Queryx(`SELECT id, weight, rarity FROM gacha_entries WHERE gacha_id = $1 AND entry_type = 100 ORDER BY weight DESC`, pkt.GachaID)
 	if err != nil {
 		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 1))
 		return
 	}
-	for entries.Next() {
-		entries.StructScan(&entry)
-		gachaEntries = append(gachaEntries, entry)
+	for rows.Next() {
+		err = rows.StructScan(&entry)
+		if err == nil {
+			entries = append(entries, entry)
+		}
 	}
-	rewardEntries, err := getRandomEntries(gachaEntries, rolls, true)
+	rewardEntries, err := getRandomEntries(entries, rolls, true)
 	for i := range rewardEntries {
 		items, err := s.server.db.Queryx(`SELECT item_type, item_id, quantity FROM gacha_items WHERE entry_id = $1`, rewardEntries[i].ID)
 		if err != nil {
@@ -588,16 +631,19 @@ func handleMsgMhfPlayBoxGacha(s *Session, p mhfpacket.MHFPacket) {
 		}
 		s.server.db.Exec(`INSERT INTO gacha_box (gacha_id, entry_id, character_id) VALUES ($1, $2, $3)`, pkt.GachaID, rewardEntries[i].ID, s.charID)
 		for items.Next() {
-			items.StructScan(&reward)
-			rewards = append(rewards, reward)
-			temp.WriteUint8(reward.ItemType)
-			temp.WriteUint16(reward.ItemID)
-			temp.WriteUint16(reward.Quantity)
-			temp.WriteUint8(0)
+			err = items.StructScan(&reward)
+			if err == nil {
+				rewards = append(rewards, reward)
+			}
 		}
 	}
 	bf.WriteUint8(uint8(len(rewards)))
-	bf.WriteBytes(temp.Data())
+	for _, r := range rewards {
+		bf.WriteUint8(r.ItemType)
+		bf.WriteUint16(r.ItemID)
+		bf.WriteUint16(r.Quantity)
+		bf.WriteUint8(0)
+	}
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 	addGachaItem(s, rewards)
 }
@@ -632,59 +678,59 @@ func handleMsgMhfExchangeItem2Fpoint(s *Session, p mhfpacket.MHFPacket) {
 	doAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
 }
 
+type FPointExchange struct {
+	ID       uint32 `db:"id"`
+	ItemType uint8  `db:"item_type"`
+	ItemID   uint16 `db:"item_id"`
+	Quantity uint16 `db:"quantity"`
+	FPoints  uint16 `db:"fpoints"`
+	Buyable  bool   `db:"buyable"`
+}
+
 func handleMsgMhfGetFpointExchangeList(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetFpointExchangeList)
-	resp := byteframe.NewByteFrame()
-	resp.WriteUint32(0)
-	var buyables, sellables uint16
-	var id uint32
-	var itemType uint8
-	var itemID, quantity, fPoints uint16
 
-	buyRows, err := s.server.db.Query("SELECT id,item_type,item_id,quantity,fpoints FROM fpoint_items WHERE trade_type=0")
+	bf := byteframe.NewByteFrame()
+	var exchange FPointExchange
+	var exchanges []FPointExchange
+	var buyables uint16
+	rows, err := s.server.db.Queryx(`SELECT id, item_type, item_id, quantity, fpoints, buyable FROM fpoint_items ORDER BY buyable DESC`)
 	if err == nil {
-		for buyRows.Next() {
-			err = buyRows.Scan(&id, &itemType, &itemID, &quantity, &fPoints)
+		for rows.Next() {
+			err = rows.StructScan(&exchange)
 			if err != nil {
 				continue
 			}
-			resp.WriteUint32(id)
-			resp.WriteUint16(0)
-			resp.WriteUint16(0)
-			resp.WriteUint16(0)
-			resp.WriteUint8(itemType)
-			resp.WriteUint16(itemID)
-			resp.WriteUint16(quantity)
-			resp.WriteUint16(fPoints)
-			buyables++
-		}
-	}
-
-	sellRows, err := s.server.db.Query("SELECT id,item_type,item_id,quantity,fpoints FROM fpoint_items WHERE trade_type=1")
-	if err == nil {
-		for sellRows.Next() {
-			err = sellRows.Scan(&id, &itemType, &itemID, &quantity, &fPoints)
-			if err != nil {
-				continue
+			if exchange.Buyable {
+				buyables++
 			}
-			resp.WriteUint32(id)
-			resp.WriteUint16(0)
-			resp.WriteUint16(0)
-			resp.WriteUint16(0)
-			resp.WriteUint8(itemType)
-			resp.WriteUint16(itemID)
-			resp.WriteUint16(quantity)
-			resp.WriteUint16(fPoints)
-			sellables++
+			exchanges = append(exchanges, exchange)
 		}
 	}
-	resp.Seek(0, 0)
-	resp.WriteUint16(buyables)
-	resp.WriteUint16(sellables)
+	if _config.ErupeConfig.RealClientMode <= _config.Z2 {
+		bf.WriteUint8(uint8(len(exchanges)))
+		bf.WriteUint8(uint8(buyables))
+	} else {
+		bf.WriteUint16(uint16(len(exchanges)))
+		bf.WriteUint16(buyables)
+	}
+	for _, e := range exchanges {
+		bf.WriteUint32(e.ID)
+		bf.WriteUint16(0)
+		bf.WriteUint16(0)
+		bf.WriteUint16(0)
+		bf.WriteUint8(e.ItemType)
+		bf.WriteUint16(e.ItemID)
+		bf.WriteUint16(e.Quantity)
+		bf.WriteUint16(e.FPoints)
+	}
 
-	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfPlayFreeGacha(s *Session, p mhfpacket.MHFPacket) {
-	// not sure this is used anywhere, free gachas use the MSG_MHF_PLAY_NORMAL_GACHA method in captures
+	pkt := p.(*mhfpacket.MsgMhfPlayFreeGacha)
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint32(1)
+	doAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
 }

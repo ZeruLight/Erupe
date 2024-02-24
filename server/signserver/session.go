@@ -37,7 +37,7 @@ type Session struct {
 func (s *Session) work() {
 	pkt, err := s.cryptConn.ReadPacket()
 
-	if s.server.erupeConfig.DevMode && s.server.erupeConfig.DevModeOptions.LogInboundMessages {
+	if s.server.erupeConfig.DebugOptions.LogInboundMessages {
 		fmt.Printf("\n[Client] -> [Server]\nData [%d bytes]:\n%s\n", len(pkt), hex.Dump(pkt))
 	}
 
@@ -54,7 +54,7 @@ func (s *Session) handlePacket(pkt []byte) error {
 	bf := byteframe.NewByteFrameFromBytes(pkt)
 	reqType := string(bf.ReadNullTerminatedBytes())
 	switch reqType[:len(reqType)-3] {
-	case "DLTSKEYSIGN:", "DSGN:":
+	case "DLTSKEYSIGN:", "DSGN:", "SIGN:":
 		s.handleDSGN(bf)
 	case "PS3SGN:":
 		s.client = PS3
@@ -78,7 +78,7 @@ func (s *Session) handlePacket(pkt []byte) error {
 		}
 	default:
 		s.logger.Warn("Unknown request", zap.String("reqType", reqType))
-		if s.server.erupeConfig.DevMode && s.server.erupeConfig.DevModeOptions.LogInboundMessages {
+		if s.server.erupeConfig.DebugOptions.LogInboundMessages {
 			fmt.Printf("\n[Client] -> [Server]\nData [%d bytes]:\n%s\n", len(pkt), hex.Dump(pkt))
 		}
 	}
@@ -102,7 +102,7 @@ func (s *Session) authenticate(username string, password string) {
 	default:
 		bf.WriteUint8(uint8(resp))
 	}
-	if s.server.erupeConfig.DevMode && s.server.erupeConfig.DevModeOptions.LogOutboundMessages {
+	if s.server.erupeConfig.DebugOptions.LogOutboundMessages {
 		fmt.Printf("\n[Server] -> [Client]\nData [%d bytes]:\n%s\n", len(bf.Data()), hex.Dump(bf.Data()))
 	}
 	_ = s.cryptConn.SendPacket(bf.Data())

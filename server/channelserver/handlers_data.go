@@ -1,7 +1,9 @@
 package channelserver
 
 import (
+	"erupe-ce/common/mhfmon"
 	"erupe-ce/common/stringsupport"
+	_config "erupe-ce/config"
 	"fmt"
 	"io"
 	"os"
@@ -44,6 +46,9 @@ func handleMsgMhfSavedata(s *Session, p mhfpacket.MHFPacket) {
 			doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 			return
 		}
+		if s.server.erupeConfig.SaveDumps.RawEnabled {
+			dumpSaveData(s, saveData, "raw-savedata")
+		}
 		s.logger.Info("Updating save with blob")
 		characterSaveData.decompSave = saveData
 	}
@@ -54,7 +59,7 @@ func handleMsgMhfSavedata(s *Session, p mhfpacket.MHFPacket) {
 		s.Name = characterSaveData.Name
 	}
 
-	if characterSaveData.Name == s.Name {
+	if characterSaveData.Name == s.Name || _config.ErupeConfig.RealClientMode <= _config.S10 {
 		characterSaveData.Save(s)
 		s.logger.Info("Wrote recompressed savedata back to DB.")
 	} else {
@@ -72,170 +77,47 @@ func handleMsgMhfSavedata(s *Session, p mhfpacket.MHFPacket) {
 	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
-func grpToGR(n uint32) uint16 {
-	var gr uint16
-	gr = 1
-	switch grp := int(n); {
-	case grp < 208750: // Up to 50
-		i := 0
-		for {
-			grp -= 500
-			if grp <= 500 {
-				if grp < 0 {
-					i--
+func grpToGR(n int) uint16 {
+	var gr int
+	a := []int{208750, 593400, 993400, 1400900, 2315900, 3340900, 4505900, 5850900, 7415900, 9230900, 11345900, 100000000}
+	b := []int{7850, 8000, 8150, 9150, 10250, 11650, 13450, 15650, 18150, 21150, 23950}
+	c := []int{51, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900}
+
+	for i := 0; i < len(a); i++ {
+		if n < a[i] {
+			if i == 0 {
+				for {
+					n -= 500
+					if n <= 500 {
+						if n < 0 {
+							i--
+						}
+						break
+					} else {
+						i++
+						for j := 0; j < i; j++ {
+							n -= 150
+						}
+					}
 				}
-				break
+				gr = i + 2
 			} else {
-				i++
-				for j := 0; j < i; j++ {
-					grp -= 150
-				}
+				n -= a[i-1]
+				gr = c[i-1]
+				gr += n / b[i-1]
 			}
+			break
 		}
-		gr = uint16(i + 2)
-		break
-	case grp < 593400: // 51-99
-		grp -= 208750
-		i := 51
-		for {
-			if grp < 7850 {
-				break
-			}
-			i++
-			grp -= 7850
-		}
-		gr = uint16(i)
-		break
-	case grp < 993400: // 100-149
-		grp -= 593400
-		i := 100
-		for {
-			if grp < 8000 {
-				break
-			}
-			i++
-			grp -= 8000
-		}
-		gr = uint16(i)
-		break
-	case grp < 1400900: // 150-199
-		grp -= 993400
-		i := 150
-		for {
-			if grp < 8150 {
-				break
-			}
-			i++
-			grp -= 8150
-		}
-		gr = uint16(i)
-		break
-	case grp < 2315900: // 200-299
-		grp -= 1400900
-		i := 200
-		for {
-			if grp < 9150 {
-				break
-			}
-			i++
-			grp -= 9150
-		}
-		gr = uint16(i)
-		break
-	case grp < 3340900: // 300-399
-		grp -= 2315900
-		i := 300
-		for {
-			if grp < 10250 {
-				break
-			}
-			i++
-			grp -= 10250
-		}
-		gr = uint16(i)
-		break
-	case grp < 4505900: // 400-499
-		grp -= 3340900
-		i := 400
-		for {
-			if grp < 11650 {
-				break
-			}
-			i++
-			grp -= 11650
-		}
-		gr = uint16(i)
-		break
-	case grp < 5850900: // 500-599
-		grp -= 4505900
-		i := 500
-		for {
-			if grp < 13450 {
-				break
-			}
-			i++
-			grp -= 13450
-		}
-		gr = uint16(i)
-		break
-	case grp < 7415900: // 600-699
-		grp -= 5850900
-		i := 600
-		for {
-			if grp < 15650 {
-				break
-			}
-			i++
-			grp -= 15650
-		}
-		gr = uint16(i)
-		break
-	case grp < 9230900: // 700-799
-		grp -= 7415900
-		i := 700
-		for {
-			if grp < 18150 {
-				break
-			}
-			i++
-			grp -= 18150
-		}
-		gr = uint16(i)
-		break
-	case grp < 11345900: // 800-899
-		grp -= 9230900
-		i := 800
-		for {
-			if grp < 21150 {
-				break
-			}
-			i++
-			grp -= 21150
-		}
-		gr = uint16(i)
-		break
-	default: // 900+
-		grp -= 11345900
-		i := 900
-		for {
-			if grp < 23950 {
-				break
-			}
-			i++
-			grp -= 23950
-		}
-		gr = uint16(i)
-		break
 	}
-	return gr
+	return uint16(gr)
 }
 
 func dumpSaveData(s *Session, data []byte, suffix string) {
-	if !s.server.erupeConfig.DevModeOptions.SaveDumps.Enabled {
+	if !s.server.erupeConfig.SaveDumps.Enabled {
 		return
 	} else {
-		dir := filepath.Join(s.server.erupeConfig.DevModeOptions.SaveDumps.OutputDir, fmt.Sprintf("%d", s.charID))
-		path := filepath.Join(s.server.erupeConfig.DevModeOptions.SaveDumps.OutputDir, fmt.Sprintf("%d", s.charID), fmt.Sprintf("%d_%s.bin", s.charID, suffix))
+		dir := filepath.Join(s.server.erupeConfig.SaveDumps.OutputDir, fmt.Sprintf("%d", s.charID))
+		path := filepath.Join(s.server.erupeConfig.SaveDumps.OutputDir, fmt.Sprintf("%d", s.charID), fmt.Sprintf("%d_%s.bin", s.charID, suffix))
 		_, err := os.Stat(dir)
 		if err != nil {
 			if os.IsNotExist(err) {
@@ -301,7 +183,7 @@ func handleMsgMhfLoadScenarioData(s *Session, p mhfpacket.MHFPacket) {
 	var scenarioData []byte
 	bf := byteframe.NewByteFrame()
 	err := s.server.db.QueryRow("SELECT scenariodata FROM characters WHERE id = $1", s.charID).Scan(&scenarioData)
-	if err != nil {
+	if err != nil || len(scenarioData) < 10 {
 		s.logger.Error("Failed to load scenariodata", zap.Error(err))
 		bf.WriteBytes(make([]byte, 10))
 	} else {
@@ -1161,34 +1043,34 @@ func handleMsgMhfGetPaperData(s *Session, p mhfpacket.MHFPacket) {
 			{1105, 1, 10, 500, 0, 0, 0},
 			{1105, 2, 10, 500, 0, 0, 0},
 			// setServerBoss
-			{2001, 1, 17, 58, 0, 6, 700},
-			{2001, 1, 20, 58, 0, 3, 200},
-			{2001, 1, 22, 58, 0, 7, 250},
-			{2001, 1, 27, 58, 0, 1, 100},
-			{2001, 1, 53, 58, 0, 8, 1000},
-			{2001, 1, 67, 58, 0, 9, 500},
-			{2001, 1, 68, 58, 0, 2, 150},
-			{2001, 1, 74, 58, 0, 4, 200},
-			{2001, 1, 75, 58, 0, 5, 500},
-			{2001, 1, 76, 58, 0, 10, 800},
-			{2001, 1, 80, 58, 0, 11, 900},
-			{2001, 1, 89, 58, 0, 12, 600},
-			{2001, 2, 17, 60, 0, 6, 700},
-			{2001, 2, 20, 60, 0, 3, 200},
-			{2001, 2, 22, 60, 0, 7, 350},
-			{2001, 2, 27, 60, 0, 1, 100},
-			{2001, 2, 39, 60, 0, 13, 200},
-			{2001, 2, 40, 60, 0, 15, 600},
-			{2001, 2, 53, 60, 0, 8, 1000},
-			{2001, 2, 67, 60, 0, 2, 500},
-			{2001, 2, 68, 60, 0, 9, 150},
-			{2001, 2, 74, 60, 0, 4, 200},
-			{2001, 2, 75, 60, 0, 5, 500},
-			{2001, 2, 76, 60, 0, 10, 800},
-			{2001, 2, 80, 60, 0, 11, 900},
-			{2001, 2, 81, 60, 0, 14, 900},
-			{2001, 2, 89, 60, 0, 12, 600},
-			{2001, 2, 94, 60, 0, 16, 1000},
+			{2001, 1, mhfmon.Gravios, 58, 0, 6, 700},
+			{2001, 1, mhfmon.Gypceros, 58, 0, 3, 200},
+			{2001, 1, mhfmon.Basarios, 58, 0, 7, 250},
+			{2001, 1, mhfmon.Velocidrome, 58, 0, 1, 100},
+			{2001, 1, mhfmon.Rajang, 58, 0, 8, 1000},
+			{2001, 1, mhfmon.ShogunCeanataur, 58, 0, 9, 500},
+			{2001, 1, mhfmon.Bulldrome, 58, 0, 2, 150},
+			{2001, 1, mhfmon.Hypnocatrice, 58, 0, 4, 200},
+			{2001, 1, mhfmon.Lavasioth, 58, 0, 5, 500},
+			{2001, 1, mhfmon.Tigrex, 58, 0, 10, 800},
+			{2001, 1, mhfmon.Espinas, 58, 0, 11, 900},
+			{2001, 1, mhfmon.Pariapuria, 58, 0, 12, 600},
+			{2001, 2, mhfmon.Gravios, 60, 0, 6, 700},
+			{2001, 2, mhfmon.Gypceros, 60, 0, 3, 200},
+			{2001, 2, mhfmon.Basarios, 60, 0, 7, 350},
+			{2001, 2, mhfmon.Velocidrome, 60, 0, 1, 100},
+			{2001, 2, mhfmon.PurpleGypceros, 60, 0, 13, 200},
+			{2001, 2, mhfmon.YianGaruga, 60, 0, 15, 600},
+			{2001, 2, mhfmon.Rajang, 60, 0, 8, 1000},
+			{2001, 2, mhfmon.ShogunCeanataur, 60, 0, 2, 500},
+			{2001, 2, mhfmon.Bulldrome, 60, 0, 9, 150},
+			{2001, 2, mhfmon.Hypnocatrice, 60, 0, 4, 200},
+			{2001, 2, mhfmon.Lavasioth, 60, 0, 5, 500},
+			{2001, 2, mhfmon.Tigrex, 60, 0, 10, 800},
+			{2001, 2, mhfmon.Espinas, 60, 0, 11, 900},
+			{2001, 2, mhfmon.BurningEspinas, 60, 0, 14, 900},
+			{2001, 2, mhfmon.Pariapuria, 60, 0, 12, 600},
+			{2001, 2, mhfmon.Dyuragaua, 60, 0, 16, 1000},
 		}
 	case 6:
 		paperData = []PaperData{

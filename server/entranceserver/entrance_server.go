@@ -111,7 +111,7 @@ func (s *Server) handleEntranceServerConnection(conn net.Conn) {
 		return
 	}
 
-	if s.erupeConfig.DevMode && s.erupeConfig.DevModeOptions.LogInboundMessages {
+	if s.erupeConfig.DebugOptions.LogInboundMessages {
 		fmt.Printf("[Client] -> [Server]\nData [%d bytes]:\n%s\n", len(pkt), hex.Dump(pkt))
 	}
 

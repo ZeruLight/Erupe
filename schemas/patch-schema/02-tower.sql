@@ -7,8 +7,8 @@ CREATE TABLE IF NOT EXISTS tower (
     tsp INT,
     block1 INT,
     block2 INT,
-    skills TEXT DEFAULT '0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0',
-    gems TEXT DEFAULT '0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0'
+    skills TEXT,
+    gems TEXT
 );
 
 ALTER TABLE IF EXISTS guild_characters

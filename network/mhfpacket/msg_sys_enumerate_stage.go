@@ -2,8 +2,6 @@ package mhfpacket
 
 import (
 	"errors"
-	"erupe-ce/common/stringsupport"
-
 	"erupe-ce/common/byteframe"
 	"erupe-ce/network"
 	"erupe-ce/network/clientctx"
@@ -12,8 +10,7 @@ import (
 // MsgSysEnumerateStage represents the MSG_SYS_ENUMERATE_STAGE
 type MsgSysEnumerateStage struct {
 	AckHandle   uint32
-	Unk0        uint8  // Hardcoded 1 in the binary
-	StagePrefix string // NULL terminated string.
+	StagePrefix string
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -24,9 +21,9 @@ func (m *MsgSysEnumerateStage) Opcode() network.PacketID {
 // Parse parses the packet from binary
 func (m *MsgSysEnumerateStage) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
-	m.Unk0 = bf.ReadUint8()
-	bf.ReadUint8()
-	m.StagePrefix = stringsupport.SJISToUTF8(bf.ReadNullTerminatedBytes())
+	bf.ReadUint8() // Always 1
+	bf.ReadUint8() // Length StagePrefix
+	m.StagePrefix = string(bf.ReadNullTerminatedBytes())
 	return nil
 }
 

@@ -1,6 +1,7 @@
 package mhfcourse
 
 import (
+	_config "erupe-ce/config"
 	"math"
 	"sort"
 	"time"
@@ -66,12 +67,15 @@ func CourseExists(ID uint16, c []Course) bool {
 
 // GetCourseStruct returns a slice of Course(s) from a rights integer
 func GetCourseStruct(rights uint32) ([]Course, uint32) {
-	resp := []Course{{ID: 1}, {ID: 23}, {ID: 24}}
+	var resp []Course
+	for _, c := range _config.ErupeConfig.DefaultCourses {
+		resp = append(resp, Course{ID: c})
+	}
 	s := Courses()
 	sort.Slice(s, func(i, j int) bool {
 		return s[i].ID > s[j].ID
 	})
-	var normalCafeCourseSet, netcafeCourseSet bool
+	var normalCafeCourseSet, netcafeCourseSet, hidenCourseSet bool
 	for _, course := range s {
 		if rights-course.Value() < 0x80000000 {
 			switch course.ID {
@@ -88,6 +92,12 @@ func GetCourseStruct(rights uint32) ([]Course, uint32) {
 				}
 				netcafeCourseSet = true
 				resp = append(resp, Course{ID: 30})
+			case 10:
+				if hidenCourseSet {
+					break
+				}
+				hidenCourseSet = true
+				resp = append(resp, Course{ID: 31})
 			}
 			course.Expiry = time.Date(2030, 1, 1, 0, 0, 0, 0, time.FixedZone("UTC+9", 9*60*60))
 			resp = append(resp, course)

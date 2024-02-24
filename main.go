@@ -26,7 +26,6 @@ func cleanDB(db *sqlx.DB) {
 	_ = db.MustExec("DELETE FROM guild_characters")
 	_ = db.MustExec("DELETE FROM guilds")
 	_ = db.MustExec("DELETE FROM characters")
-	_ = db.MustExec("DELETE FROM sign_sessions")
 	_ = db.MustExec("DELETE FROM users")
 }
 
@@ -46,11 +45,7 @@ func main() {
 
 	var zapLogger *zap.Logger
 	config := _config.ErupeConfig
-	if config.DevMode {
-		zapLogger, _ = zap.NewDevelopment()
-	} else {
-		zapLogger, _ = zap.NewProduction()
-	}
+	zapLogger, _ = zap.NewDevelopment()
 
 	defer zapLogger.Sync()
 	logger := zapLogger.Named("main")
@@ -96,6 +91,12 @@ func main() {
 		}
 
 		discordBot = bot
+
+		_, err = discordBot.Session.ApplicationCommandBulkOverwrite(discordBot.Session.State.User.ID, "", discordbot.Commands)
+		if err != nil {
+			preventClose(fmt.Sprintf("Discord: Failed to start, %s", err.Error()))
+		}
+
 		logger.Info("Discord: Started successfully")
 	} else {
 		logger.Info("Discord: Disabled")
@@ -124,11 +125,14 @@ func main() {
 	logger.Info("Database: Started successfully")
 
 	// Clear stale data
-	_ = db.MustExec("DELETE FROM sign_sessions")
+	if config.DebugOptions.ProxyPort == 0 {
+		_ = db.MustExec("DELETE FROM sign_sessions")
+	}
 	_ = db.MustExec("DELETE FROM servers")
+	_ = db.MustExec(`UPDATE guild_characters SET treasure_hunt=NULL`)
 
 	// Clean the DB if the option is on.
-	if config.DevMode && config.DevModeOptions.CleanDB {
+	if config.DebugOptions.CleanDB {
 		logger.Info("Database: Started clearing...")
 		cleanDB(db)
 		logger.Info("Database: Finished clearing")

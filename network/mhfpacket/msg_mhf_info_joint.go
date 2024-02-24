@@ -12,7 +12,6 @@ import (
 type MsgMhfInfoJoint struct {
 	AckHandle  uint32
 	AllianceID uint32
-	Unk        uint32
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -24,7 +23,7 @@ func (m *MsgMhfInfoJoint) Opcode() network.PacketID {
 func (m *MsgMhfInfoJoint) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
 	m.AllianceID = bf.ReadUint32()
-	m.Unk = bf.ReadUint32()
+	bf.ReadUint32() // Zeroed
 	return nil
 }
 

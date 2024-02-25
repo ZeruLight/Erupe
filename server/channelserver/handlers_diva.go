@@ -4,6 +4,7 @@ import (
 	"database/sql/driver"
 	"encoding/hex"
 	"encoding/json"
+	"erupe-ce/common/mhfmon"
 	"erupe-ce/common/stringsupport"
 	_config "erupe-ce/config"
 	"math/rand"
@@ -301,119 +302,119 @@ func handleMsgMhfGetUdMonsterPoint(s *Session, p mhfpacket.MHFPacket) {
 		MID    uint8
 		Points uint16
 	}{
-		{MID: 0x01, Points: 0x3C}, // em1 Rathian
-		{MID: 0x02, Points: 0x5A}, // em2 Fatalis
-		{MID: 0x06, Points: 0x14}, // em6 Yian Kut-Ku
-		{MID: 0x07, Points: 0x50}, // em7 Lao-Shan Lung
-		{MID: 0x08, Points: 0x28}, // em8 Cephadrome
-		{MID: 0x0B, Points: 0x3C}, // em11 Rathalos
-		{MID: 0x0E, Points: 0x3C}, // em14 Diablos
-		{MID: 0x0F, Points: 0x46}, // em15 Khezu
-		{MID: 0x11, Points: 0x46}, // em17 Gravios
-		{MID: 0x14, Points: 0x28}, // em20 Gypceros
-		{MID: 0x15, Points: 0x3C}, // em21 Plesioth
-		{MID: 0x16, Points: 0x32}, // em22 Basarios
-		{MID: 0x1A, Points: 0x32}, // em26 Monoblos
-		{MID: 0x1B, Points: 0x0A}, // em27 Velocidrome
-		{MID: 0x1C, Points: 0x0A}, // em28 Gendrome
-		{MID: 0x1F, Points: 0x0A}, // em31 Iodrome
-		{MID: 0x21, Points: 0x50}, // em33 Kirin
-		{MID: 0x24, Points: 0x64}, // em36 Crimson Fatalis
-		{MID: 0x25, Points: 0x3C}, // em37 Pink Rathian
-		{MID: 0x26, Points: 0x1E}, // em38 Blue Yian Kut-Ku
-		{MID: 0x27, Points: 0x28}, // em39 Purple Gypceros
-		{MID: 0x28, Points: 0x50}, // em40 Yian Garuga
-		{MID: 0x29, Points: 0x5A}, // em41 Silver Rathalos
-		{MID: 0x2A, Points: 0x50}, // em42 Gold Rathian
-		{MID: 0x2B, Points: 0x3C}, // em43 Black Diablos
-		{MID: 0x2C, Points: 0x3C}, // em44 White Monoblos
-		{MID: 0x2D, Points: 0x46}, // em45 Red Khezu
-		{MID: 0x2E, Points: 0x3C}, // em46 Green Plesioth
-		{MID: 0x2F, Points: 0x50}, // em47 Black Gravios
-		{MID: 0x30, Points: 0x1E}, // em48 Daimyo Hermitaur
-		{MID: 0x31, Points: 0x3C}, // em49 Azure Rathalos
-		{MID: 0x32, Points: 0x50}, // em50 Ashen Lao-Shan Lung
-		{MID: 0x33, Points: 0x3C}, // em51 Blangonga
-		{MID: 0x34, Points: 0x28}, // em52 Congalala
-		{MID: 0x35, Points: 0x50}, // em53 Rajang
-		{MID: 0x36, Points: 0x6E}, // em54 Kushala Daora
-		{MID: 0x37, Points: 0x50}, // em55 Shen Gaoren
-		{MID: 0x3A, Points: 0x50}, // em58 Yama Tsukami
-		{MID: 0x3B, Points: 0x6E}, // em59 Chameleos
-		{MID: 0x40, Points: 0x64}, // em64 Lunastra
-		{MID: 0x41, Points: 0x6E}, // em65 Teostra
-		{MID: 0x43, Points: 0x28}, // em67 Shogun Ceanataur
-		{MID: 0x44, Points: 0x0A}, // em68 Bulldrome
-		{MID: 0x47, Points: 0x6E}, // em71 White Fatalis
-		{MID: 0x4A, Points: 0xFA}, // em74 Hypnocatrice
-		{MID: 0x4B, Points: 0xFA}, // em75 Lavasioth
-		{MID: 0x4C, Points: 0x46}, // em76 Tigrex
-		{MID: 0x4D, Points: 0x64}, // em77 Akantor
-		{MID: 0x4E, Points: 0xFA}, // em78 Bright Hypnoc
-		{MID: 0x4F, Points: 0xFA}, // em79 Lavasioth Subspecies
-		{MID: 0x50, Points: 0xFA}, // em80 Espinas
-		{MID: 0x51, Points: 0xFA}, // em81 Orange Espinas
-		{MID: 0x52, Points: 0xFA}, // em82 White Hypnoc
-		{MID: 0x53, Points: 0xFA}, // em83 Akura Vashimu
-		{MID: 0x54, Points: 0xFA}, // em84 Akura Jebia
-		{MID: 0x55, Points: 0xFA}, // em85 Berukyurosu
-		{MID: 0x59, Points: 0xFA}, // em89 Pariapuria
-		{MID: 0x5A, Points: 0xFA}, // em90 White Espinas
-		{MID: 0x5B, Points: 0xFA}, // em91 Kamu Orugaron
-		{MID: 0x5C, Points: 0xFA}, // em92 Nono Orugaron
-		{MID: 0x5E, Points: 0xFA}, // em94 Dyuragaua
-		{MID: 0x5F, Points: 0xFA}, // em95 Doragyurosu
-		{MID: 0x60, Points: 0xFA}, // em96 Gurenzeburu
-		{MID: 0x63, Points: 0xFA}, // em99 Rukodiora
-		{MID: 0x65, Points: 0xFA}, // em101 Gogomoa
-		{MID: 0x67, Points: 0xFA}, // em103 Taikun Zamuza
-		{MID: 0x68, Points: 0xFA}, // em104 Abiorugu
-		{MID: 0x69, Points: 0xFA}, // em105 Kuarusepusu
-		{MID: 0x6A, Points: 0xFA}, // em106 Odibatorasu
-		{MID: 0x6B, Points: 0xFA}, // em107 Disufiroa
-		{MID: 0x6C, Points: 0xFA}, // em108 Rebidiora
-		{MID: 0x6D, Points: 0xFA}, // em109 Anorupatisu
-		{MID: 0x6E, Points: 0xFA}, // em110 Hyujikiki
-		{MID: 0x6F, Points: 0xFA}, // em111 Midogaron
-		{MID: 0x70, Points: 0xFA}, // em112 Giaorugu
-		{MID: 0x72, Points: 0xFA}, // em114 Farunokku
-		{MID: 0x73, Points: 0xFA}, // em115 Pokaradon
-		{MID: 0x74, Points: 0xFA}, // em116 Shantien
-		{MID: 0x77, Points: 0xFA}, // em119 Goruganosu
-		{MID: 0x78, Points: 0xFA}, // em120 Aruganosu
-		{MID: 0x79, Points: 0xFA}, // em121 Baruragaru
-		{MID: 0x7A, Points: 0xFA}, // em122 Zerureusu
-		{MID: 0x7B, Points: 0xFA}, // em123 Gougarf
-		{MID: 0x7D, Points: 0xFA}, // em125 Forokururu
-		{MID: 0x7E, Points: 0xFA}, // em126 Meraginasu
-		{MID: 0x7F, Points: 0xFA}, // em127 Diorekkusu
-		{MID: 0x80, Points: 0xFA}, // em128 Garuba Daora
-		{MID: 0x81, Points: 0xFA}, // em129 Inagami
-		{MID: 0x82, Points: 0xFA}, // em130 Varusaburosu
-		{MID: 0x83, Points: 0xFA}, // em131 Poborubarumu
-		{MID: 0x8B, Points: 0xFA}, // em139 Gureadomosu
-		{MID: 0x8C, Points: 0xFA}, // em140 Harudomerugu
-		{MID: 0x8D, Points: 0xFA}, // em141 Toridcless
-		{MID: 0x8E, Points: 0xFA}, // em142 Gasurabazura
-		{MID: 0x90, Points: 0xFA}, // em144 Yama Kurai
-		{MID: 0x92, Points: 0x78}, // em146 Zinogre
-		{MID: 0x93, Points: 0x78}, // em147 Deviljho
-		{MID: 0x94, Points: 0x78}, // em148 Brachydios
-		{MID: 0x96, Points: 0xFA}, // em150 Toa Tesukatora
-		{MID: 0x97, Points: 0x78}, // em151 Barioth
-		{MID: 0x98, Points: 0x78}, // em152 Uragaan
-		{MID: 0x99, Points: 0x78}, // em153 Stygian Zinogre
-		{MID: 0x9A, Points: 0xFA}, // em154 Guanzorumu
-		{MID: 0x9E, Points: 0xFA}, // em158 Voljang
-		{MID: 0x9F, Points: 0x78}, // em159 Nargacuga
-		{MID: 0xA0, Points: 0xFA}, // em160 Keoaruboru
-		{MID: 0xA1, Points: 0xFA}, // em161 Zenaserisu
-		{MID: 0xA2, Points: 0x78}, // em162 Gore Magala
-		{MID: 0xA4, Points: 0x78}, // em164 Shagaru Magala
-		{MID: 0xA5, Points: 0x78}, // em165 Amatsu
-		{MID: 0xA6, Points: 0xFA}, // em166 Elzelion
-		{MID: 0xA9, Points: 0x78}, // em169 Seregios
-		{MID: 0xAA, Points: 0xFA}, // em170 Bogabadorumu
+		{MID: mhfmon.Rathian, Points: 60},
+		{MID: mhfmon.Fatalis, Points: 90},
+		{MID: mhfmon.YianKutKu, Points: 20},
+		{MID: mhfmon.LaoShanLung, Points: 80},
+		{MID: mhfmon.Cephadrome, Points: 40},
+		{MID: mhfmon.Rathalos, Points: 60},
+		{MID: mhfmon.Diablos, Points: 60},
+		{MID: mhfmon.Khezu, Points: 70},
+		{MID: mhfmon.Gravios, Points: 70},
+		{MID: mhfmon.Gypceros, Points: 40},
+		{MID: mhfmon.Plesioth, Points: 60},
+		{MID: mhfmon.Basarios, Points: 50},
+		{MID: mhfmon.Monoblos, Points: 50},
+		{MID: mhfmon.Velocidrome, Points: 10},
+		{MID: mhfmon.Gendrome, Points: 10},
+		{MID: mhfmon.Iodrome, Points: 10},
+		{MID: mhfmon.Kirin, Points: 80},
+		{MID: mhfmon.CrimsonFatalis, Points: 100},
+		{MID: mhfmon.PinkRathian, Points: 60},
+		{MID: mhfmon.BlueYianKutKu, Points: 30},
+		{MID: mhfmon.PurpleGypceros, Points: 40},
+		{MID: mhfmon.YianGaruga, Points: 80},
+		{MID: mhfmon.SilverRathalos, Points: 90},
+		{MID: mhfmon.GoldRathian, Points: 80},
+		{MID: mhfmon.BlackDiablos, Points: 60},
+		{MID: mhfmon.WhiteMonoblos, Points: 60},
+		{MID: mhfmon.RedKhezu, Points: 70},
+		{MID: mhfmon.GreenPlesioth, Points: 60},
+		{MID: mhfmon.BlackGravios, Points: 80},
+		{MID: mhfmon.DaimyoHermitaur, Points: 30},
+		{MID: mhfmon.AzureRathalos, Points: 60},
+		{MID: mhfmon.AshenLaoShanLung, Points: 80},
+		{MID: mhfmon.Blangonga, Points: 60},
+		{MID: mhfmon.Congalala, Points: 40},
+		{MID: mhfmon.Rajang, Points: 80},
+		{MID: mhfmon.KushalaDaora, Points: 110},
+		{MID: mhfmon.ShenGaoren, Points: 80},
+		{MID: mhfmon.YamaTsukami, Points: 80},
+		{MID: mhfmon.Chameleos, Points: 110},
+		{MID: mhfmon.Lunastra, Points: 100},
+		{MID: mhfmon.Teostra, Points: 110},
+		{MID: mhfmon.ShogunCeanataur, Points: 40},
+		{MID: mhfmon.Bulldrome, Points: 10},
+		{MID: mhfmon.WhiteFatalis, Points: 110},
+		{MID: mhfmon.Hypnocatrice, Points: 250},
+		{MID: mhfmon.Lavasioth, Points: 250},
+		{MID: mhfmon.Tigrex, Points: 70},
+		{MID: mhfmon.Akantor, Points: 100},
+		{MID: mhfmon.BrightHypnoc, Points: 250},
+		{MID: mhfmon.RedLavasioth, Points: 250},
+		{MID: mhfmon.Espinas, Points: 250},
+		{MID: mhfmon.BurningEspinas, Points: 250},
+		{MID: mhfmon.WhiteHypnoc, Points: 250},
+		{MID: mhfmon.AqraVashimu, Points: 250},
+		{MID: mhfmon.AqraJebia, Points: 250},
+		{MID: mhfmon.Berukyurosu, Points: 250},
+		{MID: mhfmon.Pariapuria, Points: 250},
+		{MID: mhfmon.PearlEspinas, Points: 250},
+		{MID: mhfmon.KamuOrugaron, Points: 250},
+		{MID: mhfmon.NonoOrugaron, Points: 250},
+		{MID: mhfmon.Dyuragaua, Points: 250},
+		{MID: mhfmon.Doragyurosu, Points: 250},
+		{MID: mhfmon.Gurenzeburu, Points: 250},
+		{MID: mhfmon.Rukodiora, Points: 250},
+		{MID: mhfmon.Gogomoa, Points: 250},
+		{MID: mhfmon.TaikunZamuza, Points: 250},
+		{MID: mhfmon.Abiorugu, Points: 250},
+		{MID: mhfmon.Kuarusepusu, Points: 250},
+		{MID: mhfmon.Odibatorasu, Points: 250},
+		{MID: mhfmon.Disufiroa, Points: 250},
+		{MID: mhfmon.Rebidiora, Points: 250},
+		{MID: mhfmon.Anorupatisu, Points: 250},
+		{MID: mhfmon.Hyujikiki, Points: 250},
+		{MID: mhfmon.Midogaron, Points: 250},
+		{MID: mhfmon.Giaorugu, Points: 250},
+		{MID: mhfmon.Farunokku, Points: 250},
+		{MID: mhfmon.Pokaradon, Points: 250},
+		{MID: mhfmon.Shantien, Points: 250},
+		{MID: mhfmon.Goruganosu, Points: 250},
+		{MID: mhfmon.Aruganosu, Points: 250},
+		{MID: mhfmon.Baruragaru, Points: 250},
+		{MID: mhfmon.Zerureusu, Points: 250},
+		{MID: mhfmon.Gougarf, Points: 250},
+		{MID: mhfmon.Forokururu, Points: 250},
+		{MID: mhfmon.Meraginasu, Points: 250},
+		{MID: mhfmon.Diorex, Points: 250},
+		{MID: mhfmon.GarubaDaora, Points: 250},
+		{MID: mhfmon.Inagami, Points: 250},
+		{MID: mhfmon.Varusaburosu, Points: 250},
+		{MID: mhfmon.Poborubarumu, Points: 250},
+		{MID: mhfmon.Gureadomosu, Points: 250},
+		{MID: mhfmon.Harudomerugu, Points: 250},
+		{MID: mhfmon.Toridcless, Points: 250},
+		{MID: mhfmon.Gasurabazura, Points: 250},
+		{MID: mhfmon.YamaKurai, Points: 250},
+		{MID: mhfmon.Zinogre, Points: 120},
+		{MID: mhfmon.Deviljho, Points: 120},
+		{MID: mhfmon.Brachydios, Points: 120},
+		{MID: mhfmon.ToaTesukatora, Points: 250},
+		{MID: mhfmon.Barioth, Points: 120},
+		{MID: mhfmon.Uragaan, Points: 120},
+		{MID: mhfmon.StygianZinogre, Points: 120},
+		{MID: mhfmon.Guanzorumu, Points: 250},
+		{MID: mhfmon.Voljang, Points: 250},
+		{MID: mhfmon.Nargacuga, Points: 120},
+		{MID: mhfmon.Keoaruboru, Points: 250},
+		{MID: mhfmon.Zenaserisu, Points: 250},
+		{MID: mhfmon.GoreMagala, Points: 120},
+		{MID: mhfmon.ShagaruMagala, Points: 120},
+		{MID: mhfmon.Amatsu, Points: 120},
+		{MID: mhfmon.Eruzerion, Points: 250},
+		{MID: mhfmon.Seregios, Points: 120},
+		{MID: mhfmon.Bogabadorumu, Points: 250},
 	}
 
 	resp := byteframe.NewByteFrame()

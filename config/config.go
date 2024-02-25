@@ -132,7 +132,8 @@ type CapLinkOptions struct {
 
 // GameplayOptions has various gameplay modifiers
 type GameplayOptions struct {
-	FeaturedWeapons                int       // Number of Active Feature weapons to generate daily
+	MinFeatureWeapons              int       // Minimum number of Active Feature weapons to generate daily
+	MaxFeatureWeapons              int       // Maximum number of Active Feature weapons to generate daily
 	MaximumNP                      int       // Maximum number of NP held by a player
 	MaximumRP                      uint16    // Maximum number of RP held by a player
 	MaximumFP                      uint32    // Maximum number of FP held by a player

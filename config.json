@@ -46,7 +46,8 @@
     }
   },
   "GameplayOptions": {
-    "FeaturedWeapons": 1,
+    "MinFeatureWeapons": 0,
+    "MaxFeatureWeapons": 1,
     "MaximumNP": 100000,
     "MaximumRP": 50000,
     "MaximumFP": 120000,

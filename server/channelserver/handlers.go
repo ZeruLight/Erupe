@@ -7,6 +7,7 @@ import (
 	"erupe-ce/common/mhfmon"
 	ps "erupe-ce/common/pascalstring"
 	"erupe-ce/common/stringsupport"
+	"erupe-ce/common/token"
 	_config "erupe-ce/config"
 	"fmt"
 	"io"
@@ -818,93 +819,53 @@ func handleMsgMhfEnumerateOrder(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfGetExtraInfo(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfEnumerateUnionItem(s *Session, p mhfpacket.MHFPacket) {
-	pkt := p.(*mhfpacket.MsgMhfEnumerateUnionItem)
-	var boxContents []byte
-	bf := byteframe.NewByteFrame()
-	err := s.server.db.QueryRow("SELECT item_box FROM users, characters WHERE characters.id = $1 AND users.id = characters.user_id", int(s.charID)).Scan(&boxContents)
-	if err != nil {
-		s.logger.Error("Failed to get shared item box contents from db", zap.Error(err))
-		bf.WriteBytes(make([]byte, 4))
-	} else {
-		if len(boxContents) == 0 {
-			bf.WriteBytes(make([]byte, 4))
-		} else {
-			amount := len(boxContents) / 4
-			bf.WriteUint16(uint16(amount))
-			bf.WriteUint32(0x00)
-			bf.WriteUint16(0x00)
-			for i := 0; i < amount; i++ {
-				bf.WriteUint32(binary.BigEndian.Uint32(boxContents[i*4 : i*4+4]))
-				if i+1 != amount {
-					bf.WriteUint64(0x00)
-				}
-			}
+func userGetItems(s *Session) []mhfitem.MHFItemStack {
+	var data []byte
+	var items []mhfitem.MHFItemStack
+	s.server.db.QueryRow(`SELECT item_box FROM users u WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$1)`, s.charID).Scan(&data)
+	if len(data) > 0 {
+		box := byteframe.NewByteFrameFromBytes(data)
+		numStacks := box.ReadUint16()
+		box.ReadUint16() // Unused
+		for i := 0; i < int(numStacks); i++ {
+			items = append(items, mhfitem.ReadWarehouseItem(box))
 		}
 	}
+	return items
+}
+
+func handleMsgMhfEnumerateUnionItem(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfEnumerateUnionItem)
+	items := userGetItems(s)
+	bf := byteframe.NewByteFrame()
+	bf.WriteBytes(mhfitem.SerializeWarehouseItems(items))
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfUpdateUnionItem(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfUpdateUnionItem)
-	// Get item cache from DB
-	var boxContents []byte
-	var oldItems []Item
-
-	err := s.server.db.QueryRow("SELECT item_box FROM users, characters WHERE characters.id = $1 AND users.id = characters.user_id", int(s.charID)).Scan(&boxContents)
-	if err != nil {
-		s.logger.Error("Failed to get shared item box contents from db", zap.Error(err))
-		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
-		return
-	} else {
-		amount := len(boxContents) / 4
-		oldItems = make([]Item, amount)
-		for i := 0; i < amount; i++ {
-			oldItems[i].ItemId = binary.BigEndian.Uint16(boxContents[i*4 : i*4+2])
-			oldItems[i].Amount = binary.BigEndian.Uint16(boxContents[i*4+2 : i*4+4])
-		}
-	}
-
-	// Update item stacks
-	newItems := make([]Item, len(oldItems))
-	copy(newItems, oldItems)
-	for i := 0; i < len(pkt.Items); i++ {
-		for j := 0; j <= len(oldItems); j++ {
-			if j == len(oldItems) {
-				var newItem Item
-				newItem.ItemId = pkt.Items[i].ItemID
-				newItem.Amount = pkt.Items[i].Amount
-				newItems = append(newItems, newItem)
-				break
-			}
-			if pkt.Items[i].ItemID == oldItems[j].ItemId {
-				newItems[j].Amount = pkt.Items[i].Amount
-				break
+	// o = old, u = update, f = final
+	var fItems []mhfitem.MHFItemStack
+	oItems := userGetItems(s)
+	for _, uItem := range pkt.UpdatedItems {
+		exists := false
+		for i := range oItems {
+			if oItems[i].WarehouseID == uItem.WarehouseID {
+				exists = true
+				oItems[i].Quantity = uItem.Quantity
 			}
 		}
-	}
-
-	// Delete empty item stacks
-	for i := len(newItems) - 1; i >= 0; i-- {
-		if int(newItems[i].Amount) == 0 {
-			copy(newItems[i:], newItems[i+1:])
-			newItems[len(newItems)-1] = make([]Item, 1)[0]
-			newItems = newItems[:len(newItems)-1]
+		if !exists {
+			uItem.WarehouseID = token.RNG.Uint32()
+			fItems = append(fItems, uItem)
 		}
 	}
-
-	// Create new item cache
-	bf := byteframe.NewByteFrame()
-	for i := 0; i < len(newItems); i++ {
-		bf.WriteUint16(newItems[i].ItemId)
-		bf.WriteUint16(newItems[i].Amount)
+	for _, oItem := range oItems {
+		if oItem.Quantity > 0 {
+			fItems = append(fItems, oItem)
+		}
 	}
-
-	// Upload new item cache
-	_, err = s.server.db.Exec("UPDATE users SET item_box = $1 FROM characters WHERE  users.id = characters.user_id AND characters.id = $2", bf.Data(), int(s.charID))
-	if err != nil {
-		s.logger.Error("Failed to update shared item box contents in db", zap.Error(err))
-	}
+	s.server.db.Exec(`UPDATE users u SET item_box=$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)`, mhfitem.SerializeWarehouseItems(fItems), s.charID)
 	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 

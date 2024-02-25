@@ -28,7 +28,8 @@ func (m *MsgMhfUpdateWarehouse) Parse(bf *byteframe.ByteFrame, ctx *clientctx.Cl
 	m.BoxType = bf.ReadUint8()
 	m.BoxIndex = bf.ReadUint8()
 	changes := int(bf.ReadUint16())
-	bf.ReadBytes(2) // Zeroed
+	bf.ReadUint8() // Zeroed
+	bf.ReadUint8() // Zeroed
 	for i := 0; i < changes; i++ {
 		switch m.BoxType {
 		case 0:

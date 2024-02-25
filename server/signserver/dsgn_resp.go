@@ -70,14 +70,11 @@ func (s *Session) makeSignResponse(uid uint32) []byte {
 			lastPlayed = char.ID
 		}
 		bf.WriteUint32(char.ID)
-
-		// Exp, HR[x] is split by 0, 1, 30, 50, 99, 299, 998, 999
 		if s.server.erupeConfig.DebugOptions.MaxLauncherHR {
 			bf.WriteUint16(999)
 		} else {
-			bf.WriteUint16(char.HRP)
+			bf.WriteUint16(char.HR)
 		}
-
 		bf.WriteUint16(char.WeaponType)                                          // Weapon, 0-13.
 		bf.WriteUint32(char.LastLogin)                                           // Last login date, unix timestamp in seconds.
 		bf.WriteBool(char.IsFemale)                                              // Sex, 0=male, 1=female.

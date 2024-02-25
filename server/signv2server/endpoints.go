@@ -37,7 +37,7 @@ type Character struct {
 	Name      string `json:"name"`
 	IsFemale  bool   `json:"isFemale" db:"is_female"`
 	Weapon    uint32 `json:"weapon" db:"weapon_type"`
-	HR        uint32 `json:"hr" db:"hrp"`
+	HR        uint32 `json:"hr" db:"hr"`
 	GR        uint32 `json:"gr"`
 	LastLogin int32  `json:"lastLogin" db:"last_login"`
 }

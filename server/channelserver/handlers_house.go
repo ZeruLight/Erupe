@@ -47,7 +47,7 @@ func handleMsgMhfUpdateInterior(s *Session, p mhfpacket.MHFPacket) {
 
 type HouseData struct {
 	CharID        uint32 `db:"id"`
-	HRP           uint16 `db:"hrp"`
+	HR            uint16 `db:"hr"`
 	GR            uint16 `db:"gr"`
 	Name          string `db:"name"`
 	HouseState    uint8  `db:"house_state"`
@@ -59,7 +59,7 @@ func handleMsgMhfEnumerateHouse(s *Session, p mhfpacket.MHFPacket) {
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint16(0)
 	var houses []HouseData
-	houseQuery := `SELECT c.id, hrp, gr, name, COALESCE(ub.house_state, 2) as house_state, COALESCE(ub.house_password, '') as house_password
+	houseQuery := `SELECT c.id, hr, gr, name, COALESCE(ub.house_state, 2) as house_state, COALESCE(ub.house_password, '') as house_password
 		FROM characters c LEFT JOIN user_binary ub ON ub.id = c.id WHERE c.id=$1`
 	switch pkt.Method {
 	case 1:
@@ -92,7 +92,7 @@ func handleMsgMhfEnumerateHouse(s *Session, p mhfpacket.MHFPacket) {
 			}
 		}
 	case 3:
-		houseQuery = `SELECT c.id, hrp, gr, name, COALESCE(ub.house_state, 2) as house_state, COALESCE(ub.house_password, '') as house_password
+		houseQuery = `SELECT c.id, hr, gr, name, COALESCE(ub.house_state, 2) as house_state, COALESCE(ub.house_password, '') as house_password
 			FROM characters c LEFT JOIN user_binary ub ON ub.id = c.id WHERE name ILIKE $1`
 		house := HouseData{}
 		rows, _ := s.server.db.Queryx(houseQuery, fmt.Sprintf(`%%%s%%`, pkt.Name))
@@ -120,7 +120,7 @@ func handleMsgMhfEnumerateHouse(s *Session, p mhfpacket.MHFPacket) {
 		} else {
 			bf.WriteUint8(0)
 		}
-		bf.WriteUint16(house.HRP)
+		bf.WriteUint16(house.HR)
 		if _config.ErupeConfig.RealClientMode >= _config.G10 {
 			bf.WriteUint16(house.GR)
 		}

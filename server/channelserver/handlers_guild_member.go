@@ -22,7 +22,7 @@ type GuildMember struct {
 	Recruiter       bool       `db:"recruiter"`
 	AvoidLeadership bool       `db:"avoid_leadership"`
 	IsLeader        bool       `db:"is_leader"`
-	HRP             uint16     `db:"hrp"`
+	HR              uint16     `db:"hr"`
 	GR              uint16     `db:"gr"`
 	WeaponID        uint16     `db:"weapon_id"`
 	WeaponType      uint8      `db:"weapon_type"`
@@ -74,7 +74,7 @@ SELECT * FROM (
 		c.last_login,
 		COALESCE(recruiter, false) AS recruiter,
 		COALESCE(avoid_leadership, false) AS avoid_leadership,
-		c.hrp,
+		c.hr,
 		c.gr,
 		c.weapon_id,
 		c.weapon_type,

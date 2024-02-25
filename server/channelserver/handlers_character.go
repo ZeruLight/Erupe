@@ -25,7 +25,7 @@ const (
 	pGardenData           // +68
 	pWeaponType           // +1
 	pWeaponID             // +2
-	pHRP                  // +2
+	pHR                   // +2
 	pGRP                  // +4
 	pKQF                  // +8
 	lBookshelfData
@@ -47,7 +47,7 @@ type CharacterSaveData struct {
 	GardenData    []byte
 	WeaponType    uint8
 	WeaponID      uint16
-	HRP           uint16
+	HR            uint16
 	GR            uint16
 	KQF           []byte
 
@@ -63,7 +63,7 @@ func getPointers() map[SavePointer]int {
 		pointers[pWeaponType] = 128789
 		pointers[pHouseTier] = 129900
 		pointers[pToreData] = 130228
-		pointers[pHRP] = 130550
+		pointers[pHR] = 130550
 		pointers[pGRP] = 130556
 		pointers[pHouseData] = 130561
 		pointers[pBookshelfData] = 139928
@@ -78,7 +78,7 @@ func getPointers() map[SavePointer]int {
 		pointers[pWeaponType] = 92789
 		pointers[pHouseTier] = 93900
 		pointers[pToreData] = 94228
-		pointers[pHRP] = 94550
+		pointers[pHR] = 94550
 		pointers[pGRP] = 94556
 		pointers[pHouseData] = 94561
 		pointers[pBookshelfData] = 103928
@@ -91,7 +91,7 @@ func getPointers() map[SavePointer]int {
 		pointers[pWeaponType] = 60789
 		pointers[pHouseTier] = 61900
 		pointers[pToreData] = 62228
-		pointers[pHRP] = 62550
+		pointers[pHR] = 62550
 		pointers[pHouseData] = 62561
 		pointers[pBookshelfData] = 57118 // This pointer only half works
 		pointers[pGalleryData] = 72064
@@ -102,7 +102,7 @@ func getPointers() map[SavePointer]int {
 		pointers[pWeaponType] = 12789
 		pointers[pHouseTier] = 13900
 		pointers[pToreData] = 14228
-		pointers[pHRP] = 14550
+		pointers[pHR] = 14550
 		pointers[pHouseData] = 14561
 		pointers[pBookshelfData] = 9118 // Probably same here
 		pointers[pGalleryData] = 24064
@@ -174,8 +174,8 @@ func (save *CharacterSaveData) Save(s *Session) {
 		save.compSave = save.decompSave
 	}
 
-	_, err := s.server.db.Exec(`UPDATE characters	SET savedata=$1, is_new_character=false, hrp=$2, gr=$3, is_female=$4, weapon_type=$5, weapon_id=$6 WHERE id=$7
-	`, save.compSave, save.HRP, save.GR, save.Gender, save.WeaponType, save.WeaponID, save.CharID)
+	_, err := s.server.db.Exec(`UPDATE characters SET savedata=$1, is_new_character=false, hr=$2, gr=$3, is_female=$4, weapon_type=$5, weapon_id=$6 WHERE id=$7
+	`, save.compSave, save.HR, save.GR, save.Gender, save.WeaponType, save.WeaponID, save.CharID)
 	if err != nil {
 		s.logger.Error("Failed to update savedata", zap.Error(err), zap.Uint32("charID", save.CharID))
 	}
@@ -233,9 +233,9 @@ func (save *CharacterSaveData) updateStructWithSaveData() {
 			save.GardenData = save.decompSave[save.Pointers[pGardenData] : save.Pointers[pGardenData]+68]
 			save.WeaponType = save.decompSave[save.Pointers[pWeaponType]]
 			save.WeaponID = binary.LittleEndian.Uint16(save.decompSave[save.Pointers[pWeaponID] : save.Pointers[pWeaponID]+2])
-			save.HRP = binary.LittleEndian.Uint16(save.decompSave[save.Pointers[pHRP] : save.Pointers[pHRP]+2])
+			save.HR = binary.LittleEndian.Uint16(save.decompSave[save.Pointers[pHR] : save.Pointers[pHR]+2])
 			if _config.ErupeConfig.RealClientMode >= _config.G1 {
-				if save.HRP == uint16(999) {
+				if save.HR == uint16(999) {
 					save.GR = grpToGR(int(binary.LittleEndian.Uint32(save.decompSave[save.Pointers[pGRP] : save.Pointers[pGRP]+4])))
 				}
 			}

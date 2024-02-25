@@ -1075,7 +1075,7 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 			for _, applicant := range applicants {
 				bf.WriteUint32(applicant.CharID)
 				bf.WriteUint32(0)
-				bf.WriteUint16(applicant.HRP)
+				bf.WriteUint16(applicant.HR)
 				bf.WriteUint16(applicant.GR)
 				ps.Uint8(bf, applicant.Name, true)
 			}
@@ -1435,7 +1435,7 @@ func handleMsgMhfEnumerateGuildMember(s *Session, p mhfpacket.MHFPacket) {
 
 	for _, member := range guildMembers {
 		bf.WriteUint32(member.CharID)
-		bf.WriteUint16(member.HRP)
+		bf.WriteUint16(member.HR)
 		if s.server.erupeConfig.RealClientMode >= _config.G10 {
 			bf.WriteUint16(member.GR)
 		}

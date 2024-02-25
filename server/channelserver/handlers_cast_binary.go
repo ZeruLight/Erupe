@@ -478,7 +478,7 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 			m := binpacket.MsgBinChat{
 				Type:       BinaryMessageTypeChat,
 				Flags:      4,
-				Message:    fmt.Sprintf(`%d`, token.RNG().Intn(100)+1),
+				Message:    fmt.Sprintf(`%d`, token.RNG.Intn(100)+1),
 				SenderName: author,
 			}
 			bf := byteframe.NewByteFrame()

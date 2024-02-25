@@ -352,6 +352,10 @@ func LoadConfig() (*Config, error) {
 		c.RealClientMode = ZZ
 	}
 
+	if c.GameplayOptions.MinFeatureWeapons > c.GameplayOptions.MaxFeatureWeapons {
+		c.GameplayOptions.MinFeatureWeapons = c.GameplayOptions.MaxFeatureWeapons
+	}
+
 	return c, nil
 }
 

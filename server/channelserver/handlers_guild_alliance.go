@@ -162,8 +162,7 @@ func handleMsgMhfOperateJoint(s *Session, p mhfpacket.MHFPacket) {
 		}
 	case mhfpacket.OPERATE_JOINT_KICK:
 		if alliance.ParentGuild.LeaderCharID == s.charID {
-			_ = pkt.UnkData.ReadUint8()
-			kickedGuildID := pkt.UnkData.ReadUint32()
+			kickedGuildID := pkt.Data1.ReadUint32()
 			if kickedGuildID == alliance.SubGuild1ID && alliance.SubGuild2ID > 0 {
 				s.server.db.Exec(`UPDATE guild_alliances SET sub1_id = sub2_id, sub2_id = NULL WHERE id = $1`, alliance.ID)
 			} else if kickedGuildID == alliance.SubGuild1ID && alliance.SubGuild2ID == 0 {

@@ -1,5 +1,7 @@
 BEGIN;
 
+ALTER TABLE users ADD COLUMN IF NOT EXISTS psn_id TEXT;
+
 ALTER TABLE public.sign_sessions ADD COLUMN id SERIAL;
 
 ALTER TABLE public.sign_sessions ADD CONSTRAINT sign_sessions_pkey PRIMARY KEY (id);

@@ -13,43 +13,52 @@
   "DeleteOnSaveCorruption": false,
   "ClientMode": "ZZ",
   "QuestCacheExpiry": 300,
-  "DevMode": true,
-  "DevModeOptions": {
-    "AutoCreateAccount": true,
+  "CommandPrefix": "!",
+  "AutoCreateAccount": true,
+  "DefaultCourses": [1, 23, 24],
+  "EarthStatus": 0,
+  "EarthID": 0,
+  "EarthMonsters": [0, 0, 0, 0],
+  "SaveDumps": {
+    "Enabled": true,
+    "RawEnabled": false,
+    "OutputDir": "save-backups"
+  },
+  "DebugOptions": {
     "CleanDB": false,
     "MaxLauncherHR": false,
-    "LogInboundMessages": true,
-    "LogOutboundMessages": true,
+    "LogInboundMessages": false,
+    "LogOutboundMessages": false,
+    "LogMessageData": false,
     "MaxHexdumpLength": 256,
-    "DivaEvent": 0,
-    "FestaEvent": -1,
-    "TournamentEvent": 0,
-    "MezFesEvent": true,
-    "MezFesAlt": false,
+    "DivaOverride": 0,
+    "FestaOverride": -1,
+    "TournamentOverride": 0,
     "DisableTokenCheck": false,
-    "QuestDebugTools": false,
-    "EarthStatusOverride": 0,
-    "EarthIDOverride": 0,
-    "EarthMonsterOverride": 0,
-    "SaveDumps": {
-      "Enabled": true,
-      "OutputDir": "save-backups"
+    "QuestTools": false,
+    "AutoQuestBackport": true,
+    "ProxyPort": 0,
+    "CapLink": {
+      "Values": [51728, 20000, 51729, 1, 20000],
+      "Key": "",
+      "Host": "",
+      "Port": 80
     }
   },
   "GameplayOptions": {
-    "FeaturedWeapons": 1,
+    "MinFeatureWeapons": 0,
+    "MaxFeatureWeapons": 1,
     "MaximumNP": 100000,
     "MaximumRP": 50000,
     "MaximumFP": 120000,
     "TreasureHuntExpiry": 604800,
     "DisableLoginBoost": false,
     "DisableBoostTime": false,
-    "BoostTimeDuration": 120,
-    "GuildMealDuration": 60,
+    "BoostTimeDuration": 7200,
+    "ClanMealDuration": 3600,
+    "ClanMemberLimits": [[0, 30], [3, 40], [7, 50], [10, 60]],
     "BonusQuestAllowance": 3,
     "DailyQuestAllowance": 1,
-    "MezfesSoloTickets": 10,
-    "MezfesGroupTickets": 4,
     "LowLatencyRaviente": false,
     "RegularRavienteMaxPlayers": 8,
     "ViolentRavienteMaxPlayers": 8,
@@ -58,12 +67,31 @@
     "SmallBerserkRavienteMaxPlayers": 8,
     "GUrgentRate": 0.10,
     "GCPMultiplier": 1.00,
+    "HRPMultiplier": 1.00,
+    "HRPMultiplierNC": 1.00,
+    "SRPMultiplier": 1.00,
+    "SRPMultiplierNC": 1.00,
     "GRPMultiplier": 1.00,
+    "GRPMultiplierNC": 1.00,
     "GSRPMultiplier": 1.00,
+    "GSRPMultiplierNC": 1.00,
+    "ZennyMultiplier": 1.00,
+    "ZennyMultiplierNC": 1.00,
     "GZennyMultiplier": 1.00,
+    "GZennyMultiplierNC": 1.00,
     "MaterialMultiplier": 1.00,
+    "MaterialMultiplierNC": 1.00,
+    "GMaterialMultiplier": 1.00,
+    "GMaterialMultiplierNC": 1.00,
     "ExtraCarves": 0,
+    "ExtraCarvesNC": 0,
+    "GExtraCarves": 0,
+    "GExtraCarvesNC": 0,
     "DisableHunterNavi": false,
+    "MezFesSoloTickets": 5,
+    "MezFesGroupTickets": 1,
+    "MezFesDuration": 172800,
+    "MezFesSwitchMinigame": false,
     "EnableKaijiEvent": false,
     "EnableHiganjimaEvent": false,
     "EnableNierEvent": false,
@@ -73,37 +101,68 @@
   "Discord": {
     "Enabled": false,
     "BotToken": "",
-    "RealtimeChannelID": ""
+    "RelayChannel": {
+      "Enabled": false,
+      "MaxMessageLength": 183,
+      "RelayChannelID": ""
+    }
   },
   "Commands": [
     {
+      "Name": "Help",
+      "Enabled": true,
+      "Description": "Show enabled chat commands",
+      "Prefix": "help"
+    }, {
       "Name": "Rights",
       "Enabled": false,
+      "Description": "Overwrite the Rights value on your account",
       "Prefix": "rights"
     }, {
       "Name": "Raviente",
       "Enabled": true,
+      "Description": "Various Raviente siege commands",
       "Prefix": "ravi"
     }, {
       "Name": "Teleport",
       "Enabled": false,
+      "Description": "Teleport to specified coordinates",
       "Prefix": "tele"
     }, {
       "Name": "Reload",
       "Enabled": true,
+      "Description": "Reload all players in your Land",
       "Prefix": "reload"
     }, {
       "Name": "KeyQuest",
       "Enabled": false,
+      "Description": "Overwrite your HR Key Quest progress",
       "Prefix": "kqf"
     }, {
       "Name": "Course",
       "Enabled": true,
+      "Description": "Toggle Courses on your account",
       "Prefix": "course"
     }, {
       "Name": "PSN",
       "Enabled": true,
+      "Description": "Link a PlayStation Network ID to your account",
       "Prefix": "psn"
+    }, {
+      "Name": "Discord",
+      "Enabled": true,
+      "Description": "Generate a token to link your Discord account",
+      "Prefix": "discord"
+    }, {
+      "Name": "Ban",
+      "Enabled": false,
+      "Description": "Ban/Temp Ban a user",
+      "Prefix": "ban"
+    }, {
+      "Name": "Timer",
+      "Enabled": true,
+      "Description": "Toggle the Quest timer",
+      "Prefix": "timer"
     }
   ],
   "Courses": [
@@ -132,7 +191,11 @@
   },
   "SignV2": {
     "Enabled": false,
-    "Port": 8080
+    "Port": 8080,
+    "PatchServer": "",
+    "Banners": [],
+    "Messages": [],
+    "Links": []
   },
   "Channel": {
     "Enabled": true

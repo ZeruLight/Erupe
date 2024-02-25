@@ -3,9 +3,9 @@ package channelserver
 import (
 	"database/sql"
 	"database/sql/driver"
-	"encoding/binary"
 	"encoding/json"
 	"errors"
+	"erupe-ce/common/mhfitem"
 	_config "erupe-ce/config"
 	"fmt"
 	"math"
@@ -21,18 +21,18 @@ import (
 	"go.uber.org/zap"
 )
 
-type FestivalColour string
+type FestivalColor string
 
 const (
-	FestivalColourNone FestivalColour = "none"
-	FestivalColourRed  FestivalColour = "red"
-	FestivalColourBlue FestivalColour = "blue"
+	FestivalColorNone FestivalColor = "none"
+	FestivalColorBlue FestivalColor = "blue"
+	FestivalColorRed  FestivalColor = "red"
 )
 
-var FestivalColourCodes = map[FestivalColour]uint8{
-	FestivalColourBlue: 0x00,
-	FestivalColourRed:  0x01,
-	FestivalColourNone: 0xFF,
+var FestivalColorCodes = map[FestivalColor]int16{
+	FestivalColorNone: -1,
+	FestivalColorBlue: 0,
+	FestivalColorRed:  1,
 }
 
 type GuildApplicationType string
@@ -43,27 +43,27 @@ const (
 )
 
 type Guild struct {
-	ID             uint32         `db:"id"`
-	Name           string         `db:"name"`
-	MainMotto      uint8          `db:"main_motto"`
-	SubMotto       uint8          `db:"sub_motto"`
-	CreatedAt      time.Time      `db:"created_at"`
-	MemberCount    uint16         `db:"member_count"`
-	RankRP         uint32         `db:"rank_rp"`
-	EventRP        uint32         `db:"event_rp"`
-	Comment        string         `db:"comment"`
-	PugiName1      string         `db:"pugi_name_1"`
-	PugiName2      string         `db:"pugi_name_2"`
-	PugiName3      string         `db:"pugi_name_3"`
-	PugiOutfit1    uint8          `db:"pugi_outfit_1"`
-	PugiOutfit2    uint8          `db:"pugi_outfit_2"`
-	PugiOutfit3    uint8          `db:"pugi_outfit_3"`
-	PugiOutfits    uint32         `db:"pugi_outfits"`
-	Recruiting     bool           `db:"recruiting"`
-	FestivalColour FestivalColour `db:"festival_colour"`
-	Souls          uint32         `db:"souls"`
-	AllianceID     uint32         `db:"alliance_id"`
-	Icon           *GuildIcon     `db:"icon"`
+	ID            uint32        `db:"id"`
+	Name          string        `db:"name"`
+	MainMotto     uint8         `db:"main_motto"`
+	SubMotto      uint8         `db:"sub_motto"`
+	CreatedAt     time.Time     `db:"created_at"`
+	MemberCount   uint16        `db:"member_count"`
+	RankRP        uint32        `db:"rank_rp"`
+	EventRP       uint32        `db:"event_rp"`
+	Comment       string        `db:"comment"`
+	PugiName1     string        `db:"pugi_name_1"`
+	PugiName2     string        `db:"pugi_name_2"`
+	PugiName3     string        `db:"pugi_name_3"`
+	PugiOutfit1   uint8         `db:"pugi_outfit_1"`
+	PugiOutfit2   uint8         `db:"pugi_outfit_2"`
+	PugiOutfit3   uint8         `db:"pugi_outfit_3"`
+	PugiOutfits   uint32        `db:"pugi_outfits"`
+	Recruiting    bool          `db:"recruiting"`
+	FestivalColor FestivalColor `db:"festival_color"`
+	Souls         uint32        `db:"souls"`
+	AllianceID    uint32        `db:"alliance_id"`
+	Icon          *GuildIcon    `db:"icon"`
 
 	GuildLeader
 }
@@ -157,7 +157,7 @@ SELECT
 	sub_motto,
 	created_at,
 	leader_id,
-	lc.name as leader_name,
+	c.name AS leader_name,
 	comment,
 	COALESCE(pugi_name_1, '') AS pugi_name_1,
 	COALESCE(pugi_name_2, '') AS pugi_name_2,
@@ -167,8 +167,8 @@ SELECT
 	pugi_outfit_3,
 	pugi_outfits,
 	recruiting,
-	COALESCE((SELECT team FROM festa_registrations fr WHERE fr.guild_id = g.id), 'none') AS festival_colour,
-	(SELECT SUM(souls) FROM guild_characters gc WHERE gc.guild_id = g.id) AS souls,
+	COALESCE((SELECT team FROM festa_registrations fr WHERE fr.guild_id = g.id), 'none') AS festival_color,
+	COALESCE((SELECT SUM(fs.souls) FROM festa_submissions fs WHERE fs.guild_id=g.id), 0) AS souls,
 	COALESCE((
 		SELECT id FROM guild_alliances ga WHERE
 	 	ga.parent_id = g.id OR
@@ -178,8 +178,8 @@ SELECT
 	icon,
 	(SELECT count(1) FROM guild_characters gc WHERE gc.guild_id = g.id) AS member_count
 	FROM guilds g
-	JOIN guild_characters lgc ON lgc.character_id = leader_id
-	JOIN characters lc on leader_id = lc.id
+	JOIN guild_characters gc ON gc.character_id = leader_id
+	JOIN characters c on leader_id = c.id
 `
 
 func (guild *Guild) Save(s *Session) error {
@@ -967,7 +967,7 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint8(uint8(len(guildLeaderName)))
 		bf.WriteBytes(guildName)
 		bf.WriteBytes(guildComment)
-		bf.WriteUint8(FestivalColourCodes[guild.FestivalColour])
+		bf.WriteInt8(int8(FestivalColorCodes[guild.FestivalColor]))
 		bf.WriteUint32(guild.RankRP)
 		bf.WriteBytes(guildLeaderName)
 		bf.WriteUint32(0)   // Unk
@@ -989,20 +989,21 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 		}
 		bf.WriteUint32(guild.PugiOutfits)
 
-		if guild.Rank() >= 3 {
-			bf.WriteUint8(40)
-		} else if guild.Rank() >= 7 {
-			bf.WriteUint8(50)
-		} else if guild.Rank() >= 10 {
-			bf.WriteUint8(60)
-		} else {
-			bf.WriteUint8(30)
+		limit := s.server.erupeConfig.GameplayOptions.ClanMemberLimits[0][1]
+		for _, j := range s.server.erupeConfig.GameplayOptions.ClanMemberLimits {
+			if guild.Rank() >= uint16(j[0]) {
+				limit = j[1]
+			}
 		}
+		if limit > 100 {
+			limit = 100
+		}
+		bf.WriteUint8(limit)
 
 		bf.WriteUint32(55000)
 		bf.WriteUint32(0)
 		bf.WriteUint16(0) // Changing Room RP
-		bf.WriteUint16(0)
+		bf.WriteUint16(0) // Ignored
 
 		if guild.AllianceID > 0 {
 			alliance, err := GetAllianceData(s, guild.AllianceID)
@@ -1012,7 +1013,7 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 				bf.WriteUint32(alliance.ID)
 				bf.WriteUint32(uint32(alliance.CreatedAt.Unix()))
 				bf.WriteUint16(alliance.TotalMembers)
-				bf.WriteUint8(0)
+				bf.WriteUint8(0) // Ignored
 				bf.WriteUint8(0)
 				ps.Uint16(bf, alliance.Name, true)
 				if alliance.SubGuild1ID > 0 {
@@ -1074,7 +1075,7 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 			for _, applicant := range applicants {
 				bf.WriteUint32(applicant.CharID)
 				bf.WriteUint32(0)
-				bf.WriteUint16(applicant.HRP)
+				bf.WriteUint16(applicant.HR)
 				bf.WriteUint16(applicant.GR)
 				ps.Uint8(bf, applicant.Name, true)
 			}
@@ -1147,7 +1148,6 @@ func handleMsgMhfEnumerateGuild(s *Session, p mhfpacket.MHFPacket) {
 	var alliances []*GuildAlliance
 	var rows *sqlx.Rows
 	var err error
-	bf := byteframe.NewByteFrameFromBytes(pkt.Data1)
 
 	if pkt.Type <= 8 {
 		var tempGuilds []*Guild
@@ -1164,20 +1164,20 @@ func handleMsgMhfEnumerateGuild(s *Session, p mhfpacket.MHFPacket) {
 		switch pkt.Type {
 		case mhfpacket.ENUMERATE_GUILD_TYPE_GUILD_NAME:
 			for _, guild := range tempGuilds {
-				if strings.Contains(guild.Name, pkt.Data2) {
+				if strings.Contains(guild.Name, stringsupport.SJISToUTF8(pkt.Data2.ReadNullTerminatedBytes())) {
 					guilds = append(guilds, guild)
 				}
 			}
 		case mhfpacket.ENUMERATE_GUILD_TYPE_LEADER_NAME:
 			for _, guild := range tempGuilds {
-				if strings.Contains(guild.LeaderName, pkt.Data2) {
+				if strings.Contains(guild.LeaderName, stringsupport.SJISToUTF8(pkt.Data2.ReadNullTerminatedBytes())) {
 					guilds = append(guilds, guild)
 				}
 			}
 		case mhfpacket.ENUMERATE_GUILD_TYPE_LEADER_ID:
-			ID := bf.ReadUint32()
+			CID := pkt.Data1.ReadUint32()
 			for _, guild := range tempGuilds {
-				if guild.LeaderCharID == ID {
+				if guild.LeaderCharID == CID {
 					guilds = append(guilds, guild)
 				}
 			}
@@ -1215,15 +1215,15 @@ func handleMsgMhfEnumerateGuild(s *Session, p mhfpacket.MHFPacket) {
 			}
 			guilds = tempGuilds
 		case mhfpacket.ENUMERATE_GUILD_TYPE_MOTTO:
-			mainMotto := uint8(bf.ReadUint16())
-			subMotto := uint8(bf.ReadUint16())
+			mainMotto := uint8(pkt.Data1.ReadUint16())
+			subMotto := uint8(pkt.Data1.ReadUint16())
 			for _, guild := range tempGuilds {
 				if guild.MainMotto == mainMotto && guild.SubMotto == subMotto {
 					guilds = append(guilds, guild)
 				}
 			}
 		case mhfpacket.ENUMERATE_GUILD_TYPE_RECRUITING:
-			recruitingMotto := uint8(bf.ReadUint16())
+			recruitingMotto := uint8(pkt.Data1.ReadUint16())
 			for _, guild := range tempGuilds {
 				if guild.MainMotto == recruitingMotto {
 					guilds = append(guilds, guild)
@@ -1244,20 +1244,20 @@ func handleMsgMhfEnumerateGuild(s *Session, p mhfpacket.MHFPacket) {
 		switch pkt.Type {
 		case mhfpacket.ENUMERATE_ALLIANCE_TYPE_ALLIANCE_NAME:
 			for _, alliance := range tempAlliances {
-				if strings.Contains(alliance.Name, pkt.Data2) {
+				if strings.Contains(alliance.Name, stringsupport.SJISToUTF8(pkt.Data2.ReadNullTerminatedBytes())) {
 					alliances = append(alliances, alliance)
 				}
 			}
 		case mhfpacket.ENUMERATE_ALLIANCE_TYPE_LEADER_NAME:
 			for _, alliance := range tempAlliances {
-				if strings.Contains(alliance.ParentGuild.LeaderName, pkt.Data2) {
+				if strings.Contains(alliance.ParentGuild.LeaderName, stringsupport.SJISToUTF8(pkt.Data2.ReadNullTerminatedBytes())) {
 					alliances = append(alliances, alliance)
 				}
 			}
 		case mhfpacket.ENUMERATE_ALLIANCE_TYPE_LEADER_ID:
-			ID := bf.ReadUint32()
+			CID := pkt.Data1.ReadUint32()
 			for _, alliance := range tempAlliances {
-				if alliance.ParentGuild.LeaderCharID == ID {
+				if alliance.ParentGuild.LeaderCharID == CID {
 					alliances = append(alliances, alliance)
 				}
 			}
@@ -1291,7 +1291,7 @@ func handleMsgMhfEnumerateGuild(s *Session, p mhfpacket.MHFPacket) {
 		return
 	}
 
-	bf = byteframe.NewByteFrame()
+	bf := byteframe.NewByteFrame()
 
 	if pkt.Type > 8 {
 		hasNextPage := false
@@ -1427,7 +1427,7 @@ func handleMsgMhfEnumerateGuildMember(s *Session, p mhfpacket.MHFPacket) {
 
 	bf := byteframe.NewByteFrame()
 
-	bf.WriteUint16(guild.MemberCount)
+	bf.WriteUint16(uint16(len(guildMembers)))
 
 	sort.Slice(guildMembers[:], func(i, j int) bool {
 		return guildMembers[i].OrderIndex < guildMembers[j].OrderIndex
@@ -1435,8 +1435,8 @@ func handleMsgMhfEnumerateGuildMember(s *Session, p mhfpacket.MHFPacket) {
 
 	for _, member := range guildMembers {
 		bf.WriteUint32(member.CharID)
-		bf.WriteUint16(member.HRP)
-		if s.server.erupeConfig.RealClientMode > _config.G7 {
+		bf.WriteUint16(member.HR)
+		if s.server.erupeConfig.RealClientMode >= _config.G10 {
 			bf.WriteUint16(member.GR)
 		}
 		if s.server.erupeConfig.RealClientMode < _config.ZZ {
@@ -1460,7 +1460,7 @@ func handleMsgMhfEnumerateGuildMember(s *Session, p mhfpacket.MHFPacket) {
 	}
 
 	if guild.AllianceID > 0 {
-		bf.WriteUint16(alliance.TotalMembers - guild.MemberCount)
+		bf.WriteUint16(alliance.TotalMembers - uint16(len(guildMembers)))
 		if guild.ID != alliance.ParentGuildID {
 			mems, err := GetGuildMembers(s, alliance.ParentGuildID, false)
 			if err != nil {
@@ -1554,100 +1554,34 @@ func handleMsgMhfGetGuildTargetMemberNum(s *Session, p mhfpacket.MHFPacket) {
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
-func handleMsgMhfEnumerateGuildItem(s *Session, p mhfpacket.MHFPacket) {
-	pkt := p.(*mhfpacket.MsgMhfEnumerateGuildItem)
-	var boxContents []byte
-	bf := byteframe.NewByteFrame()
-	err := s.server.db.QueryRow("SELECT item_box FROM guilds WHERE id = $1", int(pkt.GuildId)).Scan(&boxContents)
-	if err != nil {
-		s.logger.Error("Failed to get guild item box contents from db", zap.Error(err))
-		bf.WriteBytes(make([]byte, 4))
-	} else {
-		if len(boxContents) == 0 {
-			bf.WriteBytes(make([]byte, 4))
-		} else {
-			amount := len(boxContents) / 4
-			bf.WriteUint16(uint16(amount))
-			bf.WriteUint32(0x00)
-			bf.WriteUint16(0x00)
-			for i := 0; i < amount; i++ {
-				bf.WriteUint32(binary.BigEndian.Uint32(boxContents[i*4 : i*4+4]))
-				if i+1 != amount {
-					bf.WriteUint64(0x00)
-				}
-			}
+func guildGetItems(s *Session, guildID uint32) []mhfitem.MHFItemStack {
+	var data []byte
+	var items []mhfitem.MHFItemStack
+	s.server.db.QueryRow(`SELECT item_box FROM guilds WHERE id=$1`, guildID).Scan(&data)
+	if len(data) > 0 {
+		box := byteframe.NewByteFrameFromBytes(data)
+		numStacks := box.ReadUint16()
+		box.ReadUint16() // Unused
+		for i := 0; i < int(numStacks); i++ {
+			items = append(items, mhfitem.ReadWarehouseItem(box))
 		}
 	}
-	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	return items
 }
 
-type Item struct {
-	ItemId uint16
-	Amount uint16
+func handleMsgMhfEnumerateGuildItem(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfEnumerateGuildItem)
+	items := guildGetItems(s, pkt.GuildID)
+	bf := byteframe.NewByteFrame()
+	bf.WriteBytes(mhfitem.SerializeWarehouseItems(items))
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfUpdateGuildItem(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfUpdateGuildItem)
-
-	// Get item cache from DB
-	var boxContents []byte
-	var oldItems []Item
-	err := s.server.db.QueryRow("SELECT item_box FROM guilds WHERE id = $1", int(pkt.GuildId)).Scan(&boxContents)
-	if err != nil {
-		s.logger.Error("Failed to get guild item box contents from db", zap.Error(err))
-		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
-		return
-	} else {
-		amount := len(boxContents) / 4
-		oldItems = make([]Item, amount)
-		for i := 0; i < amount; i++ {
-			oldItems[i].ItemId = binary.BigEndian.Uint16(boxContents[i*4 : i*4+2])
-			oldItems[i].Amount = binary.BigEndian.Uint16(boxContents[i*4+2 : i*4+4])
-		}
-	}
-
-	// Update item stacks
-	newItems := make([]Item, len(oldItems))
-	copy(newItems, oldItems)
-	for i := 0; i < int(pkt.Amount); i++ {
-		for j := 0; j <= len(oldItems); j++ {
-			if j == len(oldItems) {
-				var newItem Item
-				newItem.ItemId = pkt.Items[i].ItemId
-				newItem.Amount = pkt.Items[i].Amount
-				newItems = append(newItems, newItem)
-				break
-			}
-			if pkt.Items[i].ItemId == oldItems[j].ItemId {
-				newItems[j].Amount = pkt.Items[i].Amount
-				break
-			}
-		}
-	}
-
-	// Delete empty item stacks
-	for i := len(newItems) - 1; i >= 0; i-- {
-		if int(newItems[i].Amount) == 0 {
-			copy(newItems[i:], newItems[i+1:])
-			newItems[len(newItems)-1] = make([]Item, 1)[0]
-			newItems = newItems[:len(newItems)-1]
-		}
-	}
-
-	// Create new item cache
-	bf := byteframe.NewByteFrame()
-	for i := 0; i < len(newItems); i++ {
-		bf.WriteUint16(newItems[i].ItemId)
-		bf.WriteUint16(newItems[i].Amount)
-	}
-
-	// Upload new item cache
-	_, err = s.server.db.Exec("UPDATE guilds SET item_box = $1 WHERE id = $2", bf.Data(), int(pkt.GuildId))
-	if err != nil {
-		s.logger.Error("Failed to update guild item box contents in db", zap.Error(err))
-	}
-
-	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+	newStacks := mhfitem.DiffItemStacks(guildGetItems(s, pkt.GuildID), pkt.UpdatedItems)
+	s.server.db.Exec(`UPDATE guilds SET item_box=$1 WHERE id=$2`, mhfitem.SerializeWarehouseItems(newStacks), pkt.GuildID)
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfUpdateGuildIcon(s *Session, p mhfpacket.MHFPacket) {
@@ -1677,7 +1611,7 @@ func handleMsgMhfUpdateGuildIcon(s *Session, p mhfpacket.MHFPacket) {
 
 	icon := &GuildIcon{}
 
-	icon.Parts = make([]GuildIconPart, pkt.PartCount)
+	icon.Parts = make([]GuildIconPart, len(pkt.IconParts))
 
 	for i, p := range pkt.IconParts {
 		icon.Parts[i] = GuildIconPart{
@@ -1832,18 +1766,18 @@ func handleMsgMhfLoadGuildCooking(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfRegistGuildCooking(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfRegistGuildCooking)
 	guild, _ := GetGuildInfoByCharacterId(s, s.charID)
-	currentTime := TimeAdjusted().Add(time.Duration(s.server.erupeConfig.GameplayOptions.GuildMealDuration-60) * time.Minute)
+	startTime := TimeAdjusted().Add(time.Duration(s.server.erupeConfig.GameplayOptions.ClanMealDuration-3600) * time.Second)
 	if pkt.OverwriteID != 0 {
-		s.server.db.Exec("UPDATE guild_meals SET meal_id = $1, level = $2, created_at = $3 WHERE id = $4", pkt.MealID, pkt.Success, currentTime, pkt.OverwriteID)
+		s.server.db.Exec("UPDATE guild_meals SET meal_id = $1, level = $2, created_at = $3 WHERE id = $4", pkt.MealID, pkt.Success, startTime, pkt.OverwriteID)
 	} else {
-		s.server.db.QueryRow("INSERT INTO guild_meals (guild_id, meal_id, level, created_at) VALUES ($1, $2, $3, $4) RETURNING id", guild.ID, pkt.MealID, pkt.Success, currentTime).Scan(&pkt.OverwriteID)
+		s.server.db.QueryRow("INSERT INTO guild_meals (guild_id, meal_id, level, created_at) VALUES ($1, $2, $3, $4) RETURNING id", guild.ID, pkt.MealID, pkt.Success, startTime).Scan(&pkt.OverwriteID)
 	}
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint16(1)
 	bf.WriteUint32(pkt.OverwriteID)
 	bf.WriteUint32(uint32(pkt.MealID))
 	bf.WriteUint32(uint32(pkt.Success))
-	bf.WriteUint32(uint32(currentTime.Unix()))
+	bf.WriteUint32(uint32(startTime.Unix()))
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 

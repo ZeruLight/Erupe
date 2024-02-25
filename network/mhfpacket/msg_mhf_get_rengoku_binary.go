@@ -1,17 +1,16 @@
 package mhfpacket
 
-import ( 
- "errors" 
+import (
+	"errors"
 
- 	"erupe-ce/network/clientctx"
-	"erupe-ce/network"
 	"erupe-ce/common/byteframe"
+	"erupe-ce/network"
+	"erupe-ce/network/clientctx"
 )
 
 // MsgMhfGetRengokuBinary represents the MSG_MHF_GET_RENGOKU_BINARY
 type MsgMhfGetRengokuBinary struct {
 	AckHandle uint32
-	Unk0      uint8 // Hardcoded 0 in binary
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -22,7 +21,7 @@ func (m *MsgMhfGetRengokuBinary) Opcode() network.PacketID {
 // Parse parses the packet from binary
 func (m *MsgMhfGetRengokuBinary) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
-	m.Unk0 = bf.ReadUint8()
+	bf.ReadUint8() // Zeroed
 	return nil
 }
 

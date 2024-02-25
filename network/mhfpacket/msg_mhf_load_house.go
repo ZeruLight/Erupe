@@ -16,7 +16,6 @@ type MsgMhfLoadHouse struct {
 	Destination uint8
 	// False if already in hosts My Series, in case host updates PW
 	CheckPass bool
-	Unk3      uint16 // Hardcoded 0 in binary
 	Password  string
 }
 
@@ -31,8 +30,8 @@ func (m *MsgMhfLoadHouse) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientCo
 	m.CharID = bf.ReadUint32()
 	m.Destination = bf.ReadUint8()
 	m.CheckPass = bf.ReadBool()
-	_ = bf.ReadUint16()
-	_ = bf.ReadUint8() // Password length
+	bf.ReadUint16() // Zeroed
+	bf.ReadUint8()  // Password length
 	m.Password = stringsupport.SJISToUTF8(bf.ReadNullTerminatedBytes())
 	return nil
 }

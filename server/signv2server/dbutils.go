@@ -32,13 +32,14 @@ func (s *Server) createNewUser(ctx context.Context, username string, password st
 	return id, rights, err
 }
 
-func (s *Server) createLoginToken(ctx context.Context, uid uint32) (string, error) {
+func (s *Server) createLoginToken(ctx context.Context, uid uint32) (uint32, string, error) {
 	loginToken := token.Generate(16)
-	_, err := s.db.ExecContext(ctx, "INSERT INTO sign_sessions (user_id, token) VALUES ($1, $2)", uid, loginToken)
+	var tid uint32
+	err := s.db.QueryRowContext(ctx, "INSERT INTO sign_sessions (user_id, token) VALUES ($1, $2) RETURNING id", uid, loginToken).Scan(&tid)
 	if err != nil {
-		return "", err
+		return 0, "", err
 	}
-	return loginToken, nil
+	return tid, loginToken, nil
 }
 
 func (s *Server) userIDFromToken(ctx context.Context, token string) (uint32, error) {
@@ -55,7 +56,7 @@ func (s *Server) userIDFromToken(ctx context.Context, token string) (uint32, err
 func (s *Server) createCharacter(ctx context.Context, userID uint32) (Character, error) {
 	var character Character
 	err := s.db.GetContext(ctx, &character,
-		"SELECT id, name, is_female, weapon_type, hrp, gr, last_login FROM characters WHERE is_new_character = true AND user_id = $1 LIMIT 1",
+		"SELECT id, name, is_female, weapon_type, hr, gr, last_login FROM characters WHERE is_new_character = true AND user_id = $1 LIMIT 1",
 		userID,
 	)
 	if err == sql.ErrNoRows {
@@ -67,10 +68,10 @@ func (s *Server) createCharacter(ctx context.Context, userID uint32) (Character,
 		err = s.db.GetContext(ctx, &character, `
 			INSERT INTO characters (
 				user_id, is_female, is_new_character, name, unk_desc_string,
-				hrp, gr, weapon_type, last_login
+				hr, gr, weapon_type, last_login
 			)
 			VALUES ($1, false, true, '', '', 0, 0, 0, $2)
-			RETURNING id, name, is_female, weapon_type, hrp, gr, last_login`,
+			RETURNING id, name, is_female, weapon_type, hr, gr, last_login`,
 			userID, uint32(time.Now().Unix()),
 		)
 	}
@@ -95,7 +96,7 @@ func (s *Server) getCharactersForUser(ctx context.Context, uid uint32) ([]Charac
 	var characters []Character
 	err := s.db.SelectContext(
 		ctx, &characters, `
-		SELECT id, name, is_female, weapon_type, hrp, gr, last_login
+		SELECT id, name, is_female, weapon_type, hr, gr, last_login
 		FROM characters
 		WHERE user_id = $1 AND deleted = false AND is_new_character = false ORDER BY id ASC`,
 		uid,
@@ -121,4 +122,14 @@ func (s *Server) getReturnExpiry(uid uint32) time.Time {
 	}
 	s.db.Exec("UPDATE users SET last_login=$1 WHERE id=$2", time.Now(), uid)
 	return returnExpiry
+}
+
+func (s *Server) exportSave(ctx context.Context, uid uint32, cid uint32) (map[string]interface{}, error) {
+	row := s.db.QueryRowxContext(ctx, "SELECT * FROM characters WHERE id=$1 AND user_id=$2", cid, uid)
+	result := make(map[string]interface{})
+	err := row.MapScan(result)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }

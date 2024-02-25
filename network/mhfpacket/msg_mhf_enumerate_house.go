@@ -14,7 +14,6 @@ type MsgMhfEnumerateHouse struct {
 	AckHandle uint32
 	CharID    uint32
 	Method    uint8
-	Unk       uint16
 	Name      string
 }
 
@@ -28,7 +27,7 @@ func (m *MsgMhfEnumerateHouse) Parse(bf *byteframe.ByteFrame, ctx *clientctx.Cli
 	m.AckHandle = bf.ReadUint32()
 	m.CharID = bf.ReadUint32()
 	m.Method = bf.ReadUint8()
-	m.Unk = bf.ReadUint16()
+	bf.ReadUint16() // Zeroed
 	lenName := bf.ReadUint8()
 	if lenName > 0 {
 		m.Name = stringsupport.SJISToUTF8(bf.ReadNullTerminatedBytes())

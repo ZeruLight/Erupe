@@ -11,9 +11,7 @@ import (
 // MsgMhfAcquireTitle represents the MSG_MHF_ACQUIRE_TITLE
 type MsgMhfAcquireTitle struct {
 	AckHandle uint32
-	Unk0      uint16
-	Unk1      uint16
-	TitleID   uint16
+	TitleIDs  []uint16
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -24,9 +22,11 @@ func (m *MsgMhfAcquireTitle) Opcode() network.PacketID {
 // Parse parses the packet from binary
 func (m *MsgMhfAcquireTitle) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
-	m.Unk0 = bf.ReadUint16()
-	m.Unk1 = bf.ReadUint16()
-	m.TitleID = bf.ReadUint16()
+	titles := int(bf.ReadUint16())
+	bf.ReadUint16() // Zeroed
+	for i := 0; i < titles; i++ {
+		m.TitleIDs = append(m.TitleIDs, bf.ReadUint16())
+	}
 	return nil
 }
 

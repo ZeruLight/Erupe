@@ -11,7 +11,7 @@ import (
 // MsgMhfVoteFesta represents the MSG_MHF_VOTE_FESTA
 type MsgMhfVoteFesta struct {
 	AckHandle uint32
-	Unk       uint32
+	FestaID   uint32
 	GuildID   uint32
 	TrialID   uint32
 }
@@ -24,7 +24,7 @@ func (m *MsgMhfVoteFesta) Opcode() network.PacketID {
 // Parse parses the packet from binary
 func (m *MsgMhfVoteFesta) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
-	m.Unk = bf.ReadUint32()
+	m.FestaID = bf.ReadUint32()
 	m.GuildID = bf.ReadUint32()
 	m.TrialID = bf.ReadUint32()
 	return nil

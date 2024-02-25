@@ -13,7 +13,6 @@ type MsgMhfSetGuildManageRight struct {
 	AckHandle uint32
 	CharID    uint32
 	Allowed   bool
-	Unk       []byte
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -26,7 +25,7 @@ func (m *MsgMhfSetGuildManageRight) Parse(bf *byteframe.ByteFrame, ctx *clientct
 	m.AckHandle = bf.ReadUint32()
 	m.CharID = bf.ReadUint32()
 	m.Allowed = bf.ReadBool()
-	m.Unk = bf.ReadBytes(3)
+	bf.ReadBytes(3) // Zeroed
 	return nil
 }
 

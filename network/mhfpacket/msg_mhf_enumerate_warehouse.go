@@ -11,7 +11,7 @@ import (
 // MsgMhfEnumerateWarehouse represents the MSG_MHF_ENUMERATE_WAREHOUSE
 type MsgMhfEnumerateWarehouse struct {
 	AckHandle uint32
-	BoxType   string
+	BoxType   uint8
 	BoxIndex  uint8
 }
 
@@ -23,15 +23,10 @@ func (m *MsgMhfEnumerateWarehouse) Opcode() network.PacketID {
 // Parse parses the packet from binary
 func (m *MsgMhfEnumerateWarehouse) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
-	boxType := bf.ReadUint8()
-	switch boxType {
-	case 0:
-		m.BoxType = "item"
-	case 1:
-		m.BoxType = "equip"
-	}
+	m.BoxType = bf.ReadUint8()
 	m.BoxIndex = bf.ReadUint8()
-	_ = bf.ReadUint16()
+	bf.ReadUint8() // Zeroed
+	bf.ReadUint8() // Zeroed
 	return nil
 }
 

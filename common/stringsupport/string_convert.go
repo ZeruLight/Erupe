@@ -69,7 +69,7 @@ func CSVRemove(csv string, v int) string {
 func CSVContains(csv string, v int) bool {
 	s := strings.Split(csv, ",")
 	for i := 0; i < len(s); i++ {
-		j, _ := strconv.ParseInt(s[i], 10, 64)
+		j, _ := strconv.ParseInt(s[i], 10, 32)
 		if int(j) == v {
 			return true
 		}
@@ -92,7 +92,7 @@ func CSVElems(csv string) []int {
 	}
 	s := strings.Split(csv, ",")
 	for i := 0; i < len(s); i++ {
-		j, _ := strconv.ParseInt(s[i], 10, 64)
+		j, _ := strconv.ParseInt(s[i], 10, 32)
 		r = append(r, int(j))
 	}
 	return r

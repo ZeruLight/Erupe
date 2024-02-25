@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"errors"
 	"erupe-ce/common/mhfitem"
-	"erupe-ce/common/token"
 	_config "erupe-ce/config"
 	"fmt"
 	"math"
@@ -1580,28 +1579,8 @@ func handleMsgMhfEnumerateGuildItem(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfUpdateGuildItem(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfUpdateGuildItem)
-	// o = old, u = update, f = final
-	var fItems []mhfitem.MHFItemStack
-	oItems := guildGetItems(s, pkt.GuildID)
-	for _, uItem := range pkt.UpdatedItems {
-		exists := false
-		for i := range oItems {
-			if oItems[i].WarehouseID == uItem.WarehouseID {
-				exists = true
-				oItems[i].Quantity = uItem.Quantity
-			}
-		}
-		if !exists {
-			uItem.WarehouseID = token.RNG.Uint32()
-			fItems = append(fItems, uItem)
-		}
-	}
-	for _, oItem := range oItems {
-		if oItem.Quantity > 0 {
-			fItems = append(fItems, oItem)
-		}
-	}
-	s.server.db.Exec(`UPDATE guilds SET item_box=$1 WHERE id=$2`, mhfitem.SerializeWarehouseItems(fItems), pkt.GuildID)
+	newStacks := mhfitem.DiffItemStacks(guildGetItems(s, pkt.GuildID), pkt.UpdatedItems)
+	s.server.db.Exec(`UPDATE guilds SET item_box=$1 WHERE id=$2`, mhfitem.SerializeWarehouseItems(newStacks), pkt.GuildID)
 	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 

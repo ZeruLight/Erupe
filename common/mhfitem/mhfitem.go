@@ -53,6 +53,30 @@ func ReadWarehouseItem(bf *byteframe.ByteFrame) MHFItemStack {
 	return item
 }
 
+func DiffItemStacks(o []MHFItemStack, u []MHFItemStack) []MHFItemStack {
+	// o = old, u = update, f = final
+	var f []MHFItemStack
+	for _, uItem := range u {
+		exists := false
+		for i := range o {
+			if o[i].WarehouseID == uItem.WarehouseID {
+				exists = true
+				o[i].Quantity = uItem.Quantity
+			}
+		}
+		if !exists {
+			uItem.WarehouseID = token.RNG.Uint32()
+			f = append(f, uItem)
+		}
+	}
+	for _, oItem := range o {
+		if oItem.Quantity > 0 {
+			f = append(f, oItem)
+		}
+	}
+	return f
+}
+
 func (is MHFItemStack) ToBytes() []byte {
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint32(is.WarehouseID)

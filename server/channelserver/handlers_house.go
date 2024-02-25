@@ -495,32 +495,12 @@ func handleMsgMhfEnumerateWarehouse(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfUpdateWarehouse(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfUpdateWarehouse)
-	// o = old, u = update, f = final
-	var fItems []mhfitem.MHFItemStack
-	var fEquip []mhfitem.MHFEquipment
 	switch pkt.BoxType {
 	case 0:
-		oItems := warehouseGetItems(s, pkt.BoxIndex)
-		for _, uItem := range pkt.UpdatedItems {
-			exists := false
-			for i := range oItems {
-				if oItems[i].WarehouseID == uItem.WarehouseID {
-					exists = true
-					oItems[i].Quantity = uItem.Quantity
-				}
-			}
-			if !exists {
-				uItem.WarehouseID = token.RNG.Uint32()
-				fItems = append(fItems, uItem)
-			}
-		}
-		for _, oItem := range oItems {
-			if oItem.Quantity > 0 {
-				fItems = append(fItems, oItem)
-			}
-		}
-		s.server.db.Exec(fmt.Sprintf(`UPDATE warehouse SET item%d=$1 WHERE character_id=$2`, pkt.BoxIndex), mhfitem.SerializeWarehouseItems(fItems), s.charID)
+		newStacks := mhfitem.DiffItemStacks(warehouseGetItems(s, pkt.BoxIndex), pkt.UpdatedItems)
+		s.server.db.Exec(fmt.Sprintf(`UPDATE warehouse SET item%d=$1 WHERE character_id=$2`, pkt.BoxIndex), mhfitem.SerializeWarehouseItems(newStacks), s.charID)
 	case 1:
+		var fEquip []mhfitem.MHFEquipment
 		oEquips := warehouseGetEquipment(s, pkt.BoxIndex)
 		for _, uEquip := range pkt.UpdatedEquipment {
 			exists := false

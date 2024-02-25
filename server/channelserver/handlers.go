@@ -7,7 +7,6 @@ import (
 	"erupe-ce/common/mhfmon"
 	ps "erupe-ce/common/pascalstring"
 	"erupe-ce/common/stringsupport"
-	"erupe-ce/common/token"
 	_config "erupe-ce/config"
 	"fmt"
 	"io"
@@ -844,28 +843,8 @@ func handleMsgMhfEnumerateUnionItem(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfUpdateUnionItem(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfUpdateUnionItem)
-	// o = old, u = update, f = final
-	var fItems []mhfitem.MHFItemStack
-	oItems := userGetItems(s)
-	for _, uItem := range pkt.UpdatedItems {
-		exists := false
-		for i := range oItems {
-			if oItems[i].WarehouseID == uItem.WarehouseID {
-				exists = true
-				oItems[i].Quantity = uItem.Quantity
-			}
-		}
-		if !exists {
-			uItem.WarehouseID = token.RNG.Uint32()
-			fItems = append(fItems, uItem)
-		}
-	}
-	for _, oItem := range oItems {
-		if oItem.Quantity > 0 {
-			fItems = append(fItems, oItem)
-		}
-	}
-	s.server.db.Exec(`UPDATE users u SET item_box=$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)`, mhfitem.SerializeWarehouseItems(fItems), s.charID)
+	newStacks := mhfitem.DiffItemStacks(userGetItems(s), pkt.UpdatedItems)
+	s.server.db.Exec(`UPDATE users u SET item_box=$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)`, mhfitem.SerializeWarehouseItems(newStacks), s.charID)
 	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 

@@ -22,6 +22,7 @@ CREATE TABLE IF NOT EXISTS public.campaigns (
   string2 TEXT,
   string3 TEXT,
   link TEXT,
+  stamp_amount INTEGER,
   code_prefix TEXT
 );
 
@@ -52,5 +53,16 @@ CREATE TABLE IF NOT EXISTS public.campaign_category_links (
     unk2            INTEGER,
     deadline       TIMESTAMP WITH TIME ZONE
   );
+
+   CREATE TABLE IF NOT EXISTS public.campaign_state (
+    id           SERIAL PRIMARY KEY,
+    campaign_id INTEGER,
+    state INTEGER,
+    character_id INTEGER
+  );
+
+  INSERT INTO public.campaign_state
+   (campaign_id,state,character_id
+  ) VALUES (1, 2,2);
   
   END;

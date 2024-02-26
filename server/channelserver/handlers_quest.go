@@ -275,7 +275,24 @@ func makeEventQuest(s *Session, rows *sql.Rows) ([]byte, error) {
 	}
 	bf.WriteUint8(questType)
 	if questType == 9 {
-		bf.WriteBool(false)
+		var state int16
+		s.server.db.QueryRow(`SELECT state
+		FROM campaign_state
+		WHERE character_id = $2
+		AND campaign_id = (
+			SELECT campaign_id
+			FROM campaign_entries
+			WHERE item_type = 9
+			AND item_no = $1
+			AND character_id = $2
+		)`, questId, s.charID).Scan(&state)
+		if state == 2 {
+			bf.WriteBool(true)
+
+		} else {
+			bf.WriteBool(false)
+
+		}
 	} else {
 		bf.WriteBool(true)
 	}

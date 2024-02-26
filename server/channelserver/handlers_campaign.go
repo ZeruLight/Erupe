@@ -31,6 +31,7 @@ type CampaignEvent struct {
 	String2      string    `db:"string2"`
 	String3      string    `db:"string3"`
 	Link         string    `db:"link"`
+	StampAmount  uint8     `db:"stamp_amount"`
 	Prefix       string    `db:"code_prefix"`
 }
 
@@ -114,7 +115,7 @@ func handleMsgMhfEnumerateCampaign(s *Session, p mhfpacket.MHFPacket) {
 	}
 	for _, event := range events {
 		bf.WriteUint32(event.ID)
-		bf.WriteUint8(1) // Always 1?
+		bf.WriteUint8(event.StampAmount)
 		bf.WriteBytes([]byte(event.Prefix))
 	}
 
@@ -151,11 +152,18 @@ func handleMsgMhfEnumerateCampaign(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfStateCampaign(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfStateCampaign)
 	bf := byteframe.NewByteFrame()
-	var unk []uint32
-	var result uint16 = 1 //3 stamp//2 Event already acomplished //1 Stamp? //0 stamp
-	bf.WriteUint16(uint16(len(unk)))
-	bf.WriteUint16(result)
-	for _, value := range unk {
+	var state uint16
+	err := s.server.db.QueryRow(`SELECT state FROM campaign_state WHERE campaign_id = $1 AND character_id = $2 LIMIT 1`, pkt.CampaignID, s.charID).Scan(&state)
+	if err != nil {
+		s.server.db.Exec(`INSERT INTO public.campaign_state  (campaign_id,character_id)VALUES ($1, $2)`, pkt.CampaignID, s.charID)
+		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
+		return
+	}
+	var unkArray = []uint32{}
+	//var state uint16 = 3
+	bf.WriteUint16(uint16(len(unkArray))) //amount
+	bf.WriteUint16(state)                 //state //3 stamp (Overflow?)//2 Event already acomplished //1 Stamp? //0 stamp
+	for _, value := range unkArray {
 		bf.WriteUint32(value)
 	}
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
@@ -167,44 +175,58 @@ func handleMsgMhfApplyCampaign(s *Session, p mhfpacket.MHFPacket) {
 	// Check campaign ID
 	// Check code against campaign list of codes to see if valid....
 	//checkCode(pkt.CodeString,pkt.CampaignID)
+
 	validCode := true
 	if validCode {
+		s.server.db.Exec(`UPDATE public.campaign_state SET state = $3 WHERE campaign_id = $1 AND character_id =$2`, pkt.CampaignID, s.charID, 1)
+
 		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 	} else {
-		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
 	}
 }
 
 func handleMsgMhfEnumerateItem(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateItem)
 	bf := byteframe.NewByteFrame()
-	var items []CampaignEntry
-	err := s.server.db.Select(&items, "SELECT id,hide,item_type,item_amount,item_no,unk1,unk2,deadline FROM campaign_entries WHERE campaign_id = $1", pkt.CampaignID)
-	if err != nil {
-		doAckBufFail(s, pkt.AckHandle, bf.Data())
-		return
-	}
-	bf.WriteUint16(uint16(len(items)))
-	for _, item := range items {
-		bf.WriteUint32(item.ID)
-		bf.WriteBool(item.Hide)
-		bf.WriteUint8(item.ItemType)
-		bf.WriteUint16(item.Amount)
-		bf.WriteUint16(item.ItemNo)
-		bf.WriteUint16(item.Unk4)
-		bf.WriteUint32(item.Unk5)
-		bf.WriteUint32(uint32(item.DeadLine.Unix()))
-	}
-	if len(items) == 0 {
-		doAckBufFail(s, pkt.AckHandle, bf.Data())
 
+	var state uint16
+	s.server.db.QueryRow(`SELECT state FROM campaign_state WHERE campaign_id = $1 AND character_id = $2 LIMIT 1`, pkt.CampaignID, s.charID).Scan(&state)
+	if state == 0 || state == 2 {
+		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
 	} else {
-		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 
+		var items []CampaignEntry
+		err := s.server.db.Select(&items, `SELECT id,hide,item_type,item_amount,item_no,unk1,unk2,deadline FROM campaign_entries WHERE campaign_id = $1`, pkt.CampaignID)
+		if err != nil {
+			doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
+			return
+		}
+		bf.WriteUint16(uint16(len(items)))
+		for _, item := range items {
+			bf.WriteUint32(item.ID)
+			bf.WriteBool(item.Hide)
+			bf.WriteUint8(item.ItemType)
+			bf.WriteUint16(item.Amount)
+			bf.WriteUint16(item.ItemNo)
+			bf.WriteUint16(item.Unk4)
+			bf.WriteUint32(item.Unk5)
+			bf.WriteUint32(uint32(item.DeadLine.Unix()))
+		}
+		s.server.db.Exec(`UPDATE public.campaign_state SET state = $3 WHERE campaign_id = $1 AND character_id =$2`, pkt.CampaignID, s.charID, 2)
+		if len(items) == 0 {
+			doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
+
+		} else {
+
+			doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+
+		}
 	}
 }
 
 func handleMsgMhfAcquireItem(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfAcquireItem)
+
 	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }

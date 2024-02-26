@@ -3778,5 +3778,8 @@ VALUES
     (769511124,false,9,0,40141,0,0,NOW() + INTERVAL '24 hours'),
     (901146643,false,9,0,40081,0,0,NOW() + INTERVAL '24 hours'),
     (584165270,false,9,0,40080,0,0,NOW() + INTERVAL '24 hours'),
-    (208696469,false,9,0,40079,0,0,NOW() + INTERVAL '24 hours');
+    (208696469,false,9,0,40079,0,0,NOW() + INTERVAL '24 hours'),
+    (492821212,false,7,110,1859,0,0,NOW() + INTERVAL '24 hours'),
+    (190027775,false,8,1,96,0,0,NOW() + INTERVAL '24 hours');
+
   END;

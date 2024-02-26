@@ -182,7 +182,7 @@ func handleMsgMhfApplyCampaign(s *Session, p mhfpacket.MHFPacket) {
 
 		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 	} else {
-		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
+		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 	}
 }
 

@@ -1,11 +1,14 @@
 package channelserver
 
 import (
+	"database/sql"
 	"erupe-ce/common/byteframe"
 	ps "erupe-ce/common/pascalstring"
 	"erupe-ce/common/stringsupport"
 	_config "erupe-ce/config"
 	"erupe-ce/network/mhfpacket"
+	"fmt"
+	"log"
 	"time"
 )
 
@@ -172,18 +175,25 @@ func handleMsgMhfStateCampaign(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfApplyCampaign(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfApplyCampaign)
 
-	// Check campaign ID
-	// Check code against campaign list of codes to see if valid....
-	//checkCode(pkt.CodeString,pkt.CampaignID)
+	var result string
 
-	validCode := true
-	if validCode {
-		s.server.db.Exec(`UPDATE public.campaign_state SET state = $3 WHERE campaign_id = $1 AND character_id =$2`, pkt.CampaignID, s.charID, 1)
+	// Query to check if the event code exists in the database
+	err := s.server.db.QueryRow("SELECT code FROM public.campaign_state WHERE code = $1", pkt.CodeString).Scan(&result)
+
+	switch {
+	case err == sql.ErrNoRows:
+		fmt.Println("Event code does not exist in the database.")
+		s.server.db.Exec(`UPDATE public.campaign_state SET state = $3, code = $4 WHERE campaign_id = $1 AND character_id =$2`, pkt.CampaignID, s.charID, 1, pkt.CodeString)
 
 		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
-	} else {
+	case err != nil:
+		log.Fatal(err)
+	default:
+		fmt.Printf("Event code '%s' exists in the database.\n", result)
 		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+
 	}
+
 }
 
 func handleMsgMhfEnumerateItem(s *Session, p mhfpacket.MHFPacket) {

@@ -57,13 +57,8 @@ CREATE TABLE IF NOT EXISTS public.campaign_category_links (
    CREATE TABLE IF NOT EXISTS public.campaign_state (
     id           SERIAL PRIMARY KEY,
     campaign_id INTEGER,
-    state INTEGER,
     character_id INTEGER,
     code TEXT
   );
 
-  INSERT INTO public.campaign_state
-   (campaign_id,state,character_id
-  ) VALUES (1, 2,2);
-  
   END;

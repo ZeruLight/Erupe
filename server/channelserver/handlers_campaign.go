@@ -70,11 +70,18 @@ func handleMsgMhfEnumerateCampaign(s *Session, p mhfpacket.MHFPacket) {
 	var campaignLinks []CampaignLink
 
 	err := s.server.db.Select(&events, "SELECT id,unk0,min_hr,max_hr,min_sr,max_sr,min_gr,max_gr,unk1,unk2,unk3,background_id,hide_npc,start_time,end_time,period_ended,string0,string1,string2,string3,link,code_prefix,stamp_amount FROM campaigns")
-	err = s.server.db.Select(&categories, "SELECT id, cat_type, title, description_text FROM campaign_categories")
-	err = s.server.db.Select(&campaignLinks, "SELECT campaign_id, category_id FROM campaign_category_links")
-
 	if err != nil {
-		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
+		doAckBufFail(s, pkt.AckHandle, make([]byte, 4))
+		return
+	}
+	err = s.server.db.Select(&categories, "SELECT id, cat_type, title, description_text FROM campaign_categories")
+	if err != nil {
+		doAckBufFail(s, pkt.AckHandle, make([]byte, 4))
+		return
+	}
+	err = s.server.db.Select(&campaignLinks, "SELECT campaign_id, category_id FROM campaign_category_links")
+	if err != nil {
+		doAckBufFail(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
 	if len(events) > 255 {
@@ -155,41 +162,52 @@ func handleMsgMhfEnumerateCampaign(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfStateCampaign(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfStateCampaign)
 	bf := byteframe.NewByteFrame()
-	var state uint16
-	err := s.server.db.QueryRow(`SELECT state FROM campaign_state WHERE campaign_id = $1 AND character_id = $2 LIMIT 1`, pkt.CampaignID, s.charID).Scan(&state)
+	var stamps, amount int
+	var period_ended bool
+	err := s.server.db.QueryRow(`SELECT COUNT(*) FROM campaign_state WHERE campaign_id = $1 AND character_id = $2`, pkt.CampaignID, s.charID).Scan(&stamps)
 	if err != nil {
-		s.server.db.Exec(`INSERT INTO public.campaign_state  (campaign_id,character_id)VALUES ($1, $2)`, pkt.CampaignID, s.charID)
-		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
+		doAckBufFail(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
-	var unkArray = []uint32{}
-	//var state uint16 = 3
-	bf.WriteUint16(uint16(len(unkArray))) //amount
-	bf.WriteUint16(state)                 //state //3 stamp (Overflow?)//2 Event already acomplished //1 Stamp? //0 stamp
+	err = s.server.db.QueryRow(`SELECT stamp_amount,period_ended FROM campaigns WHERE id = $1`, pkt.CampaignID).Scan(&amount, &period_ended)
+	if err != nil {
+		doAckBufFail(s, pkt.AckHandle, make([]byte, 4))
+		return
+	}
+	var unkArray = []uint32{1, 2, 3, 4, 5, 6}
+	bf.WriteUint16(uint16(stamps + 1)) // game -1?
+	if amount == 1 {
+		bf.WriteUint16(1)
+	} else if stamps >= amount || period_ended {
+		bf.WriteUint16(2)
+	} else if amount > 1 {
+		bf.WriteUint16(3)
+	}
+	// bf.WriteUint16(state)      //state //3 stamp (Overflow?)//2 Event already acomplished //1 Stamp? //0 stamp
 	for _, value := range unkArray {
 		bf.WriteUint32(value)
 	}
+
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfApplyCampaign(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfApplyCampaign)
 
-	var result string
-
+	var code string
 	// Query to check if the event code exists in the database
-	err := s.server.db.QueryRow("SELECT code FROM public.campaign_state WHERE code = $1", pkt.CodeString).Scan(&result)
+	err := s.server.db.QueryRow("SELECT code FROM public.campaign_state WHERE code = $1", pkt.CodeString).Scan(&code)
 
 	switch {
 	case err == sql.ErrNoRows:
 		fmt.Println("Event code does not exist in the database.")
-		s.server.db.Exec(`UPDATE public.campaign_state SET state = $3, code = $4 WHERE campaign_id = $1 AND character_id =$2`, pkt.CampaignID, s.charID, 1, pkt.CodeString)
+		s.server.db.Exec(`INSERT INTO public.campaign_state ( code, campaign_id ,character_id) VALUES ($1,$2,$3)`, pkt.CodeString, pkt.CampaignID, s.charID)
 
 		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 	case err != nil:
 		log.Fatal(err)
 	default:
-		fmt.Printf("Event code '%s' exists in the database.\n", result)
+		fmt.Printf("Event code '%s' exists in the database.\n", code)
 		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 
 	}
@@ -200,14 +218,21 @@ func handleMsgMhfEnumerateItem(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateItem)
 	bf := byteframe.NewByteFrame()
 
-	var state uint16
-	s.server.db.QueryRow(`SELECT state FROM campaign_state WHERE campaign_id = $1 AND character_id = $2 LIMIT 1`, pkt.CampaignID, s.charID).Scan(&state)
-	if state == 0 || state == 2 {
-		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
-	} else {
+	var stamps, amount uint16
+	err := s.server.db.QueryRow(`SELECT COUNT(*) FROM campaign_state WHERE campaign_id = $1 AND character_id = $2`, pkt.CampaignID, s.charID).Scan(&stamps)
+	if err != nil {
+		doAckBufFail(s, pkt.AckHandle, make([]byte, 4))
+		return
+	}
+	err = s.server.db.QueryRow(`SELECT stamp_amount FROM campaigns WHERE id = $1`, pkt.CampaignID).Scan(&amount)
+	if err != nil {
+		doAckBufFail(s, pkt.AckHandle, make([]byte, 4))
+		return
+	}
+	if stamps >= amount {
 
 		var items []CampaignEntry
-		err := s.server.db.Select(&items, `SELECT id,hide,item_type,item_amount,item_no,unk1,unk2,deadline FROM campaign_entries WHERE campaign_id = $1`, pkt.CampaignID)
+		err = s.server.db.Select(&items, `SELECT id,hide,item_type,item_amount,item_no,unk1,unk2,deadline FROM campaign_entries WHERE campaign_id = $1`, pkt.CampaignID)
 		if err != nil {
 			doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
 			return
@@ -223,7 +248,6 @@ func handleMsgMhfEnumerateItem(s *Session, p mhfpacket.MHFPacket) {
 			bf.WriteUint32(item.Unk5)
 			bf.WriteUint32(uint32(item.DeadLine.Unix()))
 		}
-		s.server.db.Exec(`UPDATE public.campaign_state SET state = $3 WHERE campaign_id = $1 AND character_id =$2`, pkt.CampaignID, s.charID, 2)
 		if len(items) == 0 {
 			doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
 
@@ -232,6 +256,8 @@ func handleMsgMhfEnumerateItem(s *Session, p mhfpacket.MHFPacket) {
 			doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 
 		}
+	} else {
+		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
 	}
 }
 

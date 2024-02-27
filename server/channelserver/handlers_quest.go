@@ -275,20 +275,34 @@ func makeEventQuest(s *Session, rows *sql.Rows) ([]byte, error) {
 	}
 	bf.WriteUint8(questType)
 	if questType == 9 {
-		var state int
-		s.server.db.QueryRow(`SELECT state
-		FROM campaign_state
-		WHERE character_id = $2
-		AND campaign_id = (
+		var stamps int
+		var amount int = 1
+		var deadline time.Time
+		err := s.server.db.QueryRow(`SELECT COUNT(*) FROM campaign_state WHERE campaign_id = (
 			SELECT campaign_id
 			FROM campaign_entries
 			WHERE item_type = 9
 			AND item_no = $1
-			AND character_id = $2
-		)`, questId, s.charID).Scan(&state)
-		if state == 2 {
+		) AND character_id = $2`, questId, s.charID).Scan(&stamps)
+		err2 := s.server.db.QueryRow(`SELECT stamp_amount, (
+			SELECT deadline
+			FROM campaign_entries
+			WHERE item_type = 9
+			AND campaign_id = campaigns.id
+		) AS deadline
+		FROM campaigns
+		WHERE id = (
+			SELECT campaign_id
+			FROM campaign_entries
+			WHERE item_type = 9
+			AND item_no = $1
+		)`, questId).Scan(&amount, &deadline)
+
+		if stamps >= amount && deadline.After(time.Now()) {
 			bf.WriteBool(true)
 
+		} else if err == nil || err2 == nil {
+			bf.WriteBool(false)
 		} else {
 			bf.WriteBool(false)
 

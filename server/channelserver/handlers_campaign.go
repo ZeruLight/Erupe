@@ -69,7 +69,7 @@ func handleMsgMhfEnumerateCampaign(s *Session, p mhfpacket.MHFPacket) {
 
 	var campaignLinks []CampaignLink
 
-	err := s.server.db.Select(&events, "SELECT id,unk0,min_hr,max_hr,min_sr,max_sr,min_gr,max_gr,unk1,unk2,unk3,background_id,hide_npc,start_time,end_time,period_ended,string0,string1,string2,string3,link,code_prefix FROM campaigns")
+	err := s.server.db.Select(&events, "SELECT id,unk0,min_hr,max_hr,min_sr,max_sr,min_gr,max_gr,unk1,unk2,unk3,background_id,hide_npc,start_time,end_time,period_ended,string0,string1,string2,string3,link,code_prefix,stamp_amount FROM campaigns")
 	err = s.server.db.Select(&categories, "SELECT id, cat_type, title, description_text FROM campaign_categories")
 	err = s.server.db.Select(&campaignLinks, "SELECT campaign_id, category_id FROM campaign_category_links")
 

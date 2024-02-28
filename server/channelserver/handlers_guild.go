@@ -806,6 +806,15 @@ func handleDonateRP(s *Session, amount uint16, guild *Guild, _type int) []byte {
 	if err != nil {
 		return bf.Data()
 	}
+	var resetRoom bool
+	if _type == 2 {
+		var currentRP uint16
+		s.server.db.QueryRow(`SELECT room_rp FROM guilds WHERE id = $1`, guild.ID).Scan(&currentRP)
+		if currentRP+amount >= 30 {
+			amount = 30 - currentRP
+			resetRoom = true
+		}
+	}
 	saveData.RP -= amount
 	saveData.Save(s)
 	switch _type {
@@ -814,9 +823,7 @@ func handleDonateRP(s *Session, amount uint16, guild *Guild, _type int) []byte {
 	case 1:
 		s.server.db.Exec(`UPDATE guilds SET event_rp = event_rp + $1 WHERE id = $2`, amount, guild.ID)
 	case 2:
-		var currentRP uint16
-		s.server.db.QueryRow(`SELECT room_rp FROM guilds WHERE id = $1`, guild.ID).Scan(&currentRP)
-		if currentRP+amount >= 30 {
+		if resetRoom {
 			s.server.db.Exec(`UPDATE guilds SET room_rp = 0 WHERE id = $1`, guild.ID)
 			s.server.db.Exec(`UPDATE guilds SET room_expiry = $1 WHERE id = $2`, TimeAdjusted().Add(time.Hour*24*7), guild.ID)
 		} else {

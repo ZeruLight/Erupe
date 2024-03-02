@@ -1,10 +1,11 @@
 package discordbot
 
 import (
-	"erupe-ce/config"
+	_config "erupe-ce/config"
+	"regexp"
+
 	"github.com/bwmarrin/discordgo"
 	"go.uber.org/zap"
-	"regexp"
 )
 
 var Commands = []*discordgo.ApplicationCommand{
@@ -87,7 +88,6 @@ func (bot *DiscordBot) NormalizeDiscordMessage(message string) string {
 	userRegex := regexp.MustCompile(`<@!?(\d{17,19})>`)
 	emojiRegex := regexp.MustCompile(`(?:<a?)?:(\w+):(?:\d{18}>)?`)
 	messageRegex := regexp.MustCompile(`[^\p{Hiragana}\p{Katakana}\p{Han}\p{P}\p{S}\x{00}-\x{7E}]`)
-	message = messageRegex.ReplaceAllString(message, "")
 
 	result := ReplaceTextAll(message, userRegex, func(userId string) string {
 		user, err := bot.Session.User(userId)
@@ -102,6 +102,8 @@ func (bot *DiscordBot) NormalizeDiscordMessage(message string) string {
 	result = ReplaceTextAll(result, emojiRegex, func(emojiName string) string {
 		return ":" + emojiName + ":"
 	})
+
+	result = messageRegex.ReplaceAllString(result, "")
 
 	return result
 }

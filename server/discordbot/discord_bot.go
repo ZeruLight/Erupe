@@ -87,7 +87,7 @@ func (bot *DiscordBot) Start() (err error) {
 func (bot *DiscordBot) NormalizeDiscordMessage(message string) string {
 	userRegex := regexp.MustCompile(`<@!?(\d{17,19})>`)
 	emojiRegex := regexp.MustCompile(`(?:<a?)?:(\w+):(?:\d{18}>)?`)
-	messageRegex := regexp.MustCompile(`[^\p{Hiragana}\p{Katakana}\p{Han}\p{P}\p{S}\x{00}-\x{7E}]`)
+	messageRegex := regexp.MustCompile(`[^\x{20}-\x{7E}]`)
 
 	result := ReplaceTextAll(message, userRegex, func(userId string) string {
 		user, err := bot.Session.User(userId)

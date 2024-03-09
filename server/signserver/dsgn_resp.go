@@ -38,25 +38,24 @@ func (s *Session) makeSignResponse(uid uint32) []byte {
 		return bf.Data()
 	}
 
-	bf.WriteUint8(uint8(SIGN_SUCCESS)) // resp_code
-	if (s.server.erupeConfig.PatchServerManifest != "" && s.server.erupeConfig.PatchServerFile != "") || s.client == PS3 {
-		bf.WriteUint8(2)
-	} else {
-		bf.WriteUint8(0)
+	if s.client == PS3 && (s.server.erupeConfig.PatchServerFile == "" || s.server.erupeConfig.PatchServerManifest == "") {
+		bf.WriteUint8(uint8(SIGN_EABORT))
+		return bf.Data()
 	}
+
+	bf.WriteUint8(uint8(SIGN_SUCCESS))
+	bf.WriteUint8(2) // patch server count
 	bf.WriteUint8(1) // entrance server count
 	bf.WriteUint8(uint8(len(chars)))
 	bf.WriteUint32(tokenID)
 	bf.WriteBytes([]byte(sessToken))
 	bf.WriteUint32(uint32(channelserver.TimeAdjusted().Unix()))
 	if s.client == PS3 {
-		ps.Uint8(bf, fmt.Sprintf(`ps3-%s.zerulight.cc`, s.server.erupeConfig.Language), false)
-		ps.Uint8(bf, fmt.Sprintf(`ps3-%s.zerulight.cc`, s.server.erupeConfig.Language), false)
+		ps.Uint8(bf, fmt.Sprintf("%s/ps3", s.server.erupeConfig.PatchServerManifest), false)
+		ps.Uint8(bf, fmt.Sprintf("%s/ps3", s.server.erupeConfig.PatchServerManifest), false)
 	} else {
-		if s.server.erupeConfig.PatchServerManifest != "" && s.server.erupeConfig.PatchServerFile != "" {
-			ps.Uint8(bf, s.server.erupeConfig.PatchServerManifest, false)
-			ps.Uint8(bf, s.server.erupeConfig.PatchServerFile, false)
-		}
+		ps.Uint8(bf, s.server.erupeConfig.PatchServerManifest, false)
+		ps.Uint8(bf, s.server.erupeConfig.PatchServerFile, false)
 	}
 	if strings.Split(s.rawConn.RemoteAddr().String(), ":")[0] == "127.0.0.1" {
 		ps.Uint8(bf, fmt.Sprintf("127.0.0.1:%d", s.server.erupeConfig.Entrance.Port), false)

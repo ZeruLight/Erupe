@@ -151,6 +151,13 @@ func removeSessionFromStage(s *Session) {
 func handleMsgSysEnterStage(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysEnterStage)
 
+	if stage, exists := s.server.stages[pkt.StageID]; exists {
+		if len(stage.reservedClientSlots) == int(stage.maxPlayers) {
+			doAckSimpleFail(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x01})
+			return
+		}
+	}
+
 	// Push our current stage ID to the movement stack before entering another one.
 	if s.stage != nil {
 		s.stage.Lock()

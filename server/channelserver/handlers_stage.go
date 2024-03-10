@@ -148,14 +148,19 @@ func removeSessionFromStage(s *Session) {
 	destructEmptySemaphores(s)
 }
 
+func isStageFull(s *Session, StageID string) bool {
+	if stage, exists := s.server.stages[StageID]; exists {
+		return len(stage.reservedClientSlots)+len(stage.clients) >= int(stage.maxPlayers)
+	}
+	return false
+}
+
 func handleMsgSysEnterStage(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysEnterStage)
 
-	if stage, exists := s.server.stages[pkt.StageID]; exists {
-		if len(stage.reservedClientSlots)+len(stage.clients) == int(stage.maxPlayers) {
-			doAckSimpleFail(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x01})
-			return
-		}
+	if isStageFull(s, pkt.StageID) {
+		doAckSimpleFail(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x01})
+		return
 	}
 
 	// Push our current stage ID to the movement stack before entering another one.
@@ -182,6 +187,12 @@ func handleMsgSysBackStage(s *Session, p mhfpacket.MHFPacket) {
 		backStage = "sl1Ns200p0a0u0"
 	}
 
+	if isStageFull(s, backStage) {
+		s.stageMoveStack.Push(backStage)
+		doAckSimpleFail(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x01})
+		return
+	}
+
 	if _, exists := s.stage.reservedClientSlots[s.charID]; exists {
 		delete(s.stage.reservedClientSlots, s.charID)
 	}
@@ -195,6 +206,12 @@ func handleMsgSysBackStage(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgSysMoveStage(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysMoveStage)
+
+	if isStageFull(s, pkt.StageID) {
+		doAckSimpleFail(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x01})
+		return
+	}
+
 	doStageTransfer(s, pkt.AckHandle, pkt.StageID)
 }
 

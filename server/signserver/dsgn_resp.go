@@ -52,7 +52,7 @@ func (s *Session) makeSignResponse(uid uint32) []byte {
 	bf.WriteUint32(uint32(channelserver.TimeAdjusted().Unix()))
 	if s.client == PS3 {
 		ps.Uint8(bf, fmt.Sprintf("%s/ps3", s.server.erupeConfig.PatchServerManifest), false)
-		ps.Uint8(bf, fmt.Sprintf("%s/ps3", s.server.erupeConfig.PatchServerManifest), false)
+		ps.Uint8(bf, fmt.Sprintf("%s/ps3", s.server.erupeConfig.PatchServerFile), false)
 	} else {
 		ps.Uint8(bf, s.server.erupeConfig.PatchServerManifest, false)
 		ps.Uint8(bf, s.server.erupeConfig.PatchServerFile, false)

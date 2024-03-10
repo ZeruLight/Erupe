@@ -152,7 +152,7 @@ func handleMsgSysEnterStage(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysEnterStage)
 
 	if stage, exists := s.server.stages[pkt.StageID]; exists {
-		if len(stage.reservedClientSlots) == int(stage.maxPlayers) {
+		if len(stage.reservedClientSlots)+len(stage.clients) == int(stage.maxPlayers) {
 			doAckSimpleFail(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x01})
 			return
 		}

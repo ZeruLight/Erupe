@@ -59,7 +59,7 @@ func NewStage(ID string) *Stage {
 		objects:             make(map[uint32]*Object),
 		objectIndex:         0,
 		rawBinaryData:       make(map[stageBinaryKey][]byte),
-		maxPlayers:          4,
+		maxPlayers:          127,
 	}
 	return s
 }

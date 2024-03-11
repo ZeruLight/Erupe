@@ -1,6 +1,6 @@
 # Erupe
 
-## Client Compatiblity
+## Client Compatibility
 ### Platforms
 - PC
 - PlayStation 3
@@ -34,15 +34,15 @@ If you want to modify or compile Erupe yourself, please read on.
 
 ## Docker
 
-Please see the readme in [docker/README.md](./docker/README.md). At the moment this is only really good for quick installs and checking out development not for production. 
+Please see [docker/README.md](./docker/README.md). This is intended for quick installs and development, not for production. 
 
 ## Schemas 
 
 We source control the following schemas: 
-- Initialisation Schemas: These initialise the application database to a clean install from a specific version.
-- Update Schemas: These are update files they should be ran in order of version to get to the latest schema.
-- Patch Schemas: These are for development and should be ran from the lastest available update schema or initial schema. These eventually get condensed into `Update Schemas` and then deleted when updated to a new version.
-- Bundled Schemas: These are demo reference files to allow servers to be able to roll their own shops, distributions gachas and scenarios set ups. 
+- Initialization Schema: This initializes the application database to a specific version (9.1.0).
+- Update Schemas: These are update files that should be ran on top of the initialization schema.
+- Patch Schemas: These are for development and should be run after running all initialization and update schema. These get condensed into `Update Schemas` and deleted when updated to a new release.
+- Bundled Schemas: These are demo reference files to give servers standard set-ups. 
 
 Note: Patch schemas are subject to change! You should only be using them if you are following along with development. 
 

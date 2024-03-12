@@ -75,7 +75,6 @@ type Config struct {
 	LoginNotices           []string // MHFML string of the login notices displayed
 	PatchServerManifest    string   // Manifest patch server override
 	PatchServerFile        string   // File patch server override
-	ScreenshotAPIURL       string   // Destination for screenshots uploaded to BBS
 	DeleteOnSaveCorruption bool     // Attempts to save corrupted data will flag the save for deletion
 	ClientMode             string
 	RealClientMode         Mode
@@ -87,22 +86,31 @@ type Config struct {
 	EarthID                int32
 	EarthMonsters          []int32
 	SaveDumps              SaveDumpOptions
-	DebugOptions           DebugOptions
-	GameplayOptions        GameplayOptions
-	Discord                Discord
-	Commands               []Command
-	Courses                []Course
-	Database               Database
-	Sign                   Sign
-	SignV2                 SignV2
-	Channel                Channel
-	Entrance               Entrance
+	Screenshots            ScreenshotsOptions
+
+	DebugOptions    DebugOptions
+	GameplayOptions GameplayOptions
+	Discord         Discord
+	Commands        []Command
+	Courses         []Course
+	Database        Database
+	Sign            Sign
+	SignV2          SignV2
+	Channel         Channel
+	Entrance        Entrance
 }
 
 type SaveDumpOptions struct {
 	Enabled    bool
 	RawEnabled bool
 	OutputDir  string
+}
+
+type ScreenshotsOptions struct {
+	Enabled   bool
+	Host      string // Destination for screenshots uploaded to BBS
+	Port      uint32 // Port for screenshots API
+	OutputDir string
 }
 
 // DebugOptions holds various debug/temporary options for use while developing Erupe.

@@ -367,6 +367,15 @@ func (s *Server) DiscordChannelSend(charName string, content string) {
 	}
 }
 
+func (s *Server) DiscordScreenShotSend(charName string, title string, description string) string {
+	if s.erupeConfig.Discord.Enabled && s.discordBot != nil {
+		message := fmt.Sprintf("**%s**: %s - %s", charName, title, description)
+		mesageId, _ := s.discordBot.RealtimeChannelSend(message)
+		return mesageId
+	}
+	return ""
+}
+
 func (s *Server) FindSessionByCharID(charID uint32) *Session {
 	for _, c := range s.Channels {
 		for _, session := range c.sessions {

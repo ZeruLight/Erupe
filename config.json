@@ -9,7 +9,12 @@
   ],
   "PatchServerManifest": "",
   "PatchServerFile": "",
-  "ScreenshotAPIURL": "",
+  "Screenshots":{
+    "Enabled":true,
+    "Host":"127.0.0.1",
+    "Port":8080,
+    "OutputDir":"screenshots"
+  },
   "DeleteOnSaveCorruption": false,
   "ClientMode": "ZZ",
   "QuestCacheExpiry": 300,

@@ -1,10 +1,12 @@
 package discordbot
 
 import (
-	"erupe-ce/config"
+	"errors"
+	_config "erupe-ce/config"
+	"regexp"
+
 	"github.com/bwmarrin/discordgo"
 	"go.uber.org/zap"
-	"regexp"
 )
 
 var Commands = []*discordgo.ApplicationCommand{
@@ -104,14 +106,14 @@ func (bot *DiscordBot) NormalizeDiscordMessage(message string) string {
 	return result
 }
 
-func (bot *DiscordBot) RealtimeChannelSend(message string) (err error) {
+func (bot *DiscordBot) RealtimeChannelSend(message string) (messageId string, err error) {
 	if bot.RelayChannel == nil {
-		return
+		return "", errors.New("RelayChannel is nil")
 	}
 
-	_, err = bot.Session.ChannelMessageSend(bot.RelayChannel.ID, message)
+	msg, err := bot.Session.ChannelMessageSend(bot.RelayChannel.ID, message)
 
-	return
+	return msg.ID, err
 }
 
 func ReplaceTextAll(text string, regex *regexp.Regexp, handler func(input string) string) string {

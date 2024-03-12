@@ -6,7 +6,12 @@ import (
 	"errors"
 	_config "erupe-ce/config"
 	"erupe-ce/server/channelserver"
+	"fmt"
+	"image"
+	"image/jpeg"
 	"net/http"
+	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -285,4 +290,67 @@ func (s *Server) ExportSave(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Add("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(save)
+}
+
+func (s *Server) ScreenShot(w http.ResponseWriter, r *http.Request) {
+	if !s.erupeConfig.SaveDumps.Enabled {
+		http.Error(w, "Screenshots not enabled in Config", http.StatusBadRequest)
+
+		return
+	} else {
+
+		if r.Method != http.MethodPost {
+			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
+			return
+		}
+		// Get File from Request
+		file, _, err := r.FormFile("img")
+		if err != nil {
+			http.Error(w, "No valid file uploaded", http.StatusBadRequest)
+			return
+		}
+		token := r.FormValue("token")
+		if token == "" {
+			http.Error(w, "Token not specified cannot continue", http.StatusBadRequest)
+			return
+		}
+
+		// Validate file
+		img, _, err := image.Decode(file)
+		if err != nil {
+			http.Error(w, "Invalid image file", http.StatusBadRequest)
+			return
+		}
+
+		dir := filepath.Join(s.erupeConfig.Screenshots.OutputDir)
+		path := filepath.Join(s.erupeConfig.Screenshots.OutputDir, fmt.Sprintf("%s.jpg", token))
+		_, err = os.Stat(dir)
+		if err != nil {
+			if os.IsNotExist(err) {
+				err = os.MkdirAll(dir, os.ModePerm)
+				if err != nil {
+					s.logger.Error("Error writing screenshot, could not create folder")
+					return
+				}
+			} else {
+				s.logger.Error("Error writing screenshot")
+				return
+			}
+		}
+		// Create or open the output file
+		outputFile, err := os.Create(path)
+		if err != nil {
+			panic(err)
+		}
+		defer outputFile.Close()
+
+		// Encode the image and write it to the file
+		err = jpeg.Encode(outputFile, img, &jpeg.Options{})
+		if err != nil {
+			panic(err)
+		}
+		if err != nil {
+			s.logger.Error("Error writing screenshot, could not write file", zap.Error(err))
+		}
+	}
 }

@@ -315,7 +315,6 @@ func (s *Server) ScreenShotGet(w http.ResponseWriter, r *http.Request) {
 	}
 }
 func (s *Server) ScreenShot(w http.ResponseWriter, r *http.Request) {
-
 	// Create a struct representing the XML result
 	type Result struct {
 		XMLName xml.Name `xml:"result"`
@@ -324,33 +323,27 @@ func (s *Server) ScreenShot(w http.ResponseWriter, r *http.Request) {
 	// Set the Content-Type header to specify that the response is in XML format
 	w.Header().Set("Content-Type", "text/xml")
 	result := Result{Code: "200"}
-
 	if !s.erupeConfig.Screenshots.Enabled {
 		result = Result{Code: "400"}
-
 	} else {
 
 		if r.Method != http.MethodPost {
 			result = Result{Code: "405"}
-
 		}
 		// Get File from Request
 		file, _, err := r.FormFile("img")
 		if err != nil {
 			result = Result{Code: "400"}
-
 		}
 		token := r.FormValue("token")
 		if token == "" {
 			result = Result{Code: "400"}
-
 		}
 
 		// Validate file
 		img, _, err := image.Decode(file)
 		if err != nil {
 			result = Result{Code: "400"}
-
 		}
 
 		dir := filepath.Join(s.erupeConfig.Screenshots.OutputDir)
@@ -380,9 +373,7 @@ func (s *Server) ScreenShot(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			s.logger.Error("Error writing screenshot, could not write file", zap.Error(err))
 			result = Result{Code: "500"}
-
 		}
-
 	}
 	// Marshal the struct into XML
 	xmlData, err := xml.Marshal(result)
@@ -390,7 +381,6 @@ func (s *Server) ScreenShot(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Unable to marshal XML", http.StatusInternalServerError)
 		return
 	}
-
 	// Write the XML response with a 200 status code
 	w.WriteHeader(http.StatusOK)
 	w.Write(xmlData)

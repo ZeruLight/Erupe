@@ -367,13 +367,12 @@ func (s *Server) DiscordChannelSend(charName string, content string) {
 	}
 }
 
-func (s *Server) DiscordScreenShotSend(charName string, title string, description string) string {
+func (s *Server) DiscordScreenShotSend(charName string, title string, description string, articleToken string) {
 	if s.erupeConfig.Discord.Enabled && s.discordBot != nil {
-		message := fmt.Sprintf("**%s**: %s - %s", charName, title, description)
-		mesageId, _ := s.discordBot.RealtimeChannelSend(message)
-		return mesageId
+		imageUrl := fmt.Sprintf("%s:%d/api/ss/bbs/%s", s.erupeConfig.Screenshots.Host, s.erupeConfig.Screenshots.Port, articleToken)
+		message := fmt.Sprintf("**%s**: %s - %s %s", charName, title, description, imageUrl)
+		s.discordBot.RealtimeChannelSend(message)
 	}
-	return ""
 }
 
 func (s *Server) FindSessionByCharID(charID uint32) *Session {

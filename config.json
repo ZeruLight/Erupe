@@ -13,7 +13,8 @@
     "Enabled":true,
     "Host":"127.0.0.1",
     "Port":8080,
-    "OutputDir":"screenshots"
+    "OutputDir":"screenshots",
+    "UploadQuality":100
   },
   "DeleteOnSaveCorruption": false,
   "ClientMode": "ZZ",

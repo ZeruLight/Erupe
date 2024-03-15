@@ -1,7 +1,6 @@
 package discordbot
 
 import (
-	"errors"
 	_config "erupe-ce/config"
 	"regexp"
 
@@ -106,16 +105,15 @@ func (bot *DiscordBot) NormalizeDiscordMessage(message string) string {
 	return result
 }
 
-func (bot *DiscordBot) RealtimeChannelSend(message string) (messageId string, err error) {
+func (bot *DiscordBot) RealtimeChannelSend(message string) (err error) {
 	if bot.RelayChannel == nil {
-		return "", errors.New("RelayChannel is nil")
+		return
 	}
 
-	msg, err := bot.Session.ChannelMessageSend(bot.RelayChannel.ID, message)
+	_, err = bot.Session.ChannelMessageSend(bot.RelayChannel.ID, message)
 
-	return msg.ID, err
+	return
 }
-
 func ReplaceTextAll(text string, regex *regexp.Regexp, handler func(input string) string) string {
 	result := regex.ReplaceAllFunc([]byte(text), func(s []byte) []byte {
 		input := regex.ReplaceAllString(string(s), `$1`)

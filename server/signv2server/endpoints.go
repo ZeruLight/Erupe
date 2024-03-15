@@ -3,18 +3,21 @@ package signv2server
 import (
 	"database/sql"
 	"encoding/json"
+	"encoding/xml"
 	"errors"
 	_config "erupe-ce/config"
 	"erupe-ce/server/channelserver"
 	"fmt"
 	"image"
 	"image/jpeg"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 	"time"
 
+	"github.com/gorilla/mux"
 	"github.com/lib/pq"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
@@ -291,35 +294,63 @@ func (s *Server) ExportSave(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(save)
 }
-
-func (s *Server) ScreenShot(w http.ResponseWriter, r *http.Request) {
-	if !s.erupeConfig.SaveDumps.Enabled {
-		http.Error(w, "Screenshots not enabled in Config", http.StatusBadRequest)
-
+func (s *Server) ScreenShotGet(w http.ResponseWriter, r *http.Request) {
+	// Get the 'id' parameter from the URL
+	vars := mux.Vars(r)
+	id := vars["id"]
+	// Open the image file
+	path := filepath.Join(s.erupeConfig.Screenshots.OutputDir, fmt.Sprintf("%s.jpg", id))
+	file, err := os.Open(path)
+	if err != nil {
+		http.Error(w, "Image not found", http.StatusNotFound)
 		return
+	}
+	defer file.Close()
+	// Set content type header to image/jpeg
+	w.Header().Set("Content-Type", "image/jpeg")
+	// Copy the image content to the response writer
+	if _, err := io.Copy(w, file); err != nil {
+		http.Error(w, "Unable to send image", http.StatusInternalServerError)
+		return
+	}
+}
+func (s *Server) ScreenShot(w http.ResponseWriter, r *http.Request) {
+
+	// Create a struct representing the XML result
+	type Result struct {
+		XMLName xml.Name `xml:"result"`
+		Code    string   `xml:"code"`
+	}
+	// Set the Content-Type header to specify that the response is in XML format
+	w.Header().Set("Content-Type", "text/xml")
+	result := Result{Code: "200"}
+
+	if !s.erupeConfig.Screenshots.Enabled {
+		result = Result{Code: "400"}
+
 	} else {
 
 		if r.Method != http.MethodPost {
-			http.Error(w, "Method not allowed", http.StatusMethodNotAllowed)
-			return
+			result = Result{Code: "405"}
+
 		}
 		// Get File from Request
 		file, _, err := r.FormFile("img")
 		if err != nil {
-			http.Error(w, "No valid file uploaded", http.StatusBadRequest)
-			return
+			result = Result{Code: "400"}
+
 		}
 		token := r.FormValue("token")
 		if token == "" {
-			http.Error(w, "Token not specified cannot continue", http.StatusBadRequest)
-			return
+			result = Result{Code: "400"}
+
 		}
 
 		// Validate file
 		img, _, err := image.Decode(file)
 		if err != nil {
-			http.Error(w, "Invalid image file", http.StatusBadRequest)
-			return
+			result = Result{Code: "400"}
+
 		}
 
 		dir := filepath.Join(s.erupeConfig.Screenshots.OutputDir)
@@ -330,27 +361,37 @@ func (s *Server) ScreenShot(w http.ResponseWriter, r *http.Request) {
 				err = os.MkdirAll(dir, os.ModePerm)
 				if err != nil {
 					s.logger.Error("Error writing screenshot, could not create folder")
-					return
+					result = Result{Code: "500"}
 				}
 			} else {
 				s.logger.Error("Error writing screenshot")
-				return
+				result = Result{Code: "500"}
 			}
 		}
 		// Create or open the output file
 		outputFile, err := os.Create(path)
 		if err != nil {
-			panic(err)
+			result = Result{Code: "500"}
 		}
 		defer outputFile.Close()
 
 		// Encode the image and write it to the file
-		err = jpeg.Encode(outputFile, img, &jpeg.Options{})
-		if err != nil {
-			panic(err)
-		}
+		err = jpeg.Encode(outputFile, img, &jpeg.Options{Quality: s.erupeConfig.Screenshots.UploadQuality})
 		if err != nil {
 			s.logger.Error("Error writing screenshot, could not write file", zap.Error(err))
+			result = Result{Code: "500"}
+
 		}
+
 	}
+	// Marshal the struct into XML
+	xmlData, err := xml.Marshal(result)
+	if err != nil {
+		http.Error(w, "Unable to marshal XML", http.StatusInternalServerError)
+		return
+	}
+
+	// Write the XML response with a 200 status code
+	w.WriteHeader(http.StatusOK)
+	w.Write(xmlData)
 }

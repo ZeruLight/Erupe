@@ -8,4 +8,4 @@ savedata/*/
 *.lnk
 *.bat
 /docker/db-data
-sreenshots/*
+screenshots/*

@@ -107,10 +107,11 @@ type SaveDumpOptions struct {
 }
 
 type ScreenshotsOptions struct {
-	Enabled   bool
-	Host      string // Destination for screenshots uploaded to BBS
-	Port      uint32 // Port for screenshots API
-	OutputDir string
+	Enabled       bool
+	Host          string // Destination for screenshots uploaded to BBS
+	Port          uint32 // Port for screenshots API
+	OutputDir     string
+	UploadQuality int //Determines the upload quality to the server
 }
 
 // DebugOptions holds various debug/temporary options for use while developing Erupe.

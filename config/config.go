@@ -95,7 +95,7 @@ type Config struct {
 	Courses         []Course
 	Database        Database
 	Sign            Sign
-	SignV2          SignV2
+	API             API
 	Channel         Channel
 	Entrance        Entrance
 }
@@ -237,29 +237,29 @@ type Sign struct {
 	Port    int
 }
 
-// SignV2 holds the new sign server config
-type SignV2 struct {
+// API holds server config
+type API struct {
 	Enabled     bool
 	Port        int
 	PatchServer string
-	Banners     []SignV2Banner
-	Messages    []SignV2Message
-	Links       []SignV2Link
+	Banners     []APISignBanner
+	Messages    []APISignMessage
+	Links       []APISignLink
 }
 
-type SignV2Banner struct {
+type APISignBanner struct {
 	Src  string `json:"src"`  // Displayed image URL
 	Link string `json:"link"` // Link accessed on click
 }
 
-type SignV2Message struct {
+type APISignMessage struct {
 	Message string `json:"message"` // Displayed message
 	Date    int64  `json:"date"`    // Displayed date
 	Kind    int    `json:"kind"`    // 0 for 'Default', 1 for 'New'
 	Link    string `json:"link"`    // Link accessed on click
 }
 
-type SignV2Link struct {
+type APISignLink struct {
 	Name string `json:"name"` // Displayed name
 	Icon string `json:"icon"` // Displayed icon. It will be cast as a monochrome color as long as it is transparent.
 	Link string `json:"link"` // Link accessed on click

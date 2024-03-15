@@ -1,4 +1,4 @@
-package signv2server
+package api
 
 import (
 	"database/sql"
@@ -30,9 +30,9 @@ const (
 )
 
 type LauncherResponse struct {
-	Banners  []_config.SignV2Banner  `json:"banners"`
-	Messages []_config.SignV2Message `json:"messages"`
-	Links    []_config.SignV2Link    `json:"links"`
+	Banners  []_config.APISignBanner  `json:"banners"`
+	Messages []_config.APISignMessage `json:"messages"`
+	Links    []_config.APISignLink    `json:"links"`
 }
 
 type User struct {
@@ -75,7 +75,7 @@ type ExportData struct {
 	Character map[string]interface{} `json:"character"`
 }
 
-func (s *Server) newAuthData(userID uint32, userRights uint32, userTokenID uint32, userToken string, characters []Character) AuthData {
+func (s *APIServer) newAuthData(userID uint32, userRights uint32, userTokenID uint32, userToken string, characters []Character) AuthData {
 	resp := AuthData{
 		CurrentTS:     uint32(channelserver.TimeAdjusted().Unix()),
 		ExpiryTS:      uint32(s.getReturnExpiry(userID).Unix()),
@@ -86,7 +86,7 @@ func (s *Server) newAuthData(userID uint32, userRights uint32, userTokenID uint3
 			Token:   userToken,
 		},
 		Characters:  characters,
-		PatchServer: s.erupeConfig.SignV2.PatchServer,
+		PatchServer: s.erupeConfig.API.PatchServer,
 		Notices:     []string{},
 	}
 	if s.erupeConfig.DebugOptions.MaxLauncherHR {
@@ -112,16 +112,16 @@ func (s *Server) newAuthData(userID uint32, userRights uint32, userTokenID uint3
 	return resp
 }
 
-func (s *Server) Launcher(w http.ResponseWriter, r *http.Request) {
+func (s *APIServer) Launcher(w http.ResponseWriter, r *http.Request) {
 	var respData LauncherResponse
-	respData.Banners = s.erupeConfig.SignV2.Banners
-	respData.Messages = s.erupeConfig.SignV2.Messages
-	respData.Links = s.erupeConfig.SignV2.Links
+	respData.Banners = s.erupeConfig.API.Banners
+	respData.Messages = s.erupeConfig.API.Messages
+	respData.Links = s.erupeConfig.API.Links
 	w.Header().Add("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(respData)
 }
 
-func (s *Server) Login(w http.ResponseWriter, r *http.Request) {
+func (s *APIServer) Login(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var reqData struct {
 		Username string `json:"username"`
@@ -173,7 +173,7 @@ func (s *Server) Login(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(respData)
 }
 
-func (s *Server) Register(w http.ResponseWriter, r *http.Request) {
+func (s *APIServer) Register(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var reqData struct {
 		Username string `json:"username"`
@@ -213,7 +213,7 @@ func (s *Server) Register(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(respData)
 }
 
-func (s *Server) CreateCharacter(w http.ResponseWriter, r *http.Request) {
+func (s *APIServer) CreateCharacter(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var reqData struct {
 		Token string `json:"token"`
@@ -242,7 +242,7 @@ func (s *Server) CreateCharacter(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(character)
 }
 
-func (s *Server) DeleteCharacter(w http.ResponseWriter, r *http.Request) {
+func (s *APIServer) DeleteCharacter(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var reqData struct {
 		Token  string `json:"token"`
@@ -267,7 +267,7 @@ func (s *Server) DeleteCharacter(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(struct{}{})
 }
 
-func (s *Server) ExportSave(w http.ResponseWriter, r *http.Request) {
+func (s *APIServer) ExportSave(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var reqData struct {
 		Token  string `json:"token"`
@@ -295,7 +295,7 @@ func (s *Server) ExportSave(w http.ResponseWriter, r *http.Request) {
 	w.Header().Add("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(save)
 }
-func (s *Server) ScreenShotGet(w http.ResponseWriter, r *http.Request) {
+func (s *APIServer) ScreenShotGet(w http.ResponseWriter, r *http.Request) {
 	// Get the 'id' parameter from the URL
 	vars := mux.Vars(r)
 	token := vars["id"]
@@ -321,7 +321,7 @@ func (s *Server) ScreenShotGet(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 }
-func (s *Server) ScreenShot(w http.ResponseWriter, r *http.Request) {
+func (s *APIServer) ScreenShot(w http.ResponseWriter, r *http.Request) {
 	// Create a struct representing the XML result
 	type Result struct {
 		XMLName xml.Name `xml:"result"`

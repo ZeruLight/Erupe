@@ -297,8 +297,7 @@ func (s *APIServer) ExportSave(w http.ResponseWriter, r *http.Request) {
 }
 func (s *APIServer) ScreenShotGet(w http.ResponseWriter, r *http.Request) {
 	// Get the 'id' parameter from the URL
-	vars := mux.Vars(r)
-	token := vars["id"]
+	token := mux.Vars(r)["id"]
 	var tokenPattern = regexp.MustCompile(`[A-Za-z0-9]+`)
 
 	if !tokenPattern.MatchString(token) || token == "" {
@@ -306,19 +305,28 @@ func (s *APIServer) ScreenShotGet(w http.ResponseWriter, r *http.Request) {
 
 	}
 	// Open the image file
-	path := filepath.Join(s.erupeConfig.Screenshots.OutputDir, fmt.Sprintf("%s.jpg", token))
-	file, err := os.Open(path)
+	safePath := s.erupeConfig.Screenshots.OutputDir
+	path := filepath.Join(safePath, fmt.Sprintf("%s.jpg", token))
+	result, err := verifyPath(path, safePath)
+
 	if err != nil {
-		http.Error(w, "Image not found", http.StatusNotFound)
-		return
-	}
-	defer file.Close()
-	// Set content type header to image/jpeg
-	w.Header().Set("Content-Type", "image/jpeg")
-	// Copy the image content to the response writer
-	if _, err := io.Copy(w, file); err != nil {
-		http.Error(w, "Unable to send image", http.StatusInternalServerError)
-		return
+		fmt.Println("Error " + err.Error())
+	} else {
+		fmt.Println("Canonical: " + result)
+
+		file, err := os.Open(result)
+		if err != nil {
+			http.Error(w, "Image not found", http.StatusNotFound)
+			return
+		}
+		defer file.Close()
+		// Set content type header to image/jpeg
+		w.Header().Set("Content-Type", "image/jpeg")
+		// Copy the image content to the response writer
+		if _, err := io.Copy(w, file); err != nil {
+			http.Error(w, "Unable to send image", http.StatusInternalServerError)
+			return
+		}
 	}
 }
 func (s *APIServer) ScreenShot(w http.ResponseWriter, r *http.Request) {
@@ -355,33 +363,41 @@ func (s *APIServer) ScreenShot(w http.ResponseWriter, r *http.Request) {
 			result = Result{Code: "400"}
 		}
 
-		dir := filepath.Join(s.erupeConfig.Screenshots.OutputDir)
-		path := filepath.Join(s.erupeConfig.Screenshots.OutputDir, fmt.Sprintf("%s.jpg", token))
-		_, err = os.Stat(dir)
+		safePath := s.erupeConfig.Screenshots.OutputDir
+
+		path := filepath.Join(safePath, fmt.Sprintf("%s.jpg", token))
+		verified, err := verifyPath(path, safePath)
+
 		if err != nil {
-			if os.IsNotExist(err) {
-				err = os.MkdirAll(dir, os.ModePerm)
-				if err != nil {
-					s.logger.Error("Error writing screenshot, could not create folder")
+			result = Result{Code: "500"}
+		} else {
+
+			_, err = os.Stat(safePath)
+			if err != nil {
+				if os.IsNotExist(err) {
+					err = os.MkdirAll(safePath, os.ModePerm)
+					if err != nil {
+						s.logger.Error("Error writing screenshot, could not create folder")
+						result = Result{Code: "500"}
+					}
+				} else {
+					s.logger.Error("Error writing screenshot")
 					result = Result{Code: "500"}
 				}
-			} else {
-				s.logger.Error("Error writing screenshot")
+			}
+			// Create or open the output file
+			outputFile, err := os.Create(verified)
+			if err != nil {
 				result = Result{Code: "500"}
 			}
-		}
-		// Create or open the output file
-		outputFile, err := os.Create(path)
-		if err != nil {
-			result = Result{Code: "500"}
-		}
-		defer outputFile.Close()
+			defer outputFile.Close()
 
-		// Encode the image and write it to the file
-		err = jpeg.Encode(outputFile, img, &jpeg.Options{Quality: s.erupeConfig.Screenshots.UploadQuality})
-		if err != nil {
-			s.logger.Error("Error writing screenshot, could not write file", zap.Error(err))
-			result = Result{Code: "500"}
+			// Encode the image and write it to the file
+			err = jpeg.Encode(outputFile, img, &jpeg.Options{Quality: s.erupeConfig.Screenshots.UploadQuality})
+			if err != nil {
+				s.logger.Error("Error writing screenshot, could not write file", zap.Error(err))
+				result = Result{Code: "500"}
+			}
 		}
 	}
 	// Marshal the struct into XML

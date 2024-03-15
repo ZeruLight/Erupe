@@ -14,6 +14,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
@@ -297,9 +298,15 @@ func (s *Server) ExportSave(w http.ResponseWriter, r *http.Request) {
 func (s *Server) ScreenShotGet(w http.ResponseWriter, r *http.Request) {
 	// Get the 'id' parameter from the URL
 	vars := mux.Vars(r)
-	id := vars["id"]
+	token := vars["id"]
+	var tokenPattern = regexp.MustCompile(`[A-Za-z0-9]+`)
+
+	if !tokenPattern.MatchString(token) || token == "" {
+		http.Error(w, "Not Valid Token", http.StatusBadRequest)
+
+	}
 	// Open the image file
-	path := filepath.Join(s.erupeConfig.Screenshots.OutputDir, fmt.Sprintf("%s.jpg", id))
+	path := filepath.Join(s.erupeConfig.Screenshots.OutputDir, fmt.Sprintf("%s.jpg", token))
 	file, err := os.Open(path)
 	if err != nil {
 		http.Error(w, "Image not found", http.StatusNotFound)
@@ -335,9 +342,11 @@ func (s *Server) ScreenShot(w http.ResponseWriter, r *http.Request) {
 		if err != nil {
 			result = Result{Code: "400"}
 		}
+		var tokenPattern = regexp.MustCompile(`[A-Za-z0-9]+`)
 		token := r.FormValue("token")
-		if token == "" {
-			result = Result{Code: "400"}
+		if !tokenPattern.MatchString(token) || token == "" {
+			result = Result{Code: "401"}
+
 		}
 
 		// Validate file

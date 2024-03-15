@@ -53,7 +53,7 @@ func (s *Server) Start() error {
 	r.HandleFunc("/character/delete", s.DeleteCharacter)
 	r.HandleFunc("/character/export", s.ExportSave)
 	r.HandleFunc("/api/ss/bbs/upload.php", s.ScreenShot)
-	r.HandleFunc("/api/ss/bbs/{id:[A-Za-z0-9]+}", s.ScreenShotGet)
+	r.HandleFunc("/api/ss/bbs/{id}", s.ScreenShotGet)
 	handler := handlers.CORS(handlers.AllowedHeaders([]string{"Content-Type"}))(r)
 	s.httpServer.Handler = handlers.LoggingHandler(os.Stdout, handler)
 	s.httpServer.Addr = fmt.Sprintf(":%d", s.erupeConfig.SignV2.Port)

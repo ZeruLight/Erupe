@@ -1049,9 +1049,11 @@ func handleMsgMhfStampcardStamp(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfStampcardStamp)
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint16(pkt.HR)
-	bf.WriteUint16(pkt.GR)
 	var stamps uint16
 	_ = s.server.db.QueryRow(`SELECT stampcard FROM characters WHERE id = $1`, s.charID).Scan(&stamps)
+	if _config.ErupeConfig.RealClientMode >= _config.G1 {
+		bf.WriteUint16(pkt.GR)
+	}
 	bf.WriteUint16(stamps)
 	stamps += pkt.Stamps
 	bf.WriteUint16(stamps)

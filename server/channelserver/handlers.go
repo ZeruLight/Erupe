@@ -1045,34 +1045,81 @@ func handleMsgMhfUpdateEtcPoint(s *Session, p mhfpacket.MHFPacket) {
 	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
+func getStampcardReward(secondStamp bool, HR uint16, GR uint16) mhfitem.MHFItemStack {
+	if GR > 0 {
+		if secondStamp {
+			return mhfitem.MHFItemStack{Item: mhfitem.MHFItem{ItemID: 5392}, Quantity: 4}
+		} else {
+			return mhfitem.MHFItemStack{Item: mhfitem.MHFItem{ItemID: 5392}, Quantity: 1}
+		}
+	} else {
+		if HR >= 300 {
+			if secondStamp {
+				return mhfitem.MHFItemStack{Item: mhfitem.MHFItem{ItemID: 5392}, Quantity: 3}
+			} else {
+				return mhfitem.MHFItemStack{Item: mhfitem.MHFItem{ItemID: 5392}, Quantity: 1}
+			}
+		} else if HR >= 100 {
+			if secondStamp {
+				return mhfitem.MHFItemStack{Item: mhfitem.MHFItem{ItemID: 5392}, Quantity: 1}
+			} else {
+				return mhfitem.MHFItemStack{Item: mhfitem.MHFItem{ItemID: 6164}, Quantity: 3}
+			}
+		} else if HR >= 50 {
+			if secondStamp {
+				return mhfitem.MHFItemStack{Item: mhfitem.MHFItem{ItemID: 6164}, Quantity: 3}
+			} else {
+				return mhfitem.MHFItemStack{Item: mhfitem.MHFItem{ItemID: 6164}, Quantity: 2}
+			}
+		} else {
+			if secondStamp {
+				return mhfitem.MHFItemStack{Item: mhfitem.MHFItem{ItemID: 6164}, Quantity: 2}
+			} else {
+				return mhfitem.MHFItemStack{Item: mhfitem.MHFItem{ItemID: 6164}, Quantity: 1}
+			}
+		}
+	}
+}
+
 func handleMsgMhfStampcardStamp(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfStampcardStamp)
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint16(pkt.HR)
-	var stamps uint16
-	_ = s.server.db.QueryRow(`SELECT stampcard FROM characters WHERE id = $1`, s.charID).Scan(&stamps)
 	if _config.ErupeConfig.RealClientMode >= _config.G1 {
 		bf.WriteUint16(pkt.GR)
 	}
+	var stamps, rewardTier, rewardUnk uint16
+	reward := mhfitem.MHFItemStack{Item: mhfitem.MHFItem{}}
+	s.server.db.QueryRow(`UPDATE characters SET stampcard = stampcard + $1 WHERE id = $2 RETURNING stampcard`, pkt.Stamps, s.charID).Scan(&stamps)
+	bf.WriteUint16(stamps - pkt.Stamps)
 	bf.WriteUint16(stamps)
-	stamps += pkt.Stamps
-	bf.WriteUint16(stamps)
-	s.server.db.Exec(`UPDATE characters SET stampcard = $1 WHERE id = $2`, stamps, s.charID)
-	if stamps%30 == 0 {
-		bf.WriteUint16(2)
-		bf.WriteUint16(pkt.Reward2)
-		bf.WriteUint16(pkt.Item2)
-		bf.WriteUint16(pkt.Quantity2)
-		addWarehouseItem(s, mhfitem.MHFItemStack{Item: mhfitem.MHFItem{ItemID: pkt.Item2}, Quantity: pkt.Quantity2})
-	} else if stamps%15 == 0 {
-		bf.WriteUint16(1)
-		bf.WriteUint16(pkt.Reward1)
-		bf.WriteUint16(pkt.Item1)
-		bf.WriteUint16(pkt.Quantity1)
-		addWarehouseItem(s, mhfitem.MHFItemStack{Item: mhfitem.MHFItem{ItemID: pkt.Item1}, Quantity: pkt.Quantity1})
-	} else {
-		bf.WriteBytes(make([]byte, 8))
+
+	if stamps/30 > (stamps-pkt.Stamps)/30 {
+		rewardTier = 2
+		if _config.ErupeConfig.RealClientMode < _config.Z2 {
+			rewardUnk = 10
+			reward = getStampcardReward(true, pkt.HR, pkt.GR)
+		} else {
+			rewardUnk = pkt.Reward2
+			reward = mhfitem.MHFItemStack{Item: mhfitem.MHFItem{ItemID: pkt.Item2}, Quantity: pkt.Quantity2}
+		}
+		addWarehouseItem(s, reward)
+	} else if stamps/15 > (stamps-pkt.Stamps)/15 {
+		rewardTier = 1
+		if _config.ErupeConfig.RealClientMode < _config.Z2 {
+			rewardUnk = 10
+			reward = getStampcardReward(false, pkt.HR, pkt.GR)
+		} else {
+			rewardUnk = pkt.Reward1
+			reward = mhfitem.MHFItemStack{Item: mhfitem.MHFItem{ItemID: pkt.Item1}, Quantity: pkt.Quantity1}
+		}
+		addWarehouseItem(s, reward)
 	}
+
+	bf.WriteUint16(rewardTier)
+	bf.WriteUint16(rewardUnk)
+	bf.WriteUint16(reward.Item.ItemID)
+	bf.WriteUint16(reward.Quantity)
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 

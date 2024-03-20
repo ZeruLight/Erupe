@@ -1,8 +1,8 @@
-package signv2server
+package api
 
 import (
 	"context"
-	"erupe-ce/config"
+	_config "erupe-ce/config"
 	"fmt"
 	"net/http"
 	"os"
@@ -21,8 +21,8 @@ type Config struct {
 	ErupeConfig *_config.Config
 }
 
-// Server is the MHF custom launcher sign server.
-type Server struct {
+// APIServer is Erupes Standard API interface
+type APIServer struct {
 	sync.Mutex
 	logger         *zap.Logger
 	erupeConfig    *_config.Config
@@ -31,9 +31,9 @@ type Server struct {
 	isShuttingDown bool
 }
 
-// NewServer creates a new Server type.
-func NewServer(config *Config) *Server {
-	s := &Server{
+// NewAPIServer creates a new Server type.
+func NewAPIServer(config *Config) *APIServer {
+	s := &APIServer{
 		logger:      config.Logger,
 		erupeConfig: config.ErupeConfig,
 		db:          config.DB,
@@ -43,7 +43,7 @@ func NewServer(config *Config) *Server {
 }
 
 // Start starts the server in a new goroutine.
-func (s *Server) Start() error {
+func (s *APIServer) Start() error {
 	// Set up the routes responsible for serving the launcher HTML, serverlist, unique name check, and JP auth.
 	r := mux.NewRouter()
 	r.HandleFunc("/launcher", s.Launcher)
@@ -52,9 +52,11 @@ func (s *Server) Start() error {
 	r.HandleFunc("/character/create", s.CreateCharacter)
 	r.HandleFunc("/character/delete", s.DeleteCharacter)
 	r.HandleFunc("/character/export", s.ExportSave)
+	r.HandleFunc("/api/ss/bbs/upload.php", s.ScreenShot)
+	r.HandleFunc("/api/ss/bbs/{id}", s.ScreenShotGet)
 	handler := handlers.CORS(handlers.AllowedHeaders([]string{"Content-Type"}))(r)
 	s.httpServer.Handler = handlers.LoggingHandler(os.Stdout, handler)
-	s.httpServer.Addr = fmt.Sprintf(":%d", s.erupeConfig.SignV2.Port)
+	s.httpServer.Addr = fmt.Sprintf(":%d", s.erupeConfig.API.Port)
 
 	serveError := make(chan error, 1)
 	go func() {
@@ -74,7 +76,7 @@ func (s *Server) Start() error {
 }
 
 // Shutdown exits the server gracefully.
-func (s *Server) Shutdown() {
+func (s *APIServer) Shutdown() {
 	s.logger.Debug("Shutting down")
 
 	s.Lock()

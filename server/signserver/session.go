@@ -133,8 +133,7 @@ func (s *Session) handleWIIUSGN(bf *byteframe.ByteFrame) {
 func (s *Session) handlePSSGN(bf *byteframe.ByteFrame) {
 	// Prevent reading malformed request
 	if s.client != PS4 {
-		dataLength := len(bf.DataFromCurrent()) //PS4 is 24
-		if dataLength < 128 {
+		if len(bf.DataFromCurrent()) < 128 {
 			s.sendCode(SIGN_EABORT)
 			return
 		}

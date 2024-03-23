@@ -151,7 +151,17 @@ func handleMsgMhfSaveMercenary(s *Session, p mhfpacket.MHFPacket) {
 		temp := byteframe.NewByteFrameFromBytes(pkt.MercData)
 		s.server.db.Exec("UPDATE characters SET savemercenary=$1, rasta_id=$2 WHERE id=$3", pkt.MercData, temp.ReadUint32(), s.charID)
 	}
-	s.server.db.Exec("UPDATE characters SET gcp=$1, pact_id=$2 WHERE id=$3", pkt.GCP, pkt.PactMercID, s.charID)
+	var rastaGCP, pactID uint32
+	s.server.db.QueryRow("SELECT gcp, pact_id FROM characters WHERE id = $1", s.charID).Scan(&rastaGCP, &pactID) //remove the update pact_id, as the game always null my contract for unknown reason
+	//this logic need to be reworked as if player acquire gcp from tore exchange still be read, maybe need quest tracking?
+	if pkt.GCP >= rastaGCP {
+		rastaGCP = pkt.GCP - rastaGCP
+	} else {
+		rastaGCP = 0
+	}
+	s.server.db.Exec("UPDATE characters SET gcp=$1 WHERE id=$2", pkt.GCP, s.charID)
+	s.server.db.Exec("UPDATE characters SET gcp=gcp+$1 WHERE id=(SELECT id from characters where rasta_id = $2)", rastaGCP, pactID)
+
 	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
@@ -169,7 +179,7 @@ func handleMsgMhfReadMercenaryW(s *Session, p mhfpacket.MHFPacket) {
 			bf.WriteUint8(1) // numLends
 			bf.WriteUint32(pactID)
 			bf.WriteUint32(cid)
-			bf.WriteBool(false) // ?
+			bf.WriteBool(true) // i change to true as this will trigger read mercenary when taking a quest
 			bf.WriteUint32(uint32(TimeAdjusted().Add(time.Hour * 24 * -8).Unix()))
 			bf.WriteUint32(uint32(TimeAdjusted().Add(time.Hour * 24 * -1).Unix()))
 			bf.WriteBytes(stringsupport.PaddedString(name, 18, true))
@@ -221,8 +231,11 @@ func handleMsgMhfReadMercenaryM(s *Session, p mhfpacket.MHFPacket) {
 	if len(data) == 0 {
 		resp.WriteBool(false)
 	} else {
+		// change the savemercenary data offset 8 into true, as the default is false(00) and make rasta settings disabled when cheking
+		data[8] = 1
 		resp.WriteBytes(data)
 	}
+	resp.WriteUint8(0)
 	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
 }
 

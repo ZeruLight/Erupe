@@ -42,8 +42,8 @@ services:
     build:
       context: ../
     volumes:
-      - ./config.json:/app/erupe/config.json
-      - ./bin:/app/erupe/bin
+      - ../config.json:/app/erupe/config.json
+      - ../bin:/app/erupe/bin
       - ./savedata:/app/erupe/savedata
     ports:
       # (Make sure these match config.json)

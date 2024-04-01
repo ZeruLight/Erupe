@@ -73,9 +73,25 @@ func handleMsgMhfGetRyoudama(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfPostRyoudama(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfGetTinyBin(s *Session, p mhfpacket.MHFPacket) {
+
+	type TinyBinItem struct {
+		ItemId uint16
+		Amount uint8
+		Unk2   uint8 //if 4 the Red message "There are some items and points that cannot be recieved." Shows
+	}
+
+	tinyBinItems := []TinyBinItem{{7, 2, 4}, {8, 1, 0}, {9, 1, 0}, {300, 4, 0}, {10, 1, 0}}
+
 	pkt := p.(*mhfpacket.MsgMhfGetTinyBin)
 	// requested after conquest quests
-	doAckBufSucceed(s, pkt.AckHandle, []byte{})
+	bf := byteframe.NewByteFrame()
+	bf.SetLE()
+	for _, items := range tinyBinItems {
+		bf.WriteUint16(items.ItemId)
+		bf.WriteUint8(items.Amount)
+		bf.WriteUint8(items.Unk2)
+	}
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfPostTinyBin(s *Session, p mhfpacket.MHFPacket) {

@@ -410,3 +410,23 @@ func (s *APIServer) ScreenShot(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
 	w.Write(xmlData)
 }
+func (s *APIServer) CapLinkCrypt(w http.ResponseWriter, r *http.Request) {
+	// Extract query parameters
+	queryParams := r.URL.Query()
+
+	// Extracting specific query parameters
+	clientPubKey := queryParams.Get("client_pub_key")
+	deviceID := queryParams.Get("device_id")
+	platformID := queryParams.Get("platform_id")
+	contentID := queryParams.Get("content_id")
+	serverVersion := queryParams.Get("server_version")
+	clientVersion := queryParams.Get("client_version")
+
+	// Your business logic to generate response based on query parameters
+	response := fmt.Sprintf("Received request with client_pub_key: %s, device_id: %s, platform_id: %s, content_id: %s, server_version: %s, client_version: %s", clientPubKey, deviceID, platformID, contentID, serverVersion, clientVersion)
+
+	// Write response headers
+	w.WriteHeader(http.StatusOK)
+	// Write response body
+	w.Write([]byte(response))
+}

@@ -3,9 +3,10 @@ package channelserver
 import (
 	_config "erupe-ce/config"
 	"fmt"
-	"go.uber.org/zap"
 	"strings"
 	"time"
+
+	"go.uber.org/zap"
 
 	"erupe-ce/common/byteframe"
 	"erupe-ce/common/stringsupport"
@@ -392,6 +393,8 @@ func handleMsgMhfPresentBox(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfPresentBox)
 	var data []*byteframe.ByteFrame
 	/*
+
+		bf := byteframe.NewByteFrame()
 		bf.WriteUint32(0)
 		bf.WriteInt32(0)
 		bf.WriteInt32(0)
@@ -403,6 +406,7 @@ func handleMsgMhfPresentBox(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteInt32(0)
 		bf.WriteInt32(0)
 		bf.WriteInt32(0)
+		data = append(data, bf)
 	*/
 	doAckEarthSucceed(s, pkt.AckHandle, data)
 }

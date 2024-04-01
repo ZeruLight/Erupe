@@ -41,6 +41,12 @@ func NewAPIServer(config *Config) *APIServer {
 	}
 	return s
 }
+func (s *APIServer) loggingMiddleware(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		s.logger.Info("Received " + r.Method + " request from " + r.RemoteAddr + "path" + r.RequestURI + "\n")
+		next.ServeHTTP(w, r)
+	})
+}
 
 // Start starts the server in a new goroutine.
 func (s *APIServer) Start() error {
@@ -54,6 +60,9 @@ func (s *APIServer) Start() error {
 	r.HandleFunc("/character/export", s.ExportSave)
 	r.HandleFunc("/api/ss/bbs/upload.php", s.ScreenShot)
 	r.HandleFunc("/api/ss/bbs/{id}", s.ScreenShotGet)
+	r.HandleFunc("/v1/crypt/commonkey/rsa", s.CapLinkCrypt)
+	r.Use(s.loggingMiddleware)
+
 	handler := handlers.CORS(handlers.AllowedHeaders([]string{"Content-Type"}))(r)
 	s.httpServer.Handler = handlers.LoggingHandler(os.Stdout, handler)
 	s.httpServer.Addr = fmt.Sprintf(":%d", s.erupeConfig.API.Port)

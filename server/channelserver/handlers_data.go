@@ -14,6 +14,7 @@ import (
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/server/channelserver/compression/deltacomp"
 	"erupe-ce/server/channelserver/compression/nullcomp"
+
 	"go.uber.org/zap"
 )
 
@@ -1001,16 +1002,26 @@ func handleMsgMhfGetPaperData(s *Session, p mhfpacket.MHFPacket) {
 	var paperMissions PaperMission
 	var paperGift []PaperGift
 
+	// pkt.Type
+	// if pkt.Type 3 then Unk2==0  PaperMissionData
+	// if pkt.Type 0 then unk2 4, 5 or 6  PaperData
+	// if pkt.Type 2 then unk2 6001 6011  PaperGiftData
+	// is pkt.Unk2 a index?
+
+	paperMissions = PaperMission{
+		[]PaperMissionTimetable{{TimeMidnight(), TimeMidnight().Add(24 * time.Hour)}},
+		[]PaperMissionData{{1, 1, 50, 7, 10, 8, 11},
+			{1, 2, 100, 7, 12, 8, 13},
+			{1, 3, 150, 7, 14, 8, 15},
+			{1, 4, 200, 7, 16, 8, 17},
+			{1, 5, 250, 7, 18, 8, 19},
+			{1, 6, 300, 7, 21, 8, 21}},
+	}
 	switch pkt.Unk2 {
-	case 0:
-		paperMissions = PaperMission{
-			[]PaperMissionTimetable{{TimeMidnight(), TimeMidnight().Add(24 * time.Hour)}},
-			[]PaperMissionData{},
-		}
 	case 5:
 		paperData = []PaperData{
 			// getTowerQuestTowerLevel
-			{1001, 1, 0, 0, 0, 0, 0},
+			{1001, 1, 1, 0, 0, 0, 0},
 			{1001, 2, 0, 0, 0, 0, 0},
 			// iniTQT
 			{1003, 1, 100, 100, 200, 100, 0},
@@ -1029,8 +1040,8 @@ func handleMsgMhfGetPaperData(s *Session, p mhfpacket.MHFPacket) {
 			{1012, 1, 8000, 17500, 22500, 27500, 31000},
 			{1012, 2, 8000, 17500, 22500, 27500, 31000},
 			// setServerZako
-			{1015, 1, 16, 16, 16, 0, 0},
-			{1015, 2, 16, 16, 16, 0, 0},
+			{1015, 1, mhfmon.Velociprey, mhfmon.Velociprey, mhfmon.Velociprey, 0, 0},
+			{1015, 2, mhfmon.Velociprey, mhfmon.Velociprey, mhfmon.Velociprey, 0, 0},
 			// createTowerFloorRandomNumberArray
 			{1101, 1, 2016, 500, 0, 0, 0},
 			{1101, 2, 2016, 500, 0, 0, 0},
@@ -1509,9 +1520,25 @@ func handleMsgMhfGetPaperData(s *Session, p mhfpacket.MHFPacket) {
 		if pkt.Unk2 < 1000 {
 			s.logger.Info("PaperData request for unknown type", zap.Uint32("Unk2", pkt.Unk2))
 		}
+
 	}
 
-	if pkt.Unk2 > 1000 {
+	switch pkt.Type {
+
+	case 0:
+		for _, pdata := range paperData {
+			bf := byteframe.NewByteFrame()
+			bf.WriteUint16(pdata.Unk0)
+			bf.WriteInt16(pdata.Unk1)
+			bf.WriteInt16(pdata.Unk2)
+			bf.WriteInt16(pdata.Unk3)
+			bf.WriteInt16(pdata.Unk4)
+			bf.WriteInt16(pdata.Unk5)
+			bf.WriteInt16(pdata.Unk6)
+			data = append(data, bf)
+		}
+		doAckEarthSucceed(s, pkt.AckHandle, data)
+	case 2:
 		_, ok := paperGiftData[pkt.Unk2]
 		if ok {
 			paperGift = paperGiftData[pkt.Unk2]
@@ -1527,7 +1554,8 @@ func handleMsgMhfGetPaperData(s *Session, p mhfpacket.MHFPacket) {
 			data = append(data, bf)
 		}
 		doAckEarthSucceed(s, pkt.AckHandle, data)
-	} else if pkt.Unk2 == 0 {
+
+	case 3:
 		bf := byteframe.NewByteFrame()
 		bf.WriteUint16(uint16(len(paperMissions.Timetables)))
 		bf.WriteUint16(uint16(len(paperMissions.Data)))
@@ -1545,19 +1573,9 @@ func handleMsgMhfGetPaperData(s *Session, p mhfpacket.MHFPacket) {
 			bf.WriteUint8(mdata.Reward2Quantity)
 		}
 		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
-	} else {
-		for _, pdata := range paperData {
-			bf := byteframe.NewByteFrame()
-			bf.WriteUint16(pdata.Unk0)
-			bf.WriteInt16(pdata.Unk1)
-			bf.WriteInt16(pdata.Unk2)
-			bf.WriteInt16(pdata.Unk3)
-			bf.WriteInt16(pdata.Unk4)
-			bf.WriteInt16(pdata.Unk5)
-			bf.WriteInt16(pdata.Unk6)
-			data = append(data, bf)
-		}
-		doAckEarthSucceed(s, pkt.AckHandle, data)
+	default:
+		s.logger.Info("PaperData request for unknown type", zap.Uint32("Type", pkt.Type))
+
 	}
 }
 

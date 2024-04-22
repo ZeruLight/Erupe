@@ -7,9 +7,10 @@ import (
 	_config "erupe-ce/config"
 	"erupe-ce/server/channelserver"
 	"fmt"
-	"go.uber.org/zap"
 	"strings"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 func (s *Session) makeSignResponse(uid uint32) []byte {
@@ -135,7 +136,7 @@ func (s *Session) makeSignResponse(uid uint32) []byte {
 	bf.WriteUint32(s.server.getLastCID(uid))
 	bf.WriteUint32(s.server.getUserRights(uid))
 	ps.Uint16(bf, "", false) // filters
-	if s.client == VITA || s.client == PS3 {
+	if s.client == VITA || s.client == PS3 || s.client == PS4 {
 		var psnUser string
 		s.server.db.QueryRow("SELECT psn_id FROM users WHERE id = $1", uid).Scan(&psnUser)
 		bf.WriteBytes(stringsupport.PaddedString(psnUser, 20, true))

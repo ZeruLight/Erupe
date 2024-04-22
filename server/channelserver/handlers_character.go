@@ -81,7 +81,7 @@ func getPointers() map[SavePointer]int {
 		pointers[pHR] = 94550
 		pointers[pGRP] = 94556
 		pointers[pHouseData] = 94561
-		pointers[pBookshelfData] = 103928
+		pointers[pBookshelfData] = 89118 // TODO: fix bookshelf data pointer
 		pointers[pGalleryData] = 104064
 		pointers[pGardenData] = 106424
 		pointers[pRP] = 106614
@@ -93,7 +93,7 @@ func getPointers() map[SavePointer]int {
 		pointers[pToreData] = 62228
 		pointers[pHR] = 62550
 		pointers[pHouseData] = 62561
-		pointers[pBookshelfData] = 57118 // This pointer only half works
+		pointers[pBookshelfData] = 57118 // TODO: fix bookshelf data pointer
 		pointers[pGalleryData] = 72064
 		pointers[pGardenData] = 74424
 		pointers[pRP] = 74614
@@ -104,7 +104,7 @@ func getPointers() map[SavePointer]int {
 		pointers[pToreData] = 14228
 		pointers[pHR] = 14550
 		pointers[pHouseData] = 14561
-		pointers[pBookshelfData] = 9118 // Probably same here
+		pointers[pBookshelfData] = 9118 // TODO: fix bookshelf data pointer
 		pointers[pGalleryData] = 24064
 		pointers[pGardenData] = 26424
 		pointers[pRP] = 26614

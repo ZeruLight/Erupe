@@ -75,7 +75,6 @@ type Config struct {
 	LoginNotices           []string // MHFML string of the login notices displayed
 	PatchServerManifest    string   // Manifest patch server override
 	PatchServerFile        string   // File patch server override
-	ScreenshotAPIURL       string   // Destination for screenshots uploaded to BBS
 	DeleteOnSaveCorruption bool     // Attempts to save corrupted data will flag the save for deletion
 	ClientMode             string
 	RealClientMode         Mode
@@ -87,22 +86,32 @@ type Config struct {
 	EarthID                int32
 	EarthMonsters          []int32
 	SaveDumps              SaveDumpOptions
-	DebugOptions           DebugOptions
-	GameplayOptions        GameplayOptions
-	Discord                Discord
-	Commands               []Command
-	Courses                []Course
-	Database               Database
-	Sign                   Sign
-	SignV2                 SignV2
-	Channel                Channel
-	Entrance               Entrance
+	Screenshots            ScreenshotsOptions
+
+	DebugOptions    DebugOptions
+	GameplayOptions GameplayOptions
+	Discord         Discord
+	Commands        []Command
+	Courses         []Course
+	Database        Database
+	Sign            Sign
+	API             API
+	Channel         Channel
+	Entrance        Entrance
 }
 
 type SaveDumpOptions struct {
 	Enabled    bool
 	RawEnabled bool
 	OutputDir  string
+}
+
+type ScreenshotsOptions struct {
+	Enabled       bool
+	Host          string // Destination for screenshots uploaded to BBS
+	Port          uint32 // Port for screenshots API
+	OutputDir     string
+	UploadQuality int //Determines the upload quality to the server
 }
 
 // DebugOptions holds various debug/temporary options for use while developing Erupe.
@@ -228,29 +237,29 @@ type Sign struct {
 	Port    int
 }
 
-// SignV2 holds the new sign server config
-type SignV2 struct {
+// API holds server config
+type API struct {
 	Enabled     bool
 	Port        int
 	PatchServer string
-	Banners     []SignV2Banner
-	Messages    []SignV2Message
-	Links       []SignV2Link
+	Banners     []APISignBanner
+	Messages    []APISignMessage
+	Links       []APISignLink
 }
 
-type SignV2Banner struct {
+type APISignBanner struct {
 	Src  string `json:"src"`  // Displayed image URL
 	Link string `json:"link"` // Link accessed on click
 }
 
-type SignV2Message struct {
+type APISignMessage struct {
 	Message string `json:"message"` // Displayed message
 	Date    int64  `json:"date"`    // Displayed date
 	Kind    int    `json:"kind"`    // 0 for 'Default', 1 for 'New'
 	Link    string `json:"link"`    // Link accessed on click
 }
 
-type SignV2Link struct {
+type APISignLink struct {
 	Name string `json:"name"` // Displayed name
 	Icon string `json:"icon"` // Displayed icon. It will be cast as a monochrome color as long as it is transparent.
 	Link string `json:"link"` // Link accessed on click

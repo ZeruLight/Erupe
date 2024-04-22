@@ -311,7 +311,7 @@ func makeEventQuest(s *Session, rows *sql.Rows) ([]byte, error) {
 		bf.WriteBool(true)
 	}
 	bf.WriteUint16(0) // Unk
-	if _config.ErupeConfig.RealClientMode >= _config.G1 {
+	if _config.ErupeConfig.RealClientMode >= _config.G2 {
 		bf.WriteUint32(mark)
 	}
 	bf.WriteUint16(0) // Unk
@@ -609,7 +609,7 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 	tuneValues = temp
 
 	tuneLimit := 770
-	if _config.ErupeConfig.RealClientMode <= _config.F5 {
+	if _config.ErupeConfig.RealClientMode <= _config.G1 {
 		tuneLimit = 256
 	} else if _config.ErupeConfig.RealClientMode <= _config.G3 {
 		tuneLimit = 283

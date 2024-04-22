@@ -150,6 +150,9 @@ func removeSessionFromStage(s *Session) {
 
 func isStageFull(s *Session, StageID string) bool {
 	if stage, exists := s.server.stages[StageID]; exists {
+		if _, exists := stage.reservedClientSlots[s.charID]; exists {
+			return false
+		}
 		return len(stage.reservedClientSlots)+len(stage.clients) >= int(stage.maxPlayers)
 	}
 	return false

@@ -9,7 +9,13 @@
   ],
   "PatchServerManifest": "",
   "PatchServerFile": "",
-  "ScreenshotAPIURL": "",
+  "Screenshots":{
+    "Enabled":true,
+    "Host":"127.0.0.1",
+    "Port":8080,
+    "OutputDir":"screenshots",
+    "UploadQuality":100
+  },
   "DeleteOnSaveCorruption": false,
   "ClientMode": "ZZ",
   "QuestCacheExpiry": 300,
@@ -189,8 +195,8 @@
     "Enabled": true,
     "Port": 53312
   },
-  "SignV2": {
-    "Enabled": false,
+  "API": {
+    "Enabled": true,
     "Port": 8080,
     "PatchServer": "",
     "Banners": [],

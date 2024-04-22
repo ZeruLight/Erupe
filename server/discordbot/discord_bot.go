@@ -1,10 +1,11 @@
 package discordbot
 
 import (
-	"erupe-ce/config"
+	_config "erupe-ce/config"
+	"regexp"
+
 	"github.com/bwmarrin/discordgo"
 	"go.uber.org/zap"
-	"regexp"
 )
 
 var Commands = []*discordgo.ApplicationCommand{
@@ -113,7 +114,6 @@ func (bot *DiscordBot) RealtimeChannelSend(message string) (err error) {
 
 	return
 }
-
 func ReplaceTextAll(text string, regex *regexp.Regexp, handler func(input string) string) string {
 	result := regex.ReplaceAllFunc([]byte(text), func(s []byte) []byte {
 		input := regex.ReplaceAllString(string(s), `$1`)

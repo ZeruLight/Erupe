@@ -297,12 +297,9 @@ func makeEventQuest(s *Session, rows *sql.Rows) ([]byte, error) {
 			WHERE item_type = 9
 			AND item_no = $1
 		)`, questId).Scan(&amount, &deadline)
-
-		if stamps >= amount && deadline.After(time.Now()) {
+		// Check if there are enough stamps to activate the quest, the deadline hasn't passed, and there are no errors
+		if stamps >= amount && deadline.After(time.Now()) && err == nil && err2 == nil {
 			bf.WriteBool(true)
-
-		} else if err == nil || err2 == nil {
-			bf.WriteBool(false)
 		} else {
 			bf.WriteBool(false)
 

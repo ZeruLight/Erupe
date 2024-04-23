@@ -1,17 +1,17 @@
 BEGIN;
 
-INSERT INTO public.campaigns (
+INSERT INTO
+  public.campaigns (
     id,
-    unk0,
     min_hr,
     max_hr,
     min_sr,
     max_sr,
     min_gr,
     max_gr,
-    unk1,
-    unk2,
-    unk3,
+    recieve_type,
+    stamp_amount,
+    hide,
     background_id,
     hide_npc,
     start_time,
@@ -23,12 +23,10 @@ INSERT INTO public.campaigns (
     string3,
     link,
     code_prefix,
-    stamp_amount
   )
 VALUES
   (
     921805910,
-    0,
     -1,
     -1,
     -1,
@@ -48,12 +46,10 @@ VALUES
     '',
     '',
     'http://www.mhf-z.jp/',
-    'SCSC',
-    1
+    'SCSC'
   ),
   (
     142209682,
-    0,
     -1,
     -1,
     -1,
@@ -73,12 +69,10 @@ VALUES
     '',
     '',
     'http://www.mhf-z.jp/',
-    'VC10',
-    1
+    'VC10'
   ),
   (
     488594222,
-    0,
     -1,
     -1,
     -1,
@@ -98,12 +92,10 @@ VALUES
     '',
     '',
     'http://www.mhf-z.jp',
-    'TOUR',
-    1
+    'TOUR'
   ),
   (
     649144304,
-    0,
     -1,
     -1,
     -1,
@@ -123,12 +115,10 @@ VALUES
     '',
     '',
     'http://www.mhf-z.jp',
-    'VC09',
-    1
+    'VC09'
   ),
   (
     421484974,
-    0,
     -1,
     -1,
     -1,
@@ -148,12 +138,10 @@ VALUES
     '',
     '',
     'http://www.mhf-z.jp',
-    'SFR1',
-    1
+    'SFR1'
   ),
   (
     730957531,
-    0,
     100,
     999,
     -1,
@@ -173,12 +161,10 @@ VALUES
     '',
     '',
     'http://www.mhf-z.jp',
-    'SFR7',
-    1
+    'SFR7'
   ),
   (
     865537514,
-    0,
     -1,
     -1,
     -1,
@@ -198,12 +184,10 @@ VALUES
     '',
     '',
     'http://www.mhf-z.jp',
-    'GT01',
-    1
+    'GT01'
   ),
   (
     488594158,
-    0,
     -1,
     -1,
     -1,
@@ -223,12 +207,10 @@ VALUES
     '',
     '',
     'http://www.mhf-z.jp',
-    'VC08',
-    1
+    'VC08'
   ),
   (
     699557165,
-    0,
     -1,
     -1,
     -1,
@@ -248,12 +230,10 @@ VALUES
     '',
     '',
     'http://www.mhf-z.jp',
-    'VC07',
-    1
+    'VC07'
   ),
   (
     766535101,
-    0,
     -1,
     -1,
     -1,
@@ -273,12 +253,10 @@ VALUES
     '',
     '',
     'http://www.mhf-z.jp',
-    'HSSG',
-    1
+    'HSSG'
   ),
   (
     919840278,
-    0,
     -1,
     -1,
     -1,
@@ -298,12 +276,10 @@ VALUES
     '',
     '',
     'http://www.mhf-z.jp',
-    'RAQ8',
-    1
+    'RAQ8'
   ),
   (
     747709809,
-    0,
     -1,
     -1,
     -1,
@@ -323,12 +299,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'PG08',
-    1
+    'PG08'
   ),
   (
     257005183,
-    0,
     -1,
     -1,
     -1,
@@ -348,12 +322,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'SRTK',
-    1
+    'SRTK'
   ),
   (
     649274608,
-    0,
     -1,
     -1,
     -1,
@@ -373,12 +345,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'STNK',
-    1
+    'STNK'
   ),
   (
     680601073,
-    0,
     -1,
     -1,
     -1,
@@ -398,12 +368,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'EDEK',
-    1
+    'EDEK'
   ),
   (
     142209810,
-    0,
     -1,
     -1,
     -1,
@@ -423,12 +391,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'GLSK',
-    1
+    'GLSK'
   ),
   (
     140111954,
-    0,
     -1,
     -1,
     -1,
@@ -448,12 +414,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'PG10',
-    1
+    'PG10'
   ),
   (
     225604757,
-    0,
     -1,
     -1,
     -1,
@@ -473,12 +437,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'PG12',
-    1
+    'PG12'
   ),
   (
     970837204,
-    0,
     -1,
     -1,
     -1,
@@ -498,12 +460,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'BGK1',
-    1
+    'BGK1'
   ),
   (
     647465687,
-    0,
     -1,
     -1,
     -1,
@@ -523,12 +483,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'FSNK',
-    1
+    'FSNK'
   ),
   (
     615934211,
-    0,
     -1,
     -1,
     -1,
@@ -548,12 +506,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'HMKK',
-    1
+    'HMKK'
   ),
   (
     477754130,
-    0,
     -1,
     -1,
     -1,
@@ -573,12 +529,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'GUGK',
-    1
+    'GUGK'
   ),
   (
     477131813,
-    0,
     -1,
     -1,
     -1,
@@ -598,12 +552,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'BDMK',
-    1
+    'BDMK'
   ),
   (
     919839894,
-    0,
     -1,
     -1,
     -1,
@@ -623,12 +575,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'BSYK',
-    1
+    'BSYK'
   ),
   (
     410645266,
-    0,
     -1,
     -1,
     -1,
@@ -648,12 +598,10 @@ VALUES
     '',
     '',
     'http://www.mhf-z.jp',
-    'VC06',
-    1
+    'VC06'
   ),
   (
     769511124,
-    0,
     -1,
     -1,
     -1,
@@ -673,12 +621,10 @@ VALUES
     '',
     '',
     'http://www.mhf-z.jp',
-    'VC04',
-    1
+    'VC04'
   ),
   (
     697509361,
-    0,
     -1,
     -1,
     -1,
@@ -698,12 +644,10 @@ VALUES
     '',
     '',
     'http://www.mhf-z.jp',
-    'VC05',
-    1
+    'VC05'
   ),
   (
     1037946068,
-    0,
     -1,
     -1,
     -1,
@@ -723,12 +667,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'SFAK',
-    1
+    'SFAK'
   ),
   (
     615803171,
-    0,
     -1,
     -1,
     -1,
@@ -748,12 +690,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'GLRK',
-    1
+    'GLRK'
   ),
   (
     257005151,
-    0,
     -1,
     -1,
     -1,
@@ -773,12 +713,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'NMSK',
-    1
+    'NMSK'
   ),
   (
     209318802,
-    0,
     -1,
     -1,
     -1,
@@ -798,12 +736,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'CLTK',
-    1
+    'CLTK'
   ),
   (
     664111863,
-    0,
     -1,
     -1,
     -1,
@@ -823,12 +759,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'TEKK',
-    1
+    'TEKK'
   ),
   (
     597101930,
-    0,
     -1,
     -1,
     -1,
@@ -848,12 +782,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'FRNK',
-    1
+    'FRNK'
   ),
   (
     494917916,
-    0,
     -1,
     -1,
     -1,
@@ -873,12 +805,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'ARJK',
-    1
+    'ARJK'
   ),
   (
     477262885,
-    0,
     -1,
     -1,
     -1,
@@ -898,12 +828,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'GG5L',
-    1
+    'GG5L'
   ),
   (
     584295574,
-    0,
     -1,
     -1,
     -1,
@@ -923,12 +851,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'BK15',
-    1
+    'BK15'
   ),
   (
     615934227,
-    0,
     -1,
     -1,
     -1,
@@ -948,12 +874,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'RESK',
-    1
+    'RESK'
   ),
   (
     865438535,
-    0,
     -1,
     -1,
     -1,
@@ -973,12 +897,10 @@ VALUES
     '',
     '',
     'http://www.mhf-ｚ.jp',
-    'DP01',
-    1
+    'DP01'
   ),
   (
     209318162,
-    0,
     300,
     999,
     -1,
@@ -998,12 +920,10 @@ VALUES
     '',
     '',
     'http://www.mhf-z.jp',
-    'RAQ7',
-    1
+    'RAQ7'
   ),
   (
     427809564,
-    0,
     -1,
     -1,
     -1,
@@ -1023,12 +943,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'HDNP',
-    1
+    'HDNP'
   ),
   (
     769510612,
-    0,
     -1,
     -1,
     -1,
@@ -1048,12 +966,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'BUP4',
-    1
+    'BUP4'
   ),
   (
     632580403,
-    0,
     -1,
     -1,
     -1,
@@ -1073,12 +989,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'BK14',
-    1
+    'BK14'
   ),
   (
     697509345,
-    0,
     -1,
     -1,
     -1,
@@ -1098,12 +1012,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'GG4L',
-    1
+    'GG4L'
   ),
   (
     477754258,
-    0,
     -1,
     -1,
     -1,
@@ -1123,12 +1035,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'SENK',
-    1
+    'SENK'
   ),
   (
     982746827,
-    0,
     11,
     999,
     -1,
@@ -1148,12 +1058,10 @@ VALUES
     '',
     '',
     'http://www.mhf-z.jp',
-    'FRS2',
-    1
+    'FRS2'
   ),
   (
     427809180,
-    0,
     31,
     999,
     -1,
@@ -1173,12 +1081,10 @@ VALUES
     '',
     '',
     'http://www.mhf-z.jp',
-    'FRS3',
-    1
+    'FRS3'
   ),
   (
     326425369,
-    0,
     51,
     999,
     -1,
@@ -1198,12 +1104,10 @@ VALUES
     '',
     '',
     'http://www.mhf-z.jp',
-    'FRS4',
-    1
+    'FRS4'
   ),
   (
     932646762,
-    0,
     71,
     999,
     -1,
@@ -1223,12 +1127,10 @@ VALUES
     '',
     '',
     'http://www.mhf-z.jp',
-    'FRS5',
-    1
+    'FRS5'
   ),
   (
     664242887,
-    0,
     100,
     999,
     -1,
@@ -1248,12 +1150,10 @@ VALUES
     '',
     '',
     'http://www.mhf-z.jp',
-    'FRS6',
-    1
+    'FRS6'
   ),
   (
     324377496,
-    0,
     100,
     999,
     -1,
@@ -1273,12 +1173,10 @@ VALUES
     '',
     '',
     'http://www.mhf-z.jp',
-    'FRS7',
-    1
+    'FRS7'
   ),
   (
     488593646,
-    0,
     -1,
     -1,
     -1,
@@ -1298,12 +1196,10 @@ VALUES
     '',
     '',
     'http://www.mhf-z.jp',
-    'FRS1',
-    1
+    'FRS1'
   ),
   (
     917579440,
-    0,
     -1,
     -1,
     -1,
@@ -1323,12 +1219,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'GG3L',
-    1
+    'GG3L'
   ),
   (
     1032922465,
-    0,
     -1,
     -1,
     -1,
@@ -1348,12 +1242,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'BK13',
-    1
+    'BK13'
   ),
   (
     410775890,
-    0,
     -1,
     -1,
     -1,
@@ -1373,12 +1265,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'TPK6',
-    1
+    'TPK6'
   ),
   (
     190027375,
-    0,
     -1,
     -1,
     -1,
@@ -1398,12 +1288,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'BUP3',
-    1
+    'BUP3'
   ),
   (
     704499284,
-    0,
     -1,
     -1,
     -1,
@@ -1423,12 +1311,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'CULK',
-    1
+    'CULK'
   ),
   (
     749757837,
-    0,
     -1,
     -1,
     -1,
@@ -1448,12 +1334,10 @@ VALUES
     '',
     '',
     'http://www.mhf-z.jp',
-    'VT30',
-    1
+    'VT30'
   ),
   (
     41343673,
-    0,
     -1,
     -1,
     -1,
@@ -1473,12 +1357,10 @@ VALUES
     '',
     '',
     'http://www.mhf-z.jp',
-    'PT30',
-    1
+    'PT30'
   ),
   (
     664080362,
-    0,
     -1,
     -1,
     -1,
@@ -1498,12 +1380,10 @@ VALUES
     '',
     '',
     'http://www.mhf-z.jp',
-    'PT60',
-    1
+    'PT60'
   ),
   (
     582034480,
-    0,
     -1,
     -1,
     -1,
@@ -1523,12 +1403,10 @@ VALUES
     '',
     '',
     'http://www.mhf-z.jp',
-    'HSSD',
-    1
+    'HSSD'
   ),
   (
     884238483,
-    0,
     -1,
     -1,
     -1,
@@ -1548,12 +1426,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'GG2L',
-    1
+    'GG2L'
   ),
   (
     125278872,
-    0,
     -1,
     -1,
     -1,
@@ -1573,12 +1449,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'VAMK',
-    1
+    'VAMK'
   ),
   (
     848792567,
-    0,
     -1,
     -1,
     -1,
@@ -1598,12 +1472,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'TRSK',
-    1
+    'TRSK'
   ),
   (
     852600342,
-    0,
     -1,
     -1,
     -1,
@@ -1623,12 +1495,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'BUP2',
-    1
+    'BUP2'
   ),
   (
     426931253,
-    0,
     -1,
     -1,
     -1,
@@ -1648,12 +1518,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'BK12',
-    1
+    'BK12'
   ),
   (
     582034992,
-    0,
     -1,
     -1,
     -1,
@@ -1673,12 +1541,10 @@ VALUES
     '',
     '',
     'http://www.mhf-z.jp',
-    'RPC1',
-    1
+    'RPC1'
   ),
   (
     919708822,
-    0,
     -1,
     -1,
     -1,
@@ -1698,12 +1564,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'PG4A',
-    1
+    'PG4A'
   ),
   (
     477885266,
-    0,
     -1,
     -1,
     -1,
@@ -1723,12 +1587,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'BK11',
-    1
+    'BK11'
   ),
   (
     1032922449,
-    0,
     -1,
     -1,
     -1,
@@ -1748,12 +1610,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'MAIK',
-    1
+    'MAIK'
   ),
   (
     190027359,
-    0,
     -1,
     -1,
     -1,
@@ -1773,12 +1633,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'TPK5',
-    1
+    'TPK5'
   ),
   (
     917578800,
-    0,
     -1,
     -1,
     -1,
@@ -1798,12 +1656,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'BUP1',
-    1
+    'BUP1'
   ),
   (
     651273238,
-    0,
     -1,
     -1,
     -1,
@@ -1823,12 +1679,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'GGHL',
-    1
+    'GGHL'
   ),
   (
     157276444,
-    0,
     -1,
     -1,
     -1,
@@ -1848,12 +1702,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'RANK',
-    1
+    'RANK'
   ),
   (
     664079850,
-    0,
     -1,
     -1,
     -1,
@@ -1873,12 +1725,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'SC2K',
-    1
+    'SC2K'
   ),
   (
     490559854,
-    0,
     -1,
     -1,
     -1,
@@ -1898,12 +1748,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'BK10',
-    1
+    'BK10'
   ),
   (
     1066502091,
-    0,
     -1,
     -1,
     -1,
@@ -1923,12 +1771,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'SU2K',
-    1
+    'SU2K'
   ),
   (
     766666125,
-    0,
     -1,
     -1,
     -1,
@@ -1948,12 +1794,10 @@ VALUES
     '',
     '',
     'http://www.mhf-z.jp',
-    'SASB',
-    1
+    'SASB'
   ),
   (
     917579312,
-    0,
     -1,
     -1,
     -1,
@@ -1973,12 +1817,10 @@ VALUES
     '',
     '',
     'http://www.mhf-z.jp',
-    'SASA',
-    1
+    'SASA'
   ),
   (
     58169496,
-    0,
     -1,
     -1,
     -1,
@@ -1998,12 +1840,10 @@ VALUES
     '',
     '',
     'http://www.mhf-z.jp',
-    'RAQ6',
-    1
+    'RAQ6'
   ),
   (
     57989801,
-    0,
     -1,
     -1,
     -1,
@@ -2023,12 +1863,10 @@ VALUES
     '',
     '',
     'http://www.mhf-g.jp',
-    'RAQ3',
-    1
+    'RAQ3'
   ),
   (
     865406314,
-    0,
     -1,
     -1,
     -1,
@@ -2048,12 +1886,10 @@ VALUES
     '',
     '',
     'http://www.mhf-z.jp',
-    'RAQ4',
-    1
+    'RAQ4'
   ),
   (
     848792551,
-    0,
     -1,
     -1,
     -1,
@@ -2073,12 +1909,10 @@ VALUES
     '',
     '',
     'http://www.mhf-z.jp',
-    'RAQ5',
-    1
+    'RAQ5'
   ),
   (
     865438711,
-    0,
     -1,
     -1,
     -1,
@@ -2098,12 +1932,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'TPK4',
-    1
+    'TPK4'
   ),
   (
     596970858,
-    0,
     -1,
     -1,
     -1,
@@ -2123,12 +1955,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'BPK9',
-    1
+    'BPK9'
   ),
   (
     57989769,
-    0,
     -1,
     -1,
     -1,
@@ -2148,12 +1978,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'BUKT',
-    1
+    'BUKT'
   ),
   (
     884238467,
-    0,
     -1,
     -1,
     -1,
@@ -2173,12 +2001,10 @@ VALUES
     '',
     '',
     'http://www.mhf-z.jp',
-    'MYTP',
-    1
+    'MYTP'
   ),
   (
     125278360,
-    0,
     -1,
     -1,
     -1,
@@ -2198,12 +2024,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'S4KT',
-    1
+    'S4KT'
   ),
   (
     766666173,
-    0,
     -1,
     -1,
     -1,
@@ -2223,12 +2047,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'GLKT',
-    1
+    'GLKT'
   ),
   (
     58169880,
-    0,
     -1,
     -1,
     -1,
@@ -2248,12 +2070,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'TPN2',
-    1
+    'TPN2'
   ),
   (
     58120841,
-    0,
     -1,
     -1,
     -1,
@@ -2273,12 +2093,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'BPK8',
-    1
+    'BPK8'
   ),
   (
     848661495,
-    0,
     -1,
     -1,
     -1,
@@ -2298,12 +2116,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'RGKT',
-    1
+    'RGKT'
   ),
   (
     865406954,
-    0,
     -1,
     -1,
     -1,
@@ -2323,12 +2139,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'CLKT',
-    1
+    'CLKT'
   ),
   (
     901015731,
-    0,
     -1,
     -1,
     -1,
@@ -2348,12 +2162,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'SAKT',
-    1
+    'SAKT'
   ),
   (
     702533268,
-    0,
     -1,
     -1,
     -1,
@@ -2373,12 +2185,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'PG07',
-    1
+    'PG07'
   ),
   (
     584164886,
-    0,
     -1,
     -1,
     -1,
@@ -2398,12 +2208,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'PG13',
-    1
+    'PG13'
   ),
   (
     425712412,
-    0,
     -1,
     -1,
     -1,
@@ -2423,12 +2231,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'TPK3',
-    1
+    'TPK3'
   ),
   (
     749888957,
-    0,
     -1,
     -1,
     -1,
@@ -2448,12 +2254,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'GSKT',
-    1
+    'GSKT'
   ),
   (
     1066633211,
-    0,
     -1,
     -1,
     -1,
@@ -2473,12 +2277,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'BPK7',
-    1
+    'BPK7'
   ),
   (
     702532628,
-    0,
     -1,
     -1,
     -1,
@@ -2498,12 +2300,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'ASKT',
-    1
+    'ASKT'
   ),
   (
     764487025,
-    0,
     -1,
     -1,
     -1,
@@ -2523,12 +2323,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'BPK6',
-    1
+    'BPK6'
   ),
   (
     714180459,
-    0,
     -1,
     -1,
     -1,
@@ -2548,12 +2346,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'BPK5',
-    1
+    'BPK5'
   ),
   (
     492820700,
-    0,
     -1,
     -1,
     -1,
@@ -2573,12 +2369,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'TPK2',
-    1
+    'TPK2'
   ),
   (
     225604741,
-    0,
     -1,
     -1,
     -1,
@@ -2598,12 +2392,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'TPN1',
-    1
+    'TPN1'
   ),
   (
     865438551,
-    0,
     -1,
     -1,
     -1,
@@ -2623,12 +2415,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'SCP1',
-    1
+    'SCP1'
   ),
   (
     391617368,
-    0,
     -1,
     -1,
     -1,
@@ -2648,12 +2438,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'IMCH',
-    1
+    'IMCH'
   ),
   (
     309779081,
-    0,
     -1,
     -1,
     -1,
@@ -2673,12 +2461,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'MTKT',
-    1
+    'MTKT'
   ),
   (
     649143728,
-    0,
     -1,
     -1,
     -1,
@@ -2698,12 +2484,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'FLKT',
-    1
+    'FLKT'
   ),
   (
     123182040,
-    0,
     -1,
     -1,
     -1,
@@ -2723,12 +2507,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'RLKT',
-    1
+    'RLKT'
   ),
   (
     766534669,
-    0,
     -1,
     -1,
     -1,
@@ -2748,12 +2530,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'APK1',
-    1
+    'APK1'
   ),
   (
     901015555,
-    0,
     -1,
     -1,
     -1,
@@ -2773,12 +2553,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'EXKT',
-    1
+    'EXKT'
   ),
   (
     919708950,
-    0,
     -1,
     -1,
     -1,
@@ -2798,12 +2576,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'LEKT',
-    1
+    'LEKT'
   ),
   (
     666307882,
-    0,
     -1,
     -1,
     -1,
@@ -2823,12 +2599,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'MGWZ',
-    1
+    'MGWZ'
   ),
   (
     766665773,
-    0,
     -1,
     -1,
     -1,
@@ -2848,12 +2622,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'HTKT',
-    1
+    'HTKT'
   ),
   (
     582035248,
-    0,
     -1,
     -1,
     -1,
@@ -2873,12 +2645,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'PRMS',
-    1
+    'PRMS'
   ),
   (
     173119487,
-    0,
     -1,
     -1,
     -1,
@@ -2898,12 +2668,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'WMTL',
-    1
+    'WMTL'
   ),
   (
     766534701,
-    0,
     -1,
     -1,
     -1,
@@ -2923,12 +2691,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'SRNK',
-    1
+    'SRNK'
   ),
   (
     747709777,
-    0,
     -1,
     -1,
     -1,
@@ -2948,12 +2714,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'TPK1',
-    1
+    'TPK1'
   ),
   (
     189896703,
-    0,
     -1,
     -1,
     -1,
@@ -2973,12 +2737,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'BPK4',
-    1
+    'BPK4'
   ),
   (
     848792439,
-    0,
     -1,
     -1,
     -1,
@@ -2998,12 +2760,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'BPK3',
-    1
+    'BPK3'
   ),
   (
     970968596,
-    0,
     -1,
     -1,
     -1,
@@ -3023,12 +2783,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'BPK2',
-    1
+    'BPK2'
   ),
   (
     425711708,
-    0,
     -1,
     -1,
     -1,
@@ -3048,12 +2806,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'BPAC',
-    1
+    'BPAC'
   ),
   (
     867634602,
-    0,
     -1,
     -1,
     -1,
@@ -3073,12 +2829,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'PG11',
-    1
+    'PG11'
   ),
   (
     714180427,
-    0,
     -1,
     -1,
     -1,
@@ -3098,12 +2852,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'PG09',
-    1
+    'PG09'
   ),
   (
     309648009,
-    0,
     -1,
     -1,
     -1,
@@ -3123,12 +2875,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'PG06',
-    1
+    'PG06'
   ),
   (
     391616984,
-    0,
     -1,
     -1,
     -1,
@@ -3148,12 +2898,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'PG04',
-    1
+    'PG04'
   ),
   (
     208827525,
-    0,
     -1,
     -1,
     -1,
@@ -3173,12 +2921,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'PG05',
-    1
+    'PG05'
   ),
   (
     326556329,
-    0,
     -1,
     -1,
     -1,
@@ -3198,12 +2944,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'PG02',
-    1
+    'PG02'
   ),
   (
     934743978,
-    0,
     -1,
     -1,
     -1,
@@ -3223,12 +2967,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'PG03',
-    1
+    'PG03'
   ),
   (
     224385244,
-    0,
     -1,
     -1,
     -1,
@@ -3248,12 +2990,10 @@ VALUES
     '',
     '',
     'http://members.mhf-z.jp/topic/payment/',
-    'PG01',
-    1
+    'PG01'
   ),
   (
     884369427,
-    0,
     -1,
     -1,
     -1,
@@ -3273,12 +3013,10 @@ VALUES
     '',
     '',
     'http://www.mhf-z.jp',
-    'S3P2',
-    1
+    'S3P2'
   ),
   (
     867634474,
-    0,
     -1,
     -1,
     -1,
@@ -3298,12 +3036,10 @@ VALUES
     '',
     '',
     'http://www.mhf-z.jp',
-    'BITM',
-    1
+    'BITM'
   ),
   (
     848792423,
-    0,
     -1,
     -1,
     -1,
@@ -3323,12 +3059,10 @@ VALUES
     '',
     '',
     'http://www.mhf-z.jp',
-    'EITM',
-    1
+    'EITM'
   ),
   (
     208696469,
-    0,
     -1,
     -1,
     -1,
@@ -3348,12 +3082,10 @@ VALUES
     '',
     '',
     'http://www.mhf-z.jp',
-    'VC01',
-    1
+    'VC01'
   ),
   (
     584165270,
-    0,
     -1,
     -1,
     -1,
@@ -3373,12 +3105,10 @@ VALUES
     '',
     '',
     'http://www.mhf-z.jp',
-    'VC02',
-    1
+    'VC02'
   ),
   (
     901146643,
-    0,
     -1,
     -1,
     -1,
@@ -3398,12 +3128,10 @@ VALUES
     '',
     '',
     'http://www.mhf-z.jp',
-    'VC03',
-    1
+    'VC03'
   ),
   (
     492821212,
-    0,
     -1,
     -1,
     -1,
@@ -3423,12 +3151,10 @@ VALUES
     '',
     '',
     'http://www.mhf-z.jp',
-    'VG03',
-    1
+    'VG03'
   ),
   (
     901015571,
-    0,
     -1,
     -1,
     -1,
@@ -3448,12 +3174,10 @@ VALUES
     '',
     '',
     'http://www.mhf-z.jp',
-    'RAQ2',
-    1
+    'RAQ2'
   ),
   (
     1038077588,
-    0,
     -1,
     -1,
     -1,
@@ -3473,12 +3197,10 @@ VALUES
     '',
     '',
     'http://www.mhf-ｚ.jp',
-    'PTC1',
-    1
+    'PTC1'
   ),
   (
     190027775,
-    0,
     -1,
     -1,
     -1,
@@ -3498,10 +3220,8 @@ VALUES
     '',
     '',
     'http://www.mhf-z.jp',
-    'PATA',
-    1
+    'PATA'
   );
-
 
 INSERT INTO
   public.campaign_categories (id, cat_type, title, description_text)
@@ -3585,7 +3305,6 @@ VALUES
 ~C11イメチェンサービス~C00などのイベントコ
 ードを入力することができます。'
   );
-  
 
 INSERT INTO
   public.campaign_category_links (campaign_id, category_id)
@@ -3763,24 +3482,138 @@ VALUES
   (1038077588, 5),
   (190027775, 1),
   (190027775, 5);
-  
-  
-  INSERT INTO public.campaign_entries
-  (
-    campaign_id,hide,item_type,item_amount,item_no,unk1,unk2,deadline
-  )
-  VALUES
-    (142209682,false,9,0,40218,0,0,NOW() + INTERVAL '24 hours'),
-    (649144304,false,9,0,40201,0,0,NOW() + INTERVAL '24 hours'),
-    (488594158,false,9,0,40174,0,0,NOW() + INTERVAL '24 hours'),
-    (699557165,false,9,0,40173,0,0,NOW() + INTERVAL '24 hours'),
-    (410645266,false,9,0,40161,0,0,NOW() + INTERVAL '24 hours'),
-    (697509361,false,9,0,40143,0,0,NOW() + INTERVAL '24 hours'),
-    (769511124,false,9,0,40141,0,0,NOW() + INTERVAL '24 hours'),
-    (901146643,false,9,0,40081,0,0,NOW() + INTERVAL '24 hours'),
-    (584165270,false,9,0,40080,0,0,NOW() + INTERVAL '24 hours'),
-    (208696469,false,9,0,40079,0,0,NOW() + INTERVAL '24 hours'),
-    (492821212,false,7,110,1859,0,0,NOW() + INTERVAL '24 hours'),
-    (190027775,false,8,1,96,0,0,NOW() + INTERVAL '24 hours');
 
-  END;
+INSERT INTO
+  public.campaign_entries (
+    campaign_id,
+    hide,
+    item_type,
+    item_amount,
+    item_no,
+    unk1,
+    unk2,
+    deadline
+  )
+VALUES
+  (
+    142209682,
+    false,
+    9,
+    0,
+    40218,
+    0,
+    0,
+    NOW() + INTERVAL '24 hours'
+  ),
+  (
+    649144304,
+    false,
+    9,
+    0,
+    40201,
+    0,
+    0,
+    NOW() + INTERVAL '24 hours'
+  ),
+  (
+    488594158,
+    false,
+    9,
+    0,
+    40174,
+    0,
+    0,
+    NOW() + INTERVAL '24 hours'
+  ),
+  (
+    699557165,
+    false,
+    9,
+    0,
+    40173,
+    0,
+    0,
+    NOW() + INTERVAL '24 hours'
+  ),
+  (
+    410645266,
+    false,
+    9,
+    0,
+    40161,
+    0,
+    0,
+    NOW() + INTERVAL '24 hours'
+  ),
+  (
+    697509361,
+    false,
+    9,
+    0,
+    40143,
+    0,
+    0,
+    NOW() + INTERVAL '24 hours'
+  ),
+  (
+    769511124,
+    false,
+    9,
+    0,
+    40141,
+    0,
+    0,
+    NOW() + INTERVAL '24 hours'
+  ),
+  (
+    901146643,
+    false,
+    9,
+    0,
+    40081,
+    0,
+    0,
+    NOW() + INTERVAL '24 hours'
+  ),
+  (
+    584165270,
+    false,
+    9,
+    0,
+    40080,
+    0,
+    0,
+    NOW() + INTERVAL '24 hours'
+  ),
+  (
+    208696469,
+    false,
+    9,
+    0,
+    40079,
+    0,
+    0,
+    NOW() + INTERVAL '24 hours'
+  ),
+  (
+    492821212,
+    false,
+    7,
+    110,
+    1859,
+    0,
+    0,
+    NOW() + INTERVAL '24 hours'
+  ),
+  (
+    190027775,
+    false,
+    8,
+    1,
+    96,
+    0,
+    0,
+    NOW() + INTERVAL '24 hours'
+  );
+
+END;

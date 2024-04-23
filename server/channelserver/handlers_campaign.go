@@ -14,18 +14,17 @@ import (
 
 type CampaignEvent struct {
 	ID           uint32    `db:"id"`
-	Unk0         uint32    `db:"unk0"`
 	MinHR        int16     `db:"min_hr"`
 	MaxHR        int16     `db:"max_hr"`
 	MinSR        int16     `db:"min_sr"`
 	MaxSR        int16     `db:"max_sr"`
 	MinGR        int16     `db:"min_gr"`
 	MaxGR        int16     `db:"max_gr"`
-	Unk1         uint16    `db:"unk1"`
-	Unk2         uint8     `db:"unk2"`
-	Unk3         uint8     `db:"unk3"`
+	RecieveType  uint16    `db:"recieve_type"` //1 Item/Weapon //2 Event Quest //3 Item/Weapon
+	StampAmount  uint8     `db:"stamp_amount"`
+	Hide         uint8     `db:"hide"` //1 hides  // 10 and 0 seem to be visible  ?? is 10 overhang?
 	BackgroundID uint16    `db:"background_id"`
-	HideNPC      bool      `db:"hide_npc"` //TODO: FIX this is actual a uint16 however giving this thew value 1 or above made the NPC glitch / hide
+	HideNPC      uint16    `db:"hide_npc"` //TODO: giving this the value 1 or above made the NPC glitch / hide
 	Start        time.Time `db:"start_time"`
 	End          time.Time `db:"end_time"`
 	PeriodEnded  bool      `db:"period_ended"`
@@ -34,7 +33,6 @@ type CampaignEvent struct {
 	String2      string    `db:"string2"`
 	String3      string    `db:"string3"`
 	Link         string    `db:"link"`
-	StampAmount  uint8     `db:"stamp_amount"`
 	Prefix       string    `db:"code_prefix"`
 }
 
@@ -69,7 +67,7 @@ func handleMsgMhfEnumerateCampaign(s *Session, p mhfpacket.MHFPacket) {
 
 	var campaignLinks []CampaignLink
 
-	err := s.server.db.Select(&events, "SELECT id,unk0,min_hr,max_hr,min_sr,max_sr,min_gr,max_gr,unk1,unk2,unk3,background_id,hide_npc,start_time,end_time,period_ended,string0,string1,string2,string3,link,code_prefix,stamp_amount FROM campaigns")
+	err := s.server.db.Select(&events, "SELECT id,min_hr,max_hr,min_sr,max_sr,min_gr,max_gr,recieve_type,stamp_amount,hide,background_id,hide_npc,start_time,end_time,period_ended,string0,string1,string2,string3,link,code_prefix FROM campaigns")
 	if err != nil {
 		doAckBufFail(s, pkt.AckHandle, make([]byte, 4))
 		return
@@ -92,7 +90,7 @@ func handleMsgMhfEnumerateCampaign(s *Session, p mhfpacket.MHFPacket) {
 	}
 	for _, event := range events {
 		bf.WriteUint32(event.ID)
-		bf.WriteUint32(event.Unk0)
+		bf.WriteUint32(0) // always 0 in reference
 		bf.WriteInt16(event.MinHR)
 		bf.WriteInt16(event.MaxHR)
 		bf.WriteInt16(event.MinSR)
@@ -101,11 +99,11 @@ func handleMsgMhfEnumerateCampaign(s *Session, p mhfpacket.MHFPacket) {
 			bf.WriteInt16(event.MinGR)
 			bf.WriteInt16(event.MaxGR)
 		}
-		bf.WriteUint16(event.Unk1)
-		bf.WriteUint8(event.Unk2)
-		bf.WriteUint8(event.Unk3)
+		bf.WriteUint16(event.RecieveType)
+		bf.WriteUint8(event.StampAmount)
+		bf.WriteUint8(event.Hide)
 		bf.WriteUint16(event.BackgroundID)
-		bf.WriteUint16(uint16(0))
+		bf.WriteUint16(event.HideNPC)
 		bf.WriteUint32(uint32(event.Start.Unix()))
 		bf.WriteUint32(uint32(event.End.Unix()))
 		bf.WriteBool(event.PeriodEnded)
@@ -125,7 +123,7 @@ func handleMsgMhfEnumerateCampaign(s *Session, p mhfpacket.MHFPacket) {
 	}
 	for _, event := range events {
 		bf.WriteUint32(event.ID)
-		bf.WriteUint8(event.StampAmount)
+		bf.WriteUint8(1) //StampAmount * This Amount = Stamps Shown
 		bf.WriteBytes([]byte(event.Prefix))
 	}
 
@@ -174,8 +172,8 @@ func handleMsgMhfStateCampaign(s *Session, p mhfpacket.MHFPacket) {
 		doAckBufFail(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
-	var unkArray = []uint32{1, 2, 3, 4, 5, 6}
-	bf.WriteUint16(uint16(stamps + 1)) // game -1?
+	var unkArray = []uint32{1, 2, 3, 4, 5, 6} //Not figured out what this does yet....?
+	bf.WriteUint16(uint16(stamps + 1))        // game client seems to -1
 	if amount == 1 {
 		bf.WriteUint16(1)
 	} else if stamps >= amount || period_ended {
@@ -183,7 +181,6 @@ func handleMsgMhfStateCampaign(s *Session, p mhfpacket.MHFPacket) {
 	} else if amount > 1 {
 		bf.WriteUint16(3)
 	}
-	// bf.WriteUint16(state)      //state //3 stamp (Overflow?)//2 Event already acomplished //1 Stamp? //0 stamp
 	for _, value := range unkArray {
 		bf.WriteUint32(value)
 	}
@@ -243,7 +240,7 @@ func handleMsgMhfEnumerateItem(s *Session, p mhfpacket.MHFPacket) {
 			bf.WriteBool(item.Hide)
 			bf.WriteUint8(item.ItemType)
 			bf.WriteUint16(item.Amount)
-			bf.WriteUint16(item.ItemNo)
+			bf.WriteUint16(item.ItemNo) //HACK:placed quest id in this field to fit with Item No pattern. however it could be another field... possibly the other unks.
 			bf.WriteUint16(item.Unk4)
 			bf.WriteUint32(item.Unk5)
 			bf.WriteUint32(uint32(item.DeadLine.Unix()))

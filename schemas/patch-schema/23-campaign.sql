@@ -44,8 +44,6 @@ CREATE TABLE IF NOT EXISTS public.campaign_entries (
   item_type INTEGER,
   item_amount INTEGER,
   item_no INTEGER,
-  unk1 INTEGER,
-  unk2 INTEGER,
   deadline TIMESTAMP WITH TIME ZONE
 );
 

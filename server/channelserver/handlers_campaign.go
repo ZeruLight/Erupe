@@ -241,8 +241,8 @@ func handleMsgMhfEnumerateItem(s *Session, p mhfpacket.MHFPacket) {
 			bf.WriteUint8(item.ItemType)
 			bf.WriteUint16(item.Amount)
 			bf.WriteUint16(item.ItemNo) //HACK:placed quest id in this field to fit with Item No pattern. however it could be another field... possibly the other unks.
-			bf.WriteUint16(item.Unk4)
-			bf.WriteUint32(item.Unk5)
+			bf.WriteUint16(0)           //Unk4
+			bf.WriteUint32(0)           //Unk5
 			bf.WriteUint32(uint32(item.DeadLine.Unix()))
 		}
 		if len(items) == 0 {

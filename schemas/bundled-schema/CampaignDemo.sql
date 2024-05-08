@@ -3490,8 +3490,6 @@ INSERT INTO
     item_type,
     item_amount,
     item_no,
-    unk1,
-    unk2,
     deadline
   )
 VALUES
@@ -3501,8 +3499,6 @@ VALUES
     9,
     0,
     40218,
-    0,
-    0,
     NOW() + INTERVAL '24 hours'
   ),
   (
@@ -3511,8 +3507,6 @@ VALUES
     9,
     0,
     40201,
-    0,
-    0,
     NOW() + INTERVAL '24 hours'
   ),
   (
@@ -3521,8 +3515,6 @@ VALUES
     9,
     0,
     40174,
-    0,
-    0,
     NOW() + INTERVAL '24 hours'
   ),
   (
@@ -3531,8 +3523,6 @@ VALUES
     9,
     0,
     40173,
-    0,
-    0,
     NOW() + INTERVAL '24 hours'
   ),
   (
@@ -3541,8 +3531,6 @@ VALUES
     9,
     0,
     40161,
-    0,
-    0,
     NOW() + INTERVAL '24 hours'
   ),
   (
@@ -3551,8 +3539,6 @@ VALUES
     9,
     0,
     40143,
-    0,
-    0,
     NOW() + INTERVAL '24 hours'
   ),
   (
@@ -3561,8 +3547,6 @@ VALUES
     9,
     0,
     40141,
-    0,
-    0,
     NOW() + INTERVAL '24 hours'
   ),
   (
@@ -3571,8 +3555,6 @@ VALUES
     9,
     0,
     40081,
-    0,
-    0,
     NOW() + INTERVAL '24 hours'
   ),
   (
@@ -3581,8 +3563,6 @@ VALUES
     9,
     0,
     40080,
-    0,
-    0,
     NOW() + INTERVAL '24 hours'
   ),
   (
@@ -3591,8 +3571,6 @@ VALUES
     9,
     0,
     40079,
-    0,
-    0,
     NOW() + INTERVAL '24 hours'
   ),
   (
@@ -3601,8 +3579,6 @@ VALUES
     7,
     110,
     1859,
-    0,
-    0,
     NOW() + INTERVAL '24 hours'
   ),
   (
@@ -3611,8 +3587,6 @@ VALUES
     8,
     1,
     96,
-    0,
-    0,
     NOW() + INTERVAL '24 hours'
   );
 

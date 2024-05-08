@@ -102,7 +102,13 @@
     "EnableHiganjimaEvent": false,
     "EnableNierEvent": false,
     "DisableRoad": false,
-    "SeasonOverride": false
+    "SeasonOverride": false,
+    "EnumerateEvent": {
+      "Enabled":false,
+      "EventID":8,
+      "Duration":172800,
+      "QuestIDs": [20001, 20004, 20005, 20006, 20011, 20012, 20013, 20018, 20019, 20020, 20021, 20022, 20023, 20024, 20025, 20026, 20027, 20028, 20029]
+    }
   },
   "Discord": {
     "Enabled": false,

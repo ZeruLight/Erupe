@@ -11,13 +11,13 @@ import (
 )
 
 type Event struct {
-	EventType    uint16
+	EventType    uint16 //0 Nothing //1 or 2 "An Acient Dragon has attacked the fort"
 	Unk1         uint16
 	Unk2         uint16
 	Unk3         uint16
 	Unk4         uint16
-	Unk5         uint32
-	Unk6         uint32
+	StartTime    time.Time
+	EndTime      time.Time
 	QuestFileIDs []uint16
 }
 
@@ -26,6 +26,9 @@ func handleMsgMhfEnumerateEvent(s *Session, p mhfpacket.MHFPacket) {
 	bf := byteframe.NewByteFrame()
 
 	events := []Event{}
+	if s.server.erupeConfig.GameplayOptions.EnumerateEvent.Enabled {
+		events = append(events, Event{s.server.erupeConfig.GameplayOptions.EnumerateEvent.EventID, 0, 0, 0, 0, TimeWeekNext().Add(-time.Duration(s.server.erupeConfig.GameplayOptions.EnumerateEvent.Duration) * time.Second), TimeWeekNext(), s.server.erupeConfig.GameplayOptions.EnumerateEvent.QuestIDs})
+	}
 
 	bf.WriteUint8(uint8(len(events)))
 	for _, event := range events {
@@ -34,8 +37,8 @@ func handleMsgMhfEnumerateEvent(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint16(event.Unk2)
 		bf.WriteUint16(event.Unk3)
 		bf.WriteUint16(event.Unk4)
-		bf.WriteUint32(event.Unk5)
-		bf.WriteUint32(event.Unk6)
+		bf.WriteUint32(uint32(event.StartTime.Unix()))
+		bf.WriteUint32(uint32(event.EndTime.Unix()))
 		if event.EventType == 2 {
 			bf.WriteUint8(uint8(len(event.QuestFileIDs)))
 			for _, qf := range event.QuestFileIDs {

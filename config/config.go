@@ -140,10 +140,11 @@ type CapLinkOptions struct {
 }
 
 type EnumerateEventOptions struct {
-	QuestIDs []uint16
-	EventID  uint16
-	Enabled  bool
-	Duration int
+	QuestIDs     []uint16
+	EventID      uint16
+	Enabled      bool
+	Duration     int
+	RestartAfter int
 }
 
 // GameplayOptions has various gameplay modifiers

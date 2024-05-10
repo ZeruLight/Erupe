@@ -16,18 +16,44 @@ type Event struct {
 	Unk2         uint16
 	Unk3         uint16
 	Unk4         uint16
-	StartTime    time.Time
-	EndTime      time.Time
+	StartTime    uint32
+	EndTime      uint32
 	QuestFileIDs []uint16
+}
+
+func cleanupEnumEvent(s *Session) {
+	s.server.db.Exec("DELETE FROM events WHERE event_type='ancientdragon'")
+}
+func generateEnumEventTimestamps(s *Session, start uint32) []uint32 {
+	timestamps := make([]uint32, 2)
+	midnight := TimeMidnight()
+	//if start is 0 or start is after a duration
+	if start == 0 || TimeAdjusted().Unix() > int64(start)+int64(s.server.erupeConfig.GameplayOptions.EnumerateEvent.RestartAfter) {
+		cleanupEnumEvent(s)
+		// Generate a new diva defense, starting midnight tomorrow
+		start = uint32(midnight.Add(24 * time.Hour).Unix())
+		s.server.db.Exec("INSERT INTO events (event_type, start_time) VALUES ('ancientdragon', to_timestamp($1)::timestamp without time zone)", start)
+	}
+	timestamps[0] = start
+	timestamps[1] = timestamps[0] + uint32(s.server.erupeConfig.GameplayOptions.EnumerateEvent.Duration)
+	return timestamps
 }
 
 func handleMsgMhfEnumerateEvent(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateEvent)
 	bf := byteframe.NewByteFrame()
+	id, start := uint32(0xCAFEBEEF), uint32(0)
 
+	rows, _ := s.server.db.Queryx("SELECT id, (EXTRACT(epoch FROM start_time)::int) as start_time FROM events WHERE event_type='ancientdragon'")
+	for rows.Next() {
+		rows.Scan(&id, &start)
+	}
+	var timestamps []uint32
 	events := []Event{}
+
 	if s.server.erupeConfig.GameplayOptions.EnumerateEvent.Enabled {
-		events = append(events, Event{s.server.erupeConfig.GameplayOptions.EnumerateEvent.EventID, 0, 0, 0, 0, TimeWeekNext().Add(-time.Duration(s.server.erupeConfig.GameplayOptions.EnumerateEvent.Duration) * time.Second), TimeWeekNext(), s.server.erupeConfig.GameplayOptions.EnumerateEvent.QuestIDs})
+		timestamps = generateEnumEventTimestamps(s, start)
+		events = append(events, Event{s.server.erupeConfig.GameplayOptions.EnumerateEvent.EventID, 0, 0, 0, 0, timestamps[0], timestamps[1], s.server.erupeConfig.GameplayOptions.EnumerateEvent.QuestIDs})
 	}
 
 	bf.WriteUint8(uint8(len(events)))
@@ -37,8 +63,8 @@ func handleMsgMhfEnumerateEvent(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint16(event.Unk2)
 		bf.WriteUint16(event.Unk3)
 		bf.WriteUint16(event.Unk4)
-		bf.WriteUint32(uint32(event.StartTime.Unix()))
-		bf.WriteUint32(uint32(event.EndTime.Unix()))
+		bf.WriteUint32(event.StartTime)
+		bf.WriteUint32(event.EndTime)
 		if event.EventType == 2 {
 			bf.WriteUint8(uint8(len(event.QuestFileIDs)))
 			for _, qf := range event.QuestFileIDs {

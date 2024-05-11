@@ -45,9 +45,12 @@ func handleMsgMhfEnumerateEvent(s *Session, p mhfpacket.MHFPacket) {
 	id, start := uint32(0xCAFEBEEF), uint32(0)
 
 	rows, _ := s.server.db.Queryx("SELECT id, (EXTRACT(epoch FROM start_time)::int) as start_time FROM events WHERE event_type='ancientdragon'")
-	for rows.Next() {
-		rows.Scan(&id, &start)
+	if !rows.Next() {
+		for rows.Next() {
+			rows.Scan(&id, &start)
+		}
 	}
+
 	var timestamps []uint32
 	events := []Event{}
 

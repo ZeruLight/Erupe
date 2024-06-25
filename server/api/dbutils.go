@@ -1,4 +1,4 @@
-package signv2server
+package api
 
 import (
 	"context"
@@ -10,7 +10,7 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func (s *Server) createNewUser(ctx context.Context, username string, password string) (uint32, uint32, error) {
+func (s *APIServer) createNewUser(ctx context.Context, username string, password string) (uint32, uint32, error) {
 	// Create salted hash of user password
 	passwordHash, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
@@ -32,7 +32,7 @@ func (s *Server) createNewUser(ctx context.Context, username string, password st
 	return id, rights, err
 }
 
-func (s *Server) createLoginToken(ctx context.Context, uid uint32) (uint32, string, error) {
+func (s *APIServer) createLoginToken(ctx context.Context, uid uint32) (uint32, string, error) {
 	loginToken := token.Generate(16)
 	var tid uint32
 	err := s.db.QueryRowContext(ctx, "INSERT INTO sign_sessions (user_id, token) VALUES ($1, $2) RETURNING id", uid, loginToken).Scan(&tid)
@@ -42,7 +42,7 @@ func (s *Server) createLoginToken(ctx context.Context, uid uint32) (uint32, stri
 	return tid, loginToken, nil
 }
 
-func (s *Server) userIDFromToken(ctx context.Context, token string) (uint32, error) {
+func (s *APIServer) userIDFromToken(ctx context.Context, token string) (uint32, error) {
 	var userID uint32
 	err := s.db.QueryRowContext(ctx, "SELECT user_id FROM sign_sessions WHERE token = $1", token).Scan(&userID)
 	if err == sql.ErrNoRows {
@@ -53,10 +53,10 @@ func (s *Server) userIDFromToken(ctx context.Context, token string) (uint32, err
 	return userID, nil
 }
 
-func (s *Server) createCharacter(ctx context.Context, userID uint32) (Character, error) {
+func (s *APIServer) createCharacter(ctx context.Context, userID uint32) (Character, error) {
 	var character Character
 	err := s.db.GetContext(ctx, &character,
-		"SELECT id, name, is_female, weapon_type, hrp, gr, last_login FROM characters WHERE is_new_character = true AND user_id = $1 LIMIT 1",
+		"SELECT id, name, is_female, weapon_type, hr, gr, last_login FROM characters WHERE is_new_character = true AND user_id = $1 LIMIT 1",
 		userID,
 	)
 	if err == sql.ErrNoRows {
@@ -68,17 +68,17 @@ func (s *Server) createCharacter(ctx context.Context, userID uint32) (Character,
 		err = s.db.GetContext(ctx, &character, `
 			INSERT INTO characters (
 				user_id, is_female, is_new_character, name, unk_desc_string,
-				hrp, gr, weapon_type, last_login
+				hr, gr, weapon_type, last_login
 			)
 			VALUES ($1, false, true, '', '', 0, 0, 0, $2)
-			RETURNING id, name, is_female, weapon_type, hrp, gr, last_login`,
+			RETURNING id, name, is_female, weapon_type, hr, gr, last_login`,
 			userID, uint32(time.Now().Unix()),
 		)
 	}
 	return character, err
 }
 
-func (s *Server) deleteCharacter(ctx context.Context, userID uint32, charID uint32) error {
+func (s *APIServer) deleteCharacter(ctx context.Context, userID uint32, charID uint32) error {
 	var isNew bool
 	err := s.db.QueryRow("SELECT is_new_character FROM characters WHERE id = $1", charID).Scan(&isNew)
 	if err != nil {
@@ -92,11 +92,11 @@ func (s *Server) deleteCharacter(ctx context.Context, userID uint32, charID uint
 	return err
 }
 
-func (s *Server) getCharactersForUser(ctx context.Context, uid uint32) ([]Character, error) {
+func (s *APIServer) getCharactersForUser(ctx context.Context, uid uint32) ([]Character, error) {
 	var characters []Character
 	err := s.db.SelectContext(
 		ctx, &characters, `
-		SELECT id, name, is_female, weapon_type, hrp, gr, last_login
+		SELECT id, name, is_female, weapon_type, hr, gr, last_login
 		FROM characters
 		WHERE user_id = $1 AND deleted = false AND is_new_character = false ORDER BY id ASC`,
 		uid,
@@ -107,7 +107,7 @@ func (s *Server) getCharactersForUser(ctx context.Context, uid uint32) ([]Charac
 	return characters, nil
 }
 
-func (s *Server) getReturnExpiry(uid uint32) time.Time {
+func (s *APIServer) getReturnExpiry(uid uint32) time.Time {
 	var returnExpiry, lastLogin time.Time
 	s.db.Get(&lastLogin, "SELECT COALESCE(last_login, now()) FROM users WHERE id=$1", uid)
 	if time.Now().Add((time.Hour * 24) * -90).After(lastLogin) {
@@ -124,7 +124,7 @@ func (s *Server) getReturnExpiry(uid uint32) time.Time {
 	return returnExpiry
 }
 
-func (s *Server) exportSave(ctx context.Context, uid uint32, cid uint32) (map[string]interface{}, error) {
+func (s *APIServer) exportSave(ctx context.Context, uid uint32, cid uint32) (map[string]interface{}, error) {
 	row := s.db.QueryRowxContext(ctx, "SELECT * FROM characters WHERE id=$1 AND user_id=$2", cid, uid)
 	result := make(map[string]interface{})
 	err := row.MapScan(result)

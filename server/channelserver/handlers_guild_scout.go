@@ -204,7 +204,7 @@ func handleMsgMhfGetGuildScoutList(s *Session, p mhfpacket.MHFPacket) {
 	}
 
 	rows, err := s.server.db.Queryx(`
-		SELECT c.id, c.name, c.hrp, c.gr, ga.actor_id
+		SELECT c.id, c.name, c.hr, c.gr, ga.actor_id
 			FROM guild_applications ga 
 			JOIN characters c ON c.id = ga.character_id
 		WHERE ga.guild_id = $1 AND ga.application_type = 'invited'
@@ -230,9 +230,9 @@ func handleMsgMhfGetGuildScoutList(s *Session, p mhfpacket.MHFPacket) {
 	for rows.Next() {
 		var charName string
 		var charID, actorID uint32
-		var hrp, gr uint16
+		var HR, GR uint16
 
-		err = rows.Scan(&charID, &charName, &hrp, &gr, &actorID)
+		err = rows.Scan(&charID, &charName, &HR, &GR, &actorID)
 
 		if err != nil {
 			doAckSimpleFail(s, pkt.AckHandle, nil)
@@ -246,8 +246,8 @@ func handleMsgMhfGetGuildScoutList(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint32(actorID)
 		bf.WriteUint32(charID)
 		bf.WriteUint32(uint32(TimeAdjusted().Unix()))
-		bf.WriteUint16(hrp) // HR?
-		bf.WriteUint16(gr)  // GR?
+		bf.WriteUint16(HR) // HR?
+		bf.WriteUint16(GR) // GR?
 		bf.WriteBytes(stringsupport.PaddedString(charName, 32, true))
 		count++
 	}

@@ -13,7 +13,7 @@ import (
 type MsgMhfOperateWarehouse struct {
 	AckHandle uint32
 	Operation uint8
-	BoxType   string
+	BoxType   uint8
 	BoxIndex  uint8
 	Name      string
 }
@@ -27,17 +27,13 @@ func (m *MsgMhfOperateWarehouse) Opcode() network.PacketID {
 func (m *MsgMhfOperateWarehouse) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
 	m.Operation = bf.ReadUint8()
-	boxType := bf.ReadUint8()
-	switch boxType {
-	case 0:
-		m.BoxType = "item"
-	case 1:
-		m.BoxType = "equip"
-	}
+	m.BoxType = bf.ReadUint8()
 	m.BoxIndex = bf.ReadUint8()
-	_ = bf.ReadUint8()  // lenName
-	_ = bf.ReadUint16() // Unk
-	m.Name = stringsupport.SJISToUTF8(bf.ReadNullTerminatedBytes())
+	lenName := bf.ReadUint8()
+	bf.ReadUint16() // Zeroed
+	if lenName > 0 {
+		m.Name = stringsupport.SJISToUTF8(bf.ReadNullTerminatedBytes())
+	}
 	return nil
 }
 

@@ -3,6 +3,7 @@ package channelserver
 import (
 	"encoding/binary"
 	"erupe-ce/common/mhfcourse"
+	"erupe-ce/common/mhfitem"
 	"erupe-ce/common/mhfmon"
 	ps "erupe-ce/common/pascalstring"
 	"erupe-ce/common/stringsupport"
@@ -812,93 +813,33 @@ func handleMsgMhfEnumeratePrice(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfGetExtraInfo(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfEnumerateUnionItem(s *Session, p mhfpacket.MHFPacket) {
-	pkt := p.(*mhfpacket.MsgMhfEnumerateUnionItem)
-	var boxContents []byte
-	bf := byteframe.NewByteFrame()
-	err := s.server.db.QueryRow("SELECT item_box FROM users, characters WHERE characters.id = $1 AND users.id = characters.user_id", int(s.charID)).Scan(&boxContents)
-	if err != nil {
-		s.logger.Error("Failed to get shared item box contents from db", zap.Error(err))
-		bf.WriteBytes(make([]byte, 4))
-	} else {
-		if len(boxContents) == 0 {
-			bf.WriteBytes(make([]byte, 4))
-		} else {
-			amount := len(boxContents) / 4
-			bf.WriteUint16(uint16(amount))
-			bf.WriteUint32(0x00)
-			bf.WriteUint16(0x00)
-			for i := 0; i < amount; i++ {
-				bf.WriteUint32(binary.BigEndian.Uint32(boxContents[i*4 : i*4+4]))
-				if i+1 != amount {
-					bf.WriteUint64(0x00)
-				}
-			}
+func userGetItems(s *Session) []mhfitem.MHFItemStack {
+	var data []byte
+	var items []mhfitem.MHFItemStack
+	s.server.db.QueryRow(`SELECT item_box FROM users u WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$1)`, s.charID).Scan(&data)
+	if len(data) > 0 {
+		box := byteframe.NewByteFrameFromBytes(data)
+		numStacks := box.ReadUint16()
+		box.ReadUint16() // Unused
+		for i := 0; i < int(numStacks); i++ {
+			items = append(items, mhfitem.ReadWarehouseItem(box))
 		}
 	}
+	return items
+}
+
+func handleMsgMhfEnumerateUnionItem(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfEnumerateUnionItem)
+	items := userGetItems(s)
+	bf := byteframe.NewByteFrame()
+	bf.WriteBytes(mhfitem.SerializeWarehouseItems(items))
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfUpdateUnionItem(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfUpdateUnionItem)
-	// Get item cache from DB
-	var boxContents []byte
-	var oldItems []Item
-
-	err := s.server.db.QueryRow("SELECT item_box FROM users, characters WHERE characters.id = $1 AND users.id = characters.user_id", int(s.charID)).Scan(&boxContents)
-	if err != nil {
-		s.logger.Error("Failed to get shared item box contents from db", zap.Error(err))
-		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
-		return
-	} else {
-		amount := len(boxContents) / 4
-		oldItems = make([]Item, amount)
-		for i := 0; i < amount; i++ {
-			oldItems[i].ItemId = binary.BigEndian.Uint16(boxContents[i*4 : i*4+2])
-			oldItems[i].Amount = binary.BigEndian.Uint16(boxContents[i*4+2 : i*4+4])
-		}
-	}
-
-	// Update item stacks
-	newItems := make([]Item, len(oldItems))
-	copy(newItems, oldItems)
-	for i := 0; i < len(pkt.Items); i++ {
-		for j := 0; j <= len(oldItems); j++ {
-			if j == len(oldItems) {
-				var newItem Item
-				newItem.ItemId = pkt.Items[i].ItemID
-				newItem.Amount = pkt.Items[i].Amount
-				newItems = append(newItems, newItem)
-				break
-			}
-			if pkt.Items[i].ItemID == oldItems[j].ItemId {
-				newItems[j].Amount = pkt.Items[i].Amount
-				break
-			}
-		}
-	}
-
-	// Delete empty item stacks
-	for i := len(newItems) - 1; i >= 0; i-- {
-		if int(newItems[i].Amount) == 0 {
-			copy(newItems[i:], newItems[i+1:])
-			newItems[len(newItems)-1] = make([]Item, 1)[0]
-			newItems = newItems[:len(newItems)-1]
-		}
-	}
-
-	// Create new item cache
-	bf := byteframe.NewByteFrame()
-	for i := 0; i < len(newItems); i++ {
-		bf.WriteUint16(newItems[i].ItemId)
-		bf.WriteUint16(newItems[i].Amount)
-	}
-
-	// Upload new item cache
-	_, err = s.server.db.Exec("UPDATE users SET item_box = $1 FROM characters WHERE  users.id = characters.user_id AND characters.id = $2", bf.Data(), int(s.charID))
-	if err != nil {
-		s.logger.Error("Failed to update shared item box contents in db", zap.Error(err))
-	}
+	newStacks := mhfitem.DiffItemStacks(userGetItems(s), pkt.UpdatedItems)
+	s.server.db.Exec(`UPDATE users u SET item_box=$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)`, mhfitem.SerializeWarehouseItems(newStacks), s.charID)
 	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
@@ -906,50 +847,54 @@ func handleMsgMhfGetCogInfo(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfCheckWeeklyStamp(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfCheckWeeklyStamp)
-	weekCurrentStart := TimeWeekStart()
-	weekNextStart := TimeWeekNext()
 	var total, redeemed, updated uint16
-	var nextClaim time.Time
-	err := s.server.db.QueryRow(fmt.Sprintf("SELECT %s_next FROM stamps WHERE character_id=$1", pkt.StampType), s.charID).Scan(&nextClaim)
+	var lastCheck time.Time
+	err := s.server.db.QueryRow(fmt.Sprintf("SELECT %s_checked FROM stamps WHERE character_id=$1", pkt.StampType), s.charID).Scan(&lastCheck)
 	if err != nil {
-		s.server.db.Exec("INSERT INTO stamps (character_id, hl_next, ex_next) VALUES ($1, $2, $2)", s.charID, weekNextStart)
-		nextClaim = weekNextStart
+		lastCheck = TimeAdjusted()
+		s.server.db.Exec("INSERT INTO stamps (character_id, hl_checked, ex_checked) VALUES ($1, $2, $2)", s.charID, TimeAdjusted())
+	} else {
+		s.server.db.Exec(fmt.Sprintf(`UPDATE stamps SET %s_checked=$1 WHERE character_id=$2`, pkt.StampType), TimeAdjusted(), s.charID)
 	}
-	if nextClaim.Before(weekCurrentStart) {
-		s.server.db.Exec(fmt.Sprintf("UPDATE stamps SET %s_total=%s_total+1, %s_next=$1 WHERE character_id=$2", pkt.StampType, pkt.StampType, pkt.StampType), weekNextStart, s.charID)
+
+	if lastCheck.Before(TimeWeekStart()) {
+		s.server.db.Exec(fmt.Sprintf("UPDATE stamps SET %s_total=%s_total+1 WHERE character_id=$1", pkt.StampType, pkt.StampType), s.charID)
 		updated = 1
 	}
+
 	s.server.db.QueryRow(fmt.Sprintf("SELECT %s_total, %s_redeemed FROM stamps WHERE character_id=$1", pkt.StampType, pkt.StampType), s.charID).Scan(&total, &redeemed)
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint16(total)
 	bf.WriteUint16(redeemed)
 	bf.WriteUint16(updated)
-	bf.WriteUint32(0) // Unk
-	bf.WriteUint32(uint32(weekCurrentStart.Unix()))
+	bf.WriteUint16(0)
+	bf.WriteUint16(0)
+	bf.WriteUint32(uint32(TimeWeekStart().Unix()))
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfExchangeWeeklyStamp(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfExchangeWeeklyStamp)
 	var total, redeemed uint16
-	var tktStack mhfpacket.WarehouseStack
-	if pkt.Unk1 == 0xA { // Yearly Sub Ex
+	var tktStack mhfitem.MHFItemStack
+	if pkt.Unk1 == 10 { // Yearly Sub Ex
 		s.server.db.QueryRow("UPDATE stamps SET hl_total=hl_total-48, hl_redeemed=hl_redeemed-48 WHERE character_id=$1 RETURNING hl_total, hl_redeemed", s.charID).Scan(&total, &redeemed)
-		tktStack = mhfpacket.WarehouseStack{ItemID: 0x08A2, Quantity: 1}
+		tktStack = mhfitem.MHFItemStack{Item: mhfitem.MHFItem{ItemID: 2210}, Quantity: 1}
 	} else {
 		s.server.db.QueryRow(fmt.Sprintf("UPDATE stamps SET %s_redeemed=%s_redeemed+8 WHERE character_id=$1 RETURNING %s_total, %s_redeemed", pkt.StampType, pkt.StampType, pkt.StampType, pkt.StampType), s.charID).Scan(&total, &redeemed)
 		if pkt.StampType == "hl" {
-			tktStack = mhfpacket.WarehouseStack{ItemID: 0x065E, Quantity: 5}
+			tktStack = mhfitem.MHFItemStack{Item: mhfitem.MHFItem{ItemID: 1630}, Quantity: 5}
 		} else {
-			tktStack = mhfpacket.WarehouseStack{ItemID: 0x065F, Quantity: 5}
+			tktStack = mhfitem.MHFItemStack{Item: mhfitem.MHFItem{ItemID: 1631}, Quantity: 5}
 		}
 	}
-	addWarehouseGift(s, "item", tktStack)
+	addWarehouseItem(s, tktStack)
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint16(total)
 	bf.WriteUint16(redeemed)
 	bf.WriteUint16(0)
-	bf.WriteUint32(0) // Unk, but has possible values
+	bf.WriteUint16(tktStack.Item.ItemID)
+	bf.WriteUint16(tktStack.Quantity)
 	bf.WriteUint32(uint32(TimeWeekStart().Unix()))
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
@@ -1103,9 +1048,11 @@ func handleMsgMhfStampcardStamp(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfStampcardStamp)
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint16(pkt.HR)
-	bf.WriteUint16(pkt.GR)
 	var stamps uint16
 	_ = s.server.db.QueryRow(`SELECT stampcard FROM characters WHERE id = $1`, s.charID).Scan(&stamps)
+	if _config.ErupeConfig.RealClientMode >= _config.G1 {
+		bf.WriteUint16(pkt.GR)
+	}
 	bf.WriteUint16(stamps)
 	stamps += pkt.Stamps
 	bf.WriteUint16(stamps)
@@ -1115,13 +1062,13 @@ func handleMsgMhfStampcardStamp(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint16(pkt.Reward2)
 		bf.WriteUint16(pkt.Item2)
 		bf.WriteUint16(pkt.Quantity2)
-		addWarehouseGift(s, "item", mhfpacket.WarehouseStack{ItemID: pkt.Item2, Quantity: pkt.Quantity2})
+		addWarehouseItem(s, mhfitem.MHFItemStack{Item: mhfitem.MHFItem{ItemID: pkt.Item2}, Quantity: pkt.Quantity2})
 	} else if stamps%15 == 0 {
 		bf.WriteUint16(1)
 		bf.WriteUint16(pkt.Reward1)
 		bf.WriteUint16(pkt.Item1)
 		bf.WriteUint16(pkt.Quantity1)
-		addWarehouseGift(s, "item", mhfpacket.WarehouseStack{ItemID: pkt.Item1, Quantity: pkt.Quantity1})
+		addWarehouseItem(s, mhfitem.MHFItemStack{Item: mhfitem.MHFItem{ItemID: pkt.Item1}, Quantity: pkt.Quantity1})
 	} else {
 		bf.WriteBytes(make([]byte, 8))
 	}

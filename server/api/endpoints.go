@@ -1,15 +1,24 @@
-package signv2server
+package api
 
 import (
 	"database/sql"
 	"encoding/json"
+	"encoding/xml"
 	"errors"
 	_config "erupe-ce/config"
 	"erupe-ce/server/channelserver"
+	"fmt"
+	"image"
+	"image/jpeg"
+	"io"
 	"net/http"
+	"os"
+	"path/filepath"
+	"regexp"
 	"strings"
 	"time"
 
+	"github.com/gorilla/mux"
 	"github.com/lib/pq"
 	"go.uber.org/zap"
 	"golang.org/x/crypto/bcrypt"
@@ -21,9 +30,9 @@ const (
 )
 
 type LauncherResponse struct {
-	Banners  []_config.SignV2Banner  `json:"banners"`
-	Messages []_config.SignV2Message `json:"messages"`
-	Links    []_config.SignV2Link    `json:"links"`
+	Banners  []_config.APISignBanner  `json:"banners"`
+	Messages []_config.APISignMessage `json:"messages"`
+	Links    []_config.APISignLink    `json:"links"`
 }
 
 type User struct {
@@ -37,7 +46,7 @@ type Character struct {
 	Name      string `json:"name"`
 	IsFemale  bool   `json:"isFemale" db:"is_female"`
 	Weapon    uint32 `json:"weapon" db:"weapon_type"`
-	HR        uint32 `json:"hr" db:"hrp"`
+	HR        uint32 `json:"hr" db:"hr"`
 	GR        uint32 `json:"gr"`
 	LastLogin int32  `json:"lastLogin" db:"last_login"`
 }
@@ -66,7 +75,7 @@ type ExportData struct {
 	Character map[string]interface{} `json:"character"`
 }
 
-func (s *Server) newAuthData(userID uint32, userRights uint32, userTokenID uint32, userToken string, characters []Character) AuthData {
+func (s *APIServer) newAuthData(userID uint32, userRights uint32, userTokenID uint32, userToken string, characters []Character) AuthData {
 	resp := AuthData{
 		CurrentTS:     uint32(channelserver.TimeAdjusted().Unix()),
 		ExpiryTS:      uint32(s.getReturnExpiry(userID).Unix()),
@@ -77,7 +86,7 @@ func (s *Server) newAuthData(userID uint32, userRights uint32, userTokenID uint3
 			Token:   userToken,
 		},
 		Characters:  characters,
-		PatchServer: s.erupeConfig.SignV2.PatchServer,
+		PatchServer: s.erupeConfig.API.PatchServer,
 		Notices:     []string{},
 	}
 	if s.erupeConfig.DebugOptions.MaxLauncherHR {
@@ -103,16 +112,16 @@ func (s *Server) newAuthData(userID uint32, userRights uint32, userTokenID uint3
 	return resp
 }
 
-func (s *Server) Launcher(w http.ResponseWriter, r *http.Request) {
+func (s *APIServer) Launcher(w http.ResponseWriter, r *http.Request) {
 	var respData LauncherResponse
-	respData.Banners = s.erupeConfig.SignV2.Banners
-	respData.Messages = s.erupeConfig.SignV2.Messages
-	respData.Links = s.erupeConfig.SignV2.Links
+	respData.Banners = s.erupeConfig.API.Banners
+	respData.Messages = s.erupeConfig.API.Messages
+	respData.Links = s.erupeConfig.API.Links
 	w.Header().Add("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(respData)
 }
 
-func (s *Server) Login(w http.ResponseWriter, r *http.Request) {
+func (s *APIServer) Login(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var reqData struct {
 		Username string `json:"username"`
@@ -164,7 +173,7 @@ func (s *Server) Login(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(respData)
 }
 
-func (s *Server) Register(w http.ResponseWriter, r *http.Request) {
+func (s *APIServer) Register(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var reqData struct {
 		Username string `json:"username"`
@@ -204,7 +213,7 @@ func (s *Server) Register(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(respData)
 }
 
-func (s *Server) CreateCharacter(w http.ResponseWriter, r *http.Request) {
+func (s *APIServer) CreateCharacter(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var reqData struct {
 		Token string `json:"token"`
@@ -233,7 +242,7 @@ func (s *Server) CreateCharacter(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(character)
 }
 
-func (s *Server) DeleteCharacter(w http.ResponseWriter, r *http.Request) {
+func (s *APIServer) DeleteCharacter(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var reqData struct {
 		Token  string `json:"token"`
@@ -258,7 +267,7 @@ func (s *Server) DeleteCharacter(w http.ResponseWriter, r *http.Request) {
 	json.NewEncoder(w).Encode(struct{}{})
 }
 
-func (s *Server) ExportSave(w http.ResponseWriter, r *http.Request) {
+func (s *APIServer) ExportSave(w http.ResponseWriter, r *http.Request) {
 	ctx := r.Context()
 	var reqData struct {
 		Token  string `json:"token"`
@@ -285,4 +294,119 @@ func (s *Server) ExportSave(w http.ResponseWriter, r *http.Request) {
 	}
 	w.Header().Add("Content-Type", "application/json")
 	json.NewEncoder(w).Encode(save)
+}
+func (s *APIServer) ScreenShotGet(w http.ResponseWriter, r *http.Request) {
+	// Get the 'id' parameter from the URL
+	token := mux.Vars(r)["id"]
+	var tokenPattern = regexp.MustCompile(`[A-Za-z0-9]+`)
+
+	if !tokenPattern.MatchString(token) || token == "" {
+		http.Error(w, "Not Valid Token", http.StatusBadRequest)
+
+	}
+	// Open the image file
+	safePath := s.erupeConfig.Screenshots.OutputDir
+	path := filepath.Join(safePath, fmt.Sprintf("%s.jpg", token))
+	result, err := verifyPath(path, safePath)
+
+	if err != nil {
+		fmt.Println("Error " + err.Error())
+	} else {
+		fmt.Println("Canonical: " + result)
+
+		file, err := os.Open(result)
+		if err != nil {
+			http.Error(w, "Image not found", http.StatusNotFound)
+			return
+		}
+		defer file.Close()
+		// Set content type header to image/jpeg
+		w.Header().Set("Content-Type", "image/jpeg")
+		// Copy the image content to the response writer
+		if _, err := io.Copy(w, file); err != nil {
+			http.Error(w, "Unable to send image", http.StatusInternalServerError)
+			return
+		}
+	}
+}
+func (s *APIServer) ScreenShot(w http.ResponseWriter, r *http.Request) {
+	// Create a struct representing the XML result
+	type Result struct {
+		XMLName xml.Name `xml:"result"`
+		Code    string   `xml:"code"`
+	}
+	// Set the Content-Type header to specify that the response is in XML format
+	w.Header().Set("Content-Type", "text/xml")
+	result := Result{Code: "200"}
+	if !s.erupeConfig.Screenshots.Enabled {
+		result = Result{Code: "400"}
+	} else {
+
+		if r.Method != http.MethodPost {
+			result = Result{Code: "405"}
+		}
+		// Get File from Request
+		file, _, err := r.FormFile("img")
+		if err != nil {
+			result = Result{Code: "400"}
+		}
+		var tokenPattern = regexp.MustCompile(`[A-Za-z0-9]+`)
+		token := r.FormValue("token")
+		if !tokenPattern.MatchString(token) || token == "" {
+			result = Result{Code: "401"}
+
+		}
+
+		// Validate file
+		img, _, err := image.Decode(file)
+		if err != nil {
+			result = Result{Code: "400"}
+		}
+
+		safePath := s.erupeConfig.Screenshots.OutputDir
+
+		path := filepath.Join(safePath, fmt.Sprintf("%s.jpg", token))
+		verified, err := verifyPath(path, safePath)
+
+		if err != nil {
+			result = Result{Code: "500"}
+		} else {
+
+			_, err = os.Stat(safePath)
+			if err != nil {
+				if os.IsNotExist(err) {
+					err = os.MkdirAll(safePath, os.ModePerm)
+					if err != nil {
+						s.logger.Error("Error writing screenshot, could not create folder")
+						result = Result{Code: "500"}
+					}
+				} else {
+					s.logger.Error("Error writing screenshot")
+					result = Result{Code: "500"}
+				}
+			}
+			// Create or open the output file
+			outputFile, err := os.Create(verified)
+			if err != nil {
+				result = Result{Code: "500"}
+			}
+			defer outputFile.Close()
+
+			// Encode the image and write it to the file
+			err = jpeg.Encode(outputFile, img, &jpeg.Options{Quality: s.erupeConfig.Screenshots.UploadQuality})
+			if err != nil {
+				s.logger.Error("Error writing screenshot, could not write file", zap.Error(err))
+				result = Result{Code: "500"}
+			}
+		}
+	}
+	// Marshal the struct into XML
+	xmlData, err := xml.Marshal(result)
+	if err != nil {
+		http.Error(w, "Unable to marshal XML", http.StatusInternalServerError)
+		return
+	}
+	// Write the XML response with a 200 status code
+	w.WriteHeader(http.StatusOK)
+	w.Write(xmlData)
 }

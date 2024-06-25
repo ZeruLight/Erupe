@@ -3,9 +3,9 @@ package channelserver
 import (
 	"database/sql"
 	"database/sql/driver"
-	"encoding/binary"
 	"encoding/json"
 	"errors"
+	"erupe-ce/common/mhfitem"
 	_config "erupe-ce/config"
 	"fmt"
 	"math"
@@ -51,6 +51,8 @@ type Guild struct {
 	MemberCount   uint16        `db:"member_count"`
 	RankRP        uint32        `db:"rank_rp"`
 	EventRP       uint32        `db:"event_rp"`
+	RoomRP        uint16        `db:"room_rp"`
+	RoomExpiry    time.Time     `db:"room_expiry"`
 	Comment       string        `db:"comment"`
 	PugiName1     string        `db:"pugi_name_1"`
 	PugiName2     string        `db:"pugi_name_2"`
@@ -153,6 +155,8 @@ SELECT
 	g.name,
 	rank_rp,
 	event_rp,
+	room_rp,
+	COALESCE(room_expiry, '1970-01-01') AS room_expiry,
 	main_motto,
 	sub_motto,
 	created_at,
@@ -706,7 +710,7 @@ func handleMsgMhfOperateGuild(s *Session, p mhfpacket.MHFPacket) {
 		}
 		bf.WriteUint32(uint32(response))
 	case mhfpacket.OperateGuildDonateRank:
-		bf.WriteBytes(handleDonateRP(s, uint16(pkt.Data1.ReadUint32()), guild, false))
+		bf.WriteBytes(handleDonateRP(s, uint16(pkt.Data1.ReadUint32()), guild, 0))
 	case mhfpacket.OperateGuildSetApplicationDeny:
 		s.server.db.Exec("UPDATE guilds SET recruiting=false WHERE id=$1", guild.ID)
 	case mhfpacket.OperateGuildSetApplicationAllow:
@@ -747,10 +751,11 @@ func handleMsgMhfOperateGuild(s *Session, p mhfpacket.MHFPacket) {
 		// TODO: This doesn't implement blocking, if someone unlocked the same outfit at the same time
 		s.server.db.Exec(`UPDATE guilds SET pugi_outfits=pugi_outfits+$1 WHERE id=$2`, int(math.Pow(float64(pkt.Data1.ReadUint32()), 2)), guild.ID)
 	case mhfpacket.OperateGuildDonateRoom:
-		// TODO: Where does this go?
+		quantity := uint16(pkt.Data1.ReadUint32())
+		bf.WriteBytes(handleDonateRP(s, quantity, guild, 2))
 	case mhfpacket.OperateGuildDonateEvent:
 		quantity := uint16(pkt.Data1.ReadUint32())
-		bf.WriteBytes(handleDonateRP(s, quantity, guild, true))
+		bf.WriteBytes(handleDonateRP(s, quantity, guild, 1))
 		// TODO: Move this value onto rp_yesterday and reset to 0... daily?
 		s.server.db.Exec(`UPDATE guild_characters SET rp_today=rp_today+$1 WHERE character_id=$2`, quantity, s.charID)
 	case mhfpacket.OperateGuildEventExchange:
@@ -794,20 +799,37 @@ func handleChangePugi(s *Session, outfit uint8, guild *Guild, num int) {
 	guild.Save(s)
 }
 
-func handleDonateRP(s *Session, amount uint16, guild *Guild, isEvent bool) []byte {
+func handleDonateRP(s *Session, amount uint16, guild *Guild, _type int) []byte {
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint32(0)
 	saveData, err := GetCharacterSaveData(s, s.charID)
 	if err != nil {
 		return bf.Data()
 	}
+	var resetRoom bool
+	if _type == 2 {
+		var currentRP uint16
+		s.server.db.QueryRow(`SELECT room_rp FROM guilds WHERE id = $1`, guild.ID).Scan(&currentRP)
+		if currentRP+amount >= 30 {
+			amount = 30 - currentRP
+			resetRoom = true
+		}
+	}
 	saveData.RP -= amount
 	saveData.Save(s)
-	updateSQL := "UPDATE guilds SET rank_rp = rank_rp + $1 WHERE id = $2"
-	if isEvent {
-		updateSQL = "UPDATE guilds SET event_rp = event_rp + $1 WHERE id = $2"
+	switch _type {
+	case 0:
+		s.server.db.Exec(`UPDATE guilds SET rank_rp = rank_rp + $1 WHERE id = $2`, amount, guild.ID)
+	case 1:
+		s.server.db.Exec(`UPDATE guilds SET event_rp = event_rp + $1 WHERE id = $2`, amount, guild.ID)
+	case 2:
+		if resetRoom {
+			s.server.db.Exec(`UPDATE guilds SET room_rp = 0 WHERE id = $1`, guild.ID)
+			s.server.db.Exec(`UPDATE guilds SET room_expiry = $1 WHERE id = $2`, TimeAdjusted().Add(time.Hour*24*7), guild.ID)
+		} else {
+			s.server.db.Exec(`UPDATE guilds SET room_rp = room_rp + $1 WHERE id = $2`, amount, guild.ID)
+		}
 	}
-	s.server.db.Exec(updateSQL, amount, guild.ID)
 	bf.Seek(0, 0)
 	bf.WriteUint32(uint32(saveData.RP))
 	return bf.Data()
@@ -1001,8 +1023,8 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint8(limit)
 
 		bf.WriteUint32(55000)
-		bf.WriteUint32(0)
-		bf.WriteUint16(0) // Changing Room RP
+		bf.WriteUint32(uint32(guild.RoomExpiry.Unix()))
+		bf.WriteUint16(guild.RoomRP)
 		bf.WriteUint16(0) // Ignored
 
 		if guild.AllianceID > 0 {
@@ -1075,7 +1097,7 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 			for _, applicant := range applicants {
 				bf.WriteUint32(applicant.CharID)
 				bf.WriteUint32(0)
-				bf.WriteUint16(applicant.HRP)
+				bf.WriteUint16(applicant.HR)
 				bf.WriteUint16(applicant.GR)
 				ps.Uint8(bf, applicant.Name, true)
 			}
@@ -1435,7 +1457,7 @@ func handleMsgMhfEnumerateGuildMember(s *Session, p mhfpacket.MHFPacket) {
 
 	for _, member := range guildMembers {
 		bf.WriteUint32(member.CharID)
-		bf.WriteUint16(member.HRP)
+		bf.WriteUint16(member.HR)
 		if s.server.erupeConfig.RealClientMode >= _config.G10 {
 			bf.WriteUint16(member.GR)
 		}
@@ -1554,100 +1576,34 @@ func handleMsgMhfGetGuildTargetMemberNum(s *Session, p mhfpacket.MHFPacket) {
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
-func handleMsgMhfEnumerateGuildItem(s *Session, p mhfpacket.MHFPacket) {
-	pkt := p.(*mhfpacket.MsgMhfEnumerateGuildItem)
-	var boxContents []byte
-	bf := byteframe.NewByteFrame()
-	err := s.server.db.QueryRow("SELECT item_box FROM guilds WHERE id = $1", pkt.GuildID).Scan(&boxContents)
-	if err != nil {
-		s.logger.Error("Failed to get guild item box contents from db", zap.Error(err))
-		bf.WriteBytes(make([]byte, 4))
-	} else {
-		if len(boxContents) == 0 {
-			bf.WriteBytes(make([]byte, 4))
-		} else {
-			amount := len(boxContents) / 4
-			bf.WriteUint16(uint16(amount))
-			bf.WriteUint32(0x00)
-			bf.WriteUint16(0x00)
-			for i := 0; i < amount; i++ {
-				bf.WriteUint32(binary.BigEndian.Uint32(boxContents[i*4 : i*4+4]))
-				if i+1 != amount {
-					bf.WriteUint64(0x00)
-				}
-			}
+func guildGetItems(s *Session, guildID uint32) []mhfitem.MHFItemStack {
+	var data []byte
+	var items []mhfitem.MHFItemStack
+	s.server.db.QueryRow(`SELECT item_box FROM guilds WHERE id=$1`, guildID).Scan(&data)
+	if len(data) > 0 {
+		box := byteframe.NewByteFrameFromBytes(data)
+		numStacks := box.ReadUint16()
+		box.ReadUint16() // Unused
+		for i := 0; i < int(numStacks); i++ {
+			items = append(items, mhfitem.ReadWarehouseItem(box))
 		}
 	}
-	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	return items
 }
 
-type Item struct {
-	ItemId uint16
-	Amount uint16
+func handleMsgMhfEnumerateGuildItem(s *Session, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfEnumerateGuildItem)
+	items := guildGetItems(s, pkt.GuildID)
+	bf := byteframe.NewByteFrame()
+	bf.WriteBytes(mhfitem.SerializeWarehouseItems(items))
+	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfUpdateGuildItem(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfUpdateGuildItem)
-
-	// Get item cache from DB
-	var boxContents []byte
-	var oldItems []Item
-	err := s.server.db.QueryRow("SELECT item_box FROM guilds WHERE id = $1", pkt.GuildID).Scan(&boxContents)
-	if err != nil {
-		s.logger.Error("Failed to get guild item box contents from db", zap.Error(err))
-		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
-		return
-	} else {
-		amount := len(boxContents) / 4
-		oldItems = make([]Item, amount)
-		for i := 0; i < amount; i++ {
-			oldItems[i].ItemId = binary.BigEndian.Uint16(boxContents[i*4 : i*4+2])
-			oldItems[i].Amount = binary.BigEndian.Uint16(boxContents[i*4+2 : i*4+4])
-		}
-	}
-
-	// Update item stacks
-	newItems := make([]Item, len(oldItems))
-	copy(newItems, oldItems)
-	for i := 0; i < len(pkt.Items); i++ {
-		for j := 0; j <= len(oldItems); j++ {
-			if j == len(oldItems) {
-				var newItem Item
-				newItem.ItemId = pkt.Items[i].ItemID
-				newItem.Amount = pkt.Items[i].Amount
-				newItems = append(newItems, newItem)
-				break
-			}
-			if pkt.Items[i].ItemID == oldItems[j].ItemId {
-				newItems[j].Amount = pkt.Items[i].Amount
-				break
-			}
-		}
-	}
-
-	// Delete empty item stacks
-	for i := len(newItems) - 1; i >= 0; i-- {
-		if int(newItems[i].Amount) == 0 {
-			copy(newItems[i:], newItems[i+1:])
-			newItems[len(newItems)-1] = make([]Item, 1)[0]
-			newItems = newItems[:len(newItems)-1]
-		}
-	}
-
-	// Create new item cache
-	bf := byteframe.NewByteFrame()
-	for i := 0; i < len(newItems); i++ {
-		bf.WriteUint16(newItems[i].ItemId)
-		bf.WriteUint16(newItems[i].Amount)
-	}
-
-	// Upload new item cache
-	_, err = s.server.db.Exec("UPDATE guilds SET item_box = $1 WHERE id = $2", bf.Data(), pkt.GuildID)
-	if err != nil {
-		s.logger.Error("Failed to update guild item box contents in db", zap.Error(err))
-	}
-
-	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+	newStacks := mhfitem.DiffItemStacks(guildGetItems(s, pkt.GuildID), pkt.UpdatedItems)
+	s.server.db.Exec(`UPDATE guilds SET item_box=$1 WHERE id=$2`, mhfitem.SerializeWarehouseItems(newStacks), pkt.GuildID)
+	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfUpdateGuildIcon(s *Session, p mhfpacket.MHFPacket) {

@@ -11,6 +11,7 @@ import (
 
 	"erupe-ce/common/byteframe"
 	"erupe-ce/network"
+
 	"go.uber.org/zap"
 )
 
@@ -20,6 +21,7 @@ const (
 	PC100 client = iota
 	VITA
 	PS3
+	PS4
 	WIIU
 )
 
@@ -56,6 +58,9 @@ func (s *Session) handlePacket(pkt []byte) error {
 	switch reqType[:len(reqType)-3] {
 	case "DLTSKEYSIGN:", "DSGN:", "SIGN:":
 		s.handleDSGN(bf)
+	case "PS4SGN:":
+		s.client = PS4
+		s.handlePSSGN(bf)
 	case "PS3SGN:":
 		s.client = PS3
 		s.handlePSSGN(bf)
@@ -127,13 +132,16 @@ func (s *Session) handleWIIUSGN(bf *byteframe.ByteFrame) {
 
 func (s *Session) handlePSSGN(bf *byteframe.ByteFrame) {
 	// Prevent reading malformed request
-	if len(bf.DataFromCurrent()) < 128 {
-		s.sendCode(SIGN_EABORT)
-		return
+	if s.client != PS4 {
+		if len(bf.DataFromCurrent()) < 128 {
+			s.sendCode(SIGN_EABORT)
+			return
+		}
+
+		_ = bf.ReadNullTerminatedBytes() // VITA = 0000000256, PS3 = 0000000255
+		_ = bf.ReadBytes(2)              // VITA = 1, PS3 = !
+		_ = bf.ReadBytes(82)
 	}
-	_ = bf.ReadNullTerminatedBytes() // VITA = 0000000256, PS3 = 0000000255
-	_ = bf.ReadBytes(2)              // VITA = 1, PS3 = !
-	_ = bf.ReadBytes(82)
 	s.psn = string(bf.ReadNullTerminatedBytes())
 	var uid uint32
 	err := s.server.db.QueryRow(`SELECT id FROM users WHERE psn_id = $1`, s.psn).Scan(&uid)

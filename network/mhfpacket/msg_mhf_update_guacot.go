@@ -31,8 +31,8 @@ func (m *MsgMhfUpdateGuacot) Parse(bf *byteframe.ByteFrame, ctx *clientctx.Clien
 	m.AckHandle = bf.ReadUint32()
 	m.EntryCount = bf.ReadUint16()
 	bf.ReadUint16() // Zeroed
-	var temp Goocoo
 	for i := 0; i < int(m.EntryCount); i++ {
+		var temp Goocoo
 		temp.Index = bf.ReadUint32()
 		for j := 0; j < 22; j++ {
 			temp.Data1 = append(temp.Data1, bf.ReadInt16())

@@ -3,6 +3,7 @@ package channelserver
 import (
 	"erupe-ce/common/byteframe"
 	ps "erupe-ce/common/pascalstring"
+	"erupe-ce/common/stringsupport"
 	"erupe-ce/common/token"
 	_config "erupe-ce/config"
 	"erupe-ce/network/mhfpacket"
@@ -65,18 +66,18 @@ func generateTournamentTimestamps(start uint32, debug bool) []uint32 {
 }
 
 type TournamentEvent struct {
-	ID        uint32
-	CupGroup  uint16
-	Limit     int16
-	QuestFile uint32
-	Name      string
+	ID          uint32
+	CupGroup    uint16
+	Limit       int16
+	QuestFileID uint32
+	Name        string
 }
 
 type TournamentCup struct {
 	ID          uint32
 	CupGroup    uint16
 	Type        uint16
-	Unk2        uint16
+	Unk         uint16
 	Name        string
 	Description string
 }
@@ -158,7 +159,7 @@ func handleMsgMhfEnumerateRanking(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint32(event.ID)
 		bf.WriteUint16(event.CupGroup)
 		bf.WriteInt16(event.Limit)
-		bf.WriteUint32(event.QuestFile)
+		bf.WriteUint32(event.QuestFileID)
 		ps.Uint8(bf, event.Name, true)
 	}
 	bf.WriteUint8(uint8(len(tournamentCups)))
@@ -166,33 +167,43 @@ func handleMsgMhfEnumerateRanking(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint32(cup.ID)
 		bf.WriteUint16(cup.CupGroup)
 		bf.WriteUint16(cup.Type)
-		bf.WriteUint16(cup.Unk2)
+		bf.WriteUint16(cup.Unk)
 		ps.Uint8(bf, cup.Name, true)
 		ps.Uint16(bf, cup.Description, true)
 	}
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
-type TournamentRanking struct {
-	Unk0 uint32
-	Unk1 uint32
-	Unk2 uint16
-	Unk3 uint16 // Unused
-	Unk4 uint16
-	Unk5 uint16
-	Unk6 uint16
-	Unk7 uint8
-	Unk8 string
-	Unk9 string
+type TournamentRank struct {
+	CID       uint32
+	Rank      uint32
+	Grade     uint16
+	HR        uint16
+	GR        uint16
+	CharName  string
+	GuildName string
 }
 
 func handleMsgMhfEnumerateOrder(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateOrder)
 	bf := byteframe.NewByteFrame()
-	bf.WriteUint32(0)
-	bf.WriteUint32(0)
-	bf.WriteUint16(0)
-	bf.WriteUint16(0)
+	bf.WriteUint32(pkt.CupID)
+	bf.WriteUint32(uint32(TimeAdjusted().Unix()))
+
+	tournamentRanks := []TournamentRank{}
+	for _, rank := range tournamentRanks {
+		bf.WriteUint32(rank.CID)
+		bf.WriteUint32(rank.Rank)
+		bf.WriteUint16(rank.Grade)
+		bf.WriteUint16(0)
+		bf.WriteUint16(rank.HR)
+		bf.WriteUint16(rank.GR)
+		bf.WriteUint16(0)
+		bf.WriteUint8(uint8(len(rank.CharName) + 1))
+		bf.WriteUint8(uint8(len(rank.GuildName) + 1))
+		bf.WriteNullTerminatedBytes(stringsupport.UTF8ToSJIS(rank.CharName))
+		bf.WriteNullTerminatedBytes(stringsupport.UTF8ToSJIS(rank.GuildName))
+	}
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 

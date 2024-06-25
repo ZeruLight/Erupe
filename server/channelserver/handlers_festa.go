@@ -66,11 +66,11 @@ func generateTournamentTimestamps(start uint32, debug bool) []uint32 {
 }
 
 type TournamentEvent struct {
-	ID          uint32
-	CupGroup    uint16
-	Limit       int16
-	QuestFileID uint32
-	Name        string
+	ID           uint32
+	CupGroup     uint16
+	EventSubType int16
+	QuestFileID  uint32
+	Name         string
 }
 
 type TournamentCup struct {
@@ -158,7 +158,7 @@ func handleMsgMhfEnumerateRanking(s *Session, p mhfpacket.MHFPacket) {
 	for _, event := range tournamentEvents {
 		bf.WriteUint32(event.ID)
 		bf.WriteUint16(event.CupGroup)
-		bf.WriteInt16(event.Limit)
+		bf.WriteInt16(event.EventSubType)
 		bf.WriteUint32(event.QuestFileID)
 		ps.Uint8(bf, event.Name, true)
 	}
@@ -187,10 +187,12 @@ type TournamentRank struct {
 func handleMsgMhfEnumerateOrder(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateOrder)
 	bf := byteframe.NewByteFrame()
-	bf.WriteUint32(pkt.CupID)
+	bf.WriteUint32(pkt.EventID)
 	bf.WriteUint32(uint32(TimeAdjusted().Unix()))
 
 	tournamentRanks := []TournamentRank{}
+	bf.WriteUint16(uint16(len(tournamentRanks)))
+	bf.WriteUint16(0) // Unk
 	for _, rank := range tournamentRanks {
 		bf.WriteUint32(rank.CID)
 		bf.WriteUint32(rank.Rank)

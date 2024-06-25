@@ -199,7 +199,9 @@ func handleMsgMhfEnumerateOrder(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint16(rank.Grade)
 		bf.WriteUint16(0)
 		bf.WriteUint16(rank.HR)
-		bf.WriteUint16(rank.GR)
+		if _config.ErupeConfig.RealClientMode >= _config.G10 {
+			bf.WriteUint16(rank.GR)
+		}
 		bf.WriteUint16(0)
 		bf.WriteUint8(uint8(len(rank.CharName) + 1))
 		bf.WriteUint8(uint8(len(rank.GuildName) + 1))

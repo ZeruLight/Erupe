@@ -2,6 +2,7 @@ package mhfpacket
 
 import (
 	"errors"
+	"fmt"
 
 	"erupe-ce/common/byteframe"
 	"erupe-ce/network"
@@ -27,6 +28,8 @@ func (m *MsgMhfCaravanMyRank) Parse(bf *byteframe.ByteFrame, ctx *clientctx.Clie
 	m.Unk0 = bf.ReadUint32()
 	m.Unk1 = bf.ReadUint32()
 	m.Unk2 = bf.ReadUint32()
+	fmt.Printf("MsgMhfCaravanMyRank: Unk0:[%d] Unk1:[%d] Unk2:[%d] \n\n", m.Unk0, m.Unk1, m.Unk2)
+
 	return nil
 }
 

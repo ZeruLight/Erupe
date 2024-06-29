@@ -389,25 +389,40 @@ func handleMsgMhfPostTenrouirai(s *Session, p mhfpacket.MHFPacket) {
 	}
 }
 
+type PresentBox struct {
+	Unk0  uint32
+	Unk1  int32
+	Unk2  int32
+	Unk3  int32
+	Unk4  int32
+	Unk5  int32
+	Unk6  int32
+	Unk7  int32
+	Unk8  int32
+	Unk9  int32
+	Unk10 int32
+}
+
 func handleMsgMhfPresentBox(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfPresentBox)
 	var data []*byteframe.ByteFrame
-	/*
-
+	presents := []PresentBox{{7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7}, {7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7}, {7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7}}
+	for _, present := range presents {
 		bf := byteframe.NewByteFrame()
-		bf.WriteUint32(0)
-		bf.WriteInt32(0)
-		bf.WriteInt32(0)
-		bf.WriteInt32(0)
-		bf.WriteInt32(0)
-		bf.WriteInt32(0)
-		bf.WriteInt32(0)
-		bf.WriteInt32(0)
-		bf.WriteInt32(0)
-		bf.WriteInt32(0)
-		bf.WriteInt32(0)
+		bf.WriteUint32(present.Unk0)
+		bf.WriteInt32(present.Unk1)
+		bf.WriteInt32(present.Unk2)
+		bf.WriteInt32(present.Unk3)
+		bf.WriteInt32(present.Unk4)
+		bf.WriteInt32(present.Unk5)
+		bf.WriteInt32(present.Unk6)
+		bf.WriteInt32(present.Unk7)
+		bf.WriteInt32(present.Unk8)
+		bf.WriteInt32(present.Unk9)
+		bf.WriteInt32(present.Unk10)
 		data = append(data, bf)
-	*/
+	}
+
 	doAckEarthSucceed(s, pkt.AckHandle, data)
 }
 

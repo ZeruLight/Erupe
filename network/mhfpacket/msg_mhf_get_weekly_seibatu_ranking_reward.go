@@ -2,6 +2,7 @@ package mhfpacket
 
 import (
 	"errors"
+	"fmt"
 
 	"erupe-ce/common/byteframe"
 	"erupe-ce/network"
@@ -12,8 +13,8 @@ import (
 type MsgMhfGetWeeklySeibatuRankingReward struct {
 	AckHandle uint32
 	Unk0      uint32
-	Unk1      uint32
-	Unk2      uint32
+	Operation uint32
+	ID        uint32
 	Unk3      uint32
 }
 
@@ -26,9 +27,11 @@ func (m *MsgMhfGetWeeklySeibatuRankingReward) Opcode() network.PacketID {
 func (m *MsgMhfGetWeeklySeibatuRankingReward) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
 	m.Unk0 = bf.ReadUint32()
-	m.Unk1 = bf.ReadUint32()
-	m.Unk2 = bf.ReadUint32()
+	m.Operation = bf.ReadUint32()
+	m.ID = bf.ReadUint32()
 	m.Unk3 = bf.ReadUint32()
+	fmt.Printf("MsgMhfGetWeeklySeibatuRankingReward: Unk0:[%d] Operation:[%d] ID:[%d] Unk3:[%d]\n\n", m.Unk0, m.Operation, m.ID, m.Unk3)
+
 	return nil
 }
 

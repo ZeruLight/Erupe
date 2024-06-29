@@ -2,6 +2,7 @@ package mhfpacket
 
 import (
 	"errors"
+	"fmt"
 
 	"erupe-ce/common/byteframe"
 	"erupe-ce/network"
@@ -10,10 +11,10 @@ import (
 
 // MsgMhfCaravanRanking represents the MSG_MHF_CARAVAN_RANKING
 type MsgMhfCaravanRanking struct {
-	AckHandle uint32
-	Unk0      uint32
-	Unk1      uint32
-	Unk2      int32
+	AckHandle     uint32
+	Unk0          uint32
+	Operation     uint32
+	HunterGroupId int32
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -25,8 +26,10 @@ func (m *MsgMhfCaravanRanking) Opcode() network.PacketID {
 func (m *MsgMhfCaravanRanking) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
 	m.Unk0 = bf.ReadUint32()
-	m.Unk1 = bf.ReadUint32()
-	m.Unk2 = bf.ReadInt32()
+	m.Operation = bf.ReadUint32()
+	m.HunterGroupId = bf.ReadInt32()
+	fmt.Printf("Unk0:[%d] Operation:[%d] HunterGroupId:[%d] \n\n", m.Unk0, m.Operation, m.HunterGroupId)
+
 	return nil
 }
 

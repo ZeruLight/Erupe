@@ -40,6 +40,29 @@ type Ryoudama struct {
 	Score     []int32
 }
 
+type CaravanMyScore struct {
+	Unk0    int32
+	MyScore int32
+	Unk2    int32
+	Unk3    int32
+}
+
+type CaravanMyRank struct {
+	Unk0 int32
+	Unk1 int32
+	Unk2 int32
+}
+
+type CaravanRyoudanRanking struct {
+	Score          int32
+	HuntingGroupId uint32
+	Name           string
+}
+type CaravanPersonalRanking struct {
+	Score int32
+	Name  string
+}
+
 func handleMsgMhfGetRyoudama(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetRyoudama)
 	var data []*byteframe.ByteFrame
@@ -101,39 +124,93 @@ func handleMsgMhfPostTinyBin(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfCaravanMyScore(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfCaravanMyScore)
+	ryoudama := []CaravanMyScore{{6, 60900, 6, 6}}
+
 	var data []*byteframe.ByteFrame
-	/*
-		bf.WriteInt32(0)
-		bf.WriteInt32(0)
-		bf.WriteInt32(0)
-		bf.WriteInt32(0)
-	*/
+	for _, score := range ryoudama {
+		bf := byteframe.NewByteFrame()
+		bf.WriteInt32(score.Unk0)
+		bf.WriteInt32(score.MyScore)
+		bf.WriteInt32(score.Unk2)
+		bf.WriteInt32(score.Unk3)
+		data = append(data, bf)
+	}
 	doAckEarthSucceed(s, pkt.AckHandle, data)
 }
 
 func handleMsgMhfCaravanRanking(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfCaravanRanking)
 	var data []*byteframe.ByteFrame
-	/* RYOUDAN
-	bf.WriteInt32(1)
-	bf.WriteUint32(2)
-	bf.WriteBytes(stringsupport.PaddedString("Test", 26, true))
-	*/
 
-	/* PERSONAL
-	bf.WriteInt32(1)
-	bf.WriteBytes(stringsupport.PaddedString("Test", 14, true))
-	*/
+	// 1 = Top 100 when this Unk2 is the
+	// 4 = Guild Score
+	// 5 = Guild Team Individual Score
+	// 2 = Personal Score
+	switch pkt.Operation {
+	case 1:
+		personalRanking := []CaravanPersonalRanking{{60900, "Hunter 0"}, {20, "Hunter a"}, {4, "Hunter b"}, {4, "Hunter c"}, {2, "Hunter d"}, {1, "Hunter e"}}
+		for _, score := range personalRanking {
+			bf := byteframe.NewByteFrame()
+
+			bf.WriteInt32(score.Score)
+			bf.WriteBytes(stringsupport.PaddedString(score.Name, 14, true))
+			data = append(data, bf)
+		}
+	case 2:
+		personalRanking := []CaravanPersonalRanking{{60900, "Hunter 0"}, {20, "Hunter a"}, {4, "Hunter b"}, {4, "Hunter c"}, {2, "Hunter d"}, {1, "Hunter e"}}
+		for _, score := range personalRanking {
+			bf := byteframe.NewByteFrame()
+
+			bf.WriteInt32(score.Score)
+			bf.WriteBytes(stringsupport.PaddedString(score.Name, 14, true))
+			data = append(data, bf)
+		}
+	case 3:
+		ryoudama := []CaravanRyoudanRanking{{5, 1, "Clan a"}, {4, 2, "Clan b"}, {3, 3, "Clan c"}, {2, 4, "Clan d"}, {1, 5, "Clan e"}, {0, 6, "Clan f"}}
+		for _, score := range ryoudama {
+			bf := byteframe.NewByteFrame()
+			bf.WriteInt32(score.Score)
+			bf.WriteUint32(score.HuntingGroupId)
+			bf.WriteBytes(stringsupport.PaddedString(score.Name, 26, true))
+			data = append(data, bf)
+		}
+	case 4:
+		ryoudama := []CaravanRyoudanRanking{{5, 1, "Clan a"}, {4, 2, "Clan b"}, {3, 3, "Clan c"}, {2, 4, "Clan d"}, {1, 5, "Clan e"}, {0, 6, "Clan f"}}
+		for _, score := range ryoudama {
+			bf := byteframe.NewByteFrame()
+			bf.WriteInt32(score.Score)
+			bf.WriteUint32(score.HuntingGroupId)
+			bf.WriteBytes(stringsupport.PaddedString(score.Name, 26, true))
+			data = append(data, bf)
+		}
+	case 5:
+		//Unk2 is Hunting Team ID
+		//Having more than 5 in array stops loading
+		// Do Select ... Where HunterTeamID = pkt.unk2
+		personalRanking := []CaravanPersonalRanking{{10, "Clan Hunter 1"}, {9, "Clan Hunter 2"}, {8, "Clan Hunter 3"}, {7, "Clan Hunter 4"}, {6, "Clan Hunter 5"}}
+
+		for _, score := range personalRanking {
+			bf := byteframe.NewByteFrame()
+			bf.WriteInt32(score.Score)
+			bf.WriteBytes(stringsupport.PaddedString(score.Name, 14, true))
+			data = append(data, bf)
+		}
+	}
 	doAckEarthSucceed(s, pkt.AckHandle, data)
 }
 
 func handleMsgMhfCaravanMyRank(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfCaravanMyRank)
+	// if value 1 is 0 ! on the route
+	unk := []CaravanMyRank{{6, 6, 6}}
+	//Personal - General Unk 1 : 1
 	var data []*byteframe.ByteFrame
-	/*
-		bf.WriteInt32(0)
-		bf.WriteInt32(0)
-		bf.WriteInt32(0)
-	*/
+	for _, unkData := range unk {
+		bf := byteframe.NewByteFrame()
+		bf.WriteInt32(unkData.Unk0)
+		bf.WriteInt32(unkData.Unk1)
+		bf.WriteInt32(unkData.Unk2)
+		data = append(data, bf)
+	}
 	doAckEarthSucceed(s, pkt.AckHandle, data)
 }

@@ -1133,9 +1133,9 @@ func handleMsgMhfGetEarthValue(s *Session, p mhfpacket.MHFPacket) {
 		}
 	case 3:
 		earthValues = []EarthValues{
-			{[]uint32{1001, 36, 0, 0, 0, 0}},
-			{[]uint32{9001, 3, 0, 0, 0, 0}},
-			{[]uint32{9002, 10, 300, 0, 0, 0}},
+			{[]uint32{1001, 36, 0, 0, 0, 0}},   //getTouhaHistory
+			{[]uint32{9001, 3, 0, 0, 0, 0}},    //getKohouhinDropStopFlag  // something to do with ttcSetDisableFlag?
+			{[]uint32{9002, 10, 300, 0, 0, 0}}, //getKohouhinForceValue
 		}
 	}
 

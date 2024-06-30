@@ -31,12 +31,20 @@ func handleMsgMhfGetWeeklySeibatuRankingReward(s *Session, p mhfpacket.MHFPacket
 	switch pkt.Operation {
 	case 3:
 		weeklySeibatuRankingRewards = []WeeklySeibatuRankingReward{
+
+			//Unk0
+			//Unk1
+			//Unk2
+			//Unk3,
+			//ROUTE, (Crashes if it doesnt exist be careful with values )
+			//Status 1 = Only Now !  2= Unk 3= Disabled}
+
 			//Route 0
-			{0, 0, 0, 0, 1, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0},
+			{0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0},
 			//Route 1
 			{0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0},
 			//Route 2
-			{0, 0, 0, 0, 5, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0},
+			{0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0},
 			//Route 3
 			{0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0},
 			//Route 4
@@ -59,34 +67,31 @@ func handleMsgMhfGetWeeklySeibatuRankingReward(s *Session, p mhfpacket.MHFPacket
 		//ZZ looks like it only works up to Route 2
 
 	case 5:
-		// Unk1 = 5 and unk2 = 240001
-		//unk2 = 243400 = Route 0
-		//unk3 = 243401 = Route 1
-		//Tower 260001 260003
 		switch pkt.ID {
+		//243400 = Route 0
+		//243401 = Route 1
+		//Tower 260001 260003
 		case 240031:
 			weeklySeibatuRankingRewards = []WeeklySeibatuRankingReward{
-				{2, 5, 5, 5, 5, 5}, {0, 0, 0, 0, 0, 0}}
+				{0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}}
 		case 240041:
 			weeklySeibatuRankingRewards = []WeeklySeibatuRankingReward{
-				{2, 5, 5, 5, 5, 5}, {0, 0, 0, 0, 0, 0}}
-
+				{0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}}
 		case 240042:
 			weeklySeibatuRankingRewards = []WeeklySeibatuRankingReward{
-				{2, 5, 5, 5, 5, 5}, {0, 0, 0, 0, 0, 0}}
-
+				{0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}}
 		case 240051:
 			weeklySeibatuRankingRewards = []WeeklySeibatuRankingReward{
-				{2, 5, 5, 5, 5, 5}, {0, 0, 0, 0, 0, 0}}
-
+				{0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}}
+		case 240052:
+			weeklySeibatuRankingRewards = []WeeklySeibatuRankingReward{
+				{0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}}
 		case 260001:
 			weeklySeibatuRankingRewards = []WeeklySeibatuRankingReward{
-				{2, 5, 5, 5, 5, 5}, {0, 0, 0, 0, 0, 0}}
-
+				{0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}}
 		case 260003:
 			weeklySeibatuRankingRewards = []WeeklySeibatuRankingReward{
-				{2, 5, 5, 5, 5, 5}, {0, 0, 0, 0, 0, 0}}
-
+				{0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}}
 		default: //Covers all Pallone Requests... for now
 			weeklySeibatuRankingRewards = []WeeklySeibatuRankingReward{
 				// To do figure out values 3-5 its some sort of item structure
@@ -98,14 +103,14 @@ func handleMsgMhfGetWeeklySeibatuRankingReward(s *Session, p mhfpacket.MHFPacket
 		}
 
 	}
-	for _, rank := range weeklySeibatuRankingRewards {
+	for _, seibatuData := range weeklySeibatuRankingRewards {
 		bf := byteframe.NewByteFrame()
-		bf.WriteInt32(rank.Unk0)
-		bf.WriteInt32(rank.Unk1)
-		bf.WriteUint32(rank.Unk2)
-		bf.WriteInt32(rank.Unk3)
-		bf.WriteInt32(rank.Unk4)
-		bf.WriteInt32(rank.Unk5)
+		bf.WriteInt32(seibatuData.Unk0)
+		bf.WriteInt32(seibatuData.Unk1)
+		bf.WriteUint32(seibatuData.Unk2)
+		bf.WriteInt32(seibatuData.Unk3)
+		bf.WriteInt32(seibatuData.Unk4)
+		bf.WriteInt32(seibatuData.Unk5)
 		data = append(data, bf)
 	}
 	doAckEarthSucceed(s, pkt.AckHandle, data)

@@ -1018,7 +1018,11 @@ func handleMsgMhfGetPaperData(s *Session, p mhfpacket.MHFPacket) {
 			{1, 6, 300, 7, 21, 8, 21}},
 	}
 	switch pkt.Unk2 {
+	case 4:
+		//Triggers on Tower Menu Load and on Tower Quest Load
+		paperData = []PaperData{}
 	case 5:
+		//On load into MezePorta
 		paperData = []PaperData{
 			// getTowerQuestTowerLevel
 			{1001, 1, 1, 0, 0, 0, 0},
@@ -1032,8 +1036,8 @@ func handleMsgMhfGetPaperData(s *Session, p mhfpacket.MHFPacket) {
 			{1007, 1, 0, 0, 0, 0, 0},
 			{1008, 200, 400, 3000, 400, 3000, 0},
 			// getPaperDataSetParam1 / Dure Goal
-			{1010, 1, 4000, 0, 0, 0, 0},
-			{1010, 2, 4000, 0, 0, 0, 0},
+			{1010, 1, 100, 0, 0, 0, 0},
+			{1010, 2, 100, 0, 0, 0, 0},
 			// update_disp_flag / getPaperDataSetParam1
 			{1011, 1, 6000, 15000, 20000, 25000, 30000},
 			{1011, 2, 6000, 15000, 20000, 25000, 30000},
@@ -1084,6 +1088,7 @@ func handleMsgMhfGetPaperData(s *Session, p mhfpacket.MHFPacket) {
 			{2001, 2, mhfmon.Dyuragaua, 60, 0, 16, 1000},
 		}
 	case 6:
+		//Loads on Tower Quest load
 		paperData = []PaperData{
 			// updateClearTowerFloor
 			{1002, 100, 0, 0, 0, 0, 0},

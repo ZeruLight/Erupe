@@ -1122,12 +1122,13 @@ func handleMsgMhfGetEarthValue(s *Session, p mhfpacket.MHFPacket) {
 	switch pkt.ReqType {
 	case 1:
 		earthValues = []EarthValues{
-			//TowerBlock,AmountOfFloorsClimbed,Unk,Unk,Unk,Unk
+			// {Block, DureSlays, Unk, Unk, Unk, Unk}
 			{[]uint32{1, 312, 0, 0, 0, 0}},
 			{[]uint32{2, 99, 0, 0, 0, 0}},
 		}
 	case 2:
 		earthValues = []EarthValues{
+			// {Block, Floors?, Unk, Unk, Unk, Unk}
 			{[]uint32{1, 5771, 0, 0, 0, 0}},
 			{[]uint32{2, 1847, 0, 0, 0, 0}},
 		}

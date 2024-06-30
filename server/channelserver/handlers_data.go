@@ -1052,12 +1052,12 @@ func handleMsgMhfGetPaperData(s *Session, p mhfpacket.MHFPacket) {
 			// HRP/SRP/GRP/GSRP/TRP reward
 			{1103, 1, 0, 0, 3000, 0, 3000},
 			{1103, 2, 0, 0, 3000, 0, 3000},
-			// getTowerNextVenomLevel
+			// getTowerNextVenomLevel {ID, Block, MinFloor, MaxFloor, Frequency, Unk, Unk}
 			{1104, 1, 10, 9999, 40, 0, 0},
 			{1104, 2, 10, 9999, 40, 0, 0},
 			{1105, 1, 10, 500, 0, 0, 0},
 			{1105, 2, 10, 500, 0, 0, 0},
-			// setServerBoss
+			// setServerBoss {ID, Block, Monster, Unk, Unk, Index?, Points}
 			{2001, 1, mhfmon.Gravios, 58, 0, 6, 700},
 			{2001, 1, mhfmon.Gypceros, 58, 0, 3, 200},
 			{2001, 1, mhfmon.Basarios, 58, 0, 7, 250},

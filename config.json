@@ -20,10 +20,11 @@
   "ClientMode": "G9.1",
   "QuestCacheExpiry": 300,
   "CommandPrefix": "!",
+  
   "AutoCreateAccount": true,
   "DefaultCourses": [1, 23, 24],
-  "EarthStatus": 2,
-  "EarthID": 1,
+  "EarthStatus": 0,
+  "EarthID": 0,
   "EarthMonsters": [116, 107, 2, 36],
   "SaveDumps": {
     "Enabled": true,
@@ -32,18 +33,18 @@
   },
   "DebugOptions": {
     "CleanDB": false,
-    "MaxLauncherHR": true,
-    "LogInboundMessages": true,
-    "LogOutboundMessages": true,
-    "LogMessageData": true,
-    "MaxHexdumpLength": 99999999999,
+    "MaxLauncherHR": false,
+    "LogInboundMessages": false,
+    "LogOutboundMessages": false,
+    "LogMessageData": false,
+    "MaxHexdumpLength": 256,
     "DivaOverride": 0,
     "FestaOverride": -1,
     "TournamentOverride": 0,
     "DisableTokenCheck": false,
-    "QuestTools": true,
+    "QuestTools": false,
     "AutoQuestBackport": true,
-    "ProxyPort": 8090,
+    "ProxyPort": 0,
     "CapLink": {
       "Values": [51728, 20000, 51729, 1, 20000],
       "Key": "",
@@ -188,7 +189,7 @@
     "Host": "localhost",
     "Port": 5432,
     "User": "postgres",
-    "Password": "password",
+    "Password": "",
     "Database": "erupe"
   },
   "Sign": {

@@ -22,9 +22,9 @@
   "CommandPrefix": "!",
   "AutoCreateAccount": true,
   "DefaultCourses": [1, 23, 24],
-  "EarthStatus": 21,
-  "EarthID": 0,
-  "EarthMonsters": [0, 0, 0, 0],
+  "EarthStatus": 2,
+  "EarthID": 1,
+  "EarthMonsters": [116, 107, 2, 36],
   "SaveDumps": {
     "Enabled": true,
     "RawEnabled": false,
@@ -47,8 +47,8 @@
     "CapLink": {
       "Values": [51728, 20000, 51729, 1, 20000],
       "Key": "",
-      "Host": "",
-      "Port": 80
+      "Host": "127.0.0.1",
+      "Port": 8080
     }
   },
   "GameplayOptions": {

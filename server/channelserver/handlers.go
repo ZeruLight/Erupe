@@ -1097,7 +1097,8 @@ func handleMsgMhfGetEarthStatus(s *Session, p mhfpacket.MHFPacket) {
 	bf.WriteInt32(s.server.erupeConfig.EarthStatus)
 	bf.WriteInt32(s.server.erupeConfig.EarthID)
 	for i, m := range s.server.erupeConfig.EarthMonsters {
-		if _config.ErupeConfig.RealClientMode <= _config.G9 {
+		//Changed from G9 to G8 to get conquest working in g9.1
+		if _config.ErupeConfig.RealClientMode <= _config.G8 {
 			if i == 3 {
 				break
 			}

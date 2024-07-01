@@ -61,6 +61,24 @@ func (s *APIServer) Start() error {
 	r.HandleFunc("/api/ss/bbs/upload.php", s.ScreenShot)
 	r.HandleFunc("/api/ss/bbs/{id}", s.ScreenShotGet)
 	r.HandleFunc("/v1/crypt/commonkey/rsa", s.CapLinkCrypt)
+	//Captured Links from messing around with caplink (wii u doesnt use crypt handle)
+	//Captured so the poor soul who has to reverse this has something to go off..
+	//CA:: is a search term for a function related...
+	// r.HandleFunc("/v1/profile&unique_id=", s.CapLink) //CRASH!
+	// r.HandleFunc("/v1/profile/content/list&unique_id=", s.CapLink) //CRASH!
+	// r.HandleFunc("/v1/friend/request/send/list", s.CapLink)
+	// r.HandleFunc("/v1/friend/request/receive/list", s.CapLink)
+	// r.HandleFunc("/v1/friend/list", s.CapLink)
+	// r.HandleFunc("/v1/friend/tag/content/list", s.CapLink)
+	// r.HandleFunc("/v1/chat/group/list", s.CapLink)
+	// r.HandleFunc("/v1/content/invite/list", s.CapLink)
+	// r.HandleFunc("/v1/point/get ", s.CapLink)
+	// r.HandleFunc("/v1/point/item/list&target=3", s.CapLink)
+	// r.HandleFunc("/v1/user/search/list&keyword_type=0&keyword=STRING", s.CapLink)
+	// r.HandleFunc("/v1/user/search/list&keyword_type=1&keyword=STRING", s.CapLink)
+	// r.HandleFunc("/v1/user/search/list&keyword_type=2&keyword=STRING", s.CapLink)
+	//Cup Icon Triggers MSG_MHF_APPLY_DIST_ITEM -> MSG_MHF_ENUMERATE_DIST_ITEM
+
 	r.Use(s.loggingMiddleware)
 
 	handler := handlers.CORS(handlers.AllowedHeaders([]string{"Content-Type"}))(r)

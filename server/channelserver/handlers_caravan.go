@@ -96,7 +96,9 @@ func handleMsgMhfGetRyoudama(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfPostRyoudama(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfGetTinyBin(s *Session, p mhfpacket.MHFPacket) {
+	//Works for Tower but not Conquest
 
+	//Conquest: Unk0 0 Unk1 2 Unk2 1
 	type TinyBinItem struct {
 		ItemId uint16
 		Amount uint8

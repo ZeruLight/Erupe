@@ -408,36 +408,42 @@ func handleMsgMhfPresentBox(s *Session, p mhfpacket.MHFPacket) {
 	var data []*byteframe.ByteFrame
 
 	//PresentCommunicator
-	// possible the same types for seibatu work here.
-	// Special Values 7201+
 	// ON Request for PALLONE!
 	//3301 3302 3303
 	// ON Request for TOWER!
+	//Unk0:[0] Unk1:[1] Unk2:[2] Unk3:[0] Unk4:[0] Unk5:[0] Unk6:[0]
 	//260003 260001
-	presents := []PresentBox{{7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7}, {7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7}, {7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7}}
-	for index, _ := range presents {
+	//Unk0:[0] Unk1:[3] Unk2:[2] Unk3:[0] Unk4:[0] Unk5:[0] Unk6:[0]
+	//260003 260001
+
+	//Gets called for Case 1 but not 2????
+	//Palone::PresentCommunicator::sort((void))	0239E988
+
+	presents := []PresentBox{
+
+		{1, 3201, 1, 12068, 1, 12068, 12068, 12068, 12068, 12068, 1},
+		{2, 3202, 2, 12068, 1, 12068, 12068, 12068, 12068, 12068, 1},
+		{3, 3203, 3, 12068, 1, 12068, 12068, 12068, 12068, 12068, 1},
+		{4, 3204, 4, 12068, 1, 12068, 12068, 12068, 12068, 12068, 1},
+		{5, 3301, 5, 12068, 1, 12068, 12068, 12068, 12068, 12068, 1},
+		{6, 3302, 6, 12068, 1, 12068, 12068, 12068, 12068, 12068, 1},
+		{7, 3303, 7, 12068, 1, 12068, 12068, 12068, 12068, 12068, 1},
+		{6, 260001, 6, 12068, 1, 12068, 12068, 12068, 12068, 12068, 1},
+		{7, 260003, 7, 12068, 1, 12068, 12068, 12068, 12068, 12068, 1},
+	}
+	for _, present := range presents {
 		bf := byteframe.NewByteFrame()
-		bf.WriteUint32(0)
-		bf.WriteInt32(0)
-		bf.WriteInt32(0) //compPresent__Q2_6Palone19PresentCommunicatorSFPC20RESPONSE_PRESENT_BOXT1  // v15 = v7[2];  if ( v15 > v14 )return 1; if ( v15 < v14 ) return 0;  OR
-		// v12 = *(_DWORD *)(v9 + 8);
-		// 	v13 = v7[2];
-		// 	if ( v13 <= v12 )
-		// 	{
-		// 	  if ( v13 < v12 )
-		// 		return 0;
-		// 	  return *(_DWORD *)(v9 + 20) < v7[5];
-		// 	}
-		// 	return 1;
-		//   }
-		bf.WriteInt32(0) //compPresent__Q2_6Palone19PresentCommunicatorSFPC20RESPONSE_PRESENT_BOXT1  //  v17 = v7[3]; if ( v17 > v16 )return 1;  if ( v17 < v16 )  return 0;
-		bf.WriteInt32(0)
-		bf.WriteInt32(0) //Link to [2]
-		bf.WriteInt32(0)
-		bf.WriteInt32(0)
-		bf.WriteInt32(7201) // is_over_present_box__Q2_6Palone19PresentCommunicatorSFPC20RESPONSE_PRESENT_BOX  v1 = a1[8];  if ( v1 >= 7201 )
-		bf.WriteInt32(7)
-		bf.WriteInt32(int32(index)) //placed index here because its value of item to stop go having a moan
+		bf.WriteUint32(present.Unk0) //Palone::PresentCommunicator::sort Index Maybe
+		bf.WriteInt32(present.Unk1)
+		bf.WriteInt32(present.Unk2)
+		bf.WriteInt32(present.Unk3)
+		bf.WriteInt32(present.Unk4)
+		bf.WriteInt32(present.Unk5)
+		bf.WriteInt32(present.Unk6)
+		bf.WriteInt32(present.Unk7)
+		bf.WriteInt32(present.Unk8)
+		bf.WriteInt32(present.Unk9)
+		bf.WriteInt32(present.Unk10)
 		data = append(data, bf)
 	}
 

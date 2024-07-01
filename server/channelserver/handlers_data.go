@@ -3,7 +3,6 @@ package channelserver
 import (
 	"erupe-ce/common/mhfmon"
 	"erupe-ce/common/stringsupport"
-	_config "erupe-ce/config"
 	"fmt"
 	"io"
 	"os"
@@ -1008,16 +1007,18 @@ func handleMsgMhfGetPaperData(s *Session, p mhfpacket.MHFPacket) {
 	// if pkt.Type 2 then unk2 6001 6011  PaperGiftData
 	// is pkt.Unk2 a index?
 
-	paperMissions = PaperMission{
-		[]PaperMissionTimetable{{TimeMidnight(), TimeMidnight().Add(24 * time.Hour)}},
-		[]PaperMissionData{{1, 1, 50, 7, 10, 8, 11},
-			{1, 2, 100, 7, 12, 8, 13},
-			{1, 3, 150, 7, 14, 8, 15},
-			{1, 4, 200, 7, 16, 8, 17},
-			{1, 5, 250, 7, 18, 8, 19},
-			{1, 6, 300, 7, 21, 8, 21}},
-	}
 	switch pkt.Unk2 {
+	case 0:
+		paperMissions = PaperMission{
+			[]PaperMissionTimetable{{TimeMidnight(), TimeMidnight().Add(24 * time.Hour)}},
+			[]PaperMissionData{{1, 1, 50, 7, 10, 8, 11},
+				{1, 2, 100, 7, 12, 8, 13},
+				{1, 3, 150, 7, 14, 8, 15},
+				{1, 4, 200, 7, 16, 8, 17},
+				{1, 5, 250, 7, 18, 8, 19},
+				{1, 6, 300, 7, 21, 8, 21}},
+		}
+
 	case 4:
 		//Triggers on Tower Menu Load and on Tower Quest Load
 		paperData = []PaperData{

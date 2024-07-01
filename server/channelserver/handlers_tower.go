@@ -398,28 +398,46 @@ type PresentBox struct {
 	Unk5  int32
 	Unk6  int32
 	Unk7  int32
-	Unk8  int32
-	Unk9  int32
-	Unk10 int32
+	Unk8  int32 //SeiabtuType
+	Unk9  int32 //Item
+	Unk10 int32 //Amount
 }
 
 func handleMsgMhfPresentBox(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfPresentBox)
 	var data []*byteframe.ByteFrame
+
+	//PresentCommunicator
+	// possible the same types for seibatu work here.
+	// Special Values 7201+
+	// ON Request for PALLONE!
+	//3301 3302 3303
+	// ON Request for TOWER!
+	//260003 260001
 	presents := []PresentBox{{7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7}, {7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7}, {7, 7, 7, 7, 7, 7, 7, 7, 7, 7, 7}}
-	for _, present := range presents {
+	for index, _ := range presents {
 		bf := byteframe.NewByteFrame()
-		bf.WriteUint32(present.Unk0)
-		bf.WriteInt32(present.Unk1)
-		bf.WriteInt32(present.Unk2)
-		bf.WriteInt32(present.Unk3)
-		bf.WriteInt32(present.Unk4)
-		bf.WriteInt32(present.Unk5)
-		bf.WriteInt32(present.Unk6)
-		bf.WriteInt32(present.Unk7)
-		bf.WriteInt32(present.Unk8)
-		bf.WriteInt32(present.Unk9)
-		bf.WriteInt32(present.Unk10)
+		bf.WriteUint32(0)
+		bf.WriteInt32(0)
+		bf.WriteInt32(0) //compPresent__Q2_6Palone19PresentCommunicatorSFPC20RESPONSE_PRESENT_BOXT1  // v15 = v7[2];  if ( v15 > v14 )return 1; if ( v15 < v14 ) return 0;  OR
+		// v12 = *(_DWORD *)(v9 + 8);
+		// 	v13 = v7[2];
+		// 	if ( v13 <= v12 )
+		// 	{
+		// 	  if ( v13 < v12 )
+		// 		return 0;
+		// 	  return *(_DWORD *)(v9 + 20) < v7[5];
+		// 	}
+		// 	return 1;
+		//   }
+		bf.WriteInt32(0) //compPresent__Q2_6Palone19PresentCommunicatorSFPC20RESPONSE_PRESENT_BOXT1  //  v17 = v7[3]; if ( v17 > v16 )return 1;  if ( v17 < v16 )  return 0;
+		bf.WriteInt32(0)
+		bf.WriteInt32(0) //Link to [2]
+		bf.WriteInt32(0)
+		bf.WriteInt32(0)
+		bf.WriteInt32(7201) // is_over_present_box__Q2_6Palone19PresentCommunicatorSFPC20RESPONSE_PRESENT_BOX  v1 = a1[8];  if ( v1 >= 7201 )
+		bf.WriteInt32(7)
+		bf.WriteInt32(int32(index)) //placed index here because its value of item to stop go having a moan
 		data = append(data, bf)
 	}
 

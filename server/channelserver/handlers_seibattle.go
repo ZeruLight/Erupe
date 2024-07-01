@@ -16,12 +16,12 @@ func handleMsgMhfGetBreakSeibatuLevelReward(s *Session, p mhfpacket.MHFPacket) {
 }
 
 type WeeklySeibatuRankingReward struct {
-	Unk0 int32  //Place Start
-	Unk1 int32  //Place Finish
-	Unk2 uint32 // UNK
-	Unk3 int32  //Type
-	Unk4 int32  //ID
-	Unk5 int32  // Value
+	Index0 int32  //Place Start
+	Index1 int32  //Place Finish
+	Index2 uint32 // UNK
+	Type   int32  //Type //7201 Value  //7202 ??? Points  //7203 ??? Points Blue
+	ID     int32  //ID
+	Value  int32  // Value
 }
 
 func handleMsgMhfGetWeeklySeibatuRankingReward(s *Session, p mhfpacket.MHFPacket) {
@@ -70,34 +70,117 @@ func handleMsgMhfGetWeeklySeibatuRankingReward(s *Session, p mhfpacket.MHFPacket
 		switch pkt.ID {
 		//243400 = Route 0
 		//243401 = Route 1
-		//Tower 260001 260003
+		//I have a sneaky suspicion that the above massive array is feeding into this somehow....
 		case 240031:
 			weeklySeibatuRankingRewards = []WeeklySeibatuRankingReward{
-				{0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}}
+				{1, 1, 1, 7201, 12068, 1}}
 		case 240041:
 			weeklySeibatuRankingRewards = []WeeklySeibatuRankingReward{
-				{0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}}
+				{0, 0, 1, 7201, 12068, 1}}
 		case 240042:
 			weeklySeibatuRankingRewards = []WeeklySeibatuRankingReward{
-				{0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}}
+				{0, 0, 2, 7201, 12068, 1}}
 		case 240051:
 			weeklySeibatuRankingRewards = []WeeklySeibatuRankingReward{
-				{0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}}
+				{0, 0, 1, 7201, 12068, 1}}
 		case 240052:
 			weeklySeibatuRankingRewards = []WeeklySeibatuRankingReward{
-				{0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}}
+				{1, 1, 1, 7201, 12068, 1},
+			}
+		//Tower 260001 260003
 		case 260001:
 			weeklySeibatuRankingRewards = []WeeklySeibatuRankingReward{
-				{0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}}
+
+				//Can only have 10 in each dist (It disapears otherwise)
+				//{unk,unk,dist,seiabtuType,ItemID,Value}
+				{0, 0, 1, 7201, 12068, 1},
+				{0, 0, 1, 7201, 12069, 1},
+				{0, 0, 1, 7201, 12070, 1},
+				{0, 0, 1, 7201, 12071, 1},
+				{0, 0, 1, 7201, 12072, 1},
+				{0, 0, 1, 7201, 12073, 1},
+				{0, 0, 1, 7201, 12074, 1},
+				{0, 0, 1, 7201, 12075, 1},
+				{0, 0, 1, 7201, 12076, 1},
+				{0, 0, 1, 7201, 12077, 1},
+
+				{0, 0, 2, 7201, 12068, 1},
+				{0, 0, 2, 7201, 12069, 1},
+				{0, 0, 2, 7201, 12070, 1},
+				{0, 0, 2, 7201, 12071, 1},
+				{0, 0, 2, 7201, 12072, 1},
+				{0, 0, 2, 7201, 12073, 1},
+				{0, 0, 2, 7201, 12074, 1},
+				{0, 0, 2, 7201, 12075, 1},
+				{0, 0, 2, 7201, 12076, 1},
+				{0, 0, 2, 7201, 12077, 1},
+				// Left in because i think its funny the planned 4 and we got 2
+				{0, 0, 3, 7201, 12068, 1},
+				{0, 0, 3, 7201, 12069, 1},
+				{0, 0, 3, 7201, 12070, 1},
+				{0, 0, 3, 7201, 12071, 1},
+				{0, 0, 3, 7201, 12072, 1},
+				{0, 0, 3, 7201, 12073, 1},
+				{0, 0, 3, 7201, 12074, 1},
+				{0, 0, 3, 7201, 12075, 1},
+				{0, 0, 3, 7201, 12076, 1},
+				{0, 0, 3, 7201, 12077, 1},
+
+				{0, 0, 4, 7201, 12068, 1},
+				{0, 0, 4, 7201, 12069, 1},
+				{0, 0, 4, 7201, 12070, 1},
+				{0, 0, 4, 7201, 12071, 1},
+				{0, 0, 4, 7201, 12072, 1},
+				{0, 0, 4, 7201, 12073, 1},
+				{0, 0, 4, 7201, 12074, 1},
+				{0, 0, 4, 7201, 12075, 1},
+				{0, 0, 4, 7201, 12076, 1},
+				{0, 0, 4, 7201, 12077, 1},
+			}
 		case 260003:
 			weeklySeibatuRankingRewards = []WeeklySeibatuRankingReward{
-				{0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0}}
+				//Adjust Floors done in database to make blue ?? Possible value here for dist
+				//{Floor,unk,unk,seiabtuType,ItemID,Value}
+
+				{1, 0, 0, 7201, 12068, 1},
+				{2, 0, 0, 7201, 12069, 3},
+				{2, 0, 0, 7201, 12070, 1},
+				{4, 0, 0, 7201, 12071, 3},
+				{5, 0, 0, 7201, 12072, 6},
+				{6, 0, 0, 7201, 12073, 1},
+				{7, 0, 0, 7201, 12068, 1},
+				{8, 0, 0, 7201, 12069, 1},
+				{9, 0, 0, 7201, 12070, 2},
+				{10, 0, 0, 7201, 12071, 1},
+				{10, 0, 0, 7201, 12072, 1},
+				{10, 0, 0, 7201, 12073, 6},
+
+				{11, 0, 0, 7201, 12072, 1},
+				{12, 0, 0, 7201, 12073, 1},
+				{13, 0, 0, 7201, 12068, 6},
+				{14, 0, 0, 7201, 12069, 6},
+				{15, 0, 0, 7201, 12070, 1},
+				{16, 0, 0, 7201, 12071, 1},
+				{16, 0, 0, 7201, 12072, 2},
+				{18, 0, 0, 7201, 12073, 1},
+			}
 		default: //Covers all Pallone Requests... for now
 			weeklySeibatuRankingRewards = []WeeklySeibatuRankingReward{
 				// To do figure out values 3-5 its some sort of item structure
-				{1, 0, 7, 7, 7, 10000}, {1, 1, 0, 0, 0, 30}, {1, 1, 0, 0, 0, 18}, {1, 1, 0, 0, 0, 18}, //1st
-				{2, 3, 0, 0, 0, 6000}, {2, 3, 0, 0, 0, 15}, {2, 3, 0, 0, 0, 9}, {2, 3, 0, 0, 0, 9}, //2nd - 3rd
-				{4, 10, 0, 0, 0, 5500}, {4, 10, 0, 0, 0, 12}, {4, 10, 0, 0, 0, 9}, //4th -10th
+				//1st
+				{1, 0, 0, 7202, 10, 10000},
+				{1, 1, 0, 7201, 10, 30},
+				{1, 1, 0, 7201, 10, 18},
+				{1, 1, 0, 7201, 10, 18},
+				//2nd - 3rd
+				{2, 3, 0, 7202, 10, 6000},
+				{2, 3, 0, 7201, 10, 15},
+				{2, 3, 0, 7201, 10, 9},
+				{2, 3, 0, 7201, 10, 9},
+				//4th -10th
+				{4, 10, 0, 7202, 10, 5500},
+				{4, 10, 0, 7201, 10, 12},
+				{4, 10, 0, 7201, 10, 9},
 			}
 
 		}
@@ -105,12 +188,12 @@ func handleMsgMhfGetWeeklySeibatuRankingReward(s *Session, p mhfpacket.MHFPacket
 	}
 	for _, seibatuData := range weeklySeibatuRankingRewards {
 		bf := byteframe.NewByteFrame()
-		bf.WriteInt32(seibatuData.Unk0)
-		bf.WriteInt32(seibatuData.Unk1)
-		bf.WriteUint32(seibatuData.Unk2)
-		bf.WriteInt32(seibatuData.Unk3)
-		bf.WriteInt32(seibatuData.Unk4)
-		bf.WriteInt32(seibatuData.Unk5)
+		bf.WriteInt32(seibatuData.Index0)
+		bf.WriteInt32(seibatuData.Index1)
+		bf.WriteUint32(seibatuData.Index2)
+		bf.WriteInt32(seibatuData.Type)
+		bf.WriteInt32(seibatuData.ID)
+		bf.WriteInt32(seibatuData.Value)
 		data = append(data, bf)
 	}
 	doAckEarthSucceed(s, pkt.AckHandle, data)

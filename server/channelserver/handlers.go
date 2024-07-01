@@ -1123,8 +1123,8 @@ func handleMsgMhfGetEarthValue(s *Session, p mhfpacket.MHFPacket) {
 	case 1:
 		earthValues = []EarthValues{
 			// {Block, DureSlays, Unk, Unk, Unk, Unk}
-			{[]uint32{1, 312, 0, 0, 0, 0}},
-			{[]uint32{2, 99, 0, 0, 0, 0}},
+			{[]uint32{1, 100, 0, 0, 0, 0}},
+			{[]uint32{2, 100, 0, 0, 0, 0}},
 		}
 	case 2:
 		earthValues = []EarthValues{

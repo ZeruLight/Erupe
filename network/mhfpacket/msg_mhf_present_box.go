@@ -2,6 +2,7 @@ package mhfpacket
 
 import (
 	"errors"
+	"fmt"
 
 	"erupe-ce/common/byteframe"
 	"erupe-ce/network"
@@ -38,6 +39,11 @@ func (m *MsgMhfPresentBox) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientC
 	m.Unk6 = bf.ReadUint32()
 	for i := uint32(0); i < m.Unk2; i++ {
 		m.Unk7 = append(m.Unk7, bf.ReadUint32())
+	}
+	fmt.Printf("MsgMhfPresentBox: Unk0:[%d] Unk1:[%d] Unk2:[%d] Unk3:[%d] Unk4:[%d] Unk5:[%d] Unk6:[%d] \n\n", m.Unk0, m.Unk1, m.Unk2, m.Unk3, m.Unk4, m.Unk5, m.Unk6)
+	for _, mdata := range m.Unk7 {
+		fmt.Printf("MsgMhfPresentBox: Unk7: [%d] \n", mdata)
+
 	}
 	return nil
 }

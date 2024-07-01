@@ -1020,7 +1020,18 @@ func handleMsgMhfGetPaperData(s *Session, p mhfpacket.MHFPacket) {
 	switch pkt.Unk2 {
 	case 4:
 		//Triggers on Tower Menu Load and on Tower Quest Load
-		paperData = []PaperData{}
+		paperData = []PaperData{
+
+			//Seen Monsters (id,on off, 0, 0, 0, 0, 0)
+			//Value is based on 2001 for monsters
+			{1011, 1, 0, 0, 0, 0, 0},
+			{1011, 2, 0, 0, 0, 0, 0},
+
+			//Seen Items (id,on off, 0, 0, 0, 0, 0)
+			//Value is based in 6001 for items
+			{1012, 1, 0, 0, 0, 0, 0},
+			{1012, 2, 0, 0, 0, 0, 0},
+		}
 	case 5:
 		//On load into MezePorta
 		paperData = []PaperData{
@@ -1057,7 +1068,7 @@ func handleMsgMhfGetPaperData(s *Session, p mhfpacket.MHFPacket) {
 			{1104, 2, 10, 9999, 40, 0, 0},
 			{1105, 1, 10, 500, 0, 0, 0},
 			{1105, 2, 10, 500, 0, 0, 0},
-			// setServerBoss {ID, Block, Monster, Unk, Unk, Index?, Points}
+			// setServerBoss {ID, Block, Monster, Unk, Unk, Index, Points}
 			{2001, 1, mhfmon.Gravios, 58, 0, 6, 700},
 			{2001, 1, mhfmon.Gypceros, 58, 0, 3, 200},
 			{2001, 1, mhfmon.Basarios, 58, 0, 7, 250},

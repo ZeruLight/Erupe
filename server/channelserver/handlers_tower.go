@@ -390,64 +390,66 @@ func handleMsgMhfPostTenrouirai(s *Session, p mhfpacket.MHFPacket) {
 }
 
 type PresentBox struct {
-	Unk0  uint32
-	Unk1  int32
-	Unk2  int32
-	Unk3  int32
-	Unk4  int32
-	Unk5  int32
-	Unk6  int32
-	Unk7  int32
-	Unk8  int32 //SeiabtuType
-	Unk9  int32 //Item
-	Unk10 int32 //Amount
+	Unk0        uint32 // Populates Unk7 in second call
+	PresentType int32
+	Unk2        int32
+	Unk3        int32
+	Unk4        int32
+	Unk5        int32
+	Unk6        int32
+	Unk7        int32
+	SeiabtuType int32 //7201:Item 7202:N Points 7203:Guild Contribution Points
+	Item        int32
+	Amount      int32
 }
 
 func handleMsgMhfPresentBox(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfPresentBox)
 	var data []*byteframe.ByteFrame
+	var presents []PresentBox
+	//On Open Operation 1 and 3
+	//On Accept Operation 1 and 2 (Stop player from reclaiming)
+	if pkt.Operation == 1 || pkt.Operation == 2 {
+		for _, presentType := range pkt.PresentType {
+			//Placed it in a dynamic array for now
+			//Empty Array shows the No Items to claim message!
+			//Gift Type in [0] and [1] works...[1] Controlls what gets shown [0] is for second request Unk7 Population...
+			presents = []PresentBox{
+				{presentType, int32(presentType), 0, 0, 0, 0, 0, 0, 7201, 12893, 1},
+				{presentType, int32(presentType), 0, 0, 0, 0, 0, 0, 7201, 12893, 1},
+				{presentType, int32(presentType), 0, 0, 0, 0, 0, 0, 7201, 12893, 1},
+				{presentType, int32(presentType), 0, 0, 0, 0, 0, 0, 7201, 12893, 1},
+				{presentType, int32(presentType), 0, 0, 0, 0, 0, 0, 7201, 12895, 8},
+				{presentType, int32(presentType), 0, 0, 0, 0, 0, 0, 7202, 12893, 1},
+				{presentType, int32(presentType), 0, 0, 0, 0, 0, 0, 7203, 12895, 8},
+			}
+		}
 
-	//PresentCommunicator
-	// ON Request for PALLONE!
-	//3301 3302 3303
-	// ON Request for TOWER!
-	//Unk0:[0] Unk1:[1] Unk2:[2] Unk3:[0] Unk4:[0] Unk5:[0] Unk6:[0]
-	//260003 260001
-	//Unk0:[0] Unk1:[3] Unk2:[2] Unk3:[0] Unk4:[0] Unk5:[0] Unk6:[0]
-	//260003 260001
+		for _, present := range presents {
+			bf := byteframe.NewByteFrame()
+			bf.WriteUint32(present.Unk0) //Palone::PresentCommunicator::sort Index Maybe
+			bf.WriteInt32(present.PresentType)
+			bf.WriteInt32(present.Unk2)
+			bf.WriteInt32(present.Unk3)
+			bf.WriteInt32(present.Unk4)
+			bf.WriteInt32(present.Unk5)
+			bf.WriteInt32(present.Unk6)
+			bf.WriteInt32(present.Unk7)
+			bf.WriteInt32(present.SeiabtuType)
+			bf.WriteInt32(present.Item)
+			bf.WriteInt32(present.Amount)
+			data = append(data, bf)
+		}
 
-	//Gets called for Case 1 but not 2????
-	//Palone::PresentCommunicator::sort((void))	0239E988
-
-	presents := []PresentBox{
-
-		{1, 3201, 1, 12068, 1, 12068, 12068, 12068, 12068, 12068, 1},
-		{2, 3202, 2, 12068, 1, 12068, 12068, 12068, 12068, 12068, 1},
-		{3, 3203, 3, 12068, 1, 12068, 12068, 12068, 12068, 12068, 1},
-		{4, 3204, 4, 12068, 1, 12068, 12068, 12068, 12068, 12068, 1},
-		{5, 3301, 5, 12068, 1, 12068, 12068, 12068, 12068, 12068, 1},
-		{6, 3302, 6, 12068, 1, 12068, 12068, 12068, 12068, 12068, 1},
-		{7, 3303, 7, 12068, 1, 12068, 12068, 12068, 12068, 12068, 1},
-		{6, 260001, 6, 12068, 1, 12068, 12068, 12068, 12068, 12068, 1},
-		{7, 260003, 7, 12068, 1, 12068, 12068, 12068, 12068, 12068, 1},
-	}
-	for _, present := range presents {
+		doAckEarthSucceed(s, pkt.AckHandle, data)
+	} else if pkt.Operation == 3 {
 		bf := byteframe.NewByteFrame()
-		bf.WriteUint32(present.Unk0) //Palone::PresentCommunicator::sort Index Maybe
-		bf.WriteInt32(present.Unk1)
-		bf.WriteInt32(present.Unk2)
-		bf.WriteInt32(present.Unk3)
-		bf.WriteInt32(present.Unk4)
-		bf.WriteInt32(present.Unk5)
-		bf.WriteInt32(present.Unk6)
-		bf.WriteInt32(present.Unk7)
-		bf.WriteInt32(present.Unk8)
-		bf.WriteInt32(present.Unk9)
-		bf.WriteInt32(present.Unk10)
-		data = append(data, bf)
+		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	} else {
+		s.logger.Info("request for unknown type", zap.Uint32("Unk1", pkt.Operation))
+
 	}
 
-	doAckEarthSucceed(s, pkt.AckHandle, data)
 }
 
 type GemInfo struct {

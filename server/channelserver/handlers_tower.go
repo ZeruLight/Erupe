@@ -390,17 +390,17 @@ func handleMsgMhfPostTenrouirai(s *Session, p mhfpacket.MHFPacket) {
 }
 
 type PresentBox struct {
-	Unk0        uint32 // Populates Unk7 in second call
-	PresentType int32
-	Unk2        int32
-	Unk3        int32
-	Unk4        int32
-	Unk5        int32
-	Unk6        int32
-	Unk7        int32
-	SeiabtuType int32 //7201:Item 7202:N Points 7203:Guild Contribution Points
-	Item        int32
-	Amount      int32
+	ItemClaimIndex   uint32
+	PresentType      int32
+	Unk2             int32
+	Unk3             int32
+	Unk4             int32
+	Unk5             int32
+	Unk6             int32
+	Unk7             int32
+	DistributionType int32 //Same as Siabatu Distribution Type 7201:Item 7202:N Points 7203:Guild Contribution Points
+	ItemID           int32
+	Amount           int32
 }
 
 func handleMsgMhfPresentBox(s *Session, p mhfpacket.MHFPacket) {
@@ -408,47 +408,68 @@ func handleMsgMhfPresentBox(s *Session, p mhfpacket.MHFPacket) {
 	var data []*byteframe.ByteFrame
 	var presents []PresentBox
 	//On Open Operation 1 and 3
-	//On Accept Operation 1 and 2 (Stop player from reclaiming)
-	if pkt.Operation == 1 || pkt.Operation == 2 {
+	//On Accept Operation 1 and 2 (Stop player from reclaiming I assume (Needs a database flag)
+	switch pkt.Operation {
+	case 1:
+		// When Operation is 1, populate presents based on PresentType in packet
+
+		//Placed it in a dynamic array for now
+		//Empty Array shows the No Items to claim message!
 		for _, presentType := range pkt.PresentType {
-			//Placed it in a dynamic array for now
-			//Empty Array shows the No Items to claim message!
-			//Gift Type in [0] and [1] works...[1] Controlls what gets shown [0] is for second request Unk7 Population...
+
 			presents = []PresentBox{
-				{presentType, int32(presentType), 0, 0, 0, 0, 0, 0, 7201, 12893, 1},
-				{presentType, int32(presentType), 0, 0, 0, 0, 0, 0, 7201, 12893, 1},
-				{presentType, int32(presentType), 0, 0, 0, 0, 0, 0, 7201, 12893, 1},
-				{presentType, int32(presentType), 0, 0, 0, 0, 0, 0, 7201, 12893, 1},
-				{presentType, int32(presentType), 0, 0, 0, 0, 0, 0, 7201, 12895, 8},
-				{presentType, int32(presentType), 0, 0, 0, 0, 0, 0, 7202, 12893, 1},
-				{presentType, int32(presentType), 0, 0, 0, 0, 0, 0, 7203, 12895, 8},
+				{1, int32(presentType), 0, 0, 0, 0, 0, 0, 7201, 12893, 1},
+				{2, int32(presentType), 0, 0, 0, 0, 0, 0, 7201, 12893, 1},
+				{3, int32(presentType), 0, 0, 0, 0, 0, 0, 7201, 12893, 1},
+				{4, int32(presentType), 0, 0, 0, 0, 0, 0, 7201, 12893, 1},
+				{5, int32(presentType), 0, 0, 0, 0, 0, 0, 7201, 12895, 8},
+				{6, int32(presentType), 0, 0, 0, 0, 0, 0, 7202, 12893, 1},
+				{7, int32(presentType), 0, 0, 0, 0, 0, 0, 7203, 12895, 8},
 			}
-		}
 
-		for _, present := range presents {
-			bf := byteframe.NewByteFrame()
-			bf.WriteUint32(present.Unk0) //Palone::PresentCommunicator::sort Index Maybe
-			bf.WriteInt32(present.PresentType)
-			bf.WriteInt32(present.Unk2)
-			bf.WriteInt32(present.Unk3)
-			bf.WriteInt32(present.Unk4)
-			bf.WriteInt32(present.Unk5)
-			bf.WriteInt32(present.Unk6)
-			bf.WriteInt32(present.Unk7)
-			bf.WriteInt32(present.SeiabtuType)
-			bf.WriteInt32(present.Item)
-			bf.WriteInt32(present.Amount)
-			data = append(data, bf)
 		}
+	case 2:
+		// When Operation is 2, populate presents for claiming items
 
-		doAckEarthSucceed(s, pkt.AckHandle, data)
-	} else if pkt.Operation == 3 {
+		//ItemClaimIndex in Option 1 of the Present Box Call populates pkt.PresentType which triggers this packet notice PresentType is Populated with ItemClaimIndex for a 1 to 1 Relationship
+		presents = []PresentBox{
+			{0, 1, 0, 0, 0, 0, 0, 0, 7201, 12893, 1},
+			{0, 2, 0, 0, 0, 0, 0, 0, 7201, 12893, 1},
+			{0, 3, 0, 0, 0, 0, 0, 0, 7201, 12893, 1},
+			{0, 4, 0, 0, 0, 0, 0, 0, 7201, 12893, 1},
+			{0, 5, 0, 0, 0, 0, 0, 0, 7201, 12895, 8},
+			{0, 6, 0, 0, 0, 0, 0, 0, 7202, 12893, 1},
+			{0, 7, 0, 0, 0, 0, 0, 0, 7203, 12895, 8},
+		}
+	case 3:
+		// When Operation is 3, send an empty byte frame (Possibly a better response here)
 		bf := byteframe.NewByteFrame()
 		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
-	} else {
+		return
+	default:
 		s.logger.Info("request for unknown type", zap.Uint32("Unk1", pkt.Operation))
 
 	}
+
+	// Construct and send the response data based on the presents
+	for _, present := range presents {
+		bf := byteframe.NewByteFrame()
+		bf.WriteUint32(present.ItemClaimIndex)
+		bf.WriteInt32(present.PresentType)
+		bf.WriteInt32(present.Unk2)
+		bf.WriteInt32(present.Unk3)
+		bf.WriteInt32(present.Unk4)
+		bf.WriteInt32(present.Unk5)
+		bf.WriteInt32(present.Unk6)
+		bf.WriteInt32(present.Unk7)
+		bf.WriteInt32(present.DistributionType)
+		bf.WriteInt32(present.ItemID)
+		bf.WriteInt32(present.Amount)
+		data = append(data, bf)
+	}
+
+	// Send the accumulated data
+	doAckEarthSucceed(s, pkt.AckHandle, data)
 
 }
 

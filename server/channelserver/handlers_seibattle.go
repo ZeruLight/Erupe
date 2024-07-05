@@ -73,16 +73,16 @@ func handleMsgMhfGetBreakSeibatuLevelReward(s *Session, p mhfpacket.MHFPacket) {
 }
 
 type WeeklySeibatuRankingReward0 struct {
-	Index0 int32  //Place Start
-	Index1 int32  //Place Finish
-	Index2 uint32 // UNK
-	Type   int32  //Type //7201 Value  //7202 ??? Points  //7203 ??? Points Blue
-	ID     int32  //ID
-	Value  int32  // Value
+	Index0           int32  //Place Start
+	Index1           int32  //Place Finish
+	Index2           uint32 // UNK
+	DistributionType int32  //Type 7201:Item 7202:N Points 7203:Guild Contribution Points
+	ItemID           int32
+	Amount           int32
 }
 type WeeklySeibatuRankingReward1 struct {
 	Unk0      int32
-	ID        int32
+	ItemID    int32
 	Amount    uint32
 	PlaceFrom int32
 	PlaceTo   int32
@@ -96,7 +96,7 @@ func handleMsgMhfGetWeeklySeibatuRankingReward(s *Session, p mhfpacket.MHFPacket
 
 	switch pkt.Operation {
 	case 1:
-		switch pkt.ID { // Seems to align with EarthStatus 1 and 2
+		switch pkt.ID { // Seems to align with EarthStatus 1 and 2 for Conquest
 		case 1:
 			switch pkt.EarthMonster {
 			case 116:
@@ -200,7 +200,6 @@ func handleMsgMhfGetWeeklySeibatuRankingReward(s *Session, p mhfpacket.MHFPacket
 					{0, 2, 6, 1000, 1001},
 				}
 			}
-			//Conquest
 
 		case 2:
 			switch pkt.EarthMonster {
@@ -305,7 +304,6 @@ func handleMsgMhfGetWeeklySeibatuRankingReward(s *Session, p mhfpacket.MHFPacket
 					{0, 2, 6, 1000, 1001},
 				}
 			}
-			//Conquest
 
 		}
 	case 3:
@@ -370,33 +368,27 @@ func handleMsgMhfGetWeeklySeibatuRankingReward(s *Session, p mhfpacket.MHFPacket
 		case 260001:
 			weeklySeibatuRankingRewards = []WeeklySeibatuRankingReward0{
 
-				//Can only have 10 in each dist (It disapears otherwise)
+				//Can only have 10 in each dist (It disapears otherwise) Looks like up to dist 4 is implemented
+				//This is claimable for every Dure Kill, Make cliamable in bulk or mandatory claim per kill
 				//{unk,unk,dist,seiabtuType,ItemID,Value}
-				{0, 0, 1, 7201, 12068, 1},
-				{0, 0, 1, 7201, 12069, 1},
-				{0, 0, 1, 7201, 12070, 1},
-				{0, 0, 1, 7201, 12071, 1},
-				{0, 0, 1, 7201, 12072, 1},
-				{0, 0, 1, 7201, 12073, 1},
-				{0, 0, 1, 7201, 12074, 1},
-				{0, 0, 1, 7201, 12075, 1},
-				{0, 0, 1, 7201, 12076, 1},
-				{0, 0, 1, 7201, 12077, 1},
+				{0, 0, 1, 7201, 11463, 1},
+				{0, 0, 1, 7201, 11464, 1},
+				{0, 0, 1, 7201, 11163, 1},
+				{0, 0, 1, 7201, 11159, 5},
+				{0, 0, 1, 7201, 11160, 5},
+				{0, 0, 1, 7201, 11161, 5},
 
-				{0, 0, 2, 7201, 12068, 1},
-				{0, 0, 2, 7201, 12069, 1},
-				{0, 0, 2, 7201, 12070, 1},
-				{0, 0, 2, 7201, 12071, 1},
-				{0, 0, 2, 7201, 12072, 1},
-				{0, 0, 2, 7201, 12073, 1},
-				{0, 0, 2, 7201, 12074, 1},
-				{0, 0, 2, 7201, 12075, 1},
-				{0, 0, 2, 7201, 12076, 1},
-				{0, 0, 2, 7201, 12077, 1},
+				{0, 0, 2, 7201, 12506, 1},
+				{0, 0, 2, 7201, 10355, 1},
+				{0, 0, 2, 7201, 11163, 1},
+				{0, 0, 2, 7201, 11159, 5},
+				{0, 0, 2, 7201, 11160, 5},
+				{0, 0, 2, 7201, 11161, 5},
 			}
 		case 260003:
 			weeklySeibatuRankingRewards = []WeeklySeibatuRankingReward0{
-				//Adjust Floors done in database to make blue ?? Possible value here for dist
+				//Adjust Floors done in database to make blue
+				//This is claimable for every Floor Climbed across dist 1 and 2
 				//{Floor,unk,unk,seiabtuType,ItemID,Value}
 
 				{1, 0, 0, 7201, 11158, 1},
@@ -573,7 +565,6 @@ func handleMsgMhfGetWeeklySeibatuRankingReward(s *Session, p mhfpacket.MHFPacket
 			}
 		default: //Covers all Pallone Requests... for now
 			weeklySeibatuRankingRewards = []WeeklySeibatuRankingReward0{
-				// To do figure out values 3-5 its some sort of item structure
 				//1st
 				{1, 0, 0, 7202, 10, 10000},
 				{1, 1, 0, 7201, 10, 30},
@@ -597,7 +588,7 @@ func handleMsgMhfGetWeeklySeibatuRankingReward(s *Session, p mhfpacket.MHFPacket
 		for _, seibatuData := range weeklySeibatuRankingRewardsWeird {
 			bf := byteframe.NewByteFrame()
 			bf.WriteInt32(seibatuData.Unk0)
-			bf.WriteInt32(seibatuData.ID)
+			bf.WriteInt32(seibatuData.ItemID)
 			bf.WriteUint32(seibatuData.Amount)
 			bf.WriteInt32(seibatuData.PlaceFrom)
 			bf.WriteInt32(seibatuData.PlaceTo)
@@ -610,9 +601,9 @@ func handleMsgMhfGetWeeklySeibatuRankingReward(s *Session, p mhfpacket.MHFPacket
 			bf.WriteInt32(seibatuData.Index0)
 			bf.WriteInt32(seibatuData.Index1)
 			bf.WriteUint32(seibatuData.Index2)
-			bf.WriteInt32(seibatuData.Type)
-			bf.WriteInt32(seibatuData.ID)
-			bf.WriteInt32(seibatuData.Value)
+			bf.WriteInt32(seibatuData.DistributionType)
+			bf.WriteInt32(seibatuData.ItemID)
+			bf.WriteInt32(seibatuData.Amount)
 			data = append(data, bf)
 		}
 	}

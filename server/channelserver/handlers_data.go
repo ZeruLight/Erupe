@@ -965,7 +965,7 @@ type PaperMissionTimetable struct {
 type PaperMissionData struct {
 	Unk0            uint8
 	Unk1            uint8
-	Unk2            int16
+	Target          int16
 	Reward1ID       uint16
 	Reward1Quantity uint8
 	Reward2ID       uint16
@@ -978,20 +978,20 @@ type PaperMission struct {
 }
 
 type PaperData struct {
-	Unk0 uint16
-	Unk1 int16
-	Unk2 int16
-	Unk3 int16
-	Unk4 int16
-	Unk5 int16
-	Unk6 int16
+	ID      uint16
+	Ward    int16
+	Option1 int16
+	Option2 int16
+	Option3 int16
+	Option4 int16
+	Option5 int16
 }
 
 type PaperGift struct {
-	Unk0 uint16
-	Unk1 uint8
-	Unk2 uint8
-	Unk3 uint16
+	ItemID uint16
+	Unk1   uint8
+	Unk2   uint8
+	Chance uint16
 }
 
 func handleMsgMhfGetPaperData(s *Session, p mhfpacket.MHFPacket) {
@@ -1008,7 +1008,7 @@ func handleMsgMhfGetPaperData(s *Session, p mhfpacket.MHFPacket) {
 	// if pkt.Type 2 then unk2 6001 6011  PaperGiftData
 	// is pkt.Unk2 a index?
 
-	switch pkt.Unk2 {
+	switch pkt.ID {
 	case 0:
 		paperMissions = PaperMission{
 			[]PaperMissionTimetable{{TimeMidnight(), TimeMidnight().Add(24 * time.Hour)}},
@@ -1028,7 +1028,6 @@ func handleMsgMhfGetPaperData(s *Session, p mhfpacket.MHFPacket) {
 			//Value is based on 2001 for monsters
 			{1011, 1, 0, 0, 0, 0, 0},
 			{1011, 2, 0, 0, 0, 0, 0},
-
 			//Seen Items (id,on off, 0, 0, 0, 0, 0)
 			//Value is based in 6001 for items
 			{1012, 1, 0, 0, 0, 0, 0},
@@ -1071,33 +1070,35 @@ func handleMsgMhfGetPaperData(s *Session, p mhfpacket.MHFPacket) {
 			{1105, 1, 10, 500, 0, 0, 0},
 			{1105, 2, 10, 500, 0, 0, 0},
 			// setServerBoss {ID, Block, Monster, Unk, Unk, Index, Points}
-			{2001, 1, mhfmon.Gravios, 58, 0, 6, 700},
-			{2001, 1, mhfmon.Gypceros, 58, 0, 3, 200},
-			{2001, 1, mhfmon.Basarios, 58, 0, 7, 250},
 			{2001, 1, mhfmon.Velocidrome, 58, 0, 1, 100},
-			{2001, 1, mhfmon.Rajang, 58, 0, 8, 1000},
-			{2001, 1, mhfmon.ShogunCeanataur, 58, 0, 9, 500},
 			{2001, 1, mhfmon.Bulldrome, 58, 0, 2, 150},
+			{2001, 1, mhfmon.Gypceros, 58, 0, 3, 200},
 			{2001, 1, mhfmon.Hypnocatrice, 58, 0, 4, 200},
 			{2001, 1, mhfmon.Lavasioth, 58, 0, 5, 500},
+			{2001, 1, mhfmon.Gravios, 58, 0, 6, 700},
+			{2001, 1, mhfmon.Basarios, 58, 0, 7, 250},
+			{2001, 1, mhfmon.Rajang, 58, 0, 8, 1000},
+			{2001, 1, mhfmon.ShogunCeanataur, 58, 0, 9, 500},
 			{2001, 1, mhfmon.Tigrex, 58, 0, 10, 800},
 			{2001, 1, mhfmon.Espinas, 58, 0, 11, 900},
 			{2001, 1, mhfmon.Pariapuria, 58, 0, 12, 600},
-			{2001, 2, mhfmon.Gravios, 60, 0, 6, 700},
-			{2001, 2, mhfmon.Gypceros, 60, 0, 3, 200},
-			{2001, 2, mhfmon.Basarios, 60, 0, 7, 350},
+
 			{2001, 2, mhfmon.Velocidrome, 60, 0, 1, 100},
-			{2001, 2, mhfmon.PurpleGypceros, 60, 0, 13, 200},
-			{2001, 2, mhfmon.YianGaruga, 60, 0, 15, 600},
-			{2001, 2, mhfmon.Rajang, 60, 0, 8, 1000},
 			{2001, 2, mhfmon.ShogunCeanataur, 60, 0, 2, 500},
-			{2001, 2, mhfmon.Bulldrome, 60, 0, 9, 150},
+			{2001, 2, mhfmon.Gypceros, 60, 0, 3, 200},
 			{2001, 2, mhfmon.Hypnocatrice, 60, 0, 4, 200},
 			{2001, 2, mhfmon.Lavasioth, 60, 0, 5, 500},
+
+			{2001, 2, mhfmon.Gravios, 60, 0, 6, 700},
+			{2001, 2, mhfmon.Basarios, 60, 0, 7, 350},
+			{2001, 2, mhfmon.Rajang, 60, 0, 8, 1000},
+			{2001, 2, mhfmon.Bulldrome, 60, 0, 9, 150},
 			{2001, 2, mhfmon.Tigrex, 60, 0, 10, 800},
 			{2001, 2, mhfmon.Espinas, 60, 0, 11, 900},
-			{2001, 2, mhfmon.BurningEspinas, 60, 0, 14, 900},
 			{2001, 2, mhfmon.Pariapuria, 60, 0, 12, 600},
+			{2001, 2, mhfmon.PurpleGypceros, 60, 0, 13, 200},
+			{2001, 2, mhfmon.BurningEspinas, 60, 0, 14, 900},
+			{2001, 2, mhfmon.YianGaruga, 60, 0, 15, 600},
 			{2001, 2, mhfmon.Dyuragaua, 60, 0, 16, 1000},
 		}
 	case 6:
@@ -1535,8 +1536,8 @@ func handleMsgMhfGetPaperData(s *Session, p mhfpacket.MHFPacket) {
 			{4202, 2, 0, 11469, 1, 1400, 1},
 		}
 	default:
-		if pkt.Unk2 < 1000 {
-			s.logger.Info("PaperData request for unknown type", zap.Uint32("Unk2", pkt.Unk2))
+		if pkt.ID < 1000 {
+			s.logger.Info("PaperData request for unknown type", zap.Uint32("Unk2", pkt.ID))
 		}
 
 	}
@@ -1546,29 +1547,29 @@ func handleMsgMhfGetPaperData(s *Session, p mhfpacket.MHFPacket) {
 	case 0:
 		for _, pdata := range paperData {
 			bf := byteframe.NewByteFrame()
-			bf.WriteUint16(pdata.Unk0)
-			bf.WriteInt16(pdata.Unk1)
-			bf.WriteInt16(pdata.Unk2)
-			bf.WriteInt16(pdata.Unk3)
-			bf.WriteInt16(pdata.Unk4)
-			bf.WriteInt16(pdata.Unk5)
-			bf.WriteInt16(pdata.Unk6)
+			bf.WriteUint16(pdata.ID)
+			bf.WriteInt16(pdata.Ward)
+			bf.WriteInt16(pdata.Option1)
+			bf.WriteInt16(pdata.Option2)
+			bf.WriteInt16(pdata.Option3)
+			bf.WriteInt16(pdata.Option4)
+			bf.WriteInt16(pdata.Option5)
 			data = append(data, bf)
 		}
 		doAckEarthSucceed(s, pkt.AckHandle, data)
 	case 2:
-		_, ok := paperGiftData[pkt.Unk2]
+		_, ok := paperGiftData[pkt.ID]
 		if ok {
-			paperGift = paperGiftData[pkt.Unk2]
+			paperGift = paperGiftData[pkt.ID]
 		} else {
-			s.logger.Info("PaperGift request for unknown type", zap.Uint32("Unk2", pkt.Unk2))
+			s.logger.Info("PaperGift request for unknown type", zap.Uint32("ID", pkt.ID))
 		}
 		for _, gift := range paperGift {
 			bf := byteframe.NewByteFrame()
-			bf.WriteUint16(gift.Unk0)
+			bf.WriteUint16(gift.ItemID)
 			bf.WriteUint8(gift.Unk1)
 			bf.WriteUint8(gift.Unk2)
-			bf.WriteUint16(gift.Unk3)
+			bf.WriteUint16(gift.Chance)
 			data = append(data, bf)
 		}
 		doAckEarthSucceed(s, pkt.AckHandle, data)
@@ -1584,7 +1585,7 @@ func handleMsgMhfGetPaperData(s *Session, p mhfpacket.MHFPacket) {
 		for _, mdata := range paperMissions.Data {
 			bf.WriteUint8(mdata.Unk0)
 			bf.WriteUint8(mdata.Unk1)
-			bf.WriteInt16(mdata.Unk2)
+			bf.WriteInt16(mdata.Target)
 			bf.WriteUint16(mdata.Reward1ID)
 			bf.WriteUint8(mdata.Reward1Quantity)
 			bf.WriteUint16(mdata.Reward2ID)

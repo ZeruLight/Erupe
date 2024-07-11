@@ -20,7 +20,7 @@ type MsgMhfPostTowerInfo struct {
 	Unk6      int32
 	Unk7      int32
 	Block1    int32
-	Unk9      int64
+	TimeTaken int64
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -40,7 +40,7 @@ func (m *MsgMhfPostTowerInfo) Parse(bf *byteframe.ByteFrame, ctx *clientctx.Clie
 	m.Unk6 = bf.ReadInt32()
 	m.Unk7 = bf.ReadInt32()
 	m.Block1 = bf.ReadInt32()
-	m.Unk9 = bf.ReadInt64()
+	m.TimeTaken = bf.ReadInt64()
 	return nil
 }
 

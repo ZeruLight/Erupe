@@ -82,8 +82,7 @@ type Config struct {
 	CommandPrefix          string // The prefix for commands
 	AutoCreateAccount      bool   // Automatically create accounts if they don't exist
 	DefaultCourses         []uint16
-	EarthStatus            int32
-	EarthID                int32
+	EarthDebug             bool
 	EarthMonsters          []int32
 	SaveDumps              SaveDumpOptions
 	Screenshots            ScreenshotsOptions

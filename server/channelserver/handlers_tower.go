@@ -24,8 +24,15 @@ type TowerInfoSkill struct {
 }
 
 type TowerInfoHistory struct {
-	Unk0 []int16 // 5
-	Unk1 []int16 // 5
+	Unk0 TowerHistory // 5
+	Unk1 TowerHistory // 5
+}
+type TowerHistory struct {
+	Unk0 int16
+	Unk1 int16
+	Unk2 int16
+	Unk3 int16
+	Unk4 int16
 }
 
 type TowerInfoLevel struct {
@@ -53,11 +60,25 @@ func handleMsgMhfGetTowerInfo(s *Session, p mhfpacket.MHFPacket) {
 		Level   []TowerInfoLevel
 	}
 
+	history1 := TowerHistory{
+		Unk0: 1,
+		Unk1: 2,
+		Unk2: 3,
+		Unk3: 4,
+		Unk4: 5,
+	}
+	history2 := TowerHistory{
+		Unk0: 1,
+		Unk1: 2,
+		Unk2: 3,
+		Unk3: 4,
+		Unk4: 5,
+	}
 	towerInfo := TowerInfo{
 		TRP:     []TowerInfoTRP{{0, 0}},
 		Skill:   []TowerInfoSkill{{0, make([]int16, 64)}},
-		History: []TowerInfoHistory{{make([]int16, 5), make([]int16, 5)}},
-		Level:   []TowerInfoLevel{{0, 0, 0, 0}, {0, 0, 0, 0}},
+		History: []TowerInfoHistory{{history1, history2}},
+		Level:   []TowerInfoLevel{{0, 5, 5, 5}, {0, 5, 5, 5}},
 	}
 
 	var tempSkills string
@@ -95,12 +116,17 @@ func handleMsgMhfGetTowerInfo(s *Session, p mhfpacket.MHFPacket) {
 	case 4:
 		for _, history := range towerInfo.History {
 			bf := byteframe.NewByteFrame()
-			for i := range history.Unk0 {
-				bf.WriteInt16(history.Unk0[i])
-			}
-			for i := range history.Unk1 {
-				bf.WriteInt16(history.Unk1[i])
-			}
+			bf.WriteInt16(history.Unk0.Unk0)
+			bf.WriteInt16(history.Unk0.Unk1)
+			bf.WriteInt16(history.Unk0.Unk2)
+			bf.WriteInt16(history.Unk0.Unk3)
+			bf.WriteInt16(history.Unk0.Unk4)
+
+			bf.WriteInt16(history.Unk1.Unk0)
+			bf.WriteInt16(history.Unk1.Unk1)
+			bf.WriteInt16(history.Unk1.Unk2)
+			bf.WriteInt16(history.Unk1.Unk3)
+			bf.WriteInt16(history.Unk1.Unk4)
 			data = append(data, bf)
 		}
 	case 3, 5:
@@ -131,7 +157,7 @@ func handleMsgMhfPostTowerInfo(s *Session, p mhfpacket.MHFPacket) {
 			zap.Int32("Unk6", pkt.Unk6),
 			zap.Int32("Unk7", pkt.Unk7),
 			zap.Int32("Block1", pkt.Block1),
-			zap.Int64("Unk9", pkt.Unk9),
+			zap.Int64("TimeTaken", pkt.TimeTaken),
 		)
 	}
 

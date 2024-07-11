@@ -23,8 +23,7 @@
   
   "AutoCreateAccount": true,
   "DefaultCourses": [1, 23, 24],
-  "EarthStatus": 0,
-  "EarthID": 0,
+  "EarthDebug":true,
   "EarthMonsters": [116, 107, 2, 36],
   "SaveDumps": {
     "Enabled": true,

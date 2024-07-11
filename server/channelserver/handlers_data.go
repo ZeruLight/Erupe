@@ -4,6 +4,7 @@ import (
 	"erupe-ce/common/mhfmon"
 	"erupe-ce/common/stringsupport"
 	_config "erupe-ce/config"
+
 	"fmt"
 	"io"
 	"os"
@@ -1010,6 +1011,17 @@ func handleMsgMhfGetPaperData(s *Session, p mhfpacket.MHFPacket) {
 
 	switch pkt.ID {
 	case 0:
+		//PaperMissionData Target
+		// 1: Total Floors
+		// 2: TRP Acquired
+		// 3: Treasure Chests
+		// 4: Old Tresure Chests
+		// 5: Defeat Large Monster
+		// 6: Dist 1 Dure Slays
+		// 7: Dist 2 Dure Slays
+		// 8: Dist 3 Dure Slays
+		// 9: Dist 4 Dure Slays
+
 		paperMissions = PaperMission{
 			[]PaperMissionTimetable{{TimeMidnight(), TimeMidnight().Add(24 * time.Hour)}},
 			[]PaperMissionData{{1, 1, 50, 7, 10, 8, 11},
@@ -1032,6 +1044,11 @@ func handleMsgMhfGetPaperData(s *Session, p mhfpacket.MHFPacket) {
 			//Value is based in 6001 for items
 			{1012, 1, 0, 0, 0, 0, 0},
 			{1012, 2, 0, 0, 0, 0, 0},
+
+			//Its possible that these also controll the annoucement banners and chat messages ...
+			// Functions to look at...
+			//tower_announce_move() -> disp_tower_announce()
+			// sendTowerVenomChatMsg()
 		}
 	case 5:
 		//On load into MezePorta

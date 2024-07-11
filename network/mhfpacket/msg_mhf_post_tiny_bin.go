@@ -2,6 +2,7 @@ package mhfpacket
 
 import (
 	"errors"
+	"fmt"
 
 	"erupe-ce/common/byteframe"
 	"erupe-ce/network"
@@ -31,6 +32,8 @@ func (m *MsgMhfPostTinyBin) Parse(bf *byteframe.ByteFrame, ctx *clientctx.Client
 	m.Unk2 = bf.ReadUint8()
 	m.Unk3 = bf.ReadUint8()
 	m.Data = bf.ReadBytes(uint(bf.ReadUint16()))
+	fmt.Printf("MsgMhfPostTinyBin: Unk0:[%d] Unk1:[%d] Unk2:[%d] Unk3:[%d]  \n\n", m.Unk0, m.Unk1, m.Unk2, m.Unk3)
+
 	return nil
 }
 

@@ -20,10 +20,9 @@
   "ClientMode": "G9.1",
   "QuestCacheExpiry": 300,
   "CommandPrefix": "!",
-  
   "AutoCreateAccount": true,
   "DefaultCourses": [1, 23, 24],
-  "EarthDebug":true,
+  "EarthDebug": false,
   "EarthMonsters": [116, 107, 2, 36],
   "SaveDumps": {
     "Enabled": true,

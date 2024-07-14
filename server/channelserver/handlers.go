@@ -1089,30 +1089,29 @@ func handleMsgMhfUnreserveSrg(s *Session, p mhfpacket.MHFPacket) {
 }
 
 func handleMsgMhfKickExportForce(s *Session, p mhfpacket.MHFPacket) {}
-func cleanupEarthStatus(s *Session) {
-	s.server.db.Exec("DELETE FROM events WHERE event_type='tower'")
-	s.server.db.Exec("DELETE FROM events WHERE event_type='pallone'")
-	s.server.db.Exec("DELETE FROM events WHERE event_type='conquest'")
 
+func cleanupEarthStatus(s *Session) {
+	s.server.db.Exec("DELETE FROM events WHERE event_type='earth'")
 }
+
 func generateEarthStatusTimestamps(s *Session, start uint32, debug bool) []uint32 {
-	timestamps := make([]uint32, 3)
+	timestamps := make([]uint32, 4)
 	midnight := TimeMidnight()
-	if start == 0 || TimeAdjusted().Unix() > int64(start)+2977200 {
+	if start == 0 || TimeAdjusted().Unix() > int64(start)+1814400 {
 		cleanupEarthStatus(s)
-		// Generate a new festa, starting midnight tomorrow
 		start = uint32(midnight.Add(24 * time.Hour).Unix())
-		s.server.db.Exec("INSERT INTO events (event_type, start_time) VALUES ('tower', to_timestamp($1)::timestamp without time zone)", start)
+		s.server.db.Exec("INSERT INTO events (event_type, start_time) VALUES ('earth', to_timestamp($1)::timestamp without time zone)", start)
 	}
 	if debug {
 		timestamps[0] = uint32(TimeWeekStart().Unix())
 		timestamps[1] = uint32(TimeWeekNext().Unix())
-		timestamps[1] = uint32(TimeWeekNext().Add((time.Duration(7) * time.Hour * 24)).Unix())
-
+		timestamps[2] = uint32(TimeWeekNext().Add(time.Duration(7) * time.Hour * 24).Unix())
+		timestamps[3] = uint32(TimeWeekNext().Add(time.Duration(14) * time.Hour * 24).Unix())
 	} else {
 		timestamps[0] = start
 		timestamps[1] = timestamps[0] + 604800
 		timestamps[2] = timestamps[1] + 604800
+		timestamps[3] = timestamps[2] + 604800
 	}
 	return timestamps
 }
@@ -1120,30 +1119,31 @@ func generateEarthStatusTimestamps(s *Session, start uint32, debug bool) []uint3
 func handleMsgMhfGetEarthStatus(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetEarthStatus)
 	bf := byteframe.NewByteFrame()
-	//Conquest
-	var conquestTimestamps []uint32
+
+	var earthTimestamps []uint32
 	var debug = s.server.erupeConfig.EarthDebug
-	conquestId, conquestStart := int32(0xBEEFEE), uint32(0)
-	rows, _ := s.server.db.Queryx("SELECT id, (EXTRACT(epoch FROM start_time)::int) as start_time FROM events WHERE event_type='conquest'")
+	earthId, earthStart := int32(0x01BEEFEE), uint32(0)
+	rows, _ := s.server.db.Queryx("SELECT id, (EXTRACT(epoch FROM start_time)::int) as start_time FROM events WHERE event_type='earth'")
 	if rows == nil {
 		log.Println("No rows found")
-
 	} else {
 		for rows.Next() {
-			rows.Scan(&conquestId, &conquestStart)
+			rows.Scan(&earthId, &earthStart)
 		}
 	}
-	conquestTimestamps = generateEarthStatusTimestamps(s, conquestStart, debug)
-	if TimeAdjusted().After(time.UnixMilli(int64(conquestTimestamps[1]))) {
-		bf.WriteUint32(conquestTimestamps[0]) // Start
-		bf.WriteUint32(conquestTimestamps[1]) // End
-		bf.WriteInt32(1)                      //Conquest Earth Status ID //1 and 2 UNK the difference
-		bf.WriteInt32(conquestId)             //ID
+	earthTimestamps = generateEarthStatusTimestamps(s, earthStart, debug)
+
+	// Conquest
+	if uint32(TimeAdjusted().Unix()) > earthTimestamps[0] {
+		bf.WriteUint32(earthTimestamps[0]) // Start
+		bf.WriteUint32(earthTimestamps[1]) // End
+		bf.WriteInt32(1)                   //Conquest Earth Status ID //1 and 2 UNK the difference
+		bf.WriteInt32(earthId)             //ID
 	} else {
-		bf.WriteUint32(conquestTimestamps[1]) // Start
-		bf.WriteUint32(conquestTimestamps[2]) // End
-		bf.WriteInt32(2)                      //Conquest Earth Status ID //1 and 2 UNK the difference
-		bf.WriteInt32(conquestId)             //ID
+		bf.WriteUint32(earthTimestamps[1]) // Start
+		bf.WriteUint32(earthTimestamps[2]) // End
+		bf.WriteInt32(2)                   //Conquest Earth Status ID //1 and 2 UNK the difference
+		bf.WriteInt32(earthId)             //ID
 	}
 	for i, m := range s.server.erupeConfig.EarthMonsters {
 		//Changed from G9 to G8 to get conquest working in g9.1
@@ -1157,32 +1157,19 @@ func handleMsgMhfGetEarthStatus(s *Session, p mhfpacket.MHFPacket) {
 		}
 		bf.WriteInt32(m)
 	}
-	//Pallone
-	var palloneTimestamps []uint32
-	palloneId, palloneStart := int32(0xBEEFEE), uint32(0)
-	rows, _ = s.server.db.Queryx("SELECT id, (EXTRACT(epoch FROM start_time)::int) as start_time FROM events WHERE event_type='pallone'")
 
-	if rows == nil {
-		log.Println("No rows found")
-
+	// Pallone
+	if uint32(TimeAdjusted().Unix()) > earthTimestamps[1] {
+		bf.WriteUint32(earthTimestamps[1]) // Start
+		bf.WriteUint32(earthTimestamps[2]) // End
+		bf.WriteInt32(11)                  //Pallone Earth Status ID //11 is Fest //12 is Reward
+		bf.WriteInt32(earthId + 1)         //ID
 	} else {
-		for rows.Next() {
-			rows.Scan(&palloneId, &palloneStart)
-		}
+		bf.WriteUint32(earthTimestamps[2]) // Start
+		bf.WriteUint32(earthTimestamps[3]) // End
+		bf.WriteInt32(12)                  //Pallone Earth Status ID //11 is Fest //12 is Reward
+		bf.WriteInt32(earthId + 1)         //ID
 	}
-	palloneTimestamps = generateEarthStatusTimestamps(s, palloneStart, debug)
-	if TimeAdjusted().After(time.UnixMilli(int64(palloneTimestamps[1]))) {
-		bf.WriteUint32(palloneTimestamps[0]) // Start
-		bf.WriteUint32(palloneTimestamps[1]) // End
-		bf.WriteInt32(11)                    //Pallone Earth Status ID //11 is Fest //12 is Reward
-		bf.WriteInt32(palloneId)             //ID
-	} else {
-		bf.WriteUint32(palloneTimestamps[1]) // Start
-		bf.WriteUint32(palloneTimestamps[2]) // End
-		bf.WriteInt32(12)                    //Pallone Earth Status ID //11 is Fest //12 is Reward
-		bf.WriteInt32(palloneId)             //ID
-	}
-
 	for i, m := range s.server.erupeConfig.EarthMonsters {
 		//Changed from G9 to G8 to get conquest working in g9.1
 		if _config.ErupeConfig.RealClientMode <= _config.G8 {
@@ -1196,34 +1183,23 @@ func handleMsgMhfGetEarthStatus(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteInt32(m)
 	}
 
-	//TOWER
-	var towerTimestamps []uint32
-	towerId, towerStart := int32(0xBEEFEE), uint32(0)
-	rows, _ = s.server.db.Queryx("SELECT id, (EXTRACT(epoch FROM start_time)::int) as start_time FROM events WHERE event_type='tower'")
-	if rows == nil {
-		log.Println("No rows found")
-
-	} else {
-		for rows.Next() {
-			rows.Scan(&towerId, &towerStart)
-		}
-	}
-	towerTimestamps = generateEarthStatusTimestamps(s, towerStart, debug)
-	bf.WriteUint32(towerTimestamps[0]) // Start
-	bf.WriteUint32(towerTimestamps[1]) // End
-	bf.WriteInt32(21)                  //Tower Earth Status ID
-	bf.WriteInt32(towerId)             //ID
-	for i, m := range s.server.erupeConfig.EarthMonsters {
-		//Changed from G9 to G8 to get conquest working in g9.1
-		if _config.ErupeConfig.RealClientMode <= _config.G8 {
-			if i == 3 {
+	// Tower
+	if uint32(TimeAdjusted().Unix()) > earthTimestamps[2] {
+		bf.WriteUint32(earthTimestamps[2]) // Start
+		bf.WriteUint32(earthTimestamps[3]) // End
+		bf.WriteInt32(21)                  //Tower Earth Status ID
+		bf.WriteInt32(earthId + 2)         //ID
+		for i, m := range s.server.erupeConfig.EarthMonsters {
+			if _config.ErupeConfig.RealClientMode <= _config.G8 {
+				if i == 3 {
+					break
+				}
+			}
+			if i == 4 {
 				break
 			}
+			bf.WriteInt32(m)
 		}
-		if i == 4 {
-			break
-		}
-		bf.WriteInt32(m)
 	}
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }

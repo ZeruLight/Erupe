@@ -12,7 +12,7 @@ import (
 type MsgMhfReadBeatLevelAllRanking struct {
 	AckHandle uint32
 	Unk0      uint32
-	GuildID   int32
+	MonsterID int32
 	Unk2      int32
 }
 
@@ -25,7 +25,7 @@ func (m *MsgMhfReadBeatLevelAllRanking) Opcode() network.PacketID {
 func (m *MsgMhfReadBeatLevelAllRanking) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
 	m.Unk0 = bf.ReadUint32()
-	m.GuildID = bf.ReadInt32()
+	m.MonsterID = bf.ReadInt32()
 	m.Unk2 = bf.ReadInt32()
 	return nil
 }

@@ -100,21 +100,19 @@ func handleMsgMhfGetTinyBin(s *Session, p mhfpacket.MHFPacket) {
 
 	//Conquest: Unk0 0 Unk1 2 Unk2 1
 	type TinyBinItem struct {
-		ItemId uint16
-		Amount uint8
-		Unk2   uint8 //if 4 the Red message "There are some items and points that cannot be recieved." Shows
+		ItemID   uint16
+		Quantity uint16
 	}
 
-	tinyBinItems := []TinyBinItem{{7, 2, 4}, {8, 1, 0}, {9, 1, 0}, {300, 4, 0}, {10, 1, 0}}
+	tinyBinItems := []TinyBinItem{{7, 2}, {8, 1}, {9, 1}, {300, 4}, {10, 1}}
 
 	pkt := p.(*mhfpacket.MsgMhfGetTinyBin)
 	// requested after conquest quests
 	bf := byteframe.NewByteFrame()
 	bf.SetLE()
 	for _, items := range tinyBinItems {
-		bf.WriteUint16(items.ItemId)
-		bf.WriteUint8(items.Amount)
-		bf.WriteUint8(items.Unk2)
+		bf.WriteUint16(items.ItemID)
+		bf.WriteUint16(items.Quantity)
 	}
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }

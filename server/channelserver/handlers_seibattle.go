@@ -7,10 +7,10 @@ import (
 )
 
 type BreakSeibatuLevelReward struct {
-	Item  int32
-	Value int32
-	Level int32
-	Unk   int32
+	Item     int32
+	Quantity int32
+	Level    int32
+	Unk      int32
 }
 
 func handleMsgMhfGetBreakSeibatuLevelReward(s *Session, p mhfpacket.MHFPacket) {
@@ -63,9 +63,9 @@ func handleMsgMhfGetBreakSeibatuLevelReward(s *Session, p mhfpacket.MHFPacket) {
 	for _, seibatuData := range weeklySeibatuRankingRewards {
 		bf := byteframe.NewByteFrame()
 
-		bf.WriteInt32(seibatuData.Item)  // Item
-		bf.WriteInt32(seibatuData.Value) // Value
-		bf.WriteInt32(seibatuData.Level) //Level
+		bf.WriteInt32(seibatuData.Item)
+		bf.WriteInt32(seibatuData.Quantity)
+		bf.WriteInt32(seibatuData.Level)
 		bf.WriteInt32(seibatuData.Unk)
 		data = append(data, bf)
 	}
@@ -612,9 +612,9 @@ func handleMsgMhfGetWeeklySeibatuRankingReward(s *Session, p mhfpacket.MHFPacket
 }
 
 type FixedSeibatuRankingTable struct {
-	Rank     int32
-	Level    int32
-	UnkArray string
+	Rank  int32
+	Level int32
+	Name  string
 }
 
 func handleMsgMhfGetFixedSeibatuRankingTable(s *Session, p mhfpacket.MHFPacket) {
@@ -686,15 +686,11 @@ func handleMsgMhfGetFixedSeibatuRankingTable(s *Session, p mhfpacket.MHFPacket) 
 	}
 
 	bf := byteframe.NewByteFrame()
-
 	for _, seibatuData := range fixedSeibatuRankingTable {
-
 		bf.WriteInt32(seibatuData.Rank)
 		bf.WriteInt32(seibatuData.Level)
-		bf.WriteBytes(stringsupport.PaddedString(seibatuData.UnkArray, 32, true))
-
+		bf.WriteBytes(stringsupport.PaddedString(seibatuData.Name, 32, true))
 	}
-
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
@@ -728,7 +724,6 @@ func handleMsgMhfReadLastWeekBeatRanking(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfUpdateBeatLevel(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfUpdateBeatLevel)
-
 	doAckBufSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 

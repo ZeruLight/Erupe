@@ -34,7 +34,11 @@ func ToNGWord(x string) []uint16 {
 	for _, r := range []rune(x) {
 		if r > 0xFF {
 			t := UTF8ToSJIS(string(r))
-			w = append(w, uint16(t[1])<<8|uint16(t[0]))
+			if len(t) > 1 {
+				w = append(w, uint16(t[1])<<8|uint16(t[0]))
+			} else {
+				w = append(w, uint16(t[0]))
+			}
 		} else {
 			w = append(w, uint16(r))
 		}

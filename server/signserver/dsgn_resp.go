@@ -287,7 +287,16 @@ func (s *Session) makeSignResponse(uid uint32) []byte {
 		nam.WriteUint32(uint32(len(parts)))
 		for _, part := range parts {
 			nam.WriteUint16(part)
-			nam.WriteInt16(-1) // TODO: figure out how this value relates to corresponding SMC part
+			var i int16
+			j := int16(-1)
+			for _, smcGroup := range smcData {
+				if rune(part) == smcGroup.charGroup[0][0] {
+					j = i
+					break
+				}
+				i += int16(len(smcGroup.charGroup) + 1)
+			}
+			nam.WriteInt16(j)
 		}
 		nam.WriteUint16(0)
 		nam.WriteInt16(-1)

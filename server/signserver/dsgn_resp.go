@@ -312,7 +312,16 @@ func (s *Session) makeSignResponse(uid uint32) []byte {
 		msg.WriteUint32(uint32(len(parts)))
 		for _, part := range parts {
 			msg.WriteUint16(part)
-			msg.WriteInt16(-1)
+			var i int16
+			j := int16(-1)
+			for _, smcGroup := range smcData {
+				if rune(part) == smcGroup.charGroup[0][0] {
+					j = i
+					break
+				}
+				i += int16(len(smcGroup.charGroup) + 1)
+			}
+			msg.WriteInt16(j)
 		}
 		msg.WriteUint16(0)
 		msg.WriteInt16(-1)

@@ -136,8 +136,8 @@ func (s *Session) makeSignResponse(uid uint32) []byte {
 	bf.WriteUint32(s.server.getLastCID(uid))
 	bf.WriteUint32(s.server.getUserRights(uid))
 
-	namNGWords := []string{"test", "痴女", "てすと"}
-	msgNGWords := []string{"test", "痴女", "てすと"}
+	namNGWords := []string{}
+	msgNGWords := []string{}
 
 	filters := byteframe.NewByteFrame()
 	filters.SetLE()
@@ -290,7 +290,7 @@ func (s *Session) makeSignResponse(uid uint32) []byte {
 			var i int16
 			j := int16(-1)
 			for _, smcGroup := range smcData {
-				if rune(part) == smcGroup.charGroup[0][0] {
+				if rune(part) == rune(stringsupport.ToNGWord(string(smcGroup.charGroup[0][0]))[0]) {
 					j = i
 					break
 				}
@@ -315,7 +315,7 @@ func (s *Session) makeSignResponse(uid uint32) []byte {
 			var i int16
 			j := int16(-1)
 			for _, smcGroup := range smcData {
-				if rune(part) == smcGroup.charGroup[0][0] {
+				if rune(part) == rune(stringsupport.ToNGWord(string(smcGroup.charGroup[0][0]))[0]) {
 					j = i
 					break
 				}

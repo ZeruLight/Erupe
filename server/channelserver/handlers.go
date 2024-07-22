@@ -1051,6 +1051,32 @@ func handleMsgMhfUpdateEtcPoint(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfStampcardStamp(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfStampcardStamp)
+
+	rewards := []struct {
+		HR        uint16
+		Item1     uint16
+		Quantity1 uint16
+		Item2     uint16
+		Quantity2 uint16
+	}{
+		{0, 6164, 1, 6164, 2},
+		{50, 6164, 2, 6164, 3},
+		{100, 6164, 3, 5392, 1},
+		{300, 5392, 1, 5392, 3},
+		{999, 5392, 1, 5392, 4},
+	}
+	if _config.ErupeConfig.RealClientMode <= _config.Z1 {
+		for _, reward := range rewards {
+			if pkt.HR >= reward.HR {
+				pkt.Item1 = reward.Item1
+				pkt.Quantity1 = reward.Quantity1
+				pkt.Item2 = reward.Item2
+				pkt.Quantity2 = reward.Quantity2
+				break
+			}
+		}
+	}
+
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint16(pkt.HR)
 	var stamps uint16

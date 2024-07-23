@@ -1072,7 +1072,6 @@ func handleMsgMhfStampcardStamp(s *Session, p mhfpacket.MHFPacket) {
 				pkt.Quantity1 = reward.Quantity1
 				pkt.Item2 = reward.Item2
 				pkt.Quantity2 = reward.Quantity2
-				break
 			}
 		}
 	}

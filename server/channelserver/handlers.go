@@ -1049,42 +1049,6 @@ func handleMsgMhfUpdateEtcPoint(s *Session, p mhfpacket.MHFPacket) {
 	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
-func getStampcardReward(secondStamp bool, HR uint16, GR uint16) mhfitem.MHFItemStack {
-	if GR > 0 {
-		if secondStamp {
-			return mhfitem.MHFItemStack{Item: mhfitem.MHFItem{ItemID: 5392}, Quantity: 4}
-		} else {
-			return mhfitem.MHFItemStack{Item: mhfitem.MHFItem{ItemID: 5392}, Quantity: 1}
-		}
-	} else {
-		if HR >= 300 {
-			if secondStamp {
-				return mhfitem.MHFItemStack{Item: mhfitem.MHFItem{ItemID: 5392}, Quantity: 3}
-			} else {
-				return mhfitem.MHFItemStack{Item: mhfitem.MHFItem{ItemID: 5392}, Quantity: 1}
-			}
-		} else if HR >= 100 {
-			if secondStamp {
-				return mhfitem.MHFItemStack{Item: mhfitem.MHFItem{ItemID: 5392}, Quantity: 1}
-			} else {
-				return mhfitem.MHFItemStack{Item: mhfitem.MHFItem{ItemID: 6164}, Quantity: 3}
-			}
-		} else if HR >= 50 {
-			if secondStamp {
-				return mhfitem.MHFItemStack{Item: mhfitem.MHFItem{ItemID: 6164}, Quantity: 3}
-			} else {
-				return mhfitem.MHFItemStack{Item: mhfitem.MHFItem{ItemID: 6164}, Quantity: 2}
-			}
-		} else {
-			if secondStamp {
-				return mhfitem.MHFItemStack{Item: mhfitem.MHFItem{ItemID: 6164}, Quantity: 2}
-			} else {
-				return mhfitem.MHFItemStack{Item: mhfitem.MHFItem{ItemID: 6164}, Quantity: 1}
-			}
-		}
-	}
-}
-
 func handleMsgMhfStampcardStamp(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfStampcardStamp)
 
@@ -1127,21 +1091,19 @@ func handleMsgMhfStampcardStamp(s *Session, p mhfpacket.MHFPacket) {
 		rewardTier = 2
 		if _config.ErupeConfig.RealClientMode < _config.Z2 {
 			rewardUnk = 10
-			reward = getStampcardReward(true, pkt.HR, pkt.GR)
 		} else {
 			rewardUnk = pkt.Reward2
-			reward = mhfitem.MHFItemStack{Item: mhfitem.MHFItem{ItemID: pkt.Item2}, Quantity: pkt.Quantity2}
 		}
+		reward = mhfitem.MHFItemStack{Item: mhfitem.MHFItem{ItemID: pkt.Item2}, Quantity: pkt.Quantity2}
 		addWarehouseItem(s, reward)
 	} else if stamps/15 > (stamps-pkt.Stamps)/15 {
 		rewardTier = 1
 		if _config.ErupeConfig.RealClientMode < _config.Z2 {
 			rewardUnk = 10
-			reward = getStampcardReward(false, pkt.HR, pkt.GR)
 		} else {
 			rewardUnk = pkt.Reward1
-			reward = mhfitem.MHFItemStack{Item: mhfitem.MHFItem{ItemID: pkt.Item1}, Quantity: pkt.Quantity1}
 		}
+		reward = mhfitem.MHFItemStack{Item: mhfitem.MHFItem{ItemID: pkt.Item1}, Quantity: pkt.Quantity1}
 		addWarehouseItem(s, reward)
 	}
 

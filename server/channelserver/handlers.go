@@ -1089,20 +1089,12 @@ func handleMsgMhfStampcardStamp(s *Session, p mhfpacket.MHFPacket) {
 
 	if stamps/30 > (stamps-pkt.Stamps)/30 {
 		rewardTier = 2
-		if _config.ErupeConfig.RealClientMode < _config.Z2 {
-			rewardUnk = 10
-		} else {
-			rewardUnk = pkt.Reward2
-		}
+		rewardUnk = pkt.Reward2
 		reward = mhfitem.MHFItemStack{Item: mhfitem.MHFItem{ItemID: pkt.Item2}, Quantity: pkt.Quantity2}
 		addWarehouseItem(s, reward)
 	} else if stamps/15 > (stamps-pkt.Stamps)/15 {
 		rewardTier = 1
-		if _config.ErupeConfig.RealClientMode < _config.Z2 {
-			rewardUnk = 10
-		} else {
-			rewardUnk = pkt.Reward1
-		}
+		rewardUnk = pkt.Reward1
 		reward = mhfitem.MHFItemStack{Item: mhfitem.MHFItem{ItemID: pkt.Item1}, Quantity: pkt.Quantity1}
 		addWarehouseItem(s, reward)
 	}

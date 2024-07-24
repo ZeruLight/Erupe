@@ -44,6 +44,9 @@ func (m *MsgMhfStampcardStamp) Parse(bf *byteframe.ByteFrame, ctx *clientctx.Cli
 		m.Item2 = uint16(bf.ReadUint32())
 		m.Quantity1 = uint16(bf.ReadUint32())
 		m.Quantity2 = uint16(bf.ReadUint32())
+	} else {
+		m.Reward1 = 10
+		m.Reward2 = 10
 	}
 	return nil
 }

@@ -169,6 +169,10 @@ func handleMsgMhfStateCampaign(s *Session, p mhfpacket.MHFPacket) {
 	}
 	bf.WriteUint16(uint16(len(stamps) + 1))
 
+	if required == 0 {
+		required = 1 // TODO: I don't understand how this is supposed to work
+	}
+
 	if len(stamps) < required {
 		bf.WriteUint16(0)
 	} else if len(stamps) >= required || deadline.After(time.Now()) {
@@ -225,6 +229,11 @@ func handleMsgMhfEnumerateItem(s *Session, p mhfpacket.MHFPacket) {
 		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
+
+	if required == 0 {
+		required = 1 // TODO: I don't understand how this is supposed to work
+	}
+
 	if stamps >= required {
 		var items []CampaignReward
 		if rewardType == 2 {

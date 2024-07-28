@@ -9,20 +9,16 @@ INSERT INTO
     max_sr,
     min_gr,
     max_gr,
-    recieve_type,
-    stamp_amount,
-    hide,
+    reward_type,
+    stamps,
+    unk,
     background_id,
-    hide_npc,
     start_time,
     end_time,
-    period_ended,
-    string0,
-    string1,
-    string2,
-    string3,
+    title,
+    reward,
     link,
-    code_prefix,
+    code_prefix
   )
 VALUES
   (
@@ -37,18 +33,13 @@ VALUES
     0,
     0,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'ガイド娘の差し入れ',
     'ガイド娘の差し入れ',
-    '',
-    '',
     'http://www.mhf-z.jp/',
     'SCSC'
-  ),
-  (
+  ), (
     142209682,
     -1,
     -1,
@@ -60,18 +51,13 @@ VALUES
     0,
     0,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'VISAクエスト【ベイルＺＰ】',
     'VISAクエスト【ベイルＺＰ】',
-    '',
-    '',
     'http://www.mhf-z.jp/',
     'VC10'
-  ),
-  (
+  ), (
     488594222,
     -1,
     -1,
@@ -83,18 +69,13 @@ VALUES
     0,
     0,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     '推奨PC特典トゥールム',
     '推奨PC特典トゥールム',
-    '',
-    '',
     'http://www.mhf-z.jp',
     'TOUR'
-  ),
-  (
+  ), (
     649144304,
     -1,
     -1,
@@ -106,18 +87,13 @@ VALUES
     0,
     0,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'VISAクエスト【ベイルＧＰ】',
     'VISAクエスト【ベイルＧＰ】',
-    '',
-    '',
     'http://www.mhf-z.jp',
     'VC09'
-  ),
-  (
+  ), (
     421484974,
     -1,
     -1,
@@ -129,18 +105,13 @@ VALUES
     0,
     0,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     '新・狩友紹介特典【紹介】',
     '新・狩友紹介特典【紹介】',
-    '',
-    '',
     'http://www.mhf-z.jp',
     'SFR1'
-  ),
-  (
+  ), (
     730957531,
     100,
     999,
@@ -152,18 +123,13 @@ VALUES
     0,
     0,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     '新・狩友紹介特典【HR100・複数】',
     '新・狩友紹介特典【HR100・複数】',
-    '',
-    '',
     'http://www.mhf-z.jp',
     'SFR7'
-  ),
-  (
+  ), (
     865537514,
     -1,
     -1,
@@ -175,18 +141,13 @@ VALUES
     0,
     0,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'G-Tune特典G-Tuneソード',
     'ＧＴＵＮＥ生産券×1',
-    '',
-    '',
     'http://www.mhf-z.jp',
     'GT01'
-  ),
-  (
+  ), (
     488594158,
     -1,
     -1,
@@ -198,18 +159,13 @@ VALUES
     0,
     0,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'VISAクエスト【ベイルＧＳ】',
     'VISAクエスト【ベイルＧＳ】',
-    '',
-    '',
     'http://www.mhf-z.jp',
     'VC08'
-  ),
-  (
+  ), (
     699557165,
     -1,
     -1,
@@ -221,18 +177,13 @@ VALUES
     0,
     0,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'VISAクエスト【ベイルＨＳ】',
     'VISAクエスト【ベイルＨＳ】',
-    '',
-    '',
     'http://www.mhf-z.jp',
     'VC07'
-  ),
-  (
+  ), (
     766535101,
     -1,
     -1,
@@ -244,18 +195,13 @@ VALUES
     0,
     0,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'はじめての狩猟セット【蒼】',
     'はじめての狩猟セット【蒼】',
-    '',
-    '',
     'http://www.mhf-z.jp',
     'HSSG'
-  ),
-  (
+  ), (
     919840278,
     -1,
     -1,
@@ -267,18 +213,13 @@ VALUES
     0,
     0,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'レア素材獲得クエスト[GR1]',
     'レア素材獲得クエスト[GR1]',
-    '',
-    '',
     'http://www.mhf-z.jp',
     'RAQ8'
-  ),
-  (
+  ), (
     747709809,
     -1,
     -1,
@@ -290,18 +231,13 @@ VALUES
     0,
     10,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'プーギー服「ゴスペル風の服」',
     'プーギー服「ゴスペル風の服」',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'PG08'
-  ),
-  (
+  ), (
     257005183,
     -1,
     -1,
@@ -313,18 +249,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'スリートキット生産券一式',
     'スリートキット生産券一式',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'SRTK'
-  ),
-  (
+  ), (
     649274608,
     -1,
     -1,
@@ -336,18 +267,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'ステノキット生産券一式',
     'ステノキット生産券一式',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'STNK'
-  ),
-  (
+  ), (
     680601073,
     -1,
     -1,
@@ -359,18 +285,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'エディオキット生産券一式',
     'エディオキット生産券一式',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'EDEK'
-  ),
-  (
+  ), (
     142209810,
     -1,
     -1,
@@ -382,18 +303,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'ガリトスキット生産券一式',
     'ガリトスキット生産券一式',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'GLSK'
-  ),
-  (
+  ), (
     140111954,
     -1,
     -1,
@@ -405,18 +321,13 @@ VALUES
     0,
     10,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'プーギー服「パリアっぽい服」',
     'プーギー服「パリアっぽい服」',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'PG10'
-  ),
-  (
+  ), (
     225604757,
     -1,
     -1,
@@ -428,18 +339,13 @@ VALUES
     0,
     10,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'プーギー服「釣り上げそうな服」',
     'プーギー服「釣り上げそうな服」',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'PG12'
-  ),
-  (
+  ), (
     970837204,
     -1,
     -1,
@@ -451,18 +357,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'ブースターパックＧ第１弾',
     'ブースターパックＧ第１弾',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'BGK1'
-  ),
-  (
+  ), (
     647465687,
     -1,
     -1,
@@ -474,18 +375,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'Fate／stay night生産券一式',
     'Fate／stay night生産券一式',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'FSNK'
-  ),
-  (
+  ), (
     615934211,
     -1,
     -1,
@@ -497,18 +393,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     '初音ミクキット生産券一式',
     '初音ミクキット生産券一式',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'HMKK'
-  ),
-  (
+  ), (
     477754130,
     -1,
     -1,
@@ -520,18 +411,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'Ｇ強化券',
     'Ｇ強化券×10',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'GUGK'
-  ),
-  (
+  ), (
     477131813,
     -1,
     -1,
@@ -543,18 +429,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     '伊達政宗ノ装束生産券一式',
     '伊達政宗ノ装束生産券一式',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'BDMK'
-  ),
-  (
+  ), (
     919839894,
     -1,
     -1,
@@ -566,18 +447,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     '真田幸村ノ装束生産券一式',
     '真田幸村ノ装束生産券一式',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'BSYK'
-  ),
-  (
+  ), (
     410645266,
     -1,
     -1,
@@ -589,18 +465,13 @@ VALUES
     0,
     0,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'VISAクエスト【ベイルＨＣ】',
     'VISAクエスト【ベイルＨＣ】',
-    '',
-    '',
     'http://www.mhf-z.jp',
     'VC06'
-  ),
-  (
+  ), (
     769511124,
     -1,
     -1,
@@ -612,18 +483,13 @@ VALUES
     0,
     0,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'VISAクエスト【ベイルＦ】',
     'VISAクエスト【ベイルＦ】',
-    '',
-    '',
     'http://www.mhf-z.jp',
     'VC04'
-  ),
-  (
+  ), (
     697509361,
     -1,
     -1,
@@ -635,18 +501,13 @@ VALUES
     0,
     0,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'VISAクエスト【ベイルＦＺ】',
     'VISAクエスト【ベイルＦＺ】',
-    '',
-    '',
     'http://www.mhf-z.jp',
     'VC05'
-  ),
-  (
+  ), (
     1037946068,
     -1,
     -1,
@@ -658,18 +519,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'SF25周年記念キット生産券一式',
     'SF25周年記念キット生産券一式',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'SFAK'
-  ),
-  (
+  ), (
     615803171,
     -1,
     -1,
@@ -681,18 +537,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'グロリアキット生産券一式',
     'グロリアキット生産券一式',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'GLRK'
-  ),
-  (
+  ), (
     257005151,
     -1,
     -1,
@@ -704,18 +555,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     '鬼武者キット生産券一式',
     '鬼武者キット生産券一式',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'NMSK'
-  ),
-  (
+  ), (
     209318802,
     -1,
     -1,
@@ -727,18 +573,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'クロースキット生産券一式',
     'クロースキット生産券一式',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'CLTK'
-  ),
-  (
+  ), (
     664111863,
     -1,
     -1,
@@ -750,18 +591,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'テクストキット生産券一式',
     'テクストキット生産券一式',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'TEKK'
-  ),
-  (
+  ), (
     597101930,
     -1,
     -1,
@@ -773,18 +609,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'ファランキット生産券一式',
     'ファランキット生産券一式',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'FRNK'
-  ),
-  (
+  ), (
     494917916,
     -1,
     -1,
@@ -796,18 +627,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'アージェキット生産券一式',
     'アージェキット生産券一式',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'ARJK'
-  ),
-  (
+  ), (
     477262885,
     -1,
     -1,
@@ -819,18 +645,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'ガイド娘のお助けパック第５弾',
     'ガイド娘のお助けパック第５弾',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'GG5L'
-  ),
-  (
+  ), (
     584295574,
     -1,
     -1,
@@ -842,18 +663,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'ブースターパック第15弾',
     'ブースターパック第15弾',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'BK15'
-  ),
-  (
+  ), (
     615934227,
     -1,
     -1,
@@ -865,18 +681,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'レイストキット生産券一式',
     'レイストキット生産券一式',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'RESK'
-  ),
-  (
+  ), (
     865438535,
     -1,
     -1,
@@ -888,18 +699,13 @@ VALUES
     0,
     0,
     18,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'ドスパラPC特典ドスパライズ',
     'ドスパライズ',
-    '',
-    '',
     'http://www.mhf-ｚ.jp',
     'DP01'
-  ),
-  (
+  ), (
     209318162,
     300,
     999,
@@ -911,18 +717,13 @@ VALUES
     0,
     0,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'レア素材獲得クエスト[HR300]',
     'レア素材獲得クエスト[HR300]',
-    '',
-    '',
     'http://www.mhf-z.jp',
     'RAQ7'
-  ),
-  (
+  ), (
     427809564,
     -1,
     -1,
@@ -934,18 +735,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     '秘伝書コース',
     '秘伝書コース購入者プレゼント',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'HDNP'
-  ),
-  (
+  ), (
     769510612,
     -1,
     -1,
@@ -957,18 +753,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'ブースターピアス第４弾',
     'ブースターピアス第４弾',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'BUP4'
-  ),
-  (
+  ), (
     632580403,
     -1,
     -1,
@@ -980,18 +771,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'ブースターパック第14弾',
     'ブースターパック第14弾',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'BK14'
-  ),
-  (
+  ), (
     697509345,
     -1,
     -1,
@@ -1003,18 +789,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'ガイド娘のお助けパック第４弾',
     'ガイド娘のお助けパック第４弾',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'GG4L'
-  ),
-  (
+  ), (
     477754258,
     -1,
     -1,
@@ -1026,18 +807,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'シエナキット生産券一式',
     'シエナキット生産券一式',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'SENK'
-  ),
-  (
+  ), (
     982746827,
     11,
     999,
@@ -1049,18 +825,13 @@ VALUES
     0,
     0,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     '狩友紹介特典【HR11】',
     '狩友紹介特典【HR11】',
-    '',
-    '',
     'http://www.mhf-z.jp',
     'FRS2'
-  ),
-  (
+  ), (
     427809180,
     31,
     999,
@@ -1072,18 +843,13 @@ VALUES
     0,
     0,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     '狩友紹介特典【HR31】',
     '狩友紹介特典【HR31】',
-    '',
-    '',
     'http://www.mhf-z.jp',
     'FRS3'
-  ),
-  (
+  ), (
     326425369,
     51,
     999,
@@ -1095,18 +861,13 @@ VALUES
     0,
     0,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     '狩友紹介特典【HR51】',
     '狩友紹介特典【HR51】',
-    '',
-    '',
     'http://www.mhf-z.jp',
     'FRS4'
-  ),
-  (
+  ), (
     932646762,
     71,
     999,
@@ -1118,18 +879,13 @@ VALUES
     0,
     0,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     '狩友紹介特典【HR71】',
     '狩友紹介特典【HR71】',
-    '',
-    '',
     'http://www.mhf-z.jp',
     'FRS5'
-  ),
-  (
+  ), (
     664242887,
     100,
     999,
@@ -1141,18 +897,13 @@ VALUES
     0,
     0,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     '狩友紹介特典【HR100】',
     '狩友紹介特典【HR100】',
-    '',
-    '',
     'http://www.mhf-z.jp',
     'FRS6'
-  ),
-  (
+  ), (
     324377496,
     100,
     999,
@@ -1164,18 +915,13 @@ VALUES
     0,
     0,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     '狩友紹介特典【HR100・複数】',
     '狩友紹介特典【HR100・複数】',
-    '',
-    '',
     'http://www.mhf-z.jp',
     'FRS7'
-  ),
-  (
+  ), (
     488593646,
     -1,
     -1,
@@ -1187,18 +933,13 @@ VALUES
     0,
     0,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     '狩友紹介特典【紹介】',
     '狩友紹介特典【紹介】',
-    '',
-    '',
     'http://www.mhf-z.jp',
     'FRS1'
-  ),
-  (
+  ), (
     917579440,
     -1,
     -1,
@@ -1210,18 +951,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'ガイド娘のお助けパック第３弾',
     'ガイド娘のお助けパック第３弾',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'GG3L'
-  ),
-  (
+  ), (
     1032922465,
     -1,
     -1,
@@ -1233,18 +969,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'ブースターパック第13弾',
     'ブースターパック第13弾',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'BK13'
-  ),
-  (
+  ), (
     410775890,
     -1,
     -1,
@@ -1256,18 +987,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'ターボパック第６弾',
     'ターボパック第６弾',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'TPK6'
-  ),
-  (
+  ), (
     190027375,
     -1,
     -1,
@@ -1279,18 +1005,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'ブースターピアス第３弾',
     'ブースターピアス第３弾',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'BUP3'
-  ),
-  (
+  ), (
     704499284,
     -1,
     -1,
@@ -1302,18 +1023,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'カウチュキット生産券一式',
     'カウチュキット生産券一式',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'CULK'
-  ),
-  (
+  ), (
     749757837,
     -1,
     -1,
@@ -1325,18 +1041,13 @@ VALUES
     0,
     0,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'VISA引換券交換【30日】',
     'VISA引換券交換【30日】',
-    '',
-    '',
     'http://www.mhf-z.jp',
     'VT30'
-  ),
-  (
+  ), (
     41343673,
     -1,
     -1,
@@ -1348,18 +1059,13 @@ VALUES
     0,
     0,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'パッケージ引換券交換【30日】',
     'パッケージ引換券交換【30日】',
-    '',
-    '',
     'http://www.mhf-z.jp',
     'PT30'
-  ),
-  (
+  ), (
     664080362,
     -1,
     -1,
@@ -1371,18 +1077,13 @@ VALUES
     0,
     0,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'パッケージ引換券交換【60日】',
     'パッケージ引換券交換【60日】',
-    '',
-    '',
     'http://www.mhf-z.jp',
     'PT60'
-  ),
-  (
+  ), (
     582034480,
     -1,
     -1,
@@ -1394,18 +1095,13 @@ VALUES
     0,
     0,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'はじめての狩猟セット【紅】',
     'はじめての狩猟セット【紅】',
-    '',
-    '',
     'http://www.mhf-z.jp',
     'HSSD'
-  ),
-  (
+  ), (
     884238483,
     -1,
     -1,
@@ -1417,18 +1113,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'ガイド娘のお助けパック第２弾',
     'ガイド娘のお助けパック第２弾',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'GG2L'
-  ),
-  (
+  ), (
     125278872,
     -1,
     -1,
@@ -1440,18 +1131,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'ヴァンパイアキット生産券一式',
     'ヴァンパイアキット生産券一式',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'VAMK'
-  ),
-  (
+  ), (
     848792567,
     -1,
     -1,
@@ -1463,18 +1149,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'トラスキット生産券一式',
     'トラスキット生産券一式',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'TRSK'
-  ),
-  (
+  ), (
     852600342,
     -1,
     -1,
@@ -1486,18 +1167,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'ブースターピアス第２弾',
     'ブースターピアス第２弾',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'BUP2'
-  ),
-  (
+  ), (
     426931253,
     -1,
     -1,
@@ -1509,18 +1185,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'ブースターパック第12弾',
     'ブースターパック第12弾',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'BK12'
-  ),
-  (
+  ), (
     582034992,
     -1,
     -1,
@@ -1532,18 +1203,13 @@ VALUES
     0,
     0,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     '推奨PC特典マグネストーン',
     '推奨PC特典マグネストーン',
-    '',
-    '',
     'http://www.mhf-z.jp',
     'RPC1'
-  ),
-  (
+  ), (
     919708822,
     -1,
     -1,
@@ -1555,18 +1221,13 @@ VALUES
     0,
     10,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'プーギー服「レインボウな服」',
     'プーギー服「レインボウな服」',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'PG4A'
-  ),
-  (
+  ), (
     477885266,
     -1,
     -1,
@@ -1578,18 +1239,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'ブースターパック第11弾',
     'ブースターパック第11弾',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'BK11'
-  ),
-  (
+  ), (
     1032922449,
     -1,
     -1,
@@ -1601,18 +1257,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'マイストキット生産券一式',
     'マイストキット生産券一式',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'MAIK'
-  ),
-  (
+  ), (
     190027359,
     -1,
     -1,
@@ -1624,18 +1275,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'ターボパック第５弾',
     'ターボパック第５弾',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'TPK5'
-  ),
-  (
+  ), (
     917578800,
     -1,
     -1,
@@ -1647,18 +1293,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'ブースターピアス',
     'ブースターピアス',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'BUP1'
-  ),
-  (
+  ), (
     651273238,
     -1,
     -1,
@@ -1670,18 +1311,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'ガイド娘のお助けパック',
     'ガイド娘のお助けパック',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'GGHL'
-  ),
-  (
+  ), (
     157276444,
     -1,
     -1,
@@ -1693,18 +1329,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     '蘭陀キット生産券一式',
     '蘭陀キット生産券一式',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'RANK'
-  ),
-  (
+  ), (
     664079850,
     -1,
     -1,
@@ -1716,18 +1347,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'スキルカフP セット',
     'スキルカフP セット',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'SC2K'
-  ),
-  (
+  ), (
     490559854,
     -1,
     -1,
@@ -1739,18 +1365,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'ブースターパック第10弾',
     'ブースターパック第10弾',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'BK10'
-  ),
-  (
+  ), (
     1066502091,
     -1,
     -1,
@@ -1762,18 +1383,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'スパIVキット第２弾生産券一式',
     'スパIVキット第２弾生産券一式',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'SU2K'
-  ),
-  (
+  ), (
     766666125,
     -1,
     -1,
@@ -1785,18 +1401,13 @@ VALUES
     0,
     10,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'カシラの差し入れ',
     'カシラの差し入れ',
-    '',
-    '',
     'http://www.mhf-z.jp',
     'SASB'
-  ),
-  (
+  ), (
     917579312,
     -1,
     -1,
@@ -1808,18 +1419,13 @@ VALUES
     0,
     10,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     '教官見習ネコの差し入れ',
     '教官見習ネコの差し入れ',
-    '',
-    '',
     'http://www.mhf-z.jp',
     'SASA'
-  ),
-  (
+  ), (
     58169496,
     -1,
     -1,
@@ -1831,18 +1437,13 @@ VALUES
     0,
     0,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'レア素材獲得クエスト[HR100]',
     'レア素材獲得クエスト[HR100]',
-    '',
-    '',
     'http://www.mhf-z.jp',
     'RAQ6'
-  ),
-  (
+  ), (
     57989801,
     -1,
     -1,
@@ -1854,18 +1455,13 @@ VALUES
     0,
     0,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'レア素材獲得クエスト[HR31]',
     'レア素材獲得クエスト[HR31]',
-    '',
-    '',
     'http://www.mhf-g.jp',
     'RAQ3'
-  ),
-  (
+  ), (
     865406314,
     -1,
     -1,
@@ -1877,18 +1473,13 @@ VALUES
     0,
     0,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'レア素材獲得クエスト[HR51]',
     'レア素材獲得クエスト[HR51]',
-    '',
-    '',
     'http://www.mhf-z.jp',
     'RAQ4'
-  ),
-  (
+  ), (
     848792551,
     -1,
     -1,
@@ -1900,18 +1491,13 @@ VALUES
     0,
     0,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'レア素材獲得クエスト[HR71]',
     'レア素材獲得クエスト[HR71]',
-    '',
-    '',
     'http://www.mhf-z.jp',
     'RAQ5'
-  ),
-  (
+  ), (
     865438711,
     -1,
     -1,
@@ -1923,18 +1509,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'ターボパック第４弾',
     'ターボパック第４弾',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'TPK4'
-  ),
-  (
+  ), (
     596970858,
     -1,
     -1,
@@ -1946,18 +1527,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'ブースターパック第９弾',
     'ブースターパック第９弾',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'BPK9'
-  ),
-  (
+  ), (
     57989769,
     -1,
     -1,
@@ -1969,18 +1545,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'バーニーキット生産券一式',
     'バーニーキット生産券一式',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'BUKT'
-  ),
-  (
+  ), (
     884238467,
     -1,
     -1,
@@ -1992,18 +1563,13 @@ VALUES
     0,
     10,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'マイトレポイント10P',
     'マイトレポイント10P',
-    '',
-    '',
     'http://www.mhf-z.jp',
     'MYTP'
-  ),
-  (
+  ), (
     125278360,
     -1,
     -1,
@@ -2015,18 +1581,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'スパIVキット生産券一式',
     'スパIVキット生産券一式',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'S4KT'
-  ),
-  (
+  ), (
     766666173,
     -1,
     -1,
@@ -2038,18 +1599,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'ゴルトキット生産券一式',
     'ゴルトキット生産券一式',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'GLKT'
-  ),
-  (
+  ), (
     58169880,
     -1,
     -1,
@@ -2061,18 +1617,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'ターボパックＮ第２弾',
     'ターボパックＮ第２弾',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'TPN2'
-  ),
-  (
+  ), (
     58120841,
     -1,
     -1,
@@ -2084,18 +1635,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'ブースターパック第８弾',
     'ブースターパック第８弾',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'BPK8'
-  ),
-  (
+  ), (
     848661495,
     -1,
     -1,
@@ -2107,18 +1653,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'リゲリアキット生産券一式',
     'リゲリアキット生産券一式',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'RGKT'
-  ),
-  (
+  ), (
     865406954,
     -1,
     -1,
@@ -2130,18 +1671,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'クレールキット生産券一式',
     'クレールキット生産券一式',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'CLKT'
-  ),
-  (
+  ), (
     901015731,
     -1,
     -1,
@@ -2153,18 +1689,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'シャランキット生産券一式',
     'シャランキット生産券一式',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'SAKT'
-  ),
-  (
+  ), (
     702533268,
     -1,
     -1,
@@ -2176,18 +1707,13 @@ VALUES
     1,
     10,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'プーギー服「アクラっぽい服」',
     'プーギー服「アクラっぽい服」',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'PG07'
-  ),
-  (
+  ), (
     584164886,
     -1,
     -1,
@@ -2199,18 +1725,13 @@ VALUES
     0,
     10,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'プーギー服「美味しそうな服」',
     'プーギー服「美味しそうな服」',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'PG13'
-  ),
-  (
+  ), (
     425712412,
     -1,
     -1,
@@ -2222,18 +1743,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'ターボパック第３弾',
     'ターボパック第３弾',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'TPK3'
-  ),
-  (
+  ), (
     749888957,
     -1,
     -1,
@@ -2245,18 +1761,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'きんねこぎんねこキット生産券一式',
     'きんねこぎんねこキット生産券一式',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'GSKT'
-  ),
-  (
+  ), (
     1066633211,
     -1,
     -1,
@@ -2268,18 +1779,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'ブースターパック第７弾',
     'ブースターパック第７弾',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'BPK7'
-  ),
-  (
+  ), (
     702532628,
     -1,
     -1,
@@ -2291,18 +1797,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'アリストキット生産券一式',
     'アリストキット生産券一式',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'ASKT'
-  ),
-  (
+  ), (
     764487025,
     -1,
     -1,
@@ -2314,18 +1815,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'ブースターパック第６弾',
     'ブースターパック第６弾',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'BPK6'
-  ),
-  (
+  ), (
     714180459,
     -1,
     -1,
@@ -2337,18 +1833,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'ブースターパック第５弾',
     'ブースターパック第５弾',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'BPK5'
-  ),
-  (
+  ), (
     492820700,
     -1,
     -1,
@@ -2360,18 +1851,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'ターボパック第２弾',
     'ターボパック第２弾',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'TPK2'
-  ),
-  (
+  ), (
     225604741,
     -1,
     -1,
@@ -2383,18 +1869,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'ターボパックＮ',
     'ターボパックＮ',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'TPN1'
-  ),
-  (
+  ), (
     865438551,
     -1,
     -1,
@@ -2406,18 +1887,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'スキルカフPセット',
     'スキルカフPセット',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'SCP1'
-  ),
-  (
+  ), (
     391617368,
     -1,
     -1,
@@ -2429,18 +1905,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'イメチェンサービス',
     'イメチェンサービス',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'IMCH'
-  ),
-  (
+  ), (
     309779081,
     -1,
     -1,
@@ -2452,18 +1923,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'メレティキット生産券一式',
     'メレティキット生産券一式',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'MTKT'
-  ),
-  (
+  ), (
     649143728,
     -1,
     -1,
@@ -2475,18 +1941,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'フェルムキット生産券一式',
     'フェルムキット生産券一式',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'FLKT'
-  ),
-  (
+  ), (
     123182040,
     -1,
     -1,
@@ -2498,18 +1959,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'レアルキット生産券一式',
     'レアルキット生産券一式',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'RLKT'
-  ),
-  (
+  ), (
     766534669,
     -1,
     -1,
@@ -2521,18 +1977,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'アルマキット生産券一式',
     'アルマキット生産券一式',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'APK1'
-  ),
-  (
+  ), (
     901015555,
     -1,
     -1,
@@ -2544,18 +1995,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'イクスキット生産券一式',
     'イクスキット生産券一式',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'EXKT'
-  ),
-  (
+  ), (
     919708950,
     -1,
     -1,
@@ -2567,18 +2013,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'リアンキット生産券一式',
     'リアンキット生産券一式',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'LEKT'
-  ),
-  (
+  ), (
     666307882,
     -1,
     -1,
@@ -2590,18 +2031,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'マギサ／ウィザーキット生産券一式',
     'マギサ／ウィザーキット生産券一式',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'MGWZ'
-  ),
-  (
+  ), (
     766665773,
     -1,
     -1,
@@ -2613,18 +2049,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     '星祭／七夕キット生産券一式',
     '星祭／七夕キット生産券一式',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'HTKT'
-  ),
-  (
+  ), (
     582035248,
     -1,
     -1,
@@ -2636,18 +2067,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'プロミスキット生産券一式',
     'プロミスキット生産券一式',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'PRMS'
-  ),
-  (
+  ), (
     173119487,
     -1,
     -1,
@@ -2659,18 +2085,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'ホワイトメタルキット生産券一式',
     'ホワイトメタルキット生産券一式',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'WMTL'
-  ),
-  (
+  ), (
     766534701,
     -1,
     -1,
@@ -2682,18 +2103,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'しろねこ服キット生産券一式',
     'しろねこ服キット生産券一式',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'SRNK'
-  ),
-  (
+  ), (
     747709777,
     -1,
     -1,
@@ -2705,18 +2121,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'ターボパック第１弾',
     'ターボパック第１弾',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'TPK1'
-  ),
-  (
+  ), (
     189896703,
     -1,
     -1,
@@ -2728,18 +2139,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'ブースターパック第４弾',
     'ブースターパック第４弾',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'BPK4'
-  ),
-  (
+  ), (
     848792439,
     -1,
     -1,
@@ -2751,18 +2157,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'ブースターパック第３弾',
     'ブースターパック第３弾',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'BPK3'
-  ),
-  (
+  ), (
     970968596,
     -1,
     -1,
@@ -2774,18 +2175,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'ブースターパック第２弾',
     'ブースターパック第２弾',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'BPK2'
-  ),
-  (
+  ), (
     425711708,
     -1,
     -1,
@@ -2797,18 +2193,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'ブースターパック',
     'ブースターパック',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'BPAC'
-  ),
-  (
+  ), (
     867634602,
     -1,
     -1,
@@ -2820,18 +2211,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'プーギー服「悪戯しそうな服」',
     'プーギー服「悪戯しそうな服」',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'PG11'
-  ),
-  (
+  ), (
     714180427,
     -1,
     -1,
@@ -2843,18 +2229,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'プーギー服「ベルっぽい服」',
     'プーギー服「ベルっぽい服」',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'PG09'
-  ),
-  (
+  ), (
     309648009,
     -1,
     -1,
@@ -2866,18 +2247,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'プーギー服「アスール風の服」',
     'プーギー服「アスール風の服」',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'PG06'
-  ),
-  (
+  ), (
     391616984,
     -1,
     -1,
@@ -2889,18 +2265,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'プーギー服「エスピっぽい服」',
     'プーギー服「エスピっぽい服」',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'PG04'
-  ),
-  (
+  ), (
     208827525,
     -1,
     -1,
@@ -2912,18 +2283,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'プーギー服「コムラダ風の服」',
     'プーギー服「コムラダ風の服」',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'PG05'
-  ),
-  (
+  ), (
     326556329,
     -1,
     -1,
@@ -2935,18 +2301,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'プーギー服「ヒプっぽい服」',
     'プーギー服「ヒプっぽい服」',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'PG02'
-  ),
-  (
+  ), (
     934743978,
     -1,
     -1,
@@ -2958,18 +2319,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'プーギー服「ヴォルっぽい服」',
     'プーギー服「ヴォルっぽい服」',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'PG03'
-  ),
-  (
+  ), (
     224385244,
     -1,
     -1,
@@ -2981,18 +2337,13 @@ VALUES
     1,
     1,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'プーギー服「野生的な服」',
     'プーギー服「野生的な服」',
-    '',
-    '',
     'http://members.mhf-z.jp/topic/payment/',
     'PG01'
-  ),
-  (
+  ), (
     884369427,
     -1,
     -1,
@@ -3004,18 +2355,13 @@ VALUES
     0,
     10,
     41,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'マイトレポイント30P',
     'マイトレポイント30P',
-    '',
-    '',
     'http://www.mhf-z.jp',
     'S3P2'
-  ),
-  (
+  ), (
     867634474,
     -1,
     -1,
@@ -3027,18 +2373,13 @@ VALUES
     0,
     10,
     57,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     '便利アイテムセット【入門】',
     '便利アイテムセット【入門】',
-    '',
-    '',
     'http://www.mhf-z.jp',
     'BITM'
-  ),
-  (
+  ), (
     848792423,
     -1,
     -1,
@@ -3050,18 +2391,13 @@ VALUES
     0,
     10,
     58,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     '便利アイテムセット【達人】',
     '便利アイテムセット【達人】',
-    '',
-    '',
     'http://www.mhf-z.jp',
     'EITM'
-  ),
-  (
+  ), (
     208696469,
     -1,
     -1,
@@ -3073,18 +2409,13 @@ VALUES
     0,
     0,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'VISAクエスト【ゴシック】',
     'VISA生産券獲得クエスト',
-    '',
-    '',
     'http://www.mhf-z.jp',
     'VC01'
-  ),
-  (
+  ), (
     584165270,
     -1,
     -1,
@@ -3096,18 +2427,13 @@ VALUES
     0,
     0,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'VISAクエスト【ゴシックＦ】',
     'VISA生産券獲得クエスト',
-    '',
-    '',
     'http://www.mhf-z.jp',
     'VC02'
-  ),
-  (
+  ), (
     901146643,
     -1,
     -1,
@@ -3119,18 +2445,13 @@ VALUES
     0,
     0,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'VISAクエスト【ベイル】',
     'VISA生産券獲得クエスト',
-    '',
-    '',
     'http://www.mhf-z.jp',
     'VC03'
-  ),
-  (
+  ), (
     492821212,
     -1,
     -1,
@@ -3142,18 +2463,13 @@ VALUES
     0,
     0,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'MHF VISAカード入会特典',
     'MHF VISAカード入会特典',
-    '',
-    '',
     'http://www.mhf-z.jp',
     'VG03'
-  ),
-  (
+  ), (
     901015571,
     -1,
     -1,
@@ -3165,18 +2481,13 @@ VALUES
     0,
     0,
     12,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'レア素材獲得クエスト[HR11]',
     'レア素材獲得クエスト[HR11]',
-    '',
-    '',
     'http://www.mhf-z.jp',
     'RAQ2'
-  ),
-  (
+  ), (
     1038077588,
     -1,
     -1,
@@ -3188,18 +2499,13 @@ VALUES
     0,
     0,
     5,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'ポルタチケット配布所',
     '換金用アイテム：ポルタチケット',
-    '',
-    '',
     'http://www.mhf-ｚ.jp',
     'PTC1'
-  ),
-  (
+  ), (
     190027775,
     -1,
     -1,
@@ -3211,20 +2517,16 @@ VALUES
     0,
     0,
     44,
-    false,
     NOW(),
     NOW() + INTERVAL '24 hours',
-    false,
     'パタパタメラルー配布所',
     '家具：パタパタメラルー',
-    '',
-    '',
     'http://www.mhf-z.jp',
     'PATA'
   );
 
 INSERT INTO
-  public.campaign_categories (id, cat_type, title, description_text)
+  public.campaign_categories (id, type, title, description)
 VALUES
   (
     1,
@@ -3233,71 +2535,62 @@ VALUES
     '各種~C04イベント~C00用のイベントコードや、各
 種~C04キャンペーン~C00で入手できるイベントコ
 ードを入力することができます。'
-  ),
-  (
+  ), (
     2,
     0,
     'パッケージ特典',
     '~C11プレミアムパッケージ~C00など、各種~C04パッ
 ケージ~C00に付属されているイベントコード
 を入力することができます。'
-  ),
-  (
+  ), (
     3,
     0,
     '関連グッズ付属特典',
     '攻略本やゲームパッドなど、各種~C04MHF関
 連商品~C00に付属されているイベントコード
 を入力することができます。'
-  ),
-  (
+  ), (
     5,
     0,
     'その他',
     '複数の手段で入手できるイベントコード
 や不具合のアイテム補償用などのイベン
 トコードを入力することができます。'
-  ),
-  (
+  ), (
     6,
     1,
     'プレミアムキット・オリジナル',
     'アイテム販売商品~C11プレミアムキットシ
 リーズ【オリジナルキット】~C00のイベン
 トコードを入力することができます。'
-  ),
-  (
+  ), (
     7,
     1,
     'プレミアムキット・パッケージ',
     'アイテム販売商品~C11プレミアムキットシ
 リーズ【パッケージキット】~C00のイベン
 トコードを入力することができます。'
-  ),
-  (
+  ), (
     8,
     1,
     'ブースターパック',
     'アイテム販売商品~C11ブースターパック~C00の
 イベントコードを入力することができま
 す。'
-  ),
-  (
+  ), (
     9,
     1,
     'ターボパック',
     'アイテム販売商品~C11ターボパック~C00のイベ
 ントコードを入力することができます。'
-  ),
-  (
+  ), (
     10,
     1,
     'マイトレプーギー服',
     'アイテム販売商品やパッケージに付属し
 ている~C11マイトレプーギー服~C00のイベント
 コードを入力することができます。'
-  ),
-  (
+  ), (
     11,
     1,
     'その他の商品',
@@ -3484,110 +2777,73 @@ VALUES
   (190027775, 5);
 
 INSERT INTO
-  public.campaign_entries (
+  public.campaign_rewards (
     campaign_id,
-    hide,
     item_type,
-    item_amount,
-    item_no,
-    deadline
+    quantity,
+    item_id
   )
 VALUES
   (
     142209682,
-    false,
     9,
     0,
-    40218,
-    NOW() + INTERVAL '24 hours'
-  ),
-  (
+    40218
+  ), (
     649144304,
-    false,
     9,
     0,
-    40201,
-    NOW() + INTERVAL '24 hours'
-  ),
-  (
+    40201
+  ), (
     488594158,
-    false,
     9,
     0,
-    40174,
-    NOW() + INTERVAL '24 hours'
-  ),
-  (
+    40174
+  ), (
     699557165,
-    false,
     9,
     0,
-    40173,
-    NOW() + INTERVAL '24 hours'
-  ),
-  (
+    40173
+  ), (
     410645266,
-    false,
     9,
     0,
-    40161,
-    NOW() + INTERVAL '24 hours'
-  ),
-  (
+    40161
+  ), (
     697509361,
-    false,
     9,
     0,
-    40143,
-    NOW() + INTERVAL '24 hours'
-  ),
-  (
+    40143
+  ), (
     769511124,
-    false,
     9,
     0,
-    40141,
-    NOW() + INTERVAL '24 hours'
-  ),
-  (
+    40141
+  ), (
     901146643,
-    false,
     9,
     0,
-    40081,
-    NOW() + INTERVAL '24 hours'
-  ),
-  (
+    40081
+  ), (
     584165270,
-    false,
     9,
     0,
-    40080,
-    NOW() + INTERVAL '24 hours'
-  ),
-  (
+    40080
+  ), (
     208696469,
-    false,
     9,
     0,
-    40079,
-    NOW() + INTERVAL '24 hours'
-  ),
-  (
+    40079
+  ), (
     492821212,
-    false,
     7,
     110,
-    1859,
-    NOW() + INTERVAL '24 hours'
-  ),
-  (
+    1859
+  ), (
     190027775,
-    false,
     8,
     1,
-    96,
-    NOW() + INTERVAL '24 hours'
+    96
   );
 
 END;

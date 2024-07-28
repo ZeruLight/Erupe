@@ -276,33 +276,27 @@ func makeEventQuest(s *Session, rows *sql.Rows) ([]byte, error) {
 	bf.WriteUint8(questType)
 	if questType == 9 {
 		var stamps int
-		var amount int = 1
+		var amount = 1
 		var deadline time.Time
 		err := s.server.db.QueryRow(`SELECT COUNT(*) FROM campaign_state WHERE campaign_id = (
 			SELECT campaign_id
-			FROM campaign_entries
+			FROM campaign_rewards
 			WHERE item_type = 9
-			AND item_no = $1
+			AND item_id = $1
 		) AND character_id = $2`, questId, s.charID).Scan(&stamps)
-		err2 := s.server.db.QueryRow(`SELECT stamp_amount, (
-			SELECT deadline
-			FROM campaign_entries
-			WHERE item_type = 9
-			AND campaign_id = campaigns.id
-		) AS deadline
+		err2 := s.server.db.QueryRow(`SELECT stamps, end_time
 		FROM campaigns
 		WHERE id = (
 			SELECT campaign_id
-			FROM campaign_entries
+			FROM campaign_rewards
 			WHERE item_type = 9
-			AND item_no = $1
+			AND item_id = $1
 		)`, questId).Scan(&amount, &deadline)
 		// Check if there are enough stamps to activate the quest, the deadline hasn't passed, and there are no errors
 		if stamps >= amount && deadline.After(time.Now()) && err == nil && err2 == nil {
 			bf.WriteBool(true)
 		} else {
 			bf.WriteBool(false)
-
 		}
 	} else {
 		bf.WriteBool(true)

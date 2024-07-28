@@ -8,27 +8,23 @@ CREATE TABLE IF NOT EXISTS public.campaigns (
   max_sr INTEGER,
   min_gr INTEGER,
   max_gr INTEGER,
-  recieve_type INTEGER,
-  stamp_amount INTEGER,
-  hide INTEGER,
+  reward_type INTEGER,
+  stamps INTEGER,
+  unk INTEGER,
   background_id INTEGER,
-  hide_npc BOOLEAN,
   start_time TIMESTAMP WITH TIME ZONE,
   end_time TIMESTAMP WITH TIME ZONE,
-  period_ended BOOLEAN,
-  string0 TEXT,
-  string1 TEXT,
-  string2 TEXT,
-  string3 TEXT,
+  title TEXT,
+  reward TEXT,
   link TEXT,
   code_prefix TEXT
 );
 
 CREATE TABLE IF NOT EXISTS public.campaign_categories (
   id SERIAL PRIMARY KEY,
-  cat_type INTEGER,
+  type INTEGER,
   title TEXT,
-  description_text TEXT
+  description TEXT
 );
 
 CREATE TABLE IF NOT EXISTS public.campaign_category_links (
@@ -37,14 +33,17 @@ CREATE TABLE IF NOT EXISTS public.campaign_category_links (
   category_id INTEGER
 );
 
-CREATE TABLE IF NOT EXISTS public.campaign_entries (
+CREATE TABLE IF NOT EXISTS public.campaign_rewards (
   id SERIAL PRIMARY KEY,
   campaign_id INTEGER,
-  hide BOOLEAN,
   item_type INTEGER,
-  item_amount INTEGER,
-  item_no INTEGER,
-  deadline TIMESTAMP WITH TIME ZONE
+  quantity INTEGER,
+  item_id INTEGER
+);
+
+CREATE TABLE IF NOT EXISTS public.campaign_rewards_claimed (
+  character_id INTEGER,
+  reward_id INTEGER
 );
 
 CREATE TABLE IF NOT EXISTS public.campaign_state (
@@ -52,6 +51,16 @@ CREATE TABLE IF NOT EXISTS public.campaign_state (
   campaign_id INTEGER,
   character_id INTEGER,
   code TEXT
+);
+
+CREATE TABLE IF NOT EXISTS public.campaign_codes (
+  code TEXT,
+  multi BOOLEAN
+);
+
+CREATE TABLE IF NOT EXISTS public.campaign_quest (
+  campaign_id INTEGER,
+  character_id INTEGER
 );
 
 END;

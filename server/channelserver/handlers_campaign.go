@@ -299,7 +299,7 @@ func handleMsgMhfTransferItem(s *Session, p mhfpacket.MHFPacket) {
 			SELECT ce.campaign_id FROM campaign_rewards ce
 			JOIN event_quests eq ON ce.item_id = eq.quest_id
 			WHERE eq.id = $1
-		`, pkt.QuestID, s.charID).Scan(&campaignID)
+		`, pkt.QuestID).Scan(&campaignID)
 		if err == nil {
 			s.server.db.Exec(`INSERT INTO campaign_quest (campaign_id, character_id) VALUES ($1, $2)`, campaignID, s.charID)
 		}

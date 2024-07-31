@@ -30,18 +30,6 @@ func stubEnumerateNoResults(s *Session, ackHandle uint32) {
 	doAckBufSucceed(s, ackHandle, enumBf.Data())
 }
 
-func doAckEarthSucceed(s *Session, ackHandle uint32, data []*byteframe.ByteFrame) {
-	bf := byteframe.NewByteFrame()
-	bf.WriteUint32(uint32(s.server.erupeConfig.EarthID))
-	bf.WriteUint32(0)
-	bf.WriteUint32(0)
-	bf.WriteUint32(uint32(len(data)))
-	for i := range data {
-		bf.WriteBytes(data[i].Data())
-	}
-	doAckBufSucceed(s, ackHandle, bf.Data())
-}
-
 func doAckBufSucceed(s *Session, ackHandle uint32, data []byte) {
 	s.QueueSendMHF(&mhfpacket.MsgSysAck{
 		AckHandle:        ackHandle,
@@ -1115,65 +1103,7 @@ func handleMsgMhfUnreserveSrg(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfKickExportForce(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfGetEarthStatus(s *Session, p mhfpacket.MHFPacket) {
-	pkt := p.(*mhfpacket.MsgMhfGetEarthStatus)
-	bf := byteframe.NewByteFrame()
-	bf.WriteUint32(uint32(TimeWeekStart().Unix())) // Start
-	bf.WriteUint32(uint32(TimeWeekNext().Unix()))  // End
-	bf.WriteInt32(s.server.erupeConfig.EarthStatus)
-	bf.WriteInt32(s.server.erupeConfig.EarthID)
-	for i, m := range s.server.erupeConfig.EarthMonsters {
-		if _config.ErupeConfig.RealClientMode <= _config.G9 {
-			if i == 3 {
-				break
-			}
-		}
-		if i == 4 {
-			break
-		}
-		bf.WriteInt32(m)
-	}
-	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
-}
-
 func handleMsgMhfRegistSpabiTime(s *Session, p mhfpacket.MHFPacket) {}
-
-func handleMsgMhfGetEarthValue(s *Session, p mhfpacket.MHFPacket) {
-	pkt := p.(*mhfpacket.MsgMhfGetEarthValue)
-	type EarthValues struct {
-		Value []uint32
-	}
-
-	var earthValues []EarthValues
-	switch pkt.ReqType {
-	case 1:
-		earthValues = []EarthValues{
-			{[]uint32{1, 312, 0, 0, 0, 0}},
-			{[]uint32{2, 99, 0, 0, 0, 0}},
-		}
-	case 2:
-		earthValues = []EarthValues{
-			{[]uint32{1, 5771, 0, 0, 0, 0}},
-			{[]uint32{2, 1847, 0, 0, 0, 0}},
-		}
-	case 3:
-		earthValues = []EarthValues{
-			{[]uint32{1001, 36, 0, 0, 0, 0}},
-			{[]uint32{9001, 3, 0, 0, 0, 0}},
-			{[]uint32{9002, 10, 300, 0, 0, 0}},
-		}
-	}
-
-	var data []*byteframe.ByteFrame
-	for _, i := range earthValues {
-		bf := byteframe.NewByteFrame()
-		for _, j := range i.Value {
-			bf.WriteUint32(j)
-		}
-		data = append(data, bf)
-	}
-	doAckEarthSucceed(s, pkt.AckHandle, data)
-}
 
 func handleMsgMhfDebugPostValue(s *Session, p mhfpacket.MHFPacket) {}
 

@@ -22,9 +22,8 @@
   "CommandPrefix": "!",
   "AutoCreateAccount": true,
   "DefaultCourses": [1, 23, 24],
-  "EarthStatus": 0,
-  "EarthID": 0,
-  "EarthMonsters": [0, 0, 0, 0],
+  "EarthDebug": false,
+  "EarthMonsters": [116, 107, 2, 36],
   "SaveDumps": {
     "Enabled": true,
     "RawEnabled": false,

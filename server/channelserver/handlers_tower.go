@@ -157,7 +157,8 @@ func handleMsgMhfPostTowerInfo(s *Session, p mhfpacket.MHFPacket) {
 			zap.Int32("Unk6", pkt.Unk6),
 			zap.Int32("Unk7", pkt.Unk7),
 			zap.Int32("Block1", pkt.Block1),
-			zap.Int64("TimeTaken", pkt.TimeTaken),
+			zap.Int32("TimeTaken", pkt.TimeTaken),
+			zap.Int32("CID", pkt.CID),
 		)
 	}
 

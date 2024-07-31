@@ -17,7 +17,7 @@ type TerminalLogEntry struct {
 	Unk0  int16
 	Unk1  int32
 	Unk2  int32
-	Unk3  int32
+	CID   int32
 	Unk4  []int32
 }
 
@@ -48,7 +48,7 @@ func (m *MsgSysTerminalLog) Parse(bf *byteframe.ByteFrame, ctx *clientctx.Client
 		e.Unk0 = bf.ReadInt16()
 		e.Unk1 = bf.ReadInt32()
 		e.Unk2 = bf.ReadInt32()
-		e.Unk3 = bf.ReadInt32()
+		e.CID = bf.ReadInt32()
 		if _config.ErupeConfig.RealClientMode >= _config.G1 {
 			for j := 0; j < 4; j++ {
 				e.Unk4 = append(e.Unk4, bf.ReadInt32())

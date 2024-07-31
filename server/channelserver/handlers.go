@@ -110,14 +110,20 @@ func handleMsgSysAck(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgSysTerminalLog(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysTerminalLog)
+	//Type 1: 1	  Type 2: 8  Quest? Unk2 Quest ID
+	//Type 1: 71  Type 2: 8  Quest Tower? Unk2 Quest ID
+	//Type 1: 79  Type 2: 99  Caravan Points (Pallone?)
+	//Type 1: 10  Type 2: 5  Zenny??    (Gained via Selling Items at Quest End and Quest End Reward)
+	//Type 1: 91  Type 2: 100  Unk0 Amount Unk2   // Tower Reward at Gal?
+
 	for i := range pkt.Entries {
 		s.server.logger.Info("SysTerminalLog",
 			zap.Uint8("Type1", pkt.Entries[i].Type1),
 			zap.Uint8("Type2", pkt.Entries[i].Type2),
 			zap.Int16("Unk0", pkt.Entries[i].Unk0),
 			zap.Int32("Unk1", pkt.Entries[i].Unk1),
-			zap.Int32("Unk2", pkt.Entries[i].Unk2),
-			zap.Int32("Unk3", pkt.Entries[i].Unk3),
+			zap.Int32("Unk 2 Sometimes Quest QuestID", pkt.Entries[i].Unk2),
+			zap.Int32("CID", pkt.Entries[i].CID),
 			zap.Int32s("Unk4", pkt.Entries[i].Unk4),
 		)
 	}

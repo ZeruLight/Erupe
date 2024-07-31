@@ -3,9 +3,10 @@ package channelserver
 import (
 	_config "erupe-ce/config"
 	"fmt"
-	"go.uber.org/zap"
 	"strings"
 	"time"
+
+	"go.uber.org/zap"
 
 	"erupe-ce/common/byteframe"
 	"erupe-ce/common/stringsupport"
@@ -23,8 +24,15 @@ type TowerInfoSkill struct {
 }
 
 type TowerInfoHistory struct {
-	Unk0 []int16 // 5
-	Unk1 []int16 // 5
+	Unk0 TowerHistory // 5
+	Unk1 TowerHistory // 5
+}
+type TowerHistory struct {
+	Unk0 int16
+	Unk1 int16
+	Unk2 int16
+	Unk3 int16
+	Unk4 int16
 }
 
 type TowerInfoLevel struct {
@@ -51,12 +59,25 @@ func handleMsgMhfGetTowerInfo(s *Session, p mhfpacket.MHFPacket) {
 		History []TowerInfoHistory
 		Level   []TowerInfoLevel
 	}
-
+	history1 := TowerHistory{
+		Unk0: 1,
+		Unk1: 2,
+		Unk2: 3,
+		Unk3: 4,
+		Unk4: 5,
+	}
+	history2 := TowerHistory{
+		Unk0: 1,
+		Unk1: 2,
+		Unk2: 3,
+		Unk3: 4,
+		Unk4: 5,
+	}
 	towerInfo := TowerInfo{
 		TRP:     []TowerInfoTRP{{0, 0}},
 		Skill:   []TowerInfoSkill{{0, make([]int16, 64)}},
-		History: []TowerInfoHistory{{make([]int16, 5), make([]int16, 5)}},
-		Level:   []TowerInfoLevel{{0, 0, 0, 0}, {0, 0, 0, 0}},
+		History: []TowerInfoHistory{{history1, history2}},
+		Level:   []TowerInfoLevel{{0, 5, 5, 5}, {0, 5, 5, 5}},
 	}
 
 	var tempSkills string
@@ -94,12 +115,17 @@ func handleMsgMhfGetTowerInfo(s *Session, p mhfpacket.MHFPacket) {
 	case 4:
 		for _, history := range towerInfo.History {
 			bf := byteframe.NewByteFrame()
-			for i := range history.Unk0 {
-				bf.WriteInt16(history.Unk0[i])
-			}
-			for i := range history.Unk1 {
-				bf.WriteInt16(history.Unk1[i])
-			}
+			bf.WriteInt16(history.Unk0.Unk0)
+			bf.WriteInt16(history.Unk0.Unk1)
+			bf.WriteInt16(history.Unk0.Unk2)
+			bf.WriteInt16(history.Unk0.Unk3)
+			bf.WriteInt16(history.Unk0.Unk4)
+
+			bf.WriteInt16(history.Unk1.Unk0)
+			bf.WriteInt16(history.Unk1.Unk1)
+			bf.WriteInt16(history.Unk1.Unk2)
+			bf.WriteInt16(history.Unk1.Unk3)
+			bf.WriteInt16(history.Unk1.Unk4)
 			data = append(data, bf)
 		}
 	case 3, 5:
@@ -130,7 +156,8 @@ func handleMsgMhfPostTowerInfo(s *Session, p mhfpacket.MHFPacket) {
 			zap.Int32("Unk6", pkt.Unk6),
 			zap.Int32("Unk7", pkt.Unk7),
 			zap.Int32("Block1", pkt.Block1),
-			zap.Int64("Unk9", pkt.Unk9),
+			zap.Int32("TimeTaken", pkt.TimeTaken),
+			zap.Int32("CID", pkt.CID),
 		)
 	}
 
@@ -388,23 +415,88 @@ func handleMsgMhfPostTenrouirai(s *Session, p mhfpacket.MHFPacket) {
 	}
 }
 
+type PresentBox struct {
+	ItemClaimIndex   uint32
+	PresentType      int32
+	Unk2             int32
+	Unk3             int32
+	Unk4             int32
+	Unk5             int32
+	Unk6             int32
+	Unk7             int32
+	DistributionType int32 //Same as Siabatu Distribution Type 7201:Item 7202:N Points 7203:Guild Contribution Points
+	ItemID           int32
+	Amount           int32
+}
+
 func handleMsgMhfPresentBox(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfPresentBox)
 	var data []*byteframe.ByteFrame
-	/*
-		bf.WriteUint32(0)
-		bf.WriteInt32(0)
-		bf.WriteInt32(0)
-		bf.WriteInt32(0)
-		bf.WriteInt32(0)
-		bf.WriteInt32(0)
-		bf.WriteInt32(0)
-		bf.WriteInt32(0)
-		bf.WriteInt32(0)
-		bf.WriteInt32(0)
-		bf.WriteInt32(0)
-	*/
+	var presents []PresentBox
+	//On Open Operation 1 and 3
+	//On Accept Operation 1 and 2 (Stop player from reclaiming I assume (Needs a database flag)
+	switch pkt.Operation {
+	case 1:
+		// When Operation is 1, populate presents based on PresentType in packet
+
+		//Placed it in a dynamic array for now
+		//Empty Array shows the No Items to claim message!
+		for _, presentType := range pkt.PresentType {
+
+			presents = []PresentBox{
+				{1, int32(presentType), 0, 0, 0, 0, 0, 0, 7201, 12893, 1},
+				{2, int32(presentType), 0, 0, 0, 0, 0, 0, 7201, 12893, 1},
+				{3, int32(presentType), 0, 0, 0, 0, 0, 0, 7201, 12893, 1},
+				{4, int32(presentType), 0, 0, 0, 0, 0, 0, 7201, 12893, 1},
+				{5, int32(presentType), 0, 0, 0, 0, 0, 0, 7201, 12895, 8},
+				{6, int32(presentType), 0, 0, 0, 0, 0, 0, 7202, 12893, 1},
+				{7, int32(presentType), 0, 0, 0, 0, 0, 0, 7203, 12895, 8},
+			}
+
+		}
+	case 2:
+		// When Operation is 2, populate presents for claiming items
+
+		//ItemClaimIndex in Option 1 of the Present Box Call populates pkt.PresentType which triggers this packet notice PresentType is Populated with ItemClaimIndex for a 1 to 1 Relationship
+		presents = []PresentBox{
+			{0, 1, 0, 0, 0, 0, 0, 0, 7201, 12893, 1},
+			{0, 2, 0, 0, 0, 0, 0, 0, 7201, 12893, 1},
+			{0, 3, 0, 0, 0, 0, 0, 0, 7201, 12893, 1},
+			{0, 4, 0, 0, 0, 0, 0, 0, 7201, 12893, 1},
+			{0, 5, 0, 0, 0, 0, 0, 0, 7201, 12895, 8},
+			{0, 6, 0, 0, 0, 0, 0, 0, 7202, 12893, 1},
+			{0, 7, 0, 0, 0, 0, 0, 0, 7203, 12895, 8},
+		}
+	case 3:
+		// When Operation is 3, send an empty byte frame (Possibly a better response here)
+		bf := byteframe.NewByteFrame()
+		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+		return
+	default:
+		s.logger.Info("request for unknown type", zap.Uint32("Unk1", pkt.Operation))
+
+	}
+
+	// Construct and send the response data based on the presents
+	for _, present := range presents {
+		bf := byteframe.NewByteFrame()
+		bf.WriteUint32(present.ItemClaimIndex)
+		bf.WriteInt32(present.PresentType)
+		bf.WriteInt32(present.Unk2)
+		bf.WriteInt32(present.Unk3)
+		bf.WriteInt32(present.Unk4)
+		bf.WriteInt32(present.Unk5)
+		bf.WriteInt32(present.Unk6)
+		bf.WriteInt32(present.Unk7)
+		bf.WriteInt32(present.DistributionType)
+		bf.WriteInt32(present.ItemID)
+		bf.WriteInt32(present.Amount)
+		data = append(data, bf)
+	}
+
+	// Send the accumulated data
 	doAckEarthSucceed(s, pkt.AckHandle, data)
+
 }
 
 type GemInfo struct {

@@ -1091,7 +1091,8 @@ func handleMsgMhfUnreserveSrg(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfKickExportForce(s *Session, p mhfpacket.MHFPacket) {}
 
 func cleanupEarthStatus(s *Session) {
-	s.server.db.Exec("DELETE FROM events WHERE event_type='earth'")
+	s.server.db.Exec(`DELETE FROM events WHERE event_type='earth'`)
+	s.server.db.Exec(`UPDATE characters SET conquest_data=NULL`)
 }
 
 func generateEarthStatusTimestamps(s *Session, start uint32, debug bool) []uint32 {

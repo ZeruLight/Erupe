@@ -697,12 +697,16 @@ func handleMsgMhfGetFixedSeibatuRankingTable(s *Session, p mhfpacket.MHFPacket) 
 func handleMsgMhfReadBeatLevel(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfReadBeatLevel)
 
-	// This response is fixed and will never change on JP,
-	// but I've left it dynamic for possible other client differences.
+	var data []byte
+	err := s.server.db.QueryRow(`SELECT conquest_data FROM characters WHERE id = $1`, s.charID).Scan(&data)
+	if err != nil || len(data) == 0 {
+		data = []byte{0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1}
+	}
+	bf := byteframe.NewByteFrameFromBytes(data)
 	resp := byteframe.NewByteFrame()
 	for i := 0; i < int(pkt.ValidIDCount); i++ {
 		resp.WriteUint32(pkt.IDs[i])
-		resp.WriteUint32(0)
+		resp.WriteUint32(bf.ReadUint32())
 		resp.WriteUint32(0)
 		resp.WriteUint32(0)
 	}
@@ -724,6 +728,11 @@ func handleMsgMhfReadLastWeekBeatRanking(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfUpdateBeatLevel(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfUpdateBeatLevel)
+	bf := byteframe.NewByteFrame()
+	for i := 0; i < 4; i++ {
+		bf.WriteInt32(pkt.Data2[i])
+	}
+	s.server.db.Exec(`UPDATE characters SET conquest_data = $1 WHERE id = $2`, bf.Data(), s.charID)
 	doAckBufSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 

@@ -2,6 +2,7 @@ package mhfpacket
 
 import (
 	"errors"
+	"fmt"
 
 	"erupe-ce/common/byteframe"
 	"erupe-ce/network"
@@ -10,12 +11,12 @@ import (
 
 // MsgMhfGetFixedSeibatuRankingTable represents the MSG_MHF_GET_FIXED_SEIBATU_RANKING_TABLE
 type MsgMhfGetFixedSeibatuRankingTable struct {
-	AckHandle uint32
-	Unk0      uint32
-	Unk1      int32
-	Unk2      int32
-	Unk3      int32
-	Unk4      int32
+	AckHandle    uint32
+	Unk0         uint32
+	Unk1         int32
+	EarthMonster int32
+	Unk3         int32
+	Unk4         int32
 }
 
 // Opcode returns the ID associated with this packet type.
@@ -28,9 +29,10 @@ func (m *MsgMhfGetFixedSeibatuRankingTable) Parse(bf *byteframe.ByteFrame, ctx *
 	m.AckHandle = bf.ReadUint32()
 	m.Unk0 = bf.ReadUint32()
 	m.Unk1 = bf.ReadInt32()
-	m.Unk2 = bf.ReadInt32()
+	m.EarthMonster = bf.ReadInt32()
 	m.Unk3 = bf.ReadInt32()
 	m.Unk4 = bf.ReadInt32()
+	fmt.Printf("MsgMhfGetFixedSeibatuRankingTable: Unk0:[%d] Unk1:[%d] EarthMonster:[%d] Unk3:[%d] Unk4:[%d]\n\n", m.Unk0, m.Unk1, m.EarthMonster, m.Unk3, m.Unk4)
 	return nil
 }
 

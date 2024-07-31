@@ -2,17 +2,74 @@ package channelserver
 
 import (
 	"erupe-ce/common/byteframe"
+	"erupe-ce/common/stringsupport"
 	"erupe-ce/network/mhfpacket"
 )
 
+type BreakSeibatuLevelReward struct {
+	Item     int32
+	Quantity int32
+	Level    int32
+	Unk      int32
+}
+
 func handleMsgMhfGetBreakSeibatuLevelReward(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetBreakSeibatuLevelReward)
-	bf := byteframe.NewByteFrame()
-	bf.WriteInt32(0)
-	bf.WriteInt32(0)
-	bf.WriteInt32(0)
-	bf.WriteInt32(0)
-	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	var data []*byteframe.ByteFrame
+	var weeklySeibatuRankingRewards []BreakSeibatuLevelReward
+
+	switch pkt.EarthMonster {
+	case 116:
+		weeklySeibatuRankingRewards = []BreakSeibatuLevelReward{
+			{8, 3, 2, 0},
+			{8, 3, 2, 0},
+			{8, 3, 2, 0},
+			{8, 3, 3, 0},
+			{8, 3, 3, 0},
+			{8, 3, 3, 0},
+			{8, 3, 3, 0}}
+	case 107:
+		weeklySeibatuRankingRewards = []BreakSeibatuLevelReward{
+			{4, 3, 1, 0},
+			{4, 3, 2, 0},
+			{4, 3, 3, 0},
+			{4, 3, 4, 0},
+			{4, 3, 5, 0}}
+	case 2:
+		weeklySeibatuRankingRewards = []BreakSeibatuLevelReward{
+			{5, 3, 1, 0},
+			{5, 3, 2, 0},
+			{5, 3, 3, 0},
+			{5, 3, 4, 0},
+			{5, 3, 5, 0}}
+
+	case 36:
+		weeklySeibatuRankingRewards = []BreakSeibatuLevelReward{
+			{7, 3, 1, 0},
+			{7, 3, 2, 0},
+			{7, 3, 3, 0},
+			{7, 3, 4, 0},
+			{7, 3, 5, 0}}
+
+	default:
+		weeklySeibatuRankingRewards = []BreakSeibatuLevelReward{
+			{1, 3, 1, 0},
+			{1, 3, 2, 0},
+			{1, 3, 3, 0},
+			{1, 3, 4, 0},
+			{1, 3, 5, 0}}
+	}
+
+	for _, seibatuData := range weeklySeibatuRankingRewards {
+		bf := byteframe.NewByteFrame()
+
+		bf.WriteInt32(seibatuData.Item)
+		bf.WriteInt32(seibatuData.Quantity)
+		bf.WriteInt32(seibatuData.Level)
+		bf.WriteInt32(seibatuData.Unk)
+		data = append(data, bf)
+	}
+	doAckEarthSucceed(s, pkt.AckHandle, data)
 }
 
 type WeeklySeibatuRankingRewardData struct {
@@ -558,44 +615,128 @@ func handleMsgMhfGetWeeklySeibatuRankingReward(s *Session, p mhfpacket.MHFPacket
 	doAckEarthSucceed(s, pkt.AckHandle, data)
 }
 
+type FixedSeibatuRankingTable struct {
+	Rank  int32
+	Level int32
+	Name  string
+}
+
 func handleMsgMhfGetFixedSeibatuRankingTable(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetFixedSeibatuRankingTable)
+	var fixedSeibatuRankingTable []FixedSeibatuRankingTable
+	//Interestingly doesn't trigger the pkt on EarthStatus 1 But menu option is there is this Seibatu instead?
+	switch pkt.EarthMonster {
+
+	case 116:
+		fixedSeibatuRankingTable = []FixedSeibatuRankingTable{
+			{1, 1, "Hunter 1"},
+			{2, 1, "Hunter 2"},
+			{3, 1, "Hunter 3"},
+			{4, 1, "Hunter 4"},
+			{5, 1, "Hunter 5"},
+			{6, 1, "Hunter 6"},
+			{7, 1, "Hunter 7"},
+			{8, 1, "Hunter 8"},
+			{9, 1, "Hunter 9"},
+		}
+	case 107:
+		fixedSeibatuRankingTable = []FixedSeibatuRankingTable{
+			{1, 2, "Hunter 1"},
+			{2, 2, "Hunter 2"},
+			{3, 2, "Hunter 3"},
+			{4, 2, "Hunter 4"},
+			{5, 2, "Hunter 5"},
+			{6, 2, "Hunter 6"},
+			{7, 2, "Hunter 7"},
+			{8, 2, "Hunter 8"},
+			{9, 2, "Hunter 9"},
+		}
+	case 2:
+		fixedSeibatuRankingTable = []FixedSeibatuRankingTable{
+			{1, 3, "Hunter 1"},
+			{2, 3, "Hunter 2"},
+			{3, 3, "Hunter 3"},
+			{4, 3, "Hunter 4"},
+			{5, 3, "Hunter 5"},
+			{6, 3, "Hunter 6"},
+			{7, 3, "Hunter 7"},
+			{8, 3, "Hunter 8"},
+			{9, 3, "Hunter 9"},
+		}
+	case 36:
+		fixedSeibatuRankingTable = []FixedSeibatuRankingTable{
+			{1, 4, "Hunter 1"},
+			{2, 4, "Hunter 2"},
+			{3, 4, "Hunter 3"},
+			{4, 4, "Hunter 4"},
+			{5, 4, "Hunter 5"},
+			{6, 4, "Hunter 6"},
+			{7, 4, "Hunter 7"},
+			{8, 4, "Hunter 8"},
+			{9, 4, "Hunter 9"},
+		}
+	default:
+		fixedSeibatuRankingTable = []FixedSeibatuRankingTable{
+			{1, 1, "Hunter 1"},
+			{2, 1, "Hunter 2"},
+			{3, 1, "Hunter 3"},
+			{4, 1, "Hunter 4"},
+			{5, 1, "Hunter 5"},
+			{6, 1, "Hunter 6"},
+			{7, 1, "Hunter 7"},
+			{8, 1, "Hunter 8"},
+			{9, 1, "Hunter 9"},
+		}
+	}
+
 	bf := byteframe.NewByteFrame()
-	bf.WriteInt32(0)
-	bf.WriteInt32(0)
-	bf.WriteBytes(make([]byte, 32))
+	for _, seibatuData := range fixedSeibatuRankingTable {
+		bf.WriteInt32(seibatuData.Rank)
+		bf.WriteInt32(seibatuData.Level)
+		bf.WriteBytes(stringsupport.PaddedString(seibatuData.Name, 32, true))
+	}
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfReadBeatLevel(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfReadBeatLevel)
 
-	// This response is fixed and will never change on JP,
-	// but I've left it dynamic for possible other client differences.
+	var data []byte
+	err := s.server.db.QueryRow(`SELECT conquest_data FROM characters WHERE id = $1`, s.charID).Scan(&data)
+	if err != nil || len(data) == 0 {
+		data = []byte{0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0, 1}
+	}
+	bf := byteframe.NewByteFrameFromBytes(data)
 	resp := byteframe.NewByteFrame()
 	for i := 0; i < int(pkt.ValidIDCount); i++ {
 		resp.WriteUint32(pkt.IDs[i])
-		resp.WriteUint32(1)
-		resp.WriteUint32(1)
-		resp.WriteUint32(1)
+		resp.WriteUint32(bf.ReadUint32())
+		resp.WriteUint32(0)
+		resp.WriteUint32(0)
 	}
 
 	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
 }
 
 func handleMsgMhfReadLastWeekBeatRanking(s *Session, p mhfpacket.MHFPacket) {
+	//Controls the monster headings for the other menus
 	pkt := p.(*mhfpacket.MsgMhfReadLastWeekBeatRanking)
-	bf := byteframe.NewByteFrame()
-	bf.WriteInt32(0)
-	bf.WriteInt32(0)
-	bf.WriteInt32(0)
-	bf.WriteInt32(0)
-	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	resp := byteframe.NewByteFrame()
+	resp.WriteUint32(uint32(pkt.EarthMonster))
+	resp.WriteUint32(0)
+	resp.WriteUint32(0)
+	resp.WriteUint32(0)
+
+	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
 }
 
 func handleMsgMhfUpdateBeatLevel(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfUpdateBeatLevel)
-
+	bf := byteframe.NewByteFrame()
+	for i := 0; i < 4; i++ {
+		bf.WriteInt32(pkt.Data2[i])
+	}
+	s.server.db.Exec(`UPDATE characters SET conquest_data = $1 WHERE id = $2`, bf.Data(), s.charID)
 	doAckBufSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 

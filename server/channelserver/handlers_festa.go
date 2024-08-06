@@ -224,6 +224,16 @@ func handleMsgMhfInfoFesta(s *Session, p mhfpacket.MHFPacket) {
 		if err != nil {
 			continue
 		}
+		
+		switch _config.ErupeConfig.RealClientMode {
+		case _config.F5:
+			if (trial.Objective == 1 || trial.Objective == 2 || trial.Objective == 3) && trial.GoalID > 106 {
+				continue
+			}
+			if trial.Objective == 4 && trial.GoalID > 6430 {
+				continue
+			}
+		}
 		trials = append(trials, trial)
 	}
 	bf.WriteUint16(uint16(len(trials)))

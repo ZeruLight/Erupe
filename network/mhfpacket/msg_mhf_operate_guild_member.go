@@ -11,10 +11,9 @@ import (
 type OperateGuildMemberAction uint8
 
 const (
-	_ = iota
-	OPERATE_GUILD_MEMBER_ACTION_ACCEPT
-	OPERATE_GUILD_MEMBER_ACTION_REJECT
-	OPERATE_GUILD_MEMBER_ACTION_KICK
+	OperateGuildMemberAccept = iota + 1
+	OperateGuildMemberReject
+	OperateGuildMemberKick
 )
 
 // MsgMhfOperateGuildMember represents the MSG_MHF_OPERATE_GUILD_MEMBER

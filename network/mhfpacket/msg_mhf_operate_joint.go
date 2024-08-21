@@ -11,9 +11,9 @@ import (
 type OperateJointAction uint8
 
 const (
-	OPERATE_JOINT_DISBAND = 0x01
-	OPERATE_JOINT_LEAVE   = 0x03
-	OPERATE_JOINT_KICK    = 0x09
+	OperateJointDisband = 1
+	OperateJointLeave   = 3
+	OperateJointKick    = 9
 )
 
 // MsgMhfOperateJoint represents the MSG_MHF_OPERATE_JOINT

@@ -22,8 +22,8 @@ type TreasureHunt struct {
 
 func handleMsgMhfEnumerateGuildTresure(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateGuildTresure)
-	guild, err := GetGuildInfoByCharacterId(s, s.charID)
-	if err != nil || guild == nil {
+	guild := GetGuildInfoByCharacterId(s, s.charID)
+	if guild.ID == 0 {
 		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
@@ -32,7 +32,7 @@ func handleMsgMhfEnumerateGuildTresure(s *Session, p mhfpacket.MHFPacket) {
 
 	switch pkt.MaxHunts {
 	case 1:
-		err = s.server.db.QueryRowx(`SELECT id, host_id, destination, level, start, hunt_data FROM guild_hunts WHERE host_id=$1 AND acquired=FALSE`, s.charID).StructScan(&hunt)
+		err := s.server.db.QueryRowx(`SELECT id, host_id, destination, level, start, hunt_data FROM guild_hunts WHERE host_id=$1 AND acquired=FALSE`, s.charID).StructScan(&hunt)
 		if err == nil {
 			hunts = append(hunts, hunt)
 		}
@@ -83,8 +83,8 @@ func handleMsgMhfRegistGuildTresure(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfRegistGuildTresure)
 	bf := byteframe.NewByteFrameFromBytes(pkt.Data)
 	huntData := byteframe.NewByteFrame()
-	guild, err := GetGuildInfoByCharacterId(s, s.charID)
-	if err != nil || guild == nil {
+	guild := GetGuildInfoByCharacterId(s, s.charID)
+	if guild.ID == 0 {
 		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}

@@ -4,49 +4,44 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )
 
 type GuildMember struct {
-	GuildID         uint32     `db:"guild_id"`
-	CharID          uint32     `db:"character_id"`
-	JoinedAt        *time.Time `db:"joined_at"`
-	Souls           uint32     `db:"souls"`
-	RPToday         uint16     `db:"rp_today"`
-	RPYesterday     uint16     `db:"rp_yesterday"`
-	Name            string     `db:"name"`
-	IsApplicant     bool       `db:"is_applicant"`
-	OrderIndex      uint16     `db:"order_index"`
-	LastLogin       uint32     `db:"last_login"`
-	Recruiter       bool       `db:"recruiter"`
-	AvoidLeadership bool       `db:"avoid_leadership"`
-	IsLeader        bool       `db:"is_leader"`
-	HR              uint16     `db:"hr"`
-	GR              uint16     `db:"gr"`
-	WeaponID        uint16     `db:"weapon_id"`
-	WeaponType      uint8      `db:"weapon_type"`
+	GuildID         uint32    `db:"guild_id"`
+	CharID          uint32    `db:"character_id"`
+	JoinedAt        time.Time `db:"joined_at"`
+	Souls           uint32    `db:"souls"`
+	RPToday         uint16    `db:"rp_today"`
+	RPYesterday     uint16    `db:"rp_yesterday"`
+	Name            string    `db:"name"`
+	OrderIndex      uint16    `db:"order_index"`
+	LastLogin       uint32    `db:"last_login"`
+	Recruiter       bool      `db:"recruiter"`
+	AvoidLeadership bool      `db:"avoid_leadership"`
+	HR              uint16    `db:"hr"`
+	GR              uint16    `db:"gr"`
+	WeaponID        uint16    `db:"weapon_id"`
+	WeaponType      uint8     `db:"weapon_type"`
 }
 
-func (gm *GuildMember) CanRecruit() bool {
+func (gm GuildMember) CanRecruit() bool {
 	if gm.Recruiter {
 		return true
 	}
-	if gm.OrderIndex <= 3 {
-		return true
-	}
-	if gm.IsLeader {
-		return true
-	}
-	return false
+	return gm.IsSubLeader()
 }
 
-func (gm *GuildMember) IsSubLeader() bool {
+func (gm GuildMember) IsSubLeader() bool {
 	return gm.OrderIndex <= 3
 }
 
-func (gm *GuildMember) Save(s *Session) error {
-	_, err := s.server.db.Exec("UPDATE guild_characters SET avoid_leadership=$1, order_index=$2 WHERE character_id=$3", gm.AvoidLeadership, gm.OrderIndex, gm.CharID)
+func (gm GuildMember) IsLeader() bool {
+	return gm.OrderIndex == 1
+}
+
+func (gm GuildMember) Save(s *Session) error {
+	_, err := s.server.db.Exec("UPDATE guild_characters SET order_index=$1 WHERE character_id=$2", gm.OrderIndex, gm.CharID)
 
 	if err != nil {
 		s.logger.Error(
@@ -61,7 +56,6 @@ func (gm *GuildMember) Save(s *Session) error {
 }
 
 const guildMembersSelectSQL = `
-SELECT * FROM (
 	SELECT
 		g.id AS guild_id,
 		joined_at,
@@ -77,71 +71,71 @@ SELECT * FROM (
 		c.hr,
 		c.gr,
 		c.weapon_id,
-		c.weapon_type,
-		EXISTS(SELECT 1 FROM guild_applications ga WHERE ga.character_id=c.id AND application_type='applied') AS is_applicant,
-		CASE WHEN g.leader_id = c.id THEN true ELSE false END AS is_leader
+		c.weapon_type
 		FROM guild_characters gc
 		LEFT JOIN characters c ON c.id = gc.character_id
 		LEFT JOIN guilds g ON g.id = gc.guild_id
-) AS subquery
 `
 
-func GetGuildMembers(s *Session, guildID uint32, applicants bool) ([]*GuildMember, error) {
+func GetGuildApplications(s *Session, guildID uint32) []GuildApplication {
+	var applications []GuildApplication
+	var application GuildApplication
+	rows, err := s.server.db.Queryx(`SELECT ga.character_id, ga.created_at, c.hr, c.gr, c.name FROM guild_applications ga LEFT JOIN characters c ON c.id = ga.character_id WHERE ga.guild_id=$1`, guildID)
+	if err == nil {
+		for rows.Next() {
+			err = rows.StructScan(&application)
+			if err != nil {
+				continue
+			}
+			applications = append(applications, application)
+		}
+	}
+	return applications
+}
+
+func GetGuildInvites(s *Session, guildID uint32) []GuildInvite {
+	var invites []GuildInvite
+	var invite GuildInvite
+	rows, err := s.server.db.Queryx(`SELECT gi.character_id, gi.id, gi.created_at, gi.actor_id, c.hr, c.gr, c.name FROM guild_invites gi LEFT JOIN characters c ON c.id = gi.character_id WHERE gi.guild_id=$1`, guildID)
+	if err == nil {
+		for rows.Next() {
+			err = rows.StructScan(&invite)
+			if err != nil {
+				continue
+			}
+			invites = append(invites, invite)
+		}
+	}
+	return invites
+}
+
+func GetGuildMembers(s *Session, guildID uint32) []GuildMember {
+	var members []GuildMember
+	var member GuildMember
 	rows, err := s.server.db.Queryx(fmt.Sprintf(`
 			%s
-			WHERE guild_id = $1 AND is_applicant = $2
-	`, guildMembersSelectSQL), guildID, applicants)
-
+			WHERE guild_id = $1
+	`, guildMembersSelectSQL), guildID)
 	if err != nil {
-		s.logger.Error("failed to retrieve membership data for guild", zap.Error(err), zap.Uint32("guildID", guildID))
-		return nil, err
+		s.logger.Error("Failed to retrieve membership data for guild", zap.Error(err), zap.Uint32("guildID", guildID))
+		return members
 	}
-
-	defer rows.Close()
-
-	members := make([]*GuildMember, 0)
 
 	for rows.Next() {
-		member, err := buildGuildMemberObjectFromDBResult(rows, err, s)
-
+		err = rows.StructScan(&member)
 		if err != nil {
-			return nil, err
+			continue
 		}
-
 		members = append(members, member)
 	}
-
-	return members, nil
+	return members
 }
 
-func GetCharacterGuildData(s *Session, charID uint32) (*GuildMember, error) {
-	rows, err := s.server.db.Queryx(fmt.Sprintf("%s	WHERE character_id=$1", guildMembersSelectSQL), charID)
-
+func GetCharacterGuildData(s *Session, charID uint32) GuildMember {
+	var member GuildMember
+	err := s.server.db.QueryRowx(fmt.Sprintf("%s WHERE character_id=$1", guildMembersSelectSQL), charID).StructScan(&member)
 	if err != nil {
-		s.logger.Error(fmt.Sprintf("failed to retrieve membership data for character '%d'", charID))
-		return nil, err
+		s.logger.Error("Failed to retrieve membership data for character", zap.Error(err), zap.Uint32("charID", charID))
 	}
-
-	defer rows.Close()
-
-	hasRow := rows.Next()
-
-	if !hasRow {
-		return nil, nil
-	}
-
-	return buildGuildMemberObjectFromDBResult(rows, err, s)
-}
-
-func buildGuildMemberObjectFromDBResult(rows *sqlx.Rows, err error, s *Session) (*GuildMember, error) {
-	memberData := &GuildMember{}
-
-	err = rows.StructScan(&memberData)
-
-	if err != nil {
-		s.logger.Error("failed to retrieve guild data from database", zap.Error(err))
-		return nil, err
-	}
-
-	return memberData, nil
+	return member
 }

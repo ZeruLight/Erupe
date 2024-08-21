@@ -75,18 +75,18 @@ func handleMsgMhfEnumerateHouse(s *Session, p mhfpacket.MHFPacket) {
 			}
 		}
 	case 2:
-		guild, err := GetGuildInfoByCharacterId(s, s.charID)
-		if err != nil || guild == nil {
+		guild := GetGuildInfoByCharacterId(s, s.charID)
+		if guild.ID == 0 {
 			break
 		}
-		guildMembers, err := GetGuildMembers(s, guild.ID, false)
-		if err != nil {
+		guildMembers := GetGuildMembers(s, guild.ID)
+		if len(guildMembers) == 0 {
 			break
 		}
 		for _, member := range guildMembers {
 			house := HouseData{}
 			row := s.server.db.QueryRowx(houseQuery, member.CharID)
-			err = row.StructScan(&house)
+			err := row.StructScan(&house)
 			if err == nil {
 				houses = append(houses, house)
 			}
@@ -176,12 +176,11 @@ func handleMsgMhfLoadHouse(s *Session, p mhfpacket.MHFPacket) {
 
 		// Guild verification
 		if state > 3 {
-			ownGuild, err := GetGuildInfoByCharacterId(s, s.charID)
-			isApplicant, _ := ownGuild.HasApplicationForCharID(s, s.charID)
-			if err == nil && ownGuild != nil {
-				othersGuild, err := GetGuildInfoByCharacterId(s, pkt.CharID)
-				if err == nil && othersGuild != nil {
-					if othersGuild.ID == ownGuild.ID && !isApplicant {
+			ownGuild := GetGuildInfoByCharacterId(s, s.charID)
+			if ownGuild.ID != 0 && !IsGuildApplicant(s, s.charID) {
+				othersGuild := GetGuildInfoByCharacterId(s, pkt.CharID)
+				if othersGuild.ID != 0 && !IsGuildApplicant(s, pkt.CharID) {
+					if othersGuild.ID == ownGuild.ID {
 						allowed = true
 					}
 				}

@@ -8,10 +8,17 @@ import (
 	"erupe-ce/network/clientctx"
 )
 
+type OperateInvGuildAction uint8
+
+const (
+	OperateInvGuildSend = iota + 1
+	OperateInvGuildCancel
+)
+
 // MsgMhfOperationInvGuild represents the MSG_MHF_OPERATION_INV_GUILD
 type MsgMhfOperationInvGuild struct {
 	AckHandle    uint32
-	Operation    uint8
+	Action       uint8
 	ActiveHours  uint8
 	DaysActive   uint8
 	PlayStyle    uint8
@@ -26,7 +33,7 @@ func (m *MsgMhfOperationInvGuild) Opcode() network.PacketID {
 // Parse parses the packet from binary
 func (m *MsgMhfOperationInvGuild) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
-	m.Operation = bf.ReadUint8()
+	m.Action = bf.ReadUint8()
 	m.ActiveHours = bf.ReadUint8()
 	m.DaysActive = bf.ReadUint8()
 	m.PlayStyle = bf.ReadUint8()

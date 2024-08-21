@@ -356,18 +356,14 @@ func handleMsgMhfInfoFesta(s *Session, p mhfpacket.MHFPacket) {
 // state festa (U)ser
 func handleMsgMhfStateFestaU(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfStateFestaU)
-	guild, err := GetGuildInfoByCharacterId(s, s.charID)
-	applicant := false
-	if guild != nil {
-		applicant, _ = guild.HasApplicationForCharID(s, s.charID)
-	}
-	if err != nil || guild == nil || applicant {
+	guild := GetGuildInfoByCharacterId(s, s.charID)
+	if guild.ID == 0 || IsGuildApplicant(s, s.charID) {
 		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
 	var souls, exists uint32
 	s.server.db.QueryRow(`SELECT COALESCE((SELECT SUM(souls) FROM festa_submissions WHERE character_id=$1), 0)`, s.charID).Scan(&souls)
-	err = s.server.db.QueryRow("SELECT prize_id FROM festa_prizes_accepted WHERE prize_id=0 AND character_id=$1", s.charID).Scan(&exists)
+	err := s.server.db.QueryRow("SELECT prize_id FROM festa_prizes_accepted WHERE prize_id=0 AND character_id=$1", s.charID).Scan(&exists)
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint32(souls)
 	if err != nil {
@@ -383,13 +379,9 @@ func handleMsgMhfStateFestaU(s *Session, p mhfpacket.MHFPacket) {
 // state festa (G)uild
 func handleMsgMhfStateFestaG(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfStateFestaG)
-	guild, err := GetGuildInfoByCharacterId(s, s.charID)
-	applicant := false
-	if guild != nil {
-		applicant, _ = guild.HasApplicationForCharID(s, s.charID)
-	}
+	guild := GetGuildInfoByCharacterId(s, s.charID)
 	resp := byteframe.NewByteFrame()
-	if err != nil || guild == nil || applicant {
+	if guild.ID == 0 || IsGuildApplicant(s, s.charID) {
 		resp.WriteUint32(0)
 		resp.WriteInt32(0)
 		resp.WriteInt32(-1)
@@ -408,20 +400,20 @@ func handleMsgMhfStateFestaG(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfEnumerateFestaMember(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateFestaMember)
-	guild, err := GetGuildInfoByCharacterId(s, s.charID)
-	if err != nil || guild == nil {
+	guild := GetGuildInfoByCharacterId(s, s.charID)
+	if guild.ID == 0 {
 		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
-	members, err := GetGuildMembers(s, guild.ID, false)
-	if err != nil {
+	members := GetGuildMembers(s, guild.ID)
+	if len(members) == 0 {
 		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
 	sort.Slice(members, func(i, j int) bool {
 		return members[i].Souls > members[j].Souls
 	})
-	var validMembers []*GuildMember
+	var validMembers []GuildMember
 	for _, member := range members {
 		if member.Souls > 0 {
 			validMembers = append(validMembers, member)
@@ -450,8 +442,8 @@ func handleMsgMhfVoteFesta(s *Session, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfEntryFesta(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEntryFesta)
-	guild, err := GetGuildInfoByCharacterId(s, s.charID)
-	if err != nil || guild == nil {
+	guild := GetGuildInfoByCharacterId(s, s.charID)
+	if guild.ID == 0 {
 		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}

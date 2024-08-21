@@ -111,14 +111,9 @@ type RengokuScore struct {
 func handleMsgMhfEnumerateRengokuRanking(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateRengokuRanking)
 
-	guild, _ := GetGuildInfoByCharacterId(s, s.charID)
-	isApplicant, _ := guild.HasApplicationForCharID(s, s.charID)
-	if isApplicant {
-		guild = nil
-	}
-
+	guild := GetGuildInfoByCharacterId(s, s.charID)
 	if pkt.Leaderboard == 2 || pkt.Leaderboard == 3 || pkt.Leaderboard == 6 || pkt.Leaderboard == 7 {
-		if guild == nil {
+		if guild.ID == 0 || IsGuildApplicant(s, s.charID) {
 			doAckBufSucceed(s, pkt.AckHandle, make([]byte, 11))
 			return
 		}

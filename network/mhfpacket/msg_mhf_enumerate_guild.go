@@ -10,20 +10,19 @@ import (
 type EnumerateGuildType uint8
 
 const (
-	ENUMERATE_GUILD_UNKNOWN = iota
-	ENUMERATE_GUILD_TYPE_GUILD_NAME
-	ENUMERATE_GUILD_TYPE_LEADER_NAME
-	ENUMERATE_GUILD_TYPE_LEADER_ID
-	ENUMERATE_GUILD_TYPE_ORDER_MEMBERS
-	ENUMERATE_GUILD_TYPE_ORDER_REGISTRATION
-	ENUMERATE_GUILD_TYPE_ORDER_RANK
-	ENUMERATE_GUILD_TYPE_MOTTO
-	ENUMERATE_GUILD_TYPE_RECRUITING
-	ENUMERATE_ALLIANCE_TYPE_ALLIANCE_NAME
-	ENUMERATE_ALLIANCE_TYPE_LEADER_NAME
-	ENUMERATE_ALLIANCE_TYPE_LEADER_ID
-	ENUMERATE_ALLIANCE_TYPE_ORDER_MEMBERS
-	ENUMERATE_ALLIANCE_TYPE_ORDER_REGISTRATION
+	EnumerateGuildTypeGuildName = iota + 1
+	EnumerateGuildTypeLeaderName
+	EnumerateGuildTypeLeaderId
+	EnumerateGuildTypeOrderMembers
+	EnumerateGuildTypeOrderRegistration
+	EnumerateGuildTypeOrderRank
+	EnumerateGuildTypeMotto
+	EnumerateGuildTypeRecruiting
+	EnumerateAllianceTypeAllianceName
+	EnumerateAllianceTypeLeaderName
+	EnumerateAllianceTypeLeaderId
+	EnumerateAllianceTypeOrderMembers
+	EnumerateAllianceTypeOrderRegistration
 )
 
 // MsgMhfEnumerateGuild represents the MSG_MHF_ENUMERATE_GUILD

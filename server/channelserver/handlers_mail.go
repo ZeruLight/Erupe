@@ -1,7 +1,6 @@
 package channelserver
 
 import (
-	"database/sql"
 	"erupe-ce/common/stringsupport"
 	"time"
 
@@ -29,36 +28,16 @@ type Mail struct {
 	SenderName           string    `db:"sender_name"`
 }
 
-func (m *Mail) Send(s *Session, transaction *sql.Tx) error {
+func (m *Mail) Send(s *Session) error {
 	query := `
 		INSERT INTO mail (sender_id, recipient_id, subject, body, attached_item, attached_item_amount, is_guild_invite, is_sys_message)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 	`
-
-	var err error
-
-	if transaction == nil {
-		_, err = s.server.db.Exec(query, m.SenderID, m.RecipientID, m.Subject, m.Body, m.AttachedItemID, m.AttachedItemAmount, m.IsGuildInvite, m.IsSystemMessage)
-	} else {
-		_, err = transaction.Exec(query, m.SenderID, m.RecipientID, m.Subject, m.Body, m.AttachedItemID, m.AttachedItemAmount, m.IsGuildInvite, m.IsSystemMessage)
-	}
-
+	_, err := s.server.db.Exec(query, m.SenderID, m.RecipientID, m.Subject, m.Body, m.AttachedItemID, m.AttachedItemAmount, m.IsGuildInvite, m.IsSystemMessage)
 	if err != nil {
-		s.logger.Error(
-			"failed to send mail",
-			zap.Error(err),
-			zap.Uint32("senderID", m.SenderID),
-			zap.Uint32("recipientID", m.RecipientID),
-			zap.String("subject", m.Subject),
-			zap.String("body", m.Body),
-			zap.Uint16("itemID", m.AttachedItemID),
-			zap.Uint16("itemAmount", m.AttachedItemAmount),
-			zap.Bool("isGuildInvite", m.IsGuildInvite),
-			zap.Bool("isSystemMessage", m.IsSystemMessage),
-		)
+		s.logger.Error("failed to send mail", zap.Error(err))
 		return err
 	}
-
 	return nil
 }
 
@@ -189,16 +168,9 @@ func SendMailNotification(s *Session, m *Mail, recipient *Session) {
 }
 
 func getCharacterName(s *Session, charID uint32) string {
-	row := s.server.db.QueryRow("SELECT name FROM characters WHERE id = $1", charID)
-
-	charName := ""
-
-	err := row.Scan(&charName)
-
-	if err != nil {
-		return ""
-	}
-	return charName
+	var name string
+	s.server.db.QueryRow("SELECT name FROM characters WHERE id = $1", charID).Scan(&name)
+	return name
 }
 
 func handleMsgMhfReadMail(s *Session, p mhfpacket.MHFPacket) {
@@ -255,26 +227,21 @@ func handleMsgMhfListMail(s *Session, p mhfpacket.MHFPacket) {
 		msg.WriteUint8(accIndex)
 		msg.WriteUint8(uint8(i))
 
-		flags := uint8(0x00)
-
+		var flags uint8
 		if m.Read {
-			flags |= 0x01
+			flags |= 1 << 0
 		}
-
 		if m.Locked {
-			flags |= 0x02
+			flags |= 1 << 1
 		}
-
 		if m.IsSystemMessage {
-			flags |= 0x04
+			flags |= 1 << 2
 		}
-
 		if m.AttachedItemReceived {
-			flags |= 0x08
+			flags |= 1 << 3
 		}
-
 		if m.IsGuildInvite {
-			flags |= 0x10
+			flags |= 1 << 4
 		}
 
 		msg.WriteUint8(flags)
@@ -322,31 +289,20 @@ func handleMsgMhfSendMail(s *Session, p mhfpacket.MHFPacket) {
 	`
 
 	if pkt.RecipientID == 0 { // Guild mail
-		g, err := GetGuildInfoByCharacterId(s, s.charID)
-		if err != nil {
-			s.logger.Error("Failed to get guild info for mail")
+		guild := GetGuildInfoByCharacterId(s, s.charID)
+		if guild.ID == 0 {
+			s.logger.Error("failed to get guild info for mail")
 			doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 			return
 		}
-		gm, err := GetGuildMembers(s, g.ID, false)
-		if err != nil {
-			s.logger.Error("Failed to get guild members for mail")
-			doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
-			return
-		}
-		for i := 0; i < len(gm); i++ {
-			_, err := s.server.db.Exec(query, s.charID, gm[i].CharID, pkt.Subject, pkt.Body, 0, 0, false)
-			if err != nil {
-				s.logger.Error("Failed to send mail")
-				doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
-				return
+		guildMembers := GetGuildMembers(s, guild.ID)
+		if len(guildMembers) > 0 {
+			for _, member := range guildMembers {
+				s.server.db.Exec(query, s.charID, member.CharID, pkt.Subject, pkt.Body, 0, 0, false)
 			}
 		}
 	} else {
-		_, err := s.server.db.Exec(query, s.charID, pkt.RecipientID, pkt.Subject, pkt.Body, pkt.ItemID, pkt.Quantity, false)
-		if err != nil {
-			s.logger.Error("Failed to send mail")
-		}
+		s.server.db.Exec(query, s.charID, pkt.RecipientID, pkt.Subject, pkt.Body, pkt.ItemID, pkt.Quantity, false)
 	}
 	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }

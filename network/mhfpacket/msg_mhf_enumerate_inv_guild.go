@@ -12,8 +12,8 @@ import (
 type MsgMhfEnumerateInvGuild struct {
 	AckHandle    uint32
 	Unk          uint32
-	Operation    uint8
-	ActiveHours  uint8
+	ActiveHours1 uint8
+	ActiveHours2 uint8
 	DaysActive   uint8
 	PlayStyle    uint8
 	GuildRequest uint8
@@ -28,8 +28,8 @@ func (m *MsgMhfEnumerateInvGuild) Opcode() network.PacketID {
 func (m *MsgMhfEnumerateInvGuild) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
 	m.AckHandle = bf.ReadUint32()
 	m.Unk = bf.ReadUint32()
-	m.Operation = bf.ReadUint8()
-	m.ActiveHours = bf.ReadUint8()
+	m.ActiveHours1 = bf.ReadUint8()
+	m.ActiveHours2 = bf.ReadUint8()
 	m.DaysActive = bf.ReadUint8()
 	m.PlayStyle = bf.ReadUint8()
 	m.GuildRequest = bf.ReadUint8()

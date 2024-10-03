@@ -424,24 +424,13 @@ func (s *Server) FindObjectByChar(charID uint32) *Object {
 	return nil
 }
 
-func (s *Server) NextSemaphoreID() uint32 {
-	for {
-		exists := false
-		s.semaphoreIndex = s.semaphoreIndex + 1
-		if s.semaphoreIndex > 0xFFFF {
-			s.semaphoreIndex = 1
-		}
-		for _, semaphore := range s.semaphore {
-			if semaphore.id == s.semaphoreIndex {
-				exists = true
-				break
-			}
-		}
-		if !exists {
-			break
+func (s *Server) HasSemaphore(ses *Session) bool {
+	for _, semaphore := range s.semaphore {
+		if semaphore.host == ses {
+			return true
 		}
 	}
-	return s.semaphoreIndex
+	return false
 }
 
 func (s *Server) Season() uint8 {

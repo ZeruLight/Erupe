@@ -166,9 +166,9 @@ func handleMsgMhfReadMercenaryW(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint8(1) // numLends
 		bf.WriteUint32(pactID)
 		bf.WriteUint32(cid)
-		bf.WriteBool(false) // ?
-		bf.WriteUint32(uint32(TimeAdjusted().Add(time.Hour * 24 * -8).Unix()))
-		bf.WriteUint32(uint32(TimeAdjusted().Add(time.Hour * 24 * -1).Unix()))
+		bf.WriteBool(true) // Escort enabled
+		bf.WriteUint32(uint32(TimeAdjusted().Unix()))
+		bf.WriteUint32(uint32(TimeAdjusted().Add(time.Hour * 24 * 7).Unix()))
 		bf.WriteBytes(stringsupport.PaddedString(name, 18, true))
 	} else {
 		bf.WriteUint8(0)
@@ -186,8 +186,8 @@ func handleMsgMhfReadMercenaryW(s *Session, p mhfpacket.MHFPacket) {
 			loans++
 			temp.WriteUint32(pactID)
 			temp.WriteUint32(cid)
-			temp.WriteUint32(uint32(TimeAdjusted().Add(time.Hour * 24 * -8).Unix()))
-			temp.WriteUint32(uint32(TimeAdjusted().Add(time.Hour * 24 * -1).Unix()))
+			temp.WriteUint32(uint32(TimeAdjusted().Unix()))
+			temp.WriteUint32(uint32(TimeAdjusted().Add(time.Hour * 24 * 7).Unix()))
 			temp.WriteBytes(stringsupport.PaddedString(name, 18, true))
 		}
 	}

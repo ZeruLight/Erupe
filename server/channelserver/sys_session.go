@@ -15,6 +15,7 @@ import (
 	"erupe-ce/network"
 	"erupe-ce/network/clientctx"
 	"erupe-ce/network/mhfpacket"
+
 	"go.uber.org/zap"
 )
 
@@ -278,7 +279,7 @@ func (s *Session) logMessage(opcode uint16, data []byte, sender string, recipien
 	} else {
 		fmt.Printf("[%s] -> [%s]\n", sender, recipient)
 	}
-	fmt.Printf("Opcode: %s\n", opcodePID)
+	fmt.Printf("Opcode: (Dec: %d Hex: 0x%04X Name: %s) \n", opcode, opcode, opcodePID)
 	if s.server.erupeConfig.DebugOptions.LogMessageData {
 		if len(data) <= s.server.erupeConfig.DebugOptions.MaxHexdumpLength {
 			fmt.Printf("Data [%d bytes]:\n%s\n", len(data), hex.Dump(data))

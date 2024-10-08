@@ -152,18 +152,21 @@ func (s *Session) QueueAck(ackHandle uint32, data []byte) {
 
 func (s *Session) sendLoop() {
 	var pkt packet
+	var buffer []byte
 	for {
 		if s.closed {
 			return
 		}
 		for len(s.sendPackets) > 0 {
 			pkt = <-s.sendPackets
-			err := s.cryptConn.SendPacket(append(pkt.data, []byte{0x00, 0x10}...))
-			if err != nil {
-				s.logger.Warn("Failed to send packet")
-			}
+			buffer = append(buffer, pkt.data...)
 		}
-		time.Sleep(5 * time.Millisecond)
+		err := s.cryptConn.SendPacket(append(buffer, []byte{0x00, 0x10}...))
+		if err != nil {
+			s.logger.Warn("Failed to send packet")
+		}
+		buffer = buffer[:0]
+		time.Sleep(100 * time.Millisecond)
 	}
 }
 
@@ -188,7 +191,7 @@ func (s *Session) recvLoop() {
 			return
 		}
 		s.handlePacketGroup(pkt)
-		time.Sleep(5 * time.Millisecond)
+		time.Sleep(100 * time.Millisecond)
 	}
 }
 

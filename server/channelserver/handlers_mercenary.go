@@ -21,7 +21,6 @@ func handleMsgMhfLoadPartner(s *Session, p mhfpacket.MHFPacket) {
 		data = make([]byte, 9)
 	}
 	doAckBufSucceed(s, pkt.AckHandle, data)
-	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
 func handleMsgMhfSavePartner(s *Session, p mhfpacket.MHFPacket) {

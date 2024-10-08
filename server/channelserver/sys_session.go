@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"erupe-ce/common/mhfcourse"
+	_config "erupe-ce/config"
 	"fmt"
 	"io"
 	"net"
@@ -169,7 +170,7 @@ func (s *Session) sendLoop() {
 			}
 			buffer = buffer[:0]
 		}
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(time.Duration(_config.ErupeConfig.LoopDelay) * time.Millisecond)
 	}
 }
 
@@ -194,7 +195,7 @@ func (s *Session) recvLoop() {
 			return
 		}
 		s.handlePacketGroup(pkt)
-		time.Sleep(100 * time.Millisecond)
+		time.Sleep(time.Duration(_config.ErupeConfig.LoopDelay) * time.Millisecond)
 	}
 }
 

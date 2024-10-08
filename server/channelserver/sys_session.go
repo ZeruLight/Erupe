@@ -162,11 +162,13 @@ func (s *Session) sendLoop() {
 			pkt = <-s.sendPackets
 			buffer = append(buffer, pkt.data...)
 		}
-		err := s.cryptConn.SendPacket(append(buffer, []byte{0x00, 0x10}...))
-		if err != nil {
-			s.logger.Warn("Failed to send packet")
+		if len(buffer) > 0 {
+			err := s.cryptConn.SendPacket(append(buffer, []byte{0x00, 0x10}...))
+			if err != nil {
+				s.logger.Warn("Failed to send packet")
+			}
+			buffer = buffer[:0]
 		}
-		buffer = buffer[:0]
 		time.Sleep(100 * time.Millisecond)
 	}
 }

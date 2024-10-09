@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"erupe-ce/network"
-	"erupe-ce/network/clientctx"
 	"erupe-ce/utils/byteframe"
 )
 
@@ -19,7 +18,7 @@ func (m *MsgSysSetStagePass) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgSysSetStagePass) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgSysSetStagePass) Parse(bf *byteframe.ByteFrame) error {
 	bf.ReadUint8() // Zeroed
 	bf.ReadUint8() // Password length
 	m.Password = string(bf.ReadNullTerminatedBytes())
@@ -27,6 +26,6 @@ func (m *MsgSysSetStagePass) Parse(bf *byteframe.ByteFrame, ctx *clientctx.Clien
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgSysSetStagePass) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgSysSetStagePass) Build(bf *byteframe.ByteFrame) error {
 	return errors.New("NOT IMPLEMENTED")
 }

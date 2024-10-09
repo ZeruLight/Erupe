@@ -2,7 +2,6 @@ package mhfpacket
 
 import (
 	"erupe-ce/network"
-	"erupe-ce/network/clientctx"
 	"erupe-ce/utils/byteframe"
 )
 
@@ -17,13 +16,13 @@ func (m *MsgSysLogout) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgSysLogout) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgSysLogout) Parse(bf *byteframe.ByteFrame) error {
 	m.Unk0 = bf.ReadUint8()
 	return nil
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgSysLogout) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgSysLogout) Build(bf *byteframe.ByteFrame) error {
 	m.Unk0 = bf.ReadUint8()
 	return nil
 }

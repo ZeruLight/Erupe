@@ -5,7 +5,6 @@ import (
 	_config "erupe-ce/config"
 
 	"erupe-ce/network"
-	"erupe-ce/network/clientctx"
 	"erupe-ce/utils/byteframe"
 )
 
@@ -34,7 +33,7 @@ func (m *MsgSysTerminalLog) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgSysTerminalLog) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgSysTerminalLog) Parse(bf *byteframe.ByteFrame) error {
 	m.AckHandle = bf.ReadUint32()
 	m.LogID = bf.ReadUint32()
 	entryCount := int(bf.ReadUint16())
@@ -61,6 +60,6 @@ func (m *MsgSysTerminalLog) Parse(bf *byteframe.ByteFrame, ctx *clientctx.Client
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgSysTerminalLog) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgSysTerminalLog) Build(bf *byteframe.ByteFrame) error {
 	return errors.New("NOT IMPLEMENTED")
 }

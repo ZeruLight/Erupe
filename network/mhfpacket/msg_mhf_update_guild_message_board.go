@@ -5,7 +5,6 @@ import (
 	"erupe-ce/utils/stringsupport"
 
 	"erupe-ce/network"
-	"erupe-ce/network/clientctx"
 	"erupe-ce/utils/byteframe"
 )
 
@@ -29,7 +28,7 @@ func (m *MsgMhfUpdateGuildMessageBoard) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgMhfUpdateGuildMessageBoard) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgMhfUpdateGuildMessageBoard) Parse(bf *byteframe.ByteFrame) error {
 	m.AckHandle = bf.ReadUint32()
 	m.MessageOp = bf.ReadUint32()
 	switch m.MessageOp {
@@ -62,6 +61,6 @@ func (m *MsgMhfUpdateGuildMessageBoard) Parse(bf *byteframe.ByteFrame, ctx *clie
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgMhfUpdateGuildMessageBoard) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgMhfUpdateGuildMessageBoard) Build(bf *byteframe.ByteFrame) error {
 	return errors.New("NOT IMPLEMENTED")
 }

@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"erupe-ce/network"
-	"erupe-ce/network/clientctx"
 	"erupe-ce/utils/byteframe"
 )
 
@@ -23,7 +22,7 @@ func (m *MsgSysLockGlobalSema) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgSysLockGlobalSema) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgSysLockGlobalSema) Parse(bf *byteframe.ByteFrame) error {
 	m.AckHandle = bf.ReadUint32()
 	m.UserIDLength = bf.ReadUint16()
 	m.ServerChannelIDLength = bf.ReadUint16()
@@ -33,6 +32,6 @@ func (m *MsgSysLockGlobalSema) Parse(bf *byteframe.ByteFrame, ctx *clientctx.Cli
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgSysLockGlobalSema) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgSysLockGlobalSema) Build(bf *byteframe.ByteFrame) error {
 	return errors.New("NOT IMPLEMENTED")
 }

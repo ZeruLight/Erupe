@@ -3,7 +3,6 @@ package mhfpacket
 import (
 	"errors"
 	"erupe-ce/network"
-	"erupe-ce/network/clientctx"
 	"erupe-ce/utils/byteframe"
 	"erupe-ce/utils/mhfcourse"
 	ps "erupe-ce/utils/pascalstring"
@@ -23,12 +22,12 @@ func (m *MsgSysUpdateRight) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgSysUpdateRight) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgSysUpdateRight) Parse(bf *byteframe.ByteFrame) error {
 	return errors.New("NOT IMPLEMENTED")
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgSysUpdateRight) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgSysUpdateRight) Build(bf *byteframe.ByteFrame) error {
 	bf.WriteUint32(m.ClientRespAckHandle)
 	bf.WriteUint32(m.Bitfield)
 	bf.WriteUint16(uint16(len(m.Rights)))

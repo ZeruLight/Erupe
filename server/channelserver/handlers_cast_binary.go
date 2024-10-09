@@ -188,7 +188,7 @@ func parseChatCommand(s *Session, command string) {
 				}
 				temp = &mhfpacket.MsgSysDeleteObject{ObjID: object.id}
 				deleteNotif.WriteUint16(uint16(temp.Opcode()))
-				temp.Build(deleteNotif, s.clientContext)
+				temp.Build(deleteNotif)
 			}
 			for _, session := range s.server.sessions {
 				if s == session {
@@ -196,7 +196,7 @@ func parseChatCommand(s *Session, command string) {
 				}
 				temp = &mhfpacket.MsgSysDeleteUser{CharID: session.charID}
 				deleteNotif.WriteUint16(uint16(temp.Opcode()))
-				temp.Build(deleteNotif, s.clientContext)
+				temp.Build(deleteNotif)
 			}
 			deleteNotif.WriteUint16(uint16(network.MSG_SYS_END))
 			s.QueueSend(deleteNotif.Data())
@@ -208,14 +208,14 @@ func parseChatCommand(s *Session, command string) {
 				}
 				temp = &mhfpacket.MsgSysInsertUser{CharID: session.charID}
 				reloadNotif.WriteUint16(uint16(temp.Opcode()))
-				temp.Build(reloadNotif, s.clientContext)
+				temp.Build(reloadNotif)
 				for i := 0; i < 3; i++ {
 					temp = &mhfpacket.MsgSysNotifyUserBinary{
 						CharID:     session.charID,
 						BinaryType: uint8(i + 1),
 					}
 					reloadNotif.WriteUint16(uint16(temp.Opcode()))
-					temp.Build(reloadNotif, s.clientContext)
+					temp.Build(reloadNotif)
 				}
 			}
 			for _, obj := range s.stage.objects {
@@ -231,7 +231,7 @@ func parseChatCommand(s *Session, command string) {
 					OwnerCharID: obj.ownerCharID,
 				}
 				reloadNotif.WriteUint16(uint16(temp.Opcode()))
-				temp.Build(reloadNotif, s.clientContext)
+				temp.Build(reloadNotif)
 			}
 			reloadNotif.WriteUint16(uint16(network.MSG_SYS_END))
 			s.QueueSend(reloadNotif.Data())

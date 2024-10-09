@@ -2,7 +2,6 @@ package mhfpacket
 
 import (
 	"erupe-ce/network"
-	"erupe-ce/network/clientctx"
 	"erupe-ce/utils/byteframe"
 )
 
@@ -21,7 +20,7 @@ func (m *MsgSysGetStageBinary) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgSysGetStageBinary) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgSysGetStageBinary) Parse(bf *byteframe.ByteFrame) error {
 	m.AckHandle = bf.ReadUint32()
 	m.BinaryType0 = bf.ReadUint8()
 	m.BinaryType1 = bf.ReadUint8()
@@ -32,6 +31,6 @@ func (m *MsgSysGetStageBinary) Parse(bf *byteframe.ByteFrame, ctx *clientctx.Cli
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgSysGetStageBinary) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgSysGetStageBinary) Build(bf *byteframe.ByteFrame) error {
 	panic("Not implemented")
 }

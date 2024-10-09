@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"erupe-ce/network"
-	"erupe-ce/network/clientctx"
 	"erupe-ce/utils/byteframe"
 )
 
@@ -22,7 +21,7 @@ func (m *MsgSysCastBinary) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgSysCastBinary) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgSysCastBinary) Parse(bf *byteframe.ByteFrame) error {
 	m.Unk = bf.ReadUint32()
 	m.BroadcastType = bf.ReadUint8()
 	m.MessageType = bf.ReadUint8()
@@ -32,6 +31,6 @@ func (m *MsgSysCastBinary) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientC
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgSysCastBinary) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgSysCastBinary) Build(bf *byteframe.ByteFrame) error {
 	return errors.New("NOT IMPLEMENTED")
 }

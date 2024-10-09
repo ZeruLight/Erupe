@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"erupe-ce/network"
-	"erupe-ce/network/clientctx"
 	"erupe-ce/utils/byteframe"
 )
 
@@ -21,7 +20,7 @@ func (m *MsgMhfEntryTournament) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgMhfEntryTournament) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgMhfEntryTournament) Parse(bf *byteframe.ByteFrame) error {
 	m.AckHandle = bf.ReadUint32()
 	m.TournamentID = bf.ReadUint32()
 	m.Unk0 = bf.ReadUint8()
@@ -29,6 +28,6 @@ func (m *MsgMhfEntryTournament) Parse(bf *byteframe.ByteFrame, ctx *clientctx.Cl
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgMhfEntryTournament) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgMhfEntryTournament) Build(bf *byteframe.ByteFrame) error {
 	return errors.New("NOT IMPLEMENTED")
 }

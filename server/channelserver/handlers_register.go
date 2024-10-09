@@ -119,13 +119,13 @@ func (s *Session) notifyRavi() {
 	raviNotif := byteframe.NewByteFrame()
 	temp = &mhfpacket.MsgSysNotifyRegister{RegisterID: 0x40000}
 	raviNotif.WriteUint16(uint16(temp.Opcode()))
-	temp.Build(raviNotif, s.clientContext)
+	temp.Build(raviNotif)
 	temp = &mhfpacket.MsgSysNotifyRegister{RegisterID: 0x50000}
 	raviNotif.WriteUint16(uint16(temp.Opcode()))
-	temp.Build(raviNotif, s.clientContext)
+	temp.Build(raviNotif)
 	temp = &mhfpacket.MsgSysNotifyRegister{RegisterID: 0x60000}
 	raviNotif.WriteUint16(uint16(temp.Opcode()))
-	temp.Build(raviNotif, s.clientContext)
+	temp.Build(raviNotif)
 	raviNotif.WriteUint16(0x0010) // End it.
 	if s.server.erupeConfig.GameplayOptions.LowLatencyRaviente {
 		for session := range sema.clients {

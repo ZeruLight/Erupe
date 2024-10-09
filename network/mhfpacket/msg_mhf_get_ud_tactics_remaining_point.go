@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"erupe-ce/network"
-	"erupe-ce/network/clientctx"
 	"erupe-ce/utils/byteframe"
 )
 
@@ -22,7 +21,7 @@ func (m *MsgMhfGetUdTacticsRemainingPoint) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgMhfGetUdTacticsRemainingPoint) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgMhfGetUdTacticsRemainingPoint) Parse(bf *byteframe.ByteFrame) error {
 	m.AckHandle = bf.ReadUint32()
 	m.Unk0 = bf.ReadUint32()
 	m.Unk1 = bf.ReadUint32()
@@ -31,6 +30,6 @@ func (m *MsgMhfGetUdTacticsRemainingPoint) Parse(bf *byteframe.ByteFrame, ctx *c
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgMhfGetUdTacticsRemainingPoint) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgMhfGetUdTacticsRemainingPoint) Build(bf *byteframe.ByteFrame) error {
 	return errors.New("NOT IMPLEMENTED")
 }

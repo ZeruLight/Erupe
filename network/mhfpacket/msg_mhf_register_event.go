@@ -2,7 +2,6 @@ package mhfpacket
 
 import (
 	"erupe-ce/network"
-	"erupe-ce/network/clientctx"
 	"erupe-ce/utils/byteframe"
 )
 
@@ -21,7 +20,7 @@ func (m *MsgMhfRegisterEvent) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgMhfRegisterEvent) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgMhfRegisterEvent) Parse(bf *byteframe.ByteFrame) error {
 	m.AckHandle = bf.ReadUint32()
 	m.Unk0 = bf.ReadUint16()
 	m.WorldID = bf.ReadUint16()
@@ -32,6 +31,6 @@ func (m *MsgMhfRegisterEvent) Parse(bf *byteframe.ByteFrame, ctx *clientctx.Clie
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgMhfRegisterEvent) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgMhfRegisterEvent) Build(bf *byteframe.ByteFrame) error {
 	return nil
 }

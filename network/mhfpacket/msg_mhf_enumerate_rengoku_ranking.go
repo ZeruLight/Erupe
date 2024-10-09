@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"erupe-ce/network"
-	"erupe-ce/network/clientctx"
 	"erupe-ce/utils/byteframe"
 )
 
@@ -22,7 +21,7 @@ func (m *MsgMhfEnumerateRengokuRanking) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgMhfEnumerateRengokuRanking) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgMhfEnumerateRengokuRanking) Parse(bf *byteframe.ByteFrame) error {
 	m.AckHandle = bf.ReadUint32()
 	m.Leaderboard = bf.ReadUint32()
 	m.Unk1 = bf.ReadUint16()
@@ -31,6 +30,6 @@ func (m *MsgMhfEnumerateRengokuRanking) Parse(bf *byteframe.ByteFrame, ctx *clie
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgMhfEnumerateRengokuRanking) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgMhfEnumerateRengokuRanking) Build(bf *byteframe.ByteFrame) error {
 	return errors.New("NOT IMPLEMENTED")
 }

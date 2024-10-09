@@ -2,7 +2,6 @@ package mhfpacket
 
 import (
 	"erupe-ce/network"
-	"erupe-ce/network/clientctx"
 	"erupe-ce/utils/byteframe"
 )
 
@@ -20,7 +19,7 @@ func (m *MsgSysDuplicateObject) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgSysDuplicateObject) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgSysDuplicateObject) Parse(bf *byteframe.ByteFrame) error {
 	m.ObjID = bf.ReadUint32()
 	m.X = bf.ReadFloat32()
 	m.Y = bf.ReadFloat32()
@@ -31,7 +30,7 @@ func (m *MsgSysDuplicateObject) Parse(bf *byteframe.ByteFrame, ctx *clientctx.Cl
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgSysDuplicateObject) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgSysDuplicateObject) Build(bf *byteframe.ByteFrame) error {
 	bf.WriteUint32(m.ObjID)
 	bf.WriteFloat32(m.X)
 	bf.WriteFloat32(m.Y)

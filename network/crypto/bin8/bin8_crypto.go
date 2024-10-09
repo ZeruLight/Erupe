@@ -1,4 +1,4 @@
-package entranceserver
+package bin8
 
 import (
 	"encoding/binary"

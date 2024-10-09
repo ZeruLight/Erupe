@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"erupe-ce/network"
-	"erupe-ce/network/clientctx"
 	"erupe-ce/utils/byteframe"
 )
 
@@ -21,7 +20,7 @@ func (m *MsgMhfUpdateUseTrendWeaponLog) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgMhfUpdateUseTrendWeaponLog) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgMhfUpdateUseTrendWeaponLog) Parse(bf *byteframe.ByteFrame) error {
 	m.AckHandle = bf.ReadUint32()
 	m.WeaponType = bf.ReadUint8()
 	m.WeaponID = bf.ReadUint16()
@@ -29,6 +28,6 @@ func (m *MsgMhfUpdateUseTrendWeaponLog) Parse(bf *byteframe.ByteFrame, ctx *clie
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgMhfUpdateUseTrendWeaponLog) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgMhfUpdateUseTrendWeaponLog) Build(bf *byteframe.ByteFrame) error {
 	return errors.New("NOT IMPLEMENTED")
 }

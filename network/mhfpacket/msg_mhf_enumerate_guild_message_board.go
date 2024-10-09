@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"erupe-ce/network"
-	"erupe-ce/network/clientctx"
 	"erupe-ce/utils/byteframe"
 )
 
@@ -23,7 +22,7 @@ func (m *MsgMhfEnumerateGuildMessageBoard) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgMhfEnumerateGuildMessageBoard) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgMhfEnumerateGuildMessageBoard) Parse(bf *byteframe.ByteFrame) error {
 	m.AckHandle = bf.ReadUint32()
 	m.Unk0 = bf.ReadUint32()
 	m.MaxPosts = bf.ReadUint32()
@@ -32,6 +31,6 @@ func (m *MsgMhfEnumerateGuildMessageBoard) Parse(bf *byteframe.ByteFrame, ctx *c
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgMhfEnumerateGuildMessageBoard) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgMhfEnumerateGuildMessageBoard) Build(bf *byteframe.ByteFrame) error {
 	return errors.New("NOT IMPLEMENTED")
 }

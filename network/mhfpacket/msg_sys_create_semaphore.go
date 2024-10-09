@@ -5,7 +5,6 @@ import (
 	_config "erupe-ce/config"
 
 	"erupe-ce/network"
-	"erupe-ce/network/clientctx"
 	"erupe-ce/utils/byteframe"
 )
 
@@ -23,7 +22,7 @@ func (m *MsgSysCreateSemaphore) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgSysCreateSemaphore) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgSysCreateSemaphore) Parse(bf *byteframe.ByteFrame) error {
 	m.AckHandle = bf.ReadUint32()
 	m.Unk0 = bf.ReadUint16()
 	if _config.ErupeConfig.ClientID >= _config.S7 { // Assuming this was added with Ravi?
@@ -35,6 +34,6 @@ func (m *MsgSysCreateSemaphore) Parse(bf *byteframe.ByteFrame, ctx *clientctx.Cl
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgSysCreateSemaphore) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgSysCreateSemaphore) Build(bf *byteframe.ByteFrame) error {
 	return errors.New("NOT IMPLEMENTED")
 }

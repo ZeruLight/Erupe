@@ -4,12 +4,12 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	_config "erupe-ce/config"
+	"erupe-ce/network/crypto/bin8"
+	"erupe-ce/utils/byteframe"
 	"erupe-ce/utils/gametime"
 	"erupe-ce/utils/stringsupport"
 	"fmt"
 	"net"
-
-	"erupe-ce/utils/byteframe"
 )
 
 func encodeServerInfo(config *_config.Config, s *Server, local bool) []byte {
@@ -96,7 +96,7 @@ func makeHeader(data []byte, respType string, entryCount uint16, key byte) []byt
 	bf.WriteUint16(entryCount)
 	bf.WriteUint16(uint16(len(data)))
 	if len(data) > 0 {
-		bf.WriteUint32(CalcSum32(data))
+		bf.WriteUint32(bin8.CalcSum32(data))
 		bf.WriteBytes(data)
 	}
 
@@ -104,7 +104,7 @@ func makeHeader(data []byte, respType string, entryCount uint16, key byte) []byt
 
 	bf = byteframe.NewByteFrame()
 	bf.WriteUint8(key)
-	bf.WriteBytes(EncryptBin8(dataToEncrypt, key))
+	bf.WriteBytes(bin8.EncryptBin8(dataToEncrypt, key))
 	return bf.Data()
 }
 

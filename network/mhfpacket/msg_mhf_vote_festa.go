@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"erupe-ce/network"
-	"erupe-ce/network/clientctx"
 	"erupe-ce/utils/byteframe"
 )
 
@@ -22,7 +21,7 @@ func (m *MsgMhfVoteFesta) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgMhfVoteFesta) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgMhfVoteFesta) Parse(bf *byteframe.ByteFrame) error {
 	m.AckHandle = bf.ReadUint32()
 	m.FestaID = bf.ReadUint32()
 	m.GuildID = bf.ReadUint32()
@@ -31,6 +30,6 @@ func (m *MsgMhfVoteFesta) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientCo
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgMhfVoteFesta) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgMhfVoteFesta) Build(bf *byteframe.ByteFrame) error {
 	return errors.New("NOT IMPLEMENTED")
 }

@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"erupe-ce/network"
-	"erupe-ce/network/clientctx"
 	"erupe-ce/utils/byteframe"
 )
 
@@ -22,7 +21,7 @@ func (m *MsgMhfReadBeatLevel) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgMhfReadBeatLevel) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgMhfReadBeatLevel) Parse(bf *byteframe.ByteFrame) error {
 	// I assume this used to be dynamic, but as of the last JP client version, all of this data is hard-coded literals.
 	m.AckHandle = bf.ReadUint32()
 	m.Unk0 = bf.ReadUint32()         // Always 1
@@ -36,6 +35,6 @@ func (m *MsgMhfReadBeatLevel) Parse(bf *byteframe.ByteFrame, ctx *clientctx.Clie
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgMhfReadBeatLevel) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgMhfReadBeatLevel) Build(bf *byteframe.ByteFrame) error {
 	return errors.New("NOT IMPLEMENTED")
 }

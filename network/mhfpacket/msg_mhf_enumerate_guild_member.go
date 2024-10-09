@@ -3,7 +3,6 @@ package mhfpacket
 import (
 	"errors"
 	"erupe-ce/network"
-	"erupe-ce/network/clientctx"
 	"erupe-ce/utils/byteframe"
 )
 
@@ -20,7 +19,7 @@ func (m *MsgMhfEnumerateGuildMember) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgMhfEnumerateGuildMember) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgMhfEnumerateGuildMember) Parse(bf *byteframe.ByteFrame) error {
 	m.AckHandle = bf.ReadUint32()
 	bf.ReadUint8() // Zeroed
 	bf.ReadUint8() // Always 1
@@ -30,6 +29,6 @@ func (m *MsgMhfEnumerateGuildMember) Parse(bf *byteframe.ByteFrame, ctx *clientc
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgMhfEnumerateGuildMember) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgMhfEnumerateGuildMember) Build(bf *byteframe.ByteFrame) error {
 	return errors.New("NOT IMPLEMENTED")
 }

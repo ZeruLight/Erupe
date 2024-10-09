@@ -5,7 +5,6 @@ import (
 	"erupe-ce/utils/stringsupport"
 
 	"erupe-ce/network"
-	"erupe-ce/network/clientctx"
 	"erupe-ce/utils/byteframe"
 )
 
@@ -27,7 +26,7 @@ func (m *MsgMhfSendMail) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgMhfSendMail) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgMhfSendMail) Parse(bf *byteframe.ByteFrame) error {
 	m.AckHandle = bf.ReadUint32()
 	m.RecipientID = bf.ReadUint32()
 	m.SubjectLength = bf.ReadUint16()
@@ -41,6 +40,6 @@ func (m *MsgMhfSendMail) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientCon
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgMhfSendMail) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgMhfSendMail) Build(bf *byteframe.ByteFrame) error {
 	return errors.New("NOT IMPLEMENTED")
 }

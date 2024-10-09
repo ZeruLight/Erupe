@@ -5,7 +5,6 @@ import (
 	"erupe-ce/utils/bfutil"
 
 	"erupe-ce/network"
-	"erupe-ce/network/clientctx"
 	"erupe-ce/utils/byteframe"
 )
 
@@ -21,7 +20,7 @@ func (m *MsgSysCheckSemaphore) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgSysCheckSemaphore) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgSysCheckSemaphore) Parse(bf *byteframe.ByteFrame) error {
 	m.AckHandle = bf.ReadUint32()
 	semaphoreIDLength := bf.ReadUint8()
 	m.SemaphoreID = string(bfutil.UpToNull(bf.ReadBytes(uint(semaphoreIDLength))))
@@ -29,6 +28,6 @@ func (m *MsgSysCheckSemaphore) Parse(bf *byteframe.ByteFrame, ctx *clientctx.Cli
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgSysCheckSemaphore) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgSysCheckSemaphore) Build(bf *byteframe.ByteFrame) error {
 	return errors.New("NOT IMPLEMENTED")
 }

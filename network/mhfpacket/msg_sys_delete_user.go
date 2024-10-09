@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"erupe-ce/network"
-	"erupe-ce/network/clientctx"
 	"erupe-ce/utils/byteframe"
 )
 
@@ -19,12 +18,12 @@ func (m *MsgSysDeleteUser) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgSysDeleteUser) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgSysDeleteUser) Parse(bf *byteframe.ByteFrame) error {
 	return errors.New("NOT IMPLEMENTED")
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgSysDeleteUser) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgSysDeleteUser) Build(bf *byteframe.ByteFrame) error {
 	bf.WriteUint32(m.CharID)
 
 	return nil

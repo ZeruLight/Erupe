@@ -78,14 +78,14 @@ func doStageTransfer(s *Session, ackHandle uint32, stageID string) {
 			}
 			temp = &mhfpacket.MsgSysInsertUser{CharID: session.charID}
 			newNotif.WriteUint16(uint16(temp.Opcode()))
-			temp.Build(newNotif, s.clientContext)
+			temp.Build(newNotif)
 			for i := 0; i < 3; i++ {
 				temp = &mhfpacket.MsgSysNotifyUserBinary{
 					CharID:     session.charID,
 					BinaryType: uint8(i + 1),
 				}
 				newNotif.WriteUint16(uint16(temp.Opcode()))
-				temp.Build(newNotif, s.clientContext)
+				temp.Build(newNotif)
 			}
 		}
 	}
@@ -108,7 +108,7 @@ func doStageTransfer(s *Session, ackHandle uint32, stageID string) {
 				OwnerCharID: obj.ownerCharID,
 			}
 			newNotif.WriteUint16(uint16(temp.Opcode()))
-			temp.Build(newNotif, s.clientContext)
+			temp.Build(newNotif)
 		}
 		s.stage.RUnlock()
 	}

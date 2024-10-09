@@ -184,7 +184,7 @@ func SendMailNotification(s *Session, m *Mail, recipient *Session) {
 		RawDataPayload: bf.Data(),
 	}
 
-	castedBinary.Build(bf, s.clientContext)
+	castedBinary.Build(bf)
 
 	recipient.QueueSendMHF(castedBinary)
 }

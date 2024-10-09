@@ -2,7 +2,6 @@ package mhfpacket
 
 import (
 	"erupe-ce/network"
-	"erupe-ce/network/clientctx"
 	"erupe-ce/utils/byteframe"
 )
 
@@ -18,14 +17,14 @@ func (m *MsgSysUpdateObjectBinary) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgSysUpdateObjectBinary) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgSysUpdateObjectBinary) Parse(bf *byteframe.ByteFrame) error {
 	m.Unk0 = bf.ReadUint32()
 	m.Unk1 = bf.ReadUint32()
 	return nil
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgSysUpdateObjectBinary) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgSysUpdateObjectBinary) Build(bf *byteframe.ByteFrame) error {
 	bf.WriteUint32(m.Unk0)
 	bf.WriteUint32(m.Unk1)
 	return nil

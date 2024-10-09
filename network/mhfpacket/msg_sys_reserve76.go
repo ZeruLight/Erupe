@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"erupe-ce/network"
-	"erupe-ce/network/clientctx"
 	"erupe-ce/utils/byteframe"
 )
 
@@ -17,11 +16,11 @@ func (m *MsgSysReserve76) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgSysReserve76) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgSysReserve76) Parse(bf *byteframe.ByteFrame) error {
 	return errors.New("NOT IMPLEMENTED")
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgSysReserve76) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgSysReserve76) Build(bf *byteframe.ByteFrame) error {
 	return errors.New("NOT IMPLEMENTED")
 }

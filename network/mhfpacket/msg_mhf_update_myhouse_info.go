@@ -5,7 +5,6 @@ import (
 
 	_config "erupe-ce/config"
 	"erupe-ce/network"
-	"erupe-ce/network/clientctx"
 	"erupe-ce/utils/byteframe"
 )
 
@@ -21,7 +20,7 @@ func (m *MsgMhfUpdateMyhouseInfo) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgMhfUpdateMyhouseInfo) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgMhfUpdateMyhouseInfo) Parse(bf *byteframe.ByteFrame) error {
 	m.AckHandle = bf.ReadUint32()
 	if _config.ErupeConfig.ClientID >= _config.G10 {
 		m.Data = bf.ReadBytes(362)
@@ -37,6 +36,6 @@ func (m *MsgMhfUpdateMyhouseInfo) Parse(bf *byteframe.ByteFrame, ctx *clientctx.
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgMhfUpdateMyhouseInfo) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgMhfUpdateMyhouseInfo) Build(bf *byteframe.ByteFrame) error {
 	return errors.New("NOT IMPLEMENTED")
 }

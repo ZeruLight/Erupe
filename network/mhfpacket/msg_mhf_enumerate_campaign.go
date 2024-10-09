@@ -2,7 +2,6 @@ package mhfpacket
 
 import (
 	"erupe-ce/network"
-	"erupe-ce/network/clientctx"
 	"erupe-ce/utils/byteframe"
 )
 
@@ -19,7 +18,7 @@ func (m *MsgMhfEnumerateCampaign) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgMhfEnumerateCampaign) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgMhfEnumerateCampaign) Parse(bf *byteframe.ByteFrame) error {
 	m.AckHandle = bf.ReadUint32()
 	m.Unk0 = bf.ReadUint16()
 	m.Unk1 = bf.ReadUint16()
@@ -27,7 +26,7 @@ func (m *MsgMhfEnumerateCampaign) Parse(bf *byteframe.ByteFrame, ctx *clientctx.
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgMhfEnumerateCampaign) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgMhfEnumerateCampaign) Build(bf *byteframe.ByteFrame) error {
 	bf.WriteUint32(m.AckHandle)
 	bf.WriteUint16(m.Unk0)
 	bf.WriteUint16(m.Unk1)

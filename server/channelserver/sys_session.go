@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"erupe-ce/network"
-	"erupe-ce/network/clientctx"
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/utils/byteframe"
 	"erupe-ce/utils/stringstack"
@@ -29,13 +28,12 @@ type packet struct {
 // Session holds state for the channel server connection.
 type Session struct {
 	sync.Mutex
-	logger        *zap.Logger
-	server        *Server
-	rawConn       net.Conn
-	cryptConn     *network.CryptConn
-	sendPackets   chan packet
-	clientContext *clientctx.ClientContext
-	lastPacket    time.Time
+	logger      *zap.Logger
+	server      *Server
+	rawConn     net.Conn
+	cryptConn   *network.CryptConn
+	sendPackets chan packet
+	lastPacket  time.Time
 
 	objectIndex      uint16
 	userEnteredStage bool // If the user has entered a stage before
@@ -79,7 +77,6 @@ func NewSession(server *Server, conn net.Conn) *Session {
 		rawConn:        conn,
 		cryptConn:      network.NewCryptConn(conn),
 		sendPackets:    make(chan packet, 20),
-		clientContext:  &clientctx.ClientContext{}, // Unused
 		lastPacket:     time.Now(),
 		sessionStart:   gametime.TimeAdjusted().Unix(),
 		stageMoveStack: stringstack.New(),
@@ -138,7 +135,7 @@ func (s *Session) QueueSendMHF(pkt mhfpacket.MHFPacket) {
 	bf.WriteUint16(uint16(pkt.Opcode()))
 
 	// Build the packet onto the byteframe.
-	pkt.Build(bf, s.clientContext)
+	pkt.Build(bf)
 
 	// Queue it.
 	s.QueueSend(bf.Data())
@@ -231,7 +228,7 @@ func (s *Session) handlePacketGroup(pktGroup []byte) {
 		return
 	}
 	// Parse the packet.
-	err := mhfPkt.Parse(bf, s.clientContext)
+	err := mhfPkt.Parse(bf)
 	if err != nil {
 		fmt.Printf("\n!!! [%s] %s NOT IMPLEMENTED !!! \n\n\n", s.Name, opcode)
 		return

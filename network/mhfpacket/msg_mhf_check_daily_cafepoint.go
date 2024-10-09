@@ -3,7 +3,6 @@ package mhfpacket
 import (
 	"errors"
 	"erupe-ce/network"
-	"erupe-ce/network/clientctx"
 	"erupe-ce/utils/byteframe"
 )
 
@@ -19,12 +18,12 @@ func (m *MsgMhfCheckDailyCafepoint) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgMhfCheckDailyCafepoint) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgMhfCheckDailyCafepoint) Parse(bf *byteframe.ByteFrame) error {
 	m.AckHandle = bf.ReadUint32()
 	m.Unk = bf.ReadUint32()
 	return nil
 }
 
-func (m *MsgMhfCheckDailyCafepoint) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgMhfCheckDailyCafepoint) Build(bf *byteframe.ByteFrame) error {
 	return errors.New("NOT IMPLEMENTED")
 }

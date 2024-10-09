@@ -3,8 +3,6 @@ package mhfpacket
 import (
 	"errors"
 
-	"erupe-ce/network/clientctx"
-
 	"erupe-ce/network"
 	"erupe-ce/utils/byteframe"
 )
@@ -18,11 +16,11 @@ func (m *MsgHead) Opcode() network.PacketID {
 }
 
 // Parse parses the packet from binary
-func (m *MsgHead) Parse(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgHead) Parse(bf *byteframe.ByteFrame) error {
 	return errors.New("NOT IMPLEMENTED")
 }
 
 // Build builds a binary packet from the current data.
-func (m *MsgHead) Build(bf *byteframe.ByteFrame, ctx *clientctx.ClientContext) error {
+func (m *MsgHead) Build(bf *byteframe.ByteFrame) error {
 	return errors.New("NOT IMPLEMENTED")
 }

@@ -240,7 +240,7 @@ func parseChatCommand(s *Session, command string) {
 		}
 	case commands["KeyQuest"].Prefix:
 		if commands["KeyQuest"].Enabled || s.isOp() {
-			if s.server.erupeConfig.RealClientMode < _config.G10 {
+			if s.server.erupeConfig.ClientID < _config.G10 {
 				sendServerChatMessage(s, s.server.i18n.commands.kqf.version)
 			} else {
 				if len(args) > 1 {
@@ -336,7 +336,7 @@ func parseChatCommand(s *Session, command string) {
 					case "cm", "check", "checkmultiplier", "multiplier":
 						sendServerChatMessage(s, fmt.Sprintf(s.server.i18n.commands.ravi.multiplier, s.server.GetRaviMultiplier()))
 					case "sr", "sendres", "resurrection", "ss", "sendsed", "rs", "reqsed":
-						if s.server.erupeConfig.RealClientMode == _config.ZZ {
+						if s.server.erupeConfig.ClientID == _config.ZZ {
 							switch args[1] {
 							case "sr", "sendres", "resurrection":
 								if s.server.raviente.state[28] > 0 {

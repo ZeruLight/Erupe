@@ -123,7 +123,7 @@ func (g *Guild) Rank() uint16 {
 		24, 48, 96, 144, 192, 240, 288, 360, 432,
 		504, 600, 696, 792, 888, 984, 1080, 1200,
 	}
-	if _config.ErupeConfig.RealClientMode <= _config.Z2 {
+	if _config.ErupeConfig.ClientID <= _config.Z2 {
 		rpMap = []uint32{
 			3500, 6000, 8500, 11000, 13500, 16000, 20000, 24000, 28000,
 			33000, 38000, 43000, 48000, 55000, 70000, 90000, 120000,
@@ -131,21 +131,21 @@ func (g *Guild) Rank() uint16 {
 	}
 	for i, u := range rpMap {
 		if g.RankRP < u {
-			if _config.ErupeConfig.RealClientMode <= _config.S6 && i >= 12 {
+			if _config.ErupeConfig.ClientID <= _config.S6 && i >= 12 {
 				return 12
-			} else if _config.ErupeConfig.RealClientMode <= _config.F5 && i >= 13 {
+			} else if _config.ErupeConfig.ClientID <= _config.F5 && i >= 13 {
 				return 13
-			} else if _config.ErupeConfig.RealClientMode <= _config.G32 && i >= 14 {
+			} else if _config.ErupeConfig.ClientID <= _config.G32 && i >= 14 {
 				return 14
 			}
 			return uint16(i)
 		}
 	}
-	if _config.ErupeConfig.RealClientMode <= _config.S6 {
+	if _config.ErupeConfig.ClientID <= _config.S6 {
 		return 12
-	} else if _config.ErupeConfig.RealClientMode <= _config.F5 {
+	} else if _config.ErupeConfig.ClientID <= _config.F5 {
 		return 13
-	} else if _config.ErupeConfig.RealClientMode <= _config.G32 {
+	} else if _config.ErupeConfig.ClientID <= _config.G32 {
 		return 14
 	}
 	return 17
@@ -1006,7 +1006,7 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint8(guild.PugiOutfit1)
 		bf.WriteUint8(guild.PugiOutfit2)
 		bf.WriteUint8(guild.PugiOutfit3)
-		if s.server.erupeConfig.RealClientMode >= _config.Z1 {
+		if s.server.erupeConfig.ClientID >= _config.Z1 {
 			bf.WriteUint8(guild.PugiOutfit1)
 			bf.WriteUint8(guild.PugiOutfit2)
 			bf.WriteUint8(guild.PugiOutfit3)
@@ -1460,10 +1460,10 @@ func handleMsgMhfEnumerateGuildMember(s *Session, p mhfpacket.MHFPacket) {
 	for _, member := range guildMembers {
 		bf.WriteUint32(member.CharID)
 		bf.WriteUint16(member.HR)
-		if s.server.erupeConfig.RealClientMode >= _config.G10 {
+		if s.server.erupeConfig.ClientID >= _config.G10 {
 			bf.WriteUint16(member.GR)
 		}
-		if s.server.erupeConfig.RealClientMode < _config.ZZ {
+		if s.server.erupeConfig.ClientID < _config.ZZ {
 			// Magnet Spike crash workaround
 			bf.WriteUint16(0)
 		} else {

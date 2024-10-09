@@ -236,7 +236,7 @@ func handleMsgMhfInfoFesta(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint16(trial.Locale)
 		bf.WriteUint16(trial.Reward)
 		bf.WriteInt16(FestivalColorCodes[trial.Monopoly])
-		if _config.ErupeConfig.RealClientMode >= _config.F4 { // Not in S6.0
+		if _config.ErupeConfig.ClientID >= _config.F4 { // Not in S6.0
 			bf.WriteUint16(trial.Unk)
 		}
 	}
@@ -279,13 +279,13 @@ func handleMsgMhfInfoFesta(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint16(reward.Quantity)
 		bf.WriteUint16(reward.ItemID)
 		// Not confirmed to be G1 but exists in G3
-		if _config.ErupeConfig.RealClientMode >= _config.G1 {
+		if _config.ErupeConfig.ClientID >= _config.G1 {
 			bf.WriteUint16(reward.Unk5)
 			bf.WriteUint16(reward.Unk6)
 			bf.WriteUint8(reward.Unk7)
 		}
 	}
-	if _config.ErupeConfig.RealClientMode <= _config.G61 {
+	if _config.ErupeConfig.ClientID <= _config.G61 {
 		if s.server.erupeConfig.GameplayOptions.MaximumFP > 0xFFFF {
 			s.server.erupeConfig.GameplayOptions.MaximumFP = 0xFFFF
 		}
@@ -348,7 +348,7 @@ func handleMsgMhfInfoFesta(s *Session, p mhfpacket.MHFPacket) {
 	bf.WriteUint16(100)  // Normal rate
 	bf.WriteUint16(50)   // 50% penalty
 
-	if _config.ErupeConfig.RealClientMode >= _config.G52 {
+	if _config.ErupeConfig.ClientID >= _config.G52 {
 		ps.Uint16(bf, "", false)
 	}
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
@@ -433,7 +433,7 @@ func handleMsgMhfEnumerateFestaMember(s *Session, p mhfpacket.MHFPacket) {
 	bf.WriteUint16(0) // Unk
 	for _, member := range validMembers {
 		bf.WriteUint32(member.CharID)
-		if _config.ErupeConfig.RealClientMode <= _config.Z1 {
+		if _config.ErupeConfig.ClientID <= _config.Z1 {
 			bf.WriteUint16(uint16(member.Souls))
 			bf.WriteUint16(0)
 		} else {

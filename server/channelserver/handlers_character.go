@@ -58,7 +58,7 @@ type CharacterSaveData struct {
 
 func getPointers() map[SavePointer]int {
 	pointers := map[SavePointer]int{pGender: 81, lBookshelfData: 5576}
-	switch _config.ErupeConfig.RealClientMode {
+	switch _config.ErupeConfig.ClientID {
 	case _config.ZZ:
 		pointers[pWeaponID] = 128522
 		pointers[pWeaponType] = 128789
@@ -110,9 +110,9 @@ func getPointers() map[SavePointer]int {
 		pointers[pGardenData] = 26424
 		pointers[pRP] = 26614
 	}
-	if _config.ErupeConfig.RealClientMode == _config.G5 {
+	if _config.ErupeConfig.ClientID == _config.G5 {
 		pointers[lBookshelfData] = 5548
-	} else if _config.ErupeConfig.RealClientMode <= _config.GG {
+	} else if _config.ErupeConfig.ClientID <= _config.GG {
 		pointers[lBookshelfData] = 4520
 	}
 	return pointers
@@ -164,7 +164,7 @@ func (save *CharacterSaveData) Save(s *Session) {
 
 	save.updateSaveDataWithStruct()
 
-	if _config.ErupeConfig.RealClientMode >= _config.G1 {
+	if _config.ErupeConfig.ClientID >= _config.G1 {
 		err := save.Compress()
 		if err != nil {
 			s.logger.Error("Failed to compress savedata", zap.Error(err))
@@ -207,10 +207,10 @@ func (save *CharacterSaveData) Decompress() error {
 func (save *CharacterSaveData) updateSaveDataWithStruct() {
 	rpBytes := make([]byte, 2)
 	binary.LittleEndian.PutUint16(rpBytes, save.RP)
-	if _config.ErupeConfig.RealClientMode >= _config.F4 {
+	if _config.ErupeConfig.ClientID >= _config.F4 {
 		copy(save.decompSave[save.Pointers[pRP]:save.Pointers[pRP]+2], rpBytes)
 	}
-	if _config.ErupeConfig.RealClientMode >= _config.G10 {
+	if _config.ErupeConfig.ClientID >= _config.G10 {
 		copy(save.decompSave[save.Pointers[pKQF]:save.Pointers[pKQF]+8], save.KQF)
 	}
 }
@@ -224,7 +224,7 @@ func (save *CharacterSaveData) updateStructWithSaveData() {
 		save.Gender = false
 	}
 	if !save.IsNewCharacter {
-		if _config.ErupeConfig.RealClientMode >= _config.S6 {
+		if _config.ErupeConfig.ClientID >= _config.S6 {
 			save.RP = binary.LittleEndian.Uint16(save.decompSave[save.Pointers[pRP] : save.Pointers[pRP]+2])
 			save.HouseTier = save.decompSave[save.Pointers[pHouseTier] : save.Pointers[pHouseTier]+5]
 			save.HouseData = save.decompSave[save.Pointers[pHouseData] : save.Pointers[pHouseData]+195]
@@ -235,12 +235,12 @@ func (save *CharacterSaveData) updateStructWithSaveData() {
 			save.WeaponType = save.decompSave[save.Pointers[pWeaponType]]
 			save.WeaponID = binary.LittleEndian.Uint16(save.decompSave[save.Pointers[pWeaponID] : save.Pointers[pWeaponID]+2])
 			save.HR = binary.LittleEndian.Uint16(save.decompSave[save.Pointers[pHR] : save.Pointers[pHR]+2])
-			if _config.ErupeConfig.RealClientMode >= _config.G1 {
+			if _config.ErupeConfig.ClientID >= _config.G1 {
 				if save.HR == uint16(999) {
 					save.GR = grpToGR(int(binary.LittleEndian.Uint32(save.decompSave[save.Pointers[pGRP] : save.Pointers[pGRP]+4])))
 				}
 			}
-			if _config.ErupeConfig.RealClientMode >= _config.G10 {
+			if _config.ErupeConfig.ClientID >= _config.G10 {
 				save.KQF = save.decompSave[save.Pointers[pKQF] : save.Pointers[pKQF]+8]
 			}
 		}

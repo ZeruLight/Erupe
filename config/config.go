@@ -77,7 +77,7 @@ type Config struct {
 	PatchServerFile        string   // File patch server override
 	DeleteOnSaveCorruption bool     // Attempts to save corrupted data will flag the save for deletion
 	ClientMode             string
-	RealClientMode         Mode
+	ClientID               Mode
 	QuestCacheExpiry       int    // Number of seconds to keep quest data cached
 	CommandPrefix          string // The prefix for commands
 	AutoCreateAccount      bool   // Automatically create accounts if they don't exist
@@ -350,16 +350,16 @@ func LoadConfig() (*Config, error) {
 
 	for i := range versionStrings {
 		if strings.ToUpper(c.ClientMode) == versionStrings[i] {
-			c.RealClientMode = Mode(i + 1)
+			c.ClientID = Mode(i + 1)
 			c.ClientMode = strings.ToUpper(c.ClientMode)
-			if c.RealClientMode <= G101 {
+			if c.ClientID <= G101 {
 				c.ClientMode += " (Debug only)"
 			}
 		}
 	}
-	if c.RealClientMode == 0 {
+	if c.ClientID == 0 {
 		c.ClientMode = versionStrings[len(versionStrings)-1]
-		c.RealClientMode = ZZ
+		c.ClientID = ZZ
 	}
 
 	if c.GameplayOptions.MinFeatureWeapons > c.GameplayOptions.MaxFeatureWeapons {

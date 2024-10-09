@@ -51,7 +51,7 @@ func (cc *CryptConn) ReadPacket() ([]byte, error) {
 	var encryptedPacketBody []byte
 
 	// Don't know when support for this was added, works in Forward.4, doesn't work in Season 6.0
-	if _config.ErupeConfig.RealClientMode < _config.F1 {
+	if _config.ErupeConfig.ClientID < _config.F1 {
 		encryptedPacketBody = make([]byte, cph.DataSize)
 	} else {
 		encryptedPacketBody = make([]byte, uint32(cph.DataSize)+(uint32(cph.Pf0-0x03)*0x1000))

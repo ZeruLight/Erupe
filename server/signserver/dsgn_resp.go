@@ -84,7 +84,7 @@ func (s *Session) makeSignResponse(uid uint32) []byte {
 		bf.WriteBool(true)                                                       // Use uint16 GR, no reason not to
 		bf.WriteBytes(stringsupport.PaddedString(char.Name, 16, true))           // Character name
 		bf.WriteBytes(stringsupport.PaddedString(char.UnkDescString, 32, false)) // unk str
-		if s.server.erupeConfig.RealClientMode >= _config.G7 {
+		if s.server.erupeConfig.ClientID >= _config.G7 {
 			bf.WriteUint16(char.GR)
 			bf.WriteUint8(0) // Unk
 			bf.WriteUint8(0) // Unk

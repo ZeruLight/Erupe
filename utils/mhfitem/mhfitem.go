@@ -114,7 +114,7 @@ func ReadWarehouseEquipment(bf *byteframe.ByteFrame) MHFEquipment {
 	for i := 0; i < 3; i++ {
 		equipment.Decorations[i].ItemID = bf.ReadUint16()
 	}
-	if _config.ErupeConfig.RealClientMode >= _config.G1 {
+	if _config.ErupeConfig.ClientID >= _config.G1 {
 		for i := 0; i < 3; i++ {
 			for j := 0; j < 3; j++ {
 				equipment.Sigils[i].Effects[j].ID = bf.ReadUint16()
@@ -128,7 +128,7 @@ func ReadWarehouseEquipment(bf *byteframe.ByteFrame) MHFEquipment {
 			equipment.Sigils[i].Unk3 = bf.ReadUint8()
 		}
 	}
-	if _config.ErupeConfig.RealClientMode >= _config.Z1 {
+	if _config.ErupeConfig.ClientID >= _config.Z1 {
 		equipment.Unk1 = bf.ReadUint16()
 	}
 	return equipment
@@ -144,7 +144,7 @@ func (e MHFEquipment) ToBytes() []byte {
 	for i := 0; i < 3; i++ {
 		bf.WriteUint16(e.Decorations[i].ItemID)
 	}
-	if _config.ErupeConfig.RealClientMode >= _config.G1 {
+	if _config.ErupeConfig.ClientID >= _config.G1 {
 		for i := 0; i < 3; i++ {
 			for j := 0; j < 3; j++ {
 				bf.WriteUint16(e.Sigils[i].Effects[j].ID)
@@ -158,7 +158,7 @@ func (e MHFEquipment) ToBytes() []byte {
 			bf.WriteUint8(e.Sigils[i].Unk3)
 		}
 	}
-	if _config.ErupeConfig.RealClientMode >= _config.Z1 {
+	if _config.ErupeConfig.ClientID >= _config.Z1 {
 		bf.WriteUint16(e.Unk1)
 	}
 	return bf.Data()

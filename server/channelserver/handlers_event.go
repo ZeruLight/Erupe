@@ -88,13 +88,13 @@ func handleMsgMhfGetWeeklySchedule(s *Session, p mhfpacket.MHFPacket) {
 
 func generateFeatureWeapons(count int) activeFeature {
 	_max := 14
-	if _config.ErupeConfig.RealClientMode < _config.ZZ {
+	if _config.ErupeConfig.ClientID < _config.ZZ {
 		_max = 13
 	}
-	if _config.ErupeConfig.RealClientMode < _config.G10 {
+	if _config.ErupeConfig.ClientID < _config.G10 {
 		_max = 12
 	}
-	if _config.ErupeConfig.RealClientMode < _config.GG {
+	if _config.ErupeConfig.ClientID < _config.GG {
 		_max = 11
 	}
 	if count > _max {

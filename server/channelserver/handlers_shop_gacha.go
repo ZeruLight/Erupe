@@ -62,7 +62,7 @@ func writeShopItems(bf *byteframe.ByteFrame, items []ShopItem) {
 	bf.WriteUint16(uint16(len(items)))
 	bf.WriteUint16(uint16(len(items)))
 	for _, item := range items {
-		if _config.ErupeConfig.RealClientMode >= _config.Z2 {
+		if _config.ErupeConfig.ClientID >= _config.Z2 {
 			bf.WriteUint32(item.ID)
 		}
 		bf.WriteUint32(item.ItemID)
@@ -70,19 +70,19 @@ func writeShopItems(bf *byteframe.ByteFrame, items []ShopItem) {
 		bf.WriteUint16(item.Quantity)
 		bf.WriteUint16(item.MinHR)
 		bf.WriteUint16(item.MinSR)
-		if _config.ErupeConfig.RealClientMode >= _config.Z2 {
+		if _config.ErupeConfig.ClientID >= _config.Z2 {
 			bf.WriteUint16(item.MinGR)
 		}
 		bf.WriteUint8(0) // Unk
 		bf.WriteUint8(item.StoreLevel)
-		if _config.ErupeConfig.RealClientMode >= _config.Z2 {
+		if _config.ErupeConfig.ClientID >= _config.Z2 {
 			bf.WriteUint16(item.MaxQuantity)
 			bf.WriteUint16(item.UsedQuantity)
 		}
-		if _config.ErupeConfig.RealClientMode == _config.Z1 {
+		if _config.ErupeConfig.ClientID == _config.Z1 {
 			bf.WriteUint8(uint8(item.RoadFloors))
 			bf.WriteUint8(uint8(item.RoadFatalis))
-		} else if _config.ErupeConfig.RealClientMode >= _config.Z2 {
+		} else if _config.ErupeConfig.ClientID >= _config.Z2 {
 			bf.WriteUint16(item.RoadFloors)
 			bf.WriteUint16(item.RoadFatalis)
 		}
@@ -123,7 +123,7 @@ func handleMsgMhfEnumerateShop(s *Session, p mhfpacket.MHFPacket) {
 	switch pkt.ShopType {
 	case 1: // Running gachas
 		// Fundamentally, gacha works completely differently, just hide it for now.
-		if _config.ErupeConfig.RealClientMode <= _config.G7 {
+		if _config.ErupeConfig.ClientID <= _config.G7 {
 			doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
 			return
 		}
@@ -156,7 +156,7 @@ func handleMsgMhfEnumerateShop(s *Session, p mhfpacket.MHFPacket) {
 			ps.Uint8(bf, g.Name, true)
 			ps.Uint8(bf, g.URLBanner, false)
 			ps.Uint8(bf, g.URLFeature, false)
-			if _config.ErupeConfig.RealClientMode >= _config.G10 {
+			if _config.ErupeConfig.ClientID >= _config.G10 {
 				bf.WriteBool(g.Wide)
 				ps.Uint8(bf, g.URLThumbnail, false)
 			}
@@ -166,7 +166,7 @@ func handleMsgMhfEnumerateShop(s *Session, p mhfpacket.MHFPacket) {
 				bf.WriteUint16(0)
 			}
 			bf.WriteUint8(g.GachaType)
-			if _config.ErupeConfig.RealClientMode >= _config.G10 {
+			if _config.ErupeConfig.ClientID >= _config.G10 {
 				bf.WriteBool(g.Hidden)
 			}
 		}
@@ -708,7 +708,7 @@ func handleMsgMhfGetFpointExchangeList(s *Session, p mhfpacket.MHFPacket) {
 			exchanges = append(exchanges, exchange)
 		}
 	}
-	if _config.ErupeConfig.RealClientMode <= _config.Z2 {
+	if _config.ErupeConfig.ClientID <= _config.Z2 {
 		bf.WriteUint8(uint8(len(exchanges)))
 		bf.WriteUint8(uint8(buyables))
 	} else {

@@ -57,7 +57,7 @@ func handleMsgMhfLoadLegendDispatch(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfLoadHunterNavi(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfLoadHunterNavi)
 	naviLength := 552
-	if s.server.erupeConfig.RealClientMode <= _config.G7 {
+	if s.server.erupeConfig.ClientID <= _config.G7 {
 		naviLength = 280
 	}
 	var data []byte
@@ -73,7 +73,7 @@ func handleMsgMhfSaveHunterNavi(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSaveHunterNavi)
 	if pkt.IsDataDiff {
 		naviLength := 552
-		if s.server.erupeConfig.RealClientMode <= _config.G7 {
+		if s.server.erupeConfig.ClientID <= _config.G7 {
 			naviLength = 280
 		}
 		var data []byte

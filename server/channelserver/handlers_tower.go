@@ -67,7 +67,7 @@ func handleMsgMhfGetTowerInfo(s *Session, p mhfpacket.MHFPacket) {
 		s.server.db.Exec(`INSERT INTO tower (char_id) VALUES ($1)`, s.charID)
 	}
 
-	if _config.ErupeConfig.RealClientMode <= _config.G7 {
+	if _config.ErupeConfig.ClientID <= _config.G7 {
 		towerInfo.Level = towerInfo.Level[:1]
 	}
 

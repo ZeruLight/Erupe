@@ -3,7 +3,7 @@ package mhfpacket
 import (
 	"erupe-ce/network"
 	"erupe-ce/network/clientctx"
-	"erupe-ce/common/byteframe"
+	"erupe-ce/utils/byteframe"
 )
 
 // MsgSysUnreserveStage represents the MSG_SYS_UNRESERVE_STAGE

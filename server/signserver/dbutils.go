@@ -3,8 +3,8 @@ package signserver
 import (
 	"database/sql"
 	"errors"
-	"erupe-ce/common/mhfcourse"
-	"erupe-ce/common/token"
+	"erupe-ce/utils/mhfcourse"
+	"erupe-ce/utils/token"
 	"strings"
 	"time"
 

@@ -3,9 +3,9 @@ package mhfpacket
 import (
 	"errors"
 
-	"erupe-ce/common/byteframe"
 	"erupe-ce/network"
 	"erupe-ce/network/clientctx"
+	"erupe-ce/utils/byteframe"
 )
 
 // MsgMhfGetWeeklySeibatuRankingReward represents the MSG_MHF_GET_WEEKLY_SEIBATU_RANKING_REWARD

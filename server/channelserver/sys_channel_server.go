@@ -7,12 +7,13 @@ import (
 	"sync"
 	"time"
 
-	"erupe-ce/common/byteframe"
-	ps "erupe-ce/common/pascalstring"
 	_config "erupe-ce/config"
 	"erupe-ce/network/binpacket"
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/server/discordbot"
+	"erupe-ce/utils/byteframe"
+	"erupe-ce/utils/gametime"
+	ps "erupe-ce/utils/pascalstring"
 
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
@@ -435,5 +436,5 @@ func (s *Server) HasSemaphore(ses *Session) bool {
 
 func (s *Server) Season() uint8 {
 	sid := int64(((s.ID & 0xFF00) - 4096) / 256)
-	return uint8(((TimeAdjusted().Unix() / 86400) + sid) % 3)
+	return uint8(((gametime.TimeAdjusted().Unix() / 86400) + sid) % 3)
 }

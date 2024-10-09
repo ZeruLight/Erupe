@@ -3,10 +3,10 @@ package mhfpacket
 import (
 	"errors"
 
-	"erupe-ce/common/byteframe"
-	"erupe-ce/common/stringsupport"
 	"erupe-ce/network"
 	"erupe-ce/network/clientctx"
+	"erupe-ce/utils/byteframe"
+	"erupe-ce/utils/stringsupport"
 )
 
 // MsgMhfCreateGuild represents the MSG_MHF_CREATE_GUILD

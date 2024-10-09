@@ -2,12 +2,13 @@ package channelserver
 
 import (
 	"encoding/binary"
-	"erupe-ce/common/mhfcourse"
-	"erupe-ce/common/mhfitem"
-	"erupe-ce/common/mhfmon"
-	ps "erupe-ce/common/pascalstring"
-	"erupe-ce/common/stringsupport"
 	_config "erupe-ce/config"
+	"erupe-ce/utils/gametime"
+	"erupe-ce/utils/mhfcourse"
+	"erupe-ce/utils/mhfitem"
+	"erupe-ce/utils/mhfmon"
+	ps "erupe-ce/utils/pascalstring"
+	"erupe-ce/utils/stringsupport"
 	"fmt"
 	"io"
 	"net"
@@ -15,8 +16,8 @@ import (
 	"time"
 
 	"crypto/rand"
-	"erupe-ce/common/byteframe"
 	"erupe-ce/network/mhfpacket"
+	"erupe-ce/utils/byteframe"
 	"math/bits"
 
 	"go.uber.org/zap"
@@ -144,7 +145,7 @@ func handleMsgSysLogin(s *Session, p mhfpacket.MHFPacket) {
 	s.Unlock()
 
 	bf := byteframe.NewByteFrame()
-	bf.WriteUint32(uint32(TimeAdjusted().Unix())) // Unix timestamp
+	bf.WriteUint32(uint32(gametime.TimeAdjusted().Unix())) // Unix timestamp
 
 	_, err := s.server.db.Exec("UPDATE servers SET current_players=$1 WHERE server_id=$2", len(s.server.sessions), s.server.ID)
 	if err != nil {
@@ -156,7 +157,7 @@ func handleMsgSysLogin(s *Session, p mhfpacket.MHFPacket) {
 		panic(err)
 	}
 
-	_, err = s.server.db.Exec("UPDATE characters SET last_login=$1 WHERE id=$2", TimeAdjusted().Unix(), s.charID)
+	_, err = s.server.db.Exec("UPDATE characters SET last_login=$1 WHERE id=$2", gametime.TimeAdjusted().Unix(), s.charID)
 	if err != nil {
 		panic(err)
 	}
@@ -217,7 +218,7 @@ func logoutPlayer(s *Session) {
 	var timePlayed int
 	var sessionTime int
 	_ = s.server.db.QueryRow("SELECT time_played FROM characters WHERE id = $1", s.charID).Scan(&timePlayed)
-	sessionTime = int(TimeAdjusted().Unix()) - int(s.sessionStart)
+	sessionTime = int(gametime.TimeAdjusted().Unix()) - int(s.sessionStart)
 	timePlayed += sessionTime
 
 	var rpGained int
@@ -275,7 +276,7 @@ func handleMsgSysPing(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgSysTime(s *Session, p mhfpacket.MHFPacket) {
 	resp := &mhfpacket.MsgSysTime{
 		GetRemoteTime: false,
-		Timestamp:     uint32(TimeAdjusted().Unix()), // JP timezone
+		Timestamp:     uint32(gametime.TimeAdjusted().Unix()), // JP timezone
 	}
 	s.QueueSendMHF(resp)
 	s.notifyRavi()
@@ -312,7 +313,7 @@ func handleMsgSysRecordLog(s *Session, p mhfpacket.MHFPacket) {
 		for i := 0; i < 176; i++ {
 			val = bf.ReadUint8()
 			if val > 0 && mhfmon.Monsters[i].Large {
-				s.server.db.Exec(`INSERT INTO kill_logs (character_id, monster, quantity, timestamp) VALUES ($1, $2, $3, $4)`, s.charID, i, val, TimeAdjusted())
+				s.server.db.Exec(`INSERT INTO kill_logs (character_id, monster, quantity, timestamp) VALUES ($1, $2, $3, $4)`, s.charID, i, val, gametime.TimeAdjusted())
 			}
 		}
 	}
@@ -855,13 +856,13 @@ func handleMsgMhfCheckWeeklyStamp(s *Session, p mhfpacket.MHFPacket) {
 	var lastCheck time.Time
 	err := s.server.db.QueryRow(fmt.Sprintf("SELECT %s_checked FROM stamps WHERE character_id=$1", pkt.StampType), s.charID).Scan(&lastCheck)
 	if err != nil {
-		lastCheck = TimeAdjusted()
-		s.server.db.Exec("INSERT INTO stamps (character_id, hl_checked, ex_checked) VALUES ($1, $2, $2)", s.charID, TimeAdjusted())
+		lastCheck = gametime.TimeAdjusted()
+		s.server.db.Exec("INSERT INTO stamps (character_id, hl_checked, ex_checked) VALUES ($1, $2, $2)", s.charID, gametime.TimeAdjusted())
 	} else {
-		s.server.db.Exec(fmt.Sprintf(`UPDATE stamps SET %s_checked=$1 WHERE character_id=$2`, pkt.StampType), TimeAdjusted(), s.charID)
+		s.server.db.Exec(fmt.Sprintf(`UPDATE stamps SET %s_checked=$1 WHERE character_id=$2`, pkt.StampType), gametime.TimeAdjusted(), s.charID)
 	}
 
-	if lastCheck.Before(TimeWeekStart()) {
+	if lastCheck.Before(gametime.TimeWeekStart()) {
 		s.server.db.Exec(fmt.Sprintf("UPDATE stamps SET %s_total=%s_total+1 WHERE character_id=$1", pkt.StampType, pkt.StampType), s.charID)
 		updated = 1
 	}
@@ -873,7 +874,7 @@ func handleMsgMhfCheckWeeklyStamp(s *Session, p mhfpacket.MHFPacket) {
 	bf.WriteUint16(updated)
 	bf.WriteUint16(0)
 	bf.WriteUint16(0)
-	bf.WriteUint32(uint32(TimeWeekStart().Unix()))
+	bf.WriteUint32(uint32(gametime.TimeWeekStart().Unix()))
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
@@ -899,7 +900,7 @@ func handleMsgMhfExchangeWeeklyStamp(s *Session, p mhfpacket.MHFPacket) {
 	bf.WriteUint16(0)
 	bf.WriteUint16(tktStack.Item.ItemID)
 	bf.WriteUint16(tktStack.Quantity)
-	bf.WriteUint32(uint32(TimeWeekStart().Unix()))
+	bf.WriteUint32(uint32(gametime.TimeWeekStart().Unix()))
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
@@ -1009,7 +1010,7 @@ func handleMsgMhfGetEtcPoints(s *Session, p mhfpacket.MHFPacket) {
 
 	var dailyTime time.Time
 	_ = s.server.db.QueryRow("SELECT COALESCE(daily_time, $2) FROM characters WHERE id = $1", s.charID, time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)).Scan(&dailyTime)
-	if TimeAdjusted().After(dailyTime) {
+	if gametime.TimeAdjusted().After(dailyTime) {
 		s.server.db.Exec("UPDATE characters SET bonus_quests = 0, daily_quests = 0 WHERE id=$1", s.charID)
 	}
 
@@ -1117,8 +1118,8 @@ func handleMsgMhfKickExportForce(s *Session, p mhfpacket.MHFPacket) {}
 func handleMsgMhfGetEarthStatus(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetEarthStatus)
 	bf := byteframe.NewByteFrame()
-	bf.WriteUint32(uint32(TimeWeekStart().Unix())) // Start
-	bf.WriteUint32(uint32(TimeWeekNext().Unix()))  // End
+	bf.WriteUint32(uint32(gametime.TimeWeekStart().Unix())) // Start
+	bf.WriteUint32(uint32(gametime.TimeWeekNext().Unix()))  // End
 	bf.WriteInt32(s.server.erupeConfig.EarthStatus)
 	bf.WriteInt32(s.server.erupeConfig.EarthID)
 	for i, m := range s.server.erupeConfig.EarthMonsters {
@@ -1248,9 +1249,9 @@ func handleMsgMhfGetSeibattle(s *Session, p mhfpacket.MHFPacket) {
 	var data []*byteframe.ByteFrame
 	seibattle := Seibattle{
 		Timetable: []SeibattleTimetable{
-			{TimeMidnight(), TimeMidnight().Add(time.Hour * 8)},
-			{TimeMidnight().Add(time.Hour * 8), TimeMidnight().Add(time.Hour * 16)},
-			{TimeMidnight().Add(time.Hour * 16), TimeMidnight().Add(time.Hour * 24)},
+			{gametime.TimeMidnight(), gametime.TimeMidnight().Add(time.Hour * 8)},
+			{gametime.TimeMidnight().Add(time.Hour * 8), gametime.TimeMidnight().Add(time.Hour * 16)},
+			{gametime.TimeMidnight().Add(time.Hour * 16), gametime.TimeMidnight().Add(time.Hour * 24)},
 		},
 		KeyScore: []SeibattleKeyScore{
 			{0, 0},

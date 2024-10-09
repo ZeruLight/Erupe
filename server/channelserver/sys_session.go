@@ -3,19 +3,20 @@ package channelserver
 import (
 	"encoding/binary"
 	"encoding/hex"
-	"erupe-ce/common/mhfcourse"
 	_config "erupe-ce/config"
+	"erupe-ce/utils/gametime"
+	"erupe-ce/utils/mhfcourse"
 	"fmt"
 	"io"
 	"net"
 	"sync"
 	"time"
 
-	"erupe-ce/common/byteframe"
-	"erupe-ce/common/stringstack"
 	"erupe-ce/network"
 	"erupe-ce/network/clientctx"
 	"erupe-ce/network/mhfpacket"
+	"erupe-ce/utils/byteframe"
+	"erupe-ce/utils/stringstack"
 
 	"go.uber.org/zap"
 )
@@ -80,7 +81,7 @@ func NewSession(server *Server, conn net.Conn) *Session {
 		sendPackets:    make(chan packet, 20),
 		clientContext:  &clientctx.ClientContext{}, // Unused
 		lastPacket:     time.Now(),
-		sessionStart:   TimeAdjusted().Unix(),
+		sessionStart:   gametime.TimeAdjusted().Unix(),
 		stageMoveStack: stringstack.New(),
 		ackStart:       make(map[uint32]time.Time),
 		semaphoreID:    make([]uint16, 2),

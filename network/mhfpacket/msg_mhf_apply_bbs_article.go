@@ -2,12 +2,12 @@ package mhfpacket
 
 import (
 	"errors"
-	"erupe-ce/common/bfutil"
-	"erupe-ce/common/stringsupport"
+	"erupe-ce/utils/bfutil"
+	"erupe-ce/utils/stringsupport"
 
-	"erupe-ce/common/byteframe"
 	"erupe-ce/network"
 	"erupe-ce/network/clientctx"
+	"erupe-ce/utils/byteframe"
 )
 
 // MsgMhfApplyBbsArticle represents the MSG_MHF_APPLY_BBS_ARTICLE

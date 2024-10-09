@@ -1,10 +1,11 @@
 package channelserver
 
 import (
-	"erupe-ce/common/byteframe"
-	ps "erupe-ce/common/pascalstring"
 	_config "erupe-ce/config"
 	"erupe-ce/network/mhfpacket"
+	"erupe-ce/utils/byteframe"
+	"erupe-ce/utils/gametime"
+	ps "erupe-ce/utils/pascalstring"
 	"math/rand"
 )
 
@@ -574,7 +575,7 @@ func handleMsgMhfGetStepupStatus(s *Session, p mhfpacket.MHFPacket) {
 	}
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint8(step)
-	bf.WriteUint32(uint32(TimeAdjusted().Unix()))
+	bf.WriteUint32(uint32(gametime.TimeAdjusted().Unix()))
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 

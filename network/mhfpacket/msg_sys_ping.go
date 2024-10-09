@@ -3,7 +3,7 @@ package mhfpacket
 import (
 	"erupe-ce/network"
 	"erupe-ce/network/clientctx"
-	"erupe-ce/common/byteframe"
+	"erupe-ce/utils/byteframe"
 )
 
 // MsgSysPing represents the MSG_SYS_PING

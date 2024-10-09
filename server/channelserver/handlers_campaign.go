@@ -1,11 +1,11 @@
 package channelserver
 
 import (
-	"erupe-ce/common/byteframe"
-	ps "erupe-ce/common/pascalstring"
-	"erupe-ce/common/stringsupport"
 	_config "erupe-ce/config"
 	"erupe-ce/network/mhfpacket"
+	"erupe-ce/utils/byteframe"
+	ps "erupe-ce/utils/pascalstring"
+	"erupe-ce/utils/stringsupport"
 	"time"
 )
 

@@ -3,7 +3,7 @@ package mhfpacket
 import (
 	"erupe-ce/network"
 	"erupe-ce/network/clientctx"
-	"erupe-ce/common/byteframe"
+	"erupe-ce/utils/byteframe"
 )
 
 // MsgSysPositionObject represents the MSG_SYS_POSITION_OBJECT

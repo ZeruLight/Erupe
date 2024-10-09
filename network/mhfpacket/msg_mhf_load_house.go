@@ -2,11 +2,11 @@ package mhfpacket
 
 import (
 	"errors"
-	"erupe-ce/common/stringsupport"
+	"erupe-ce/utils/stringsupport"
 
-	"erupe-ce/common/byteframe"
 	"erupe-ce/network"
 	"erupe-ce/network/clientctx"
+	"erupe-ce/utils/byteframe"
 )
 
 // MsgMhfLoadHouse represents the MSG_MHF_LOAD_HOUSE

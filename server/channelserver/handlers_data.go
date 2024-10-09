@@ -1,19 +1,21 @@
 package channelserver
 
 import (
-	"erupe-ce/common/mhfmon"
-	"erupe-ce/common/stringsupport"
 	_config "erupe-ce/config"
+	"erupe-ce/utils/gametime"
+	"erupe-ce/utils/mhfmon"
+	"erupe-ce/utils/stringsupport"
 	"fmt"
 	"io"
 	"os"
 	"path/filepath"
 	"time"
 
-	"erupe-ce/common/byteframe"
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/server/channelserver/compression/deltacomp"
 	"erupe-ce/server/channelserver/compression/nullcomp"
+	"erupe-ce/utils/byteframe"
+
 	"go.uber.org/zap"
 )
 
@@ -1004,7 +1006,7 @@ func handleMsgMhfGetPaperData(s *Session, p mhfpacket.MHFPacket) {
 	switch pkt.Unk2 {
 	case 0:
 		paperMissions = PaperMission{
-			[]PaperMissionTimetable{{TimeMidnight(), TimeMidnight().Add(24 * time.Hour)}},
+			[]PaperMissionTimetable{{gametime.TimeMidnight(), gametime.TimeMidnight().Add(24 * time.Hour)}},
 			[]PaperMissionData{},
 		}
 	case 5:

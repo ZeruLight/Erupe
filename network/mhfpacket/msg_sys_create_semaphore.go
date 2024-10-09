@@ -4,9 +4,9 @@ import (
 	"errors"
 	_config "erupe-ce/config"
 
-	"erupe-ce/common/byteframe"
 	"erupe-ce/network"
 	"erupe-ce/network/clientctx"
+	"erupe-ce/utils/byteframe"
 )
 
 // MsgSysCreateSemaphore represents the MSG_SYS_CREATE_SEMAPHORE

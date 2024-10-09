@@ -1,13 +1,14 @@
 package channelserver
 
 import (
-	"erupe-ce/common/token"
 	_config "erupe-ce/config"
+	"erupe-ce/utils/gametime"
+	"erupe-ce/utils/token"
 	"math"
 	"time"
 
-	"erupe-ce/common/byteframe"
 	"erupe-ce/network/mhfpacket"
+	"erupe-ce/utils/byteframe"
 )
 
 type Event struct {
@@ -57,9 +58,9 @@ func handleMsgMhfGetWeeklySchedule(s *Session, p mhfpacket.MHFPacket) {
 
 	var features []activeFeature
 	times := []time.Time{
-		TimeMidnight().Add(-24 * time.Hour),
-		TimeMidnight(),
-		TimeMidnight().Add(24 * time.Hour),
+		gametime.TimeMidnight().Add(-24 * time.Hour),
+		gametime.TimeMidnight(),
+		gametime.TimeMidnight().Add(24 * time.Hour),
 	}
 
 	for _, t := range times {
@@ -76,7 +77,7 @@ func handleMsgMhfGetWeeklySchedule(s *Session, p mhfpacket.MHFPacket) {
 
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint8(uint8(len(features)))
-	bf.WriteUint32(uint32(TimeAdjusted().Add(-5 * time.Minute).Unix()))
+	bf.WriteUint32(uint32(gametime.TimeAdjusted().Add(-5 * time.Minute).Unix()))
 	for _, feature := range features {
 		bf.WriteUint32(uint32(feature.StartTime.Unix()))
 		bf.WriteUint32(feature.ActiveFeatures)
@@ -146,7 +147,7 @@ func handleMsgMhfGetKeepLoginBoostStatus(s *Session, p mhfpacket.MHFPacket) {
 		loginBoosts = append(loginBoosts, temp)
 	}
 	if len(loginBoosts) == 0 {
-		temp := TimeWeekStart()
+		temp := gametime.TimeWeekStart()
 		loginBoosts = []loginBoost{
 			{WeekReq: 1, Expiration: temp},
 			{WeekReq: 2, Expiration: temp},
@@ -161,13 +162,13 @@ func handleMsgMhfGetKeepLoginBoostStatus(s *Session, p mhfpacket.MHFPacket) {
 
 	for _, boost := range loginBoosts {
 		// Reset if next week
-		if !boost.Reset.IsZero() && boost.Reset.Before(TimeAdjusted()) {
-			boost.Expiration = TimeWeekStart()
+		if !boost.Reset.IsZero() && boost.Reset.Before(gametime.TimeAdjusted()) {
+			boost.Expiration = gametime.TimeWeekStart()
 			boost.Reset = time.Time{}
 			s.server.db.Exec(`UPDATE login_boost SET expiration=$1, reset=$2 WHERE char_id=$3 AND week_req=$4`, boost.Expiration, boost.Reset, s.charID, boost.WeekReq)
 		}
 
-		boost.WeekCount = uint8((TimeAdjusted().Unix()-boost.Expiration.Unix())/604800 + 1)
+		boost.WeekCount = uint8((gametime.TimeAdjusted().Unix()-boost.Expiration.Unix())/604800 + 1)
 
 		if boost.WeekCount >= boost.WeekReq {
 			boost.Active = true
@@ -175,7 +176,7 @@ func handleMsgMhfGetKeepLoginBoostStatus(s *Session, p mhfpacket.MHFPacket) {
 		}
 
 		// Show reset timer on expired boosts
-		if boost.Reset.After(TimeAdjusted()) {
+		if boost.Reset.After(gametime.TimeAdjusted()) {
 			boost.Active = true
 			boost.WeekCount = 0
 		}
@@ -200,14 +201,14 @@ func handleMsgMhfUseKeepLoginBoost(s *Session, p mhfpacket.MHFPacket) {
 	bf.WriteUint8(0)
 	switch pkt.BoostWeekUsed {
 	case 1, 3:
-		expiration = TimeAdjusted().Add(120 * time.Minute)
+		expiration = gametime.TimeAdjusted().Add(120 * time.Minute)
 	case 4:
-		expiration = TimeAdjusted().Add(180 * time.Minute)
+		expiration = gametime.TimeAdjusted().Add(180 * time.Minute)
 	case 2, 5:
-		expiration = TimeAdjusted().Add(240 * time.Minute)
+		expiration = gametime.TimeAdjusted().Add(240 * time.Minute)
 	}
 	bf.WriteUint32(uint32(expiration.Unix()))
-	s.server.db.Exec(`UPDATE login_boost SET expiration=$1, reset=$2 WHERE char_id=$3 AND week_req=$4`, expiration, TimeWeekNext(), s.charID, pkt.BoostWeekUsed)
+	s.server.db.Exec(`UPDATE login_boost SET expiration=$1, reset=$2 WHERE char_id=$3 AND week_req=$4`, expiration, gametime.TimeWeekNext(), s.charID, pkt.BoostWeekUsed)
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 

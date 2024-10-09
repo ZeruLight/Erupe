@@ -1,11 +1,12 @@
 package signserver
 
 import (
-	"erupe-ce/common/byteframe"
-	ps "erupe-ce/common/pascalstring"
-	"erupe-ce/common/stringsupport"
+	"erupe-ce/utils/byteframe"
+	"erupe-ce/utils/gametime"
+	ps "erupe-ce/utils/pascalstring"
+	"erupe-ce/utils/stringsupport"
+
 	_config "erupe-ce/config"
-	"erupe-ce/server/channelserver"
 	"fmt"
 	"strings"
 	"time"
@@ -50,7 +51,7 @@ func (s *Session) makeSignResponse(uid uint32) []byte {
 	bf.WriteUint8(uint8(len(chars)))
 	bf.WriteUint32(tokenID)
 	bf.WriteBytes([]byte(sessToken))
-	bf.WriteUint32(uint32(channelserver.TimeAdjusted().Unix()))
+	bf.WriteUint32(uint32(gametime.TimeAdjusted().Unix()))
 	if s.client == PS3 {
 		ps.Uint8(bf, fmt.Sprintf("%s/ps3", s.server.erupeConfig.PatchServerManifest), false)
 		ps.Uint8(bf, fmt.Sprintf("%s/ps3", s.server.erupeConfig.PatchServerFile), false)
@@ -378,11 +379,11 @@ func (s *Session) makeSignResponse(uid uint32) []byte {
 	}
 
 	// We can just use the start timestamp as the event ID
-	bf.WriteUint32(uint32(channelserver.TimeWeekStart().Unix()))
+	bf.WriteUint32(uint32(gametime.TimeWeekStart().Unix()))
 	// Start time
-	bf.WriteUint32(uint32(channelserver.TimeWeekNext().Add(-time.Duration(s.server.erupeConfig.GameplayOptions.MezFesDuration) * time.Second).Unix()))
+	bf.WriteUint32(uint32(gametime.TimeWeekNext().Add(-time.Duration(s.server.erupeConfig.GameplayOptions.MezFesDuration) * time.Second).Unix()))
 	// End time
-	bf.WriteUint32(uint32(channelserver.TimeWeekNext().Unix()))
+	bf.WriteUint32(uint32(gametime.TimeWeekNext().Unix()))
 	bf.WriteUint8(uint8(len(tickets)))
 	for i := range tickets {
 		bf.WriteUint32(tickets[i])

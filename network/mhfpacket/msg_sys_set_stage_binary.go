@@ -1,9 +1,9 @@
 package mhfpacket
 
 import (
-	"erupe-ce/common/byteframe"
 	"erupe-ce/network"
 	"erupe-ce/network/clientctx"
+	"erupe-ce/utils/byteframe"
 )
 
 // MsgSysSetStageBinary represents the MSG_SYS_SET_STAGE_BINARY

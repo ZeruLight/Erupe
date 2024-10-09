@@ -6,7 +6,7 @@ package decryption
 */
 
 import (
-	"erupe-ce/common/byteframe"
+	"erupe-ce/utils/byteframe"
 	"io"
 )
 

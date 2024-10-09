@@ -2,11 +2,11 @@ package mhfpacket
 
 import (
 	"errors"
-	"erupe-ce/common/bfutil"
+	"erupe-ce/utils/bfutil"
 
-	"erupe-ce/common/byteframe"
 	"erupe-ce/network"
 	"erupe-ce/network/clientctx"
+	"erupe-ce/utils/byteframe"
 )
 
 // MsgSysCheckSemaphore represents the MSG_SYS_CHECK_SEMAPHORE

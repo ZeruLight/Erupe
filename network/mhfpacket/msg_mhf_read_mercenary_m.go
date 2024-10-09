@@ -3,9 +3,9 @@ package mhfpacket
 import (
 	"errors"
 
-	"erupe-ce/common/byteframe"
 	"erupe-ce/network"
 	"erupe-ce/network/clientctx"
+	"erupe-ce/utils/byteframe"
 )
 
 // MsgMhfReadMercenaryM represents the MSG_MHF_READ_MERCENARY_M

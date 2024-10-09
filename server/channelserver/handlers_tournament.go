@@ -1,9 +1,10 @@
 package channelserver
 
 import (
-	"erupe-ce/common/byteframe"
-	ps "erupe-ce/common/pascalstring"
 	"erupe-ce/network/mhfpacket"
+	"erupe-ce/utils/byteframe"
+	"erupe-ce/utils/gametime"
+	ps "erupe-ce/utils/pascalstring"
 	"time"
 )
 
@@ -76,7 +77,7 @@ func handleMsgMhfInfoTournament(s *Session, p mhfpacket.MHFPacket) {
 			ps.Uint16(bf, tinfo.Unk6, true)
 		}
 	case 1:
-		bf.WriteUint32(uint32(TimeAdjusted().Unix()))
+		bf.WriteUint32(uint32(gametime.TimeAdjusted().Unix()))
 		bf.WriteUint32(0) // Registered ID
 		bf.WriteUint32(0)
 		bf.WriteUint32(0)

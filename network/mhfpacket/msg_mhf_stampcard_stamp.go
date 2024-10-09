@@ -4,9 +4,9 @@ import (
 	"errors"
 	_config "erupe-ce/config"
 
-	"erupe-ce/common/byteframe"
 	"erupe-ce/network"
 	"erupe-ce/network/clientctx"
+	"erupe-ce/utils/byteframe"
 )
 
 // MsgMhfStampcardStamp represents the MSG_MHF_STAMPCARD_STAMP

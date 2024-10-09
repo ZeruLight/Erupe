@@ -1,4 +1,4 @@
-package channelserver
+package gametime
 
 import (
 	"time"

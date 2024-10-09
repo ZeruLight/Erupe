@@ -1,9 +1,10 @@
 package channelserver
 
 import (
-	"erupe-ce/common/byteframe"
-	"erupe-ce/common/stringsupport"
 	"erupe-ce/network/mhfpacket"
+	"erupe-ce/utils/byteframe"
+	"erupe-ce/utils/gametime"
+	"erupe-ce/utils/stringsupport"
 	"time"
 )
 
@@ -54,7 +55,7 @@ func handleMsgMhfEnumerateGuildTresure(s *Session, p mhfpacket.MHFPacket) {
 		} else {
 			for rows.Next() {
 				err = rows.StructScan(&hunt)
-				if err == nil && hunt.Start.Add(time.Second*time.Duration(s.server.erupeConfig.GameplayOptions.TreasureHuntExpiry)).After(TimeAdjusted()) {
+				if err == nil && hunt.Start.Add(time.Second*time.Duration(s.server.erupeConfig.GameplayOptions.TreasureHuntExpiry)).After(gametime.TimeAdjusted()) {
 					hunts = append(hunts, hunt)
 				}
 			}

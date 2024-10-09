@@ -1,15 +1,17 @@
 package channelserver
 
 import (
-	"erupe-ce/common/byteframe"
-	"erupe-ce/common/stringsupport"
 	_config "erupe-ce/config"
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/server/channelserver/compression/deltacomp"
 	"erupe-ce/server/channelserver/compression/nullcomp"
-	"go.uber.org/zap"
+	"erupe-ce/utils/byteframe"
+	"erupe-ce/utils/gametime"
+	"erupe-ce/utils/stringsupport"
 	"io"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 func handleMsgMhfLoadPartner(s *Session, p mhfpacket.MHFPacket) {
@@ -40,9 +42,9 @@ func handleMsgMhfLoadLegendDispatch(s *Session, p mhfpacket.MHFPacket) {
 		Unk       uint32
 		Timestamp uint32
 	}{
-		{0, uint32(TimeMidnight().Add(-12 * time.Hour).Unix())},
-		{0, uint32(TimeMidnight().Add(12 * time.Hour).Unix())},
-		{0, uint32(TimeMidnight().Add(36 * time.Hour).Unix())},
+		{0, uint32(gametime.TimeMidnight().Add(-12 * time.Hour).Unix())},
+		{0, uint32(gametime.TimeMidnight().Add(12 * time.Hour).Unix())},
+		{0, uint32(gametime.TimeMidnight().Add(36 * time.Hour).Unix())},
 	}
 	bf.WriteUint8(uint8(len(legendDispatch)))
 	for _, dispatch := range legendDispatch {
@@ -167,8 +169,8 @@ func handleMsgMhfReadMercenaryW(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint32(pactID)
 		bf.WriteUint32(cid)
 		bf.WriteBool(true) // Escort enabled
-		bf.WriteUint32(uint32(TimeAdjusted().Unix()))
-		bf.WriteUint32(uint32(TimeAdjusted().Add(time.Hour * 24 * 7).Unix()))
+		bf.WriteUint32(uint32(gametime.TimeAdjusted().Unix()))
+		bf.WriteUint32(uint32(gametime.TimeAdjusted().Add(time.Hour * 24 * 7).Unix()))
 		bf.WriteBytes(stringsupport.PaddedString(name, 18, true))
 	} else {
 		bf.WriteUint8(0)
@@ -186,8 +188,8 @@ func handleMsgMhfReadMercenaryW(s *Session, p mhfpacket.MHFPacket) {
 			loans++
 			temp.WriteUint32(pactID)
 			temp.WriteUint32(cid)
-			temp.WriteUint32(uint32(TimeAdjusted().Unix()))
-			temp.WriteUint32(uint32(TimeAdjusted().Add(time.Hour * 24 * 7).Unix()))
+			temp.WriteUint32(uint32(gametime.TimeAdjusted().Unix()))
+			temp.WriteUint32(uint32(gametime.TimeAdjusted().Add(time.Hour * 24 * 7).Unix()))
 			temp.WriteBytes(stringsupport.PaddedString(name, 18, true))
 		}
 	}
@@ -345,7 +347,7 @@ func getGuildAirouList(s *Session) []Airou {
 		if err != nil {
 			continue
 		}
-		if startTemp.Add(time.Second * time.Duration(s.server.erupeConfig.GameplayOptions.TreasureHuntPartnyaCooldown)).Before(TimeAdjusted()) {
+		if startTemp.Add(time.Second * time.Duration(s.server.erupeConfig.GameplayOptions.TreasureHuntPartnyaCooldown)).Before(gametime.TimeAdjusted()) {
 			for i, j := range stringsupport.CSVElems(csvTemp) {
 				bannedCats[uint32(j)] = i
 			}

@@ -1,8 +1,8 @@
 package channelserver
 
 import (
-	"erupe-ce/common/byteframe"
 	"erupe-ce/network/mhfpacket"
+	"erupe-ce/utils/byteframe"
 )
 
 func handleMsgMhfGetBreakSeibatuLevelReward(s *Session, p mhfpacket.MHFPacket) {

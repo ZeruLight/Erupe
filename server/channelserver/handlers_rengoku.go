@@ -1,14 +1,16 @@
 package channelserver
 
 import (
-	ps "erupe-ce/common/pascalstring"
+	ps "erupe-ce/utils/pascalstring"
 	"fmt"
-	"github.com/jmoiron/sqlx"
 	"os"
 	"path/filepath"
 
-	"erupe-ce/common/byteframe"
+	"github.com/jmoiron/sqlx"
+
 	"erupe-ce/network/mhfpacket"
+	"erupe-ce/utils/byteframe"
+
 	"go.uber.org/zap"
 )
 

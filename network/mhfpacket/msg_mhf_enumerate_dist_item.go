@@ -2,10 +2,10 @@ package mhfpacket
 
 import (
 	"errors"
-	"erupe-ce/common/byteframe"
 	_config "erupe-ce/config"
 	"erupe-ce/network"
 	"erupe-ce/network/clientctx"
+	"erupe-ce/utils/byteframe"
 )
 
 // MsgMhfEnumerateDistItem represents the MSG_MHF_ENUMERATE_DIST_ITEM

@@ -5,9 +5,10 @@ import (
 	"strings"
 	"time"
 
-	"erupe-ce/common/byteframe"
-	ps "erupe-ce/common/pascalstring"
 	"erupe-ce/network/mhfpacket"
+	"erupe-ce/utils/byteframe"
+	ps "erupe-ce/utils/pascalstring"
+
 	"go.uber.org/zap"
 )
 

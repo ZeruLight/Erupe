@@ -2,11 +2,11 @@ package mhfpacket
 
 import (
 	"errors"
-	"erupe-ce/common/mhfitem"
+	"erupe-ce/utils/mhfitem"
 
-	"erupe-ce/common/byteframe"
 	"erupe-ce/network"
 	"erupe-ce/network/clientctx"
+	"erupe-ce/utils/byteframe"
 )
 
 // MsgMhfUpdateUnionItem represents the MSG_MHF_UPDATE_UNION_ITEM

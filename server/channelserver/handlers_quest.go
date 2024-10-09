@@ -3,11 +3,13 @@ package channelserver
 import (
 	"database/sql"
 	"encoding/binary"
-	"erupe-ce/common/byteframe"
-	"erupe-ce/common/decryption"
-	ps "erupe-ce/common/pascalstring"
+	"erupe-ce/utils/byteframe"
+	"erupe-ce/utils/decryption"
+	"erupe-ce/utils/gametime"
+
 	_config "erupe-ce/config"
 	"erupe-ce/network/mhfpacket"
+	ps "erupe-ce/utils/pascalstring"
 	"fmt"
 	"io"
 	"os"
@@ -153,7 +155,7 @@ func seasonConversion(s *Session, questFile string) string {
 		// Since event quests when seasonal pick day or night and the client requests either one, we need to differentiate between the two to prevent issues.
 		var _time string
 
-		if TimeGameAbsolute() > 2880 {
+		if gametime.TimeGameAbsolute() > 2880 {
 			_time = "d"
 		} else {
 			_time = "n"
@@ -354,7 +356,7 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 					rotationTime := startTime.Add(time.Duration(activeDays+inactiveDays) * 24 * time.Hour * time.Duration(extraCycles))
 					if currentTime.After(rotationTime) {
 						// Normalize rotationTime to 12PM JST to align with the in-game events update notification.
-						newRotationTime := time.Date(rotationTime.Year(), rotationTime.Month(), rotationTime.Day(), 12, 0, 0, 0, TimeAdjusted().Location())
+						newRotationTime := time.Date(rotationTime.Year(), rotationTime.Month(), rotationTime.Day(), 12, 0, 0, 0, gametime.TimeAdjusted().Location())
 
 						_, err = tx.Exec("UPDATE event_quests SET start_time = $1 WHERE id = $2", newRotationTime, id)
 						if err != nil {

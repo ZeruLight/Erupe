@@ -2,10 +2,10 @@ package mhfpacket
 
 import (
 	"errors"
-	"erupe-ce/common/byteframe"
-	"erupe-ce/common/mhfitem"
 	"erupe-ce/network"
 	"erupe-ce/network/clientctx"
+	"erupe-ce/utils/byteframe"
+	"erupe-ce/utils/mhfitem"
 )
 
 // MsgMhfUpdateWarehouse represents the MSG_MHF_UPDATE_WAREHOUSE

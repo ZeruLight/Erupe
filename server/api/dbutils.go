@@ -3,7 +3,7 @@ package api
 import (
 	"context"
 	"database/sql"
-	"erupe-ce/common/token"
+	"erupe-ce/utils/token"
 	"fmt"
 	"time"
 

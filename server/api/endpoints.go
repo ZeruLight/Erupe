@@ -6,7 +6,7 @@ import (
 	"encoding/xml"
 	"errors"
 	_config "erupe-ce/config"
-	"erupe-ce/server/channelserver"
+	"erupe-ce/utils/gametime"
 	"fmt"
 	"image"
 	"image/jpeg"
@@ -77,7 +77,7 @@ type ExportData struct {
 
 func (s *APIServer) newAuthData(userID uint32, userRights uint32, userTokenID uint32, userToken string, characters []Character) AuthData {
 	resp := AuthData{
-		CurrentTS:     uint32(channelserver.TimeAdjusted().Unix()),
+		CurrentTS:     uint32(gametime.TimeAdjusted().Unix()),
 		ExpiryTS:      uint32(s.getReturnExpiry(userID).Unix()),
 		EntranceCount: 1,
 		User: User{
@@ -99,9 +99,9 @@ func (s *APIServer) newAuthData(userID uint32, userRights uint32, userTokenID ui
 		stalls[4] = 2
 	}
 	resp.MezFes = &MezFes{
-		ID:           uint32(channelserver.TimeWeekStart().Unix()),
-		Start:        uint32(channelserver.TimeWeekStart().Add(-time.Duration(s.erupeConfig.GameplayOptions.MezFesDuration) * time.Second).Unix()),
-		End:          uint32(channelserver.TimeWeekNext().Unix()),
+		ID:           uint32(gametime.TimeWeekStart().Unix()),
+		Start:        uint32(gametime.TimeWeekStart().Add(-time.Duration(s.erupeConfig.GameplayOptions.MezFesDuration) * time.Second).Unix()),
+		End:          uint32(gametime.TimeWeekNext().Unix()),
 		SoloTickets:  s.erupeConfig.GameplayOptions.MezFesSoloTickets,
 		GroupTickets: s.erupeConfig.GameplayOptions.MezFesGroupTickets,
 		Stalls:       stalls,

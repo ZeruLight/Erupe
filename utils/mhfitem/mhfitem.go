@@ -1,9 +1,9 @@
 package mhfitem
 
 import (
-	"erupe-ce/common/byteframe"
-	"erupe-ce/common/token"
 	_config "erupe-ce/config"
+	"erupe-ce/utils/byteframe"
+	"erupe-ce/utils/token"
 )
 
 type MHFItem struct {

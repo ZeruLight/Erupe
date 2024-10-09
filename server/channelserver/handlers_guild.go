@@ -5,18 +5,20 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"errors"
-	"erupe-ce/common/mhfitem"
 	_config "erupe-ce/config"
+	"erupe-ce/utils/gametime"
+	"erupe-ce/utils/mhfitem"
 	"fmt"
 	"math"
 	"sort"
 	"strings"
 	"time"
 
-	"erupe-ce/common/byteframe"
-	ps "erupe-ce/common/pascalstring"
-	"erupe-ce/common/stringsupport"
 	"erupe-ce/network/mhfpacket"
+	"erupe-ce/utils/byteframe"
+	ps "erupe-ce/utils/pascalstring"
+	"erupe-ce/utils/stringsupport"
+
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )
@@ -825,7 +827,7 @@ func handleDonateRP(s *Session, amount uint16, guild *Guild, _type int) []byte {
 	case 2:
 		if resetRoom {
 			s.server.db.Exec(`UPDATE guilds SET room_rp = 0 WHERE id = $1`, guild.ID)
-			s.server.db.Exec(`UPDATE guilds SET room_expiry = $1 WHERE id = $2`, TimeAdjusted().Add(time.Hour*24*7), guild.ID)
+			s.server.db.Exec(`UPDATE guilds SET room_expiry = $1 WHERE id = $2`, gametime.TimeAdjusted().Add(time.Hour*24*7), guild.ID)
 		} else {
 			s.server.db.Exec(`UPDATE guilds SET room_rp = room_rp + $1 WHERE id = $2`, amount, guild.ID)
 		}
@@ -1720,7 +1722,7 @@ func handleMsgMhfGetGuildMissionList(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteBool(mission.GR)
 		bf.WriteUint16(mission.RewardType)
 		bf.WriteUint16(mission.RewardLevel)
-		bf.WriteUint32(uint32(TimeAdjusted().Unix()))
+		bf.WriteUint32(uint32(gametime.TimeAdjusted().Unix()))
 	}
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
@@ -1770,7 +1772,7 @@ func handleMsgMhfLoadGuildCooking(s *Session, p mhfpacket.MHFPacket) {
 		if err != nil {
 			continue
 		}
-		if temp.CreatedAt.Add(60 * time.Minute).After(TimeAdjusted()) {
+		if temp.CreatedAt.Add(60 * time.Minute).After(gametime.TimeAdjusted()) {
 			meals = append(meals, temp)
 		}
 	}
@@ -1788,7 +1790,7 @@ func handleMsgMhfLoadGuildCooking(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfRegistGuildCooking(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfRegistGuildCooking)
 	guild, _ := GetGuildInfoByCharacterId(s, s.charID)
-	startTime := TimeAdjusted().Add(time.Duration(s.server.erupeConfig.GameplayOptions.ClanMealDuration-3600) * time.Second)
+	startTime := gametime.TimeAdjusted().Add(time.Duration(s.server.erupeConfig.GameplayOptions.ClanMealDuration-3600) * time.Second)
 	if pkt.OverwriteID != 0 {
 		s.server.db.Exec("UPDATE guild_meals SET meal_id = $1, level = $2, created_at = $3 WHERE id = $4", pkt.MealID, pkt.Success, startTime, pkt.OverwriteID)
 	} else {
@@ -1823,7 +1825,7 @@ func handleMsgMhfGuildHuntdata(s *Session, p mhfpacket.MHFPacket) {
 	bf := byteframe.NewByteFrame()
 	switch pkt.Operation {
 	case 0: // Acquire
-		s.server.db.Exec(`UPDATE guild_characters SET box_claimed=$1 WHERE character_id=$2`, TimeAdjusted(), s.charID)
+		s.server.db.Exec(`UPDATE guild_characters SET box_claimed=$1 WHERE character_id=$2`, gametime.TimeAdjusted(), s.charID)
 	case 1: // Enumerate
 		bf.WriteUint8(0) // Entries
 		rows, err := s.server.db.Query(`SELECT kl.id, kl.monster FROM kill_logs kl

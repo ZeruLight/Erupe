@@ -3,12 +3,13 @@ package channelserver
 import (
 	"encoding/binary"
 	"errors"
-	"erupe-ce/common/bfutil"
-	"erupe-ce/common/stringsupport"
 	_config "erupe-ce/config"
+	"erupe-ce/utils/bfutil"
+	"erupe-ce/utils/stringsupport"
 
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/server/channelserver/compression/nullcomp"
+
 	"go.uber.org/zap"
 )
 

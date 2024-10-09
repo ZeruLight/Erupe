@@ -15,6 +15,7 @@ import (
 	"erupe-ce/server/discordbot"
 	"erupe-ce/server/entranceserver"
 	"erupe-ce/server/signserver"
+	"erupe-ce/utils/gametime"
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
@@ -138,7 +139,7 @@ func main() {
 		logger.Info("Database: Finished clearing")
 	}
 
-	logger.Info(fmt.Sprintf("Server Time: %s", channelserver.TimeAdjusted().String()))
+	logger.Info(fmt.Sprintf("Server Time: %s", gametime.TimeAdjusted().String()))
 
 	// Now start our server(s).
 

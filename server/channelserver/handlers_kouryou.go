@@ -1,8 +1,9 @@
 package channelserver
 
 import (
-	"erupe-ce/common/byteframe"
 	"erupe-ce/network/mhfpacket"
+	"erupe-ce/utils/byteframe"
+
 	"go.uber.org/zap"
 )
 

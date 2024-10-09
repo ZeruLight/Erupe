@@ -1,7 +1,8 @@
 package pascalstring
 
 import (
-	"erupe-ce/common/byteframe"
+	"erupe-ce/utils/byteframe"
+
 	"golang.org/x/text/encoding/japanese"
 	"golang.org/x/text/transform"
 )

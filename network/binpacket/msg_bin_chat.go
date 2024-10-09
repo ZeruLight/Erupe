@@ -1,9 +1,9 @@
 package binpacket
 
 import (
-	"erupe-ce/common/byteframe"
-	"erupe-ce/common/stringsupport"
 	"erupe-ce/network"
+	"erupe-ce/utils/byteframe"
+	"erupe-ce/utils/stringsupport"
 )
 
 // ChatType represents the chat message type (Thanks to @Alice on discord for identifying these!)

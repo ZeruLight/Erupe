@@ -1,17 +1,18 @@
 package channelserver
 
 import (
-	"erupe-ce/common/byteframe"
-	"erupe-ce/common/mhfitem"
-	ps "erupe-ce/common/pascalstring"
-	"erupe-ce/common/stringsupport"
-	"erupe-ce/common/token"
 	_config "erupe-ce/config"
 	"erupe-ce/network/mhfpacket"
+	"erupe-ce/utils/byteframe"
+	"erupe-ce/utils/mhfitem"
+	ps "erupe-ce/utils/pascalstring"
+	"erupe-ce/utils/stringsupport"
+	"erupe-ce/utils/token"
 	"fmt"
-	"go.uber.org/zap"
 	"io"
 	"time"
+
+	"go.uber.org/zap"
 )
 
 const warehouseNamesQuery = `

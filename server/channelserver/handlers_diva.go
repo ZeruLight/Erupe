@@ -2,12 +2,13 @@ package channelserver
 
 import (
 	"encoding/hex"
-	"erupe-ce/common/stringsupport"
 	_config "erupe-ce/config"
+	"erupe-ce/utils/gametime"
+	"erupe-ce/utils/stringsupport"
 	"time"
 
-	"erupe-ce/common/byteframe"
 	"erupe-ce/network/mhfpacket"
+	"erupe-ce/utils/byteframe"
 )
 
 func cleanupDiva(s *Session) {
@@ -16,7 +17,7 @@ func cleanupDiva(s *Session) {
 
 func generateDivaTimestamps(s *Session, start uint32, debug bool) []uint32 {
 	timestamps := make([]uint32, 6)
-	midnight := TimeMidnight()
+	midnight := gametime.TimeMidnight()
 	if debug && start <= 3 {
 		midnight := uint32(midnight.Unix())
 		switch start {
@@ -44,7 +45,7 @@ func generateDivaTimestamps(s *Session, start uint32, debug bool) []uint32 {
 		}
 		return timestamps
 	}
-	if start == 0 || TimeAdjusted().Unix() > int64(start)+2977200 {
+	if start == 0 || gametime.TimeAdjusted().Unix() > int64(start)+2977200 {
 		cleanupDiva(s)
 		// Generate a new diva defense, starting midnight tomorrow
 		start = uint32(midnight.Add(24 * time.Hour).Unix())

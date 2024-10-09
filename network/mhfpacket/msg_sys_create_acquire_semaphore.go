@@ -2,10 +2,10 @@ package mhfpacket
 
 import (
 	"errors"
-	"erupe-ce/common/byteframe"
 	_config "erupe-ce/config"
 	"erupe-ce/network"
 	"erupe-ce/network/clientctx"
+	"erupe-ce/utils/byteframe"
 )
 
 // MsgSysCreateAcquireSemaphore represents the MSG_SYS_CREATE_ACQUIRE_SEMAPHORE

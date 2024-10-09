@@ -3,9 +3,11 @@ package channelserver
 import (
 	"time"
 
-	"erupe-ce/common/byteframe"
-	"erupe-ce/common/stringsupport"
 	"erupe-ce/network/mhfpacket"
+	"erupe-ce/utils/byteframe"
+	"erupe-ce/utils/gametime"
+	"erupe-ce/utils/stringsupport"
+
 	"go.uber.org/zap"
 )
 
@@ -52,7 +54,7 @@ func handleMsgMhfLoadGuildAdventure(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfRegistGuildAdventure(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfRegistGuildAdventure)
 	guild, _ := GetGuildInfoByCharacterId(s, s.charID)
-	_, err := s.server.db.Exec("INSERT INTO guild_adventures (guild_id, destination, depart, return) VALUES ($1, $2, $3, $4)", guild.ID, pkt.Destination, TimeAdjusted().Unix(), TimeAdjusted().Add(6*time.Hour).Unix())
+	_, err := s.server.db.Exec("INSERT INTO guild_adventures (guild_id, destination, depart, return) VALUES ($1, $2, $3, $4)", guild.ID, pkt.Destination, gametime.TimeAdjusted().Unix(), gametime.TimeAdjusted().Add(6*time.Hour).Unix())
 	if err != nil {
 		s.logger.Error("Failed to register guild adventure", zap.Error(err))
 	}
@@ -87,7 +89,7 @@ func handleMsgMhfChargeGuildAdventure(s *Session, p mhfpacket.MHFPacket) {
 func handleMsgMhfRegistGuildAdventureDiva(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfRegistGuildAdventureDiva)
 	guild, _ := GetGuildInfoByCharacterId(s, s.charID)
-	_, err := s.server.db.Exec("INSERT INTO guild_adventures (guild_id, destination, charge, depart, return) VALUES ($1, $2, $3, $4, $5)", guild.ID, pkt.Destination, pkt.Charge, TimeAdjusted().Unix(), TimeAdjusted().Add(1*time.Hour).Unix())
+	_, err := s.server.db.Exec("INSERT INTO guild_adventures (guild_id, destination, charge, depart, return) VALUES ($1, $2, $3, $4, $5)", guild.ID, pkt.Destination, pkt.Charge, gametime.TimeAdjusted().Unix(), gametime.TimeAdjusted().Add(1*time.Hour).Unix())
 	if err != nil {
 		s.logger.Error("Failed to register guild adventure", zap.Error(err))
 	}

@@ -3,20 +3,21 @@ package channelserver
 import (
 	"crypto/rand"
 	"encoding/hex"
-	"erupe-ce/common/byteframe"
-	"erupe-ce/common/mhfcid"
-	"erupe-ce/common/mhfcourse"
-	"erupe-ce/common/token"
-	"erupe-ce/config"
+	_config "erupe-ce/config"
 	"erupe-ce/network"
 	"erupe-ce/network/binpacket"
 	"erupe-ce/network/mhfpacket"
+	"erupe-ce/utils/byteframe"
+	"erupe-ce/utils/mhfcid"
+	"erupe-ce/utils/mhfcourse"
+	"erupe-ce/utils/token"
 	"fmt"
-	"golang.org/x/exp/slices"
 	"math"
 	"strconv"
 	"strings"
 	"time"
+
+	"golang.org/x/exp/slices"
 
 	"go.uber.org/zap"
 )

@@ -9,3 +9,4 @@ savedata/*/
 *.bat
 /docker/db-data
 screenshots/*
+/docker/Servers

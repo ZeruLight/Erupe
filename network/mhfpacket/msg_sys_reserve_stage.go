@@ -2,9 +2,9 @@ package mhfpacket
 
 import (
 	"errors"
-	"erupe-ce/common/byteframe"
 	"erupe-ce/network"
 	"erupe-ce/network/clientctx"
+	"erupe-ce/utils/byteframe"
 )
 
 // MsgSysReserveStage represents the MSG_SYS_RESERVE_STAGE

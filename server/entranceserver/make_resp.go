@@ -3,13 +3,13 @@ package entranceserver
 import (
 	"encoding/binary"
 	"encoding/hex"
-	"erupe-ce/common/stringsupport"
 	_config "erupe-ce/config"
+	"erupe-ce/utils/gametime"
+	"erupe-ce/utils/stringsupport"
 	"fmt"
 	"net"
 
-	"erupe-ce/common/byteframe"
-	"erupe-ce/server/channelserver"
+	"erupe-ce/utils/byteframe"
 )
 
 func encodeServerInfo(config *_config.Config, s *Server, local bool) []byte {
@@ -41,7 +41,7 @@ func encodeServerInfo(config *_config.Config, s *Server, local bool) []byte {
 		bf.WriteUint16(0)
 		bf.WriteUint16(uint16(len(si.Channels)))
 		bf.WriteUint8(si.Type)
-		bf.WriteUint8(uint8(((channelserver.TimeAdjusted().Unix() / 86400) + int64(serverIdx)) % 3))
+		bf.WriteUint8(uint8(((gametime.TimeAdjusted().Unix() / 86400) + int64(serverIdx)) % 3))
 		if s.erupeConfig.RealClientMode >= _config.G1 {
 			bf.WriteUint8(si.Recommended)
 		}
@@ -85,7 +85,7 @@ func encodeServerInfo(config *_config.Config, s *Server, local bool) []byte {
 			bf.WriteUint16(12345)
 		}
 	}
-	bf.WriteUint32(uint32(channelserver.TimeAdjusted().Unix()))
+	bf.WriteUint32(uint32(gametime.TimeAdjusted().Unix()))
 	bf.WriteUint32(uint32(s.erupeConfig.GameplayOptions.ClanMemberLimits[len(s.erupeConfig.GameplayOptions.ClanMemberLimits)-1][1]))
 	return bf.Data()
 }

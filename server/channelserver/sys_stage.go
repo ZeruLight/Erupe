@@ -3,8 +3,8 @@ package channelserver
 import (
 	"sync"
 
-	"erupe-ce/common/byteframe"
 	"erupe-ce/network/mhfpacket"
+	"erupe-ce/utils/byteframe"
 )
 
 // Object holds infomation about a specific object.

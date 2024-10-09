@@ -52,7 +52,7 @@ func main() {
 	logger := zapLogger.Named("main")
 
 	logger.Info(fmt.Sprintf("Starting Erupe (9.3b-%s)", Commit()))
-	logger.Info(fmt.Sprintf("Client Mode: %s (%d)", config.ClientMode, config.RealClientMode))
+	logger.Info(fmt.Sprintf("Client Mode: %s (%d)", config.ClientMode, config.ClientID))
 
 	if config.Database.Password == "" {
 		preventClose("Database password is blank")

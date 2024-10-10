@@ -3,17 +3,12 @@ package channelserver
 import (
 	"fmt"
 	"net"
-	"strings"
 	"sync"
 	"time"
 
 	_config "erupe-ce/config"
-	"erupe-ce/network/binpacket"
-	"erupe-ce/network/mhfpacket"
 	"erupe-ce/server/discordbot"
-	"erupe-ce/utils/byteframe"
 	"erupe-ce/utils/gametime"
-	ps "erupe-ce/utils/pascalstring"
 
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
@@ -80,74 +75,22 @@ type Server struct {
 	questCacheTime map[int]time.Time
 }
 
-type Raviente struct {
-	sync.Mutex
-	id       uint16
-	register []uint32
-	state    []uint32
-	support  []uint32
-}
-
-func (s *Server) resetRaviente() {
-	for _, semaphore := range s.semaphore {
-		if strings.HasPrefix(semaphore.name, "hs_l0") {
-			return
-		}
-	}
-	s.logger.Debug("All Raviente Semaphores empty, resetting")
-	s.raviente.id = s.raviente.id + 1
-	s.raviente.register = make([]uint32, 30)
-	s.raviente.state = make([]uint32, 30)
-	s.raviente.support = make([]uint32, 30)
-}
-
-func (s *Server) GetRaviMultiplier() float64 {
-	raviSema := s.getRaviSemaphore()
-	if raviSema != nil {
-		var minPlayers int
-		if s.raviente.register[9] > 8 {
-			minPlayers = 24
-		} else {
-			minPlayers = 4
-		}
-		if len(raviSema.clients) > minPlayers {
-			return 1
-		}
-		return float64(minPlayers / len(raviSema.clients))
-	}
-	return 0
-}
-
-func (s *Server) UpdateRavi(semaID uint32, index uint8, value uint32, update bool) (uint32, uint32) {
-	var prev uint32
-	var dest *[]uint32
-	switch semaID {
-	case 0x40000:
-		switch index {
-		case 17, 28: // Ignore res and poison
-			break
-		default:
-			value = uint32(float64(value) * s.GetRaviMultiplier())
-		}
-		dest = &s.raviente.state
-	case 0x50000:
-		dest = &s.raviente.support
-	case 0x60000:
-		dest = &s.raviente.register
-	default:
-		return 0, 0
-	}
-	if update {
-		(*dest)[index] += value
-	} else {
-		(*dest)[index] = value
-	}
-	return prev, (*dest)[index]
-}
-
 // NewServer creates a new Server type.
 func NewServer(config *Config) *Server {
-	s := &Server{
+	stageNames := []string{
+		"sl1Ns200p0a0u0", // Mezeporta
+		"sl1Ns211p0a0u0", // Rasta bar
+		"sl1Ns260p0a0u0", // Pallone Carvan
+		"sl1Ns262p0a0u0", // Pallone Guest House 1st Floor
+		"sl1Ns263p0a0u0", // Pallone Guest House 2nd Floor
+		"sl2Ns379p0a0u0", // Diva fountain
+		"sl1Ns462p0a0u0", // MezFes
+	}
+	stages := make(map[string]*Stage)
+	for _, name := range stageNames {
+		stages[name] = NewStage(name)
+	}
+	server := &Server{
 		ID:              config.ID,
 		logger:          config.Logger,
 		db:              config.DB,
@@ -156,7 +99,7 @@ func NewServer(config *Config) *Server {
 		deleteConns:     make(chan net.Conn),
 		sessions:        make(map[net.Conn]*Session),
 		objectIDs:       make(map[*Session]uint16),
-		stages:          make(map[string]*Stage),
+		stages:          stages,
 		userBinaryParts: make(map[userBinaryPartID][]byte),
 		semaphore:       make(map[string]*Semaphore),
 		semaphoreIndex:  7,
@@ -172,203 +115,94 @@ func NewServer(config *Config) *Server {
 		questCacheTime: make(map[int]time.Time),
 	}
 
-	// Mezeporta
-	s.stages["sl1Ns200p0a0u0"] = NewStage("sl1Ns200p0a0u0")
+	server.i18n = getLangStrings(server)
 
-	// Rasta bar stage
-	s.stages["sl1Ns211p0a0u0"] = NewStage("sl1Ns211p0a0u0")
-
-	// Pallone Carvan
-	s.stages["sl1Ns260p0a0u0"] = NewStage("sl1Ns260p0a0u0")
-
-	// Pallone Guest House 1st Floor
-	s.stages["sl1Ns262p0a0u0"] = NewStage("sl1Ns262p0a0u0")
-
-	// Pallone Guest House 2nd Floor
-	s.stages["sl1Ns263p0a0u0"] = NewStage("sl1Ns263p0a0u0")
-
-	// Diva fountain / prayer fountain.
-	s.stages["sl2Ns379p0a0u0"] = NewStage("sl2Ns379p0a0u0")
-
-	// MezFes
-	s.stages["sl1Ns462p0a0u0"] = NewStage("sl1Ns462p0a0u0")
-
-	s.i18n = getLangStrings(s)
-
-	return s
+	return server
 }
 
 // Start starts the server in a new goroutine.
-func (s *Server) Start() error {
-	l, err := net.Listen("tcp", fmt.Sprintf(":%d", s.Port))
+func (server *Server) Start() error {
+	l, err := net.Listen("tcp", fmt.Sprintf(":%d", server.Port))
 	if err != nil {
 		return err
 	}
-	s.listener = l
+	server.listener = l
 
-	go s.acceptClients()
-	go s.manageSessions()
+	go server.acceptClients()
+	go server.manageSessions()
 
 	// Start the discord bot for chat integration.
-	if s.erupeConfig.Discord.Enabled && s.discordBot != nil {
-		s.discordBot.Session.AddHandler(s.onDiscordMessage)
-		s.discordBot.Session.AddHandler(s.onInteraction)
+	if server.erupeConfig.Discord.Enabled && server.discordBot != nil {
+		server.discordBot.Session.AddHandler(server.onDiscordMessage)
+		server.discordBot.Session.AddHandler(server.onInteraction)
 	}
 
 	return nil
 }
 
 // Shutdown tries to shut down the server gracefully.
-func (s *Server) Shutdown() {
-	s.Lock()
-	s.isShuttingDown = true
-	s.Unlock()
+func (server *Server) Shutdown() {
+	server.Lock()
+	server.isShuttingDown = true
+	server.Unlock()
 
-	s.listener.Close()
+	server.listener.Close()
 
-	close(s.acceptConns)
+	close(server.acceptConns)
 }
 
-func (s *Server) acceptClients() {
+func (server *Server) acceptClients() {
 	for {
-		conn, err := s.listener.Accept()
+		conn, err := server.listener.Accept()
 		if err != nil {
-			s.Lock()
-			shutdown := s.isShuttingDown
-			s.Unlock()
+			server.Lock()
+			shutdown := server.isShuttingDown
+			server.Unlock()
 
 			if shutdown {
 				break
 			} else {
-				s.logger.Warn("Error accepting client", zap.Error(err))
+				server.logger.Warn("Error accepting client", zap.Error(err))
 				continue
 			}
 		}
-		s.acceptConns <- conn
+		server.acceptConns <- conn
 	}
 }
 
-func (s *Server) manageSessions() {
+func (server *Server) manageSessions() {
 	for {
 		select {
-		case newConn := <-s.acceptConns:
+		case newConn := <-server.acceptConns:
 			// Gracefully handle acceptConns channel closing.
 			if newConn == nil {
-				s.Lock()
-				shutdown := s.isShuttingDown
-				s.Unlock()
+				server.Lock()
+				shutdown := server.isShuttingDown
+				server.Unlock()
 
 				if shutdown {
 					return
 				}
 			}
 
-			session := NewSession(s, newConn)
+			session := NewSession(server, newConn)
 
-			s.Lock()
-			s.sessions[newConn] = session
-			s.Unlock()
+			server.Lock()
+			server.sessions[newConn] = session
+			server.Unlock()
 
 			session.Start()
 
-		case delConn := <-s.deleteConns:
-			s.Lock()
-			delete(s.sessions, delConn)
-			s.Unlock()
+		case delConn := <-server.deleteConns:
+			server.Lock()
+			delete(server.sessions, delConn)
+			server.Unlock()
 		}
 	}
 }
 
-// BroadcastMHF queues a MHFPacket to be sent to all sessions.
-func (s *Server) BroadcastMHF(pkt mhfpacket.MHFPacket, ignoredSession *Session) {
-	// Broadcast the data.
-	s.Lock()
-	defer s.Unlock()
-	for _, session := range s.sessions {
-		if session == ignoredSession {
-			continue
-		}
-		session.QueueSendMHF(pkt)
-	}
-}
-
-func (s *Server) WorldcastMHF(pkt mhfpacket.MHFPacket, ignoredSession *Session, ignoredChannel *Server) {
-	for _, c := range s.Channels {
-		if c == ignoredChannel {
-			continue
-		}
-		c.BroadcastMHF(pkt, ignoredSession)
-	}
-}
-
-// BroadcastChatMessage broadcasts a simple chat message to all the sessions.
-func (s *Server) BroadcastChatMessage(message string) {
-	bf := byteframe.NewByteFrame()
-	bf.SetLE()
-	msgBinChat := &binpacket.MsgBinChat{
-		Unk0:       0,
-		Type:       5,
-		Flags:      0x80,
-		Message:    message,
-		SenderName: s.name,
-	}
-	msgBinChat.Build(bf)
-
-	s.BroadcastMHF(&mhfpacket.MsgSysCastedBinary{
-		MessageType:    BinaryMessageTypeChat,
-		RawDataPayload: bf.Data(),
-	}, nil)
-}
-
-func (s *Server) BroadcastRaviente(ip uint32, port uint16, stage []byte, _type uint8) {
-	bf := byteframe.NewByteFrame()
-	bf.SetLE()
-	bf.WriteUint16(0)    // Unk
-	bf.WriteUint16(0x43) // Data len
-	bf.WriteUint16(3)    // Unk len
-	var text string
-	switch _type {
-	case 2:
-		text = s.i18n.raviente.berserk
-	case 3:
-		text = s.i18n.raviente.extreme
-	case 4:
-		text = s.i18n.raviente.extremeLimited
-	case 5:
-		text = s.i18n.raviente.berserkSmall
-	default:
-		s.logger.Error("Unk raviente type", zap.Uint8("_type", _type))
-	}
-	ps.Uint16(bf, text, true)
-	bf.WriteBytes([]byte{0x5F, 0x53, 0x00})
-	bf.WriteUint32(ip)   // IP address
-	bf.WriteUint16(port) // Port
-	bf.WriteUint16(0)    // Unk
-	bf.WriteBytes(stage)
-	s.WorldcastMHF(&mhfpacket.MsgSysCastedBinary{
-		BroadcastType:  BroadcastTypeServer,
-		MessageType:    BinaryMessageTypeChat,
-		RawDataPayload: bf.Data(),
-	}, nil, s)
-}
-
-func (s *Server) DiscordChannelSend(charName string, content string) {
-	if s.erupeConfig.Discord.Enabled && s.discordBot != nil {
-		message := fmt.Sprintf("**%s**: %s", charName, content)
-		s.discordBot.RealtimeChannelSend(message)
-	}
-}
-
-func (s *Server) DiscordScreenShotSend(charName string, title string, description string, articleToken string) {
-	if s.erupeConfig.Discord.Enabled && s.discordBot != nil {
-		imageUrl := fmt.Sprintf("%s:%d/api/ss/bbs/%s", s.erupeConfig.Screenshots.Host, s.erupeConfig.Screenshots.Port, articleToken)
-		message := fmt.Sprintf("**%s**: %s - %s %s", charName, title, description, imageUrl)
-		s.discordBot.RealtimeChannelSend(message)
-	}
-}
-
-func (s *Server) FindSessionByCharID(charID uint32) *Session {
-	for _, c := range s.Channels {
+func (server *Server) FindSessionByCharID(charID uint32) *Session {
+	for _, c := range server.Channels {
 		for _, session := range c.sessions {
 			if session.charID == charID {
 				return session
@@ -378,15 +212,15 @@ func (s *Server) FindSessionByCharID(charID uint32) *Session {
 	return nil
 }
 
-func (s *Server) DisconnectUser(uid uint32) {
+func (server *Server) DisconnectUser(uid uint32) {
 	var cid uint32
 	var cids []uint32
-	rows, _ := s.db.Query(`SELECT id FROM characters WHERE user_id=$1`, uid)
+	rows, _ := server.db.Query(`SELECT id FROM characters WHERE user_id=$1`, uid)
 	for rows.Next() {
 		rows.Scan(&cid)
 		cids = append(cids, cid)
 	}
-	for _, c := range s.Channels {
+	for _, c := range server.Channels {
 		for _, session := range c.sessions {
 			for _, cid := range cids {
 				if session.charID == cid {
@@ -398,10 +232,10 @@ func (s *Server) DisconnectUser(uid uint32) {
 	}
 }
 
-func (s *Server) FindObjectByChar(charID uint32) *Object {
-	s.stagesLock.RLock()
-	defer s.stagesLock.RUnlock()
-	for _, stage := range s.stages {
+func (server *Server) FindObjectByChar(charID uint32) *Object {
+	server.stagesLock.RLock()
+	defer server.stagesLock.RUnlock()
+	for _, stage := range server.stages {
 		stage.RLock()
 		for objId := range stage.objects {
 			obj := stage.objects[objId]
@@ -416,8 +250,8 @@ func (s *Server) FindObjectByChar(charID uint32) *Object {
 	return nil
 }
 
-func (s *Server) HasSemaphore(ses *Session) bool {
-	for _, semaphore := range s.semaphore {
+func (server *Server) HasSemaphore(ses *Session) bool {
+	for _, semaphore := range server.semaphore {
 		if semaphore.host == ses {
 			return true
 		}
@@ -425,7 +259,7 @@ func (s *Server) HasSemaphore(ses *Session) bool {
 	return false
 }
 
-func (s *Server) Season() uint8 {
-	sid := int64(((s.ID & 0xFF00) - 4096) / 256)
+func (server *Server) Season() uint8 {
+	sid := int64(((server.ID & 0xFF00) - 4096) / 256)
 	return uint8(((gametime.TimeAdjusted().Unix() / 86400) + sid) % 3)
 }

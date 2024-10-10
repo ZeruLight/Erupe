@@ -199,7 +199,7 @@ func main() {
 		logger.Info("API: Disabled")
 	}
 
-	var channels []*channelserver.Server
+	var channelServers []*channelserver.Server
 
 	if config.Channel.Enabled {
 		channelQuery := ""
@@ -228,7 +228,7 @@ func main() {
 					preventClose(fmt.Sprintf("Channel: Failed to start, %s", err.Error()))
 				} else {
 					channelQuery += fmt.Sprintf(`INSERT INTO servers (server_id, current_players, world_name, world_description, land) VALUES (%d, 0, '%s', '%s', %d);`, sid, ee.Name, ee.Description, i+1)
-					channels = append(channels, &c)
+					channelServers = append(channelServers, &c)
 					logger.Info(fmt.Sprintf("Channel %d (%d): Started successfully", count, ce.Port))
 					ci++
 					count++
@@ -241,8 +241,8 @@ func main() {
 		// Register all servers in DB
 		_ = db.MustExec(channelQuery)
 
-		for _, c := range channels {
-			c.Channels = channels
+		for _, c := range channelServers {
+			c.Channels = channelServers
 		}
 	}
 
@@ -256,8 +256,8 @@ func main() {
 	if !config.DisableSoftCrash {
 		for i := 0; i < 10; i++ {
 			message := fmt.Sprintf("Shutting down in %d...", 10-i)
-			for _, c := range channels {
-				c.BroadcastChatMessage(message)
+			for _, channelServer := range channelServers {
+				channelServer.BroadcastChatMessage(message)
 			}
 			logger.Info(message)
 			time.Sleep(time.Second)
@@ -265,8 +265,8 @@ func main() {
 	}
 
 	if config.Channel.Enabled {
-		for _, c := range channels {
-			c.Shutdown()
+		for _, channelServer := range channelServers {
+			channelServer.Shutdown()
 		}
 	}
 

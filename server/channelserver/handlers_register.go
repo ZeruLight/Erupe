@@ -132,8 +132,8 @@ func (s *Session) notifyRavi() {
 	}
 }
 
-func (s *Server) getRaviSemaphore() *Semaphore {
-	for _, semaphore := range s.semaphore {
+func (server *Server) getRaviSemaphore() *Semaphore {
+	for _, semaphore := range server.semaphore {
 		if strings.HasPrefix(semaphore.name, "hs_l0") && strings.HasSuffix(semaphore.name, "3") {
 			return semaphore
 		}

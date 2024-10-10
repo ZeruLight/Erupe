@@ -6,8 +6,9 @@ import (
 	"net"
 	"sync"
 
-	"erupe-ce/config"
+	_config "erupe-ce/config"
 	"erupe-ce/network"
+
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )
@@ -41,38 +42,38 @@ func NewServer(config *Config) *Server {
 }
 
 // Start starts the server in a new goroutine.
-func (s *Server) Start() error {
-	l, err := net.Listen("tcp", fmt.Sprintf(":%d", s.erupeConfig.Sign.Port))
+func (server *Server) Start() error {
+	l, err := net.Listen("tcp", fmt.Sprintf(":%d", server.erupeConfig.Sign.Port))
 	if err != nil {
 		return err
 	}
-	s.listener = l
+	server.listener = l
 
-	go s.acceptClients()
+	go server.acceptClients()
 
 	return nil
 }
 
 // Shutdown exits the server gracefully.
-func (s *Server) Shutdown() {
-	s.logger.Debug("Shutting down...")
+func (server *Server) Shutdown() {
+	server.logger.Debug("Shutting down...")
 
-	s.Lock()
-	s.isShuttingDown = true
-	s.Unlock()
+	server.Lock()
+	server.isShuttingDown = true
+	server.Unlock()
 
 	// This will cause the acceptor goroutine to error and exit gracefully.
-	s.listener.Close()
+	server.listener.Close()
 }
 
-func (s *Server) acceptClients() {
+func (server *Server) acceptClients() {
 	for {
-		conn, err := s.listener.Accept()
+		conn, err := server.listener.Accept()
 		if err != nil {
 			// Check if we are shutting down and exit gracefully if so.
-			s.Lock()
-			shutdown := s.isShuttingDown
-			s.Unlock()
+			server.Lock()
+			shutdown := server.isShuttingDown
+			server.Unlock()
 
 			if shutdown {
 				break
@@ -81,26 +82,26 @@ func (s *Server) acceptClients() {
 			}
 		}
 
-		go s.handleConnection(conn)
+		go server.handleConnection(conn)
 	}
 }
 
-func (s *Server) handleConnection(conn net.Conn) {
-	s.logger.Debug("New connection", zap.String("RemoteAddr", conn.RemoteAddr().String()))
+func (server *Server) handleConnection(conn net.Conn) {
+	server.logger.Debug("New connection", zap.String("RemoteAddr", conn.RemoteAddr().String()))
 	defer conn.Close()
 
 	// Client initalizes the connection with a one-time buffer of 8 NULL bytes.
 	nullInit := make([]byte, 8)
 	_, err := io.ReadFull(conn, nullInit)
 	if err != nil {
-		s.logger.Error("Error initializing connection", zap.Error(err))
+		server.logger.Error("Error initializing connection", zap.Error(err))
 		return
 	}
 
 	// Create a new session.
 	session := &Session{
-		logger:    s.logger,
-		server:    s,
+		logger:    server.logger,
+		server:    server,
 		rawConn:   conn,
 		cryptConn: network.NewCryptConn(conn),
 	}

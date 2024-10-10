@@ -8,8 +8,9 @@ import (
 	"strings"
 	"sync"
 
-	"erupe-ce/config"
+	_config "erupe-ce/config"
 	"erupe-ce/network"
+
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )
@@ -33,50 +34,50 @@ type Config struct {
 
 // NewServer creates a new Server type.
 func NewServer(config *Config) *Server {
-	s := &Server{
+	server := &Server{
 		logger:      config.Logger,
 		erupeConfig: config.ErupeConfig,
 		db:          config.DB,
 	}
-	return s
+	return server
 }
 
 // Start starts the server in a new goroutine.
-func (s *Server) Start() error {
+func (server *Server) Start() error {
 
-	l, err := net.Listen("tcp", fmt.Sprintf(":%d", s.erupeConfig.Entrance.Port))
+	l, err := net.Listen("tcp", fmt.Sprintf(":%d", server.erupeConfig.Entrance.Port))
 	if err != nil {
 		return err
 	}
 
-	s.listener = l
+	server.listener = l
 
-	go s.acceptClients()
+	go server.acceptClients()
 
 	return nil
 }
 
 // Shutdown exits the server gracefully.
-func (s *Server) Shutdown() {
-	s.logger.Debug("Shutting down...")
+func (server *Server) Shutdown() {
+	server.logger.Debug("Shutting down...")
 
-	s.Lock()
-	s.isShuttingDown = true
-	s.Unlock()
+	server.Lock()
+	server.isShuttingDown = true
+	server.Unlock()
 
 	// This will cause the acceptor goroutine to error and exit gracefully.
-	s.listener.Close()
+	server.listener.Close()
 }
 
 // acceptClients handles accepting new clients in a loop.
-func (s *Server) acceptClients() {
+func (server *Server) acceptClients() {
 	for {
-		conn, err := s.listener.Accept()
+		conn, err := server.listener.Accept()
 		if err != nil {
 			// Check if we are shutting down and exit gracefully if so.
-			s.Lock()
-			shutdown := s.isShuttingDown
-			s.Unlock()
+			server.Lock()
+			shutdown := server.isShuttingDown
+			server.Unlock()
 
 			if shutdown {
 				break
@@ -86,20 +87,20 @@ func (s *Server) acceptClients() {
 		}
 
 		// Start a new goroutine for the connection so that we don't block other incoming connections.
-		go s.handleEntranceServerConnection(conn)
+		go server.handleEntranceServerConnection(conn)
 	}
 }
 
-func (s *Server) handleEntranceServerConnection(conn net.Conn) {
+func (server *Server) handleEntranceServerConnection(conn net.Conn) {
 	defer conn.Close()
 	// Client initalizes the connection with a one-time buffer of 8 NULL bytes.
 	nullInit := make([]byte, 8)
 	n, err := io.ReadFull(conn, nullInit)
 	if err != nil {
-		s.logger.Warn("Failed to read 8 NULL init", zap.Error(err))
+		server.logger.Warn("Failed to read 8 NULL init", zap.Error(err))
 		return
 	} else if n != len(nullInit) {
-		s.logger.Warn("io.ReadFull couldn't read the full 8 byte init.")
+		server.logger.Warn("io.ReadFull couldn't read the full 8 byte init.")
 		return
 	}
 
@@ -107,11 +108,11 @@ func (s *Server) handleEntranceServerConnection(conn net.Conn) {
 	cc := network.NewCryptConn(conn)
 	pkt, err := cc.ReadPacket()
 	if err != nil {
-		s.logger.Warn("Error reading packet", zap.Error(err))
+		server.logger.Warn("Error reading packet", zap.Error(err))
 		return
 	}
 
-	if s.erupeConfig.DebugOptions.LogInboundMessages {
+	if server.erupeConfig.DebugOptions.LogInboundMessages {
 		fmt.Printf("[Client] -> [Server]\nData [%d bytes]:\n%s\n", len(pkt), hex.Dump(pkt))
 	}
 
@@ -119,9 +120,9 @@ func (s *Server) handleEntranceServerConnection(conn net.Conn) {
 	if strings.Split(conn.RemoteAddr().String(), ":")[0] == "127.0.0.1" {
 		local = true
 	}
-	data := makeSv2Resp(s.erupeConfig, s, local)
+	data := makeSv2Resp(server.erupeConfig, server, local)
 	if len(pkt) > 5 {
-		data = append(data, makeUsrResp(pkt, s)...)
+		data = append(data, makeUsrResp(pkt, server)...)
 	}
 	cc.SendPacket(data)
 	// Close because we only need to send the response once.

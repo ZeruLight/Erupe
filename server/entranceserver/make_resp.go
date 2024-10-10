@@ -12,7 +12,7 @@ import (
 	"net"
 )
 
-func encodeServerInfo(config *_config.Config, s *Server, local bool) []byte {
+func encodeServerInfo(config *_config.Config, server *Server, local bool) []byte {
 	serverInfos := config.Entrance.Entries
 	bf := byteframe.NewByteFrame()
 
@@ -42,22 +42,22 @@ func encodeServerInfo(config *_config.Config, s *Server, local bool) []byte {
 		bf.WriteUint16(uint16(len(si.Channels)))
 		bf.WriteUint8(si.Type)
 		bf.WriteUint8(uint8(((gametime.TimeAdjusted().Unix() / 86400) + int64(serverIdx)) % 3))
-		if s.erupeConfig.ClientID >= _config.G1 {
+		if server.erupeConfig.ClientID >= _config.G1 {
 			bf.WriteUint8(si.Recommended)
 		}
 
 		fullName := append(append(stringsupport.UTF8ToSJIS(si.Name), []byte{0x00}...), stringsupport.UTF8ToSJIS(si.Description)...)
-		if s.erupeConfig.ClientID >= _config.G1 && s.erupeConfig.ClientID <= _config.G5 {
+		if server.erupeConfig.ClientID >= _config.G1 && server.erupeConfig.ClientID <= _config.G5 {
 			bf.WriteUint8(uint8(len(fullName)))
 			bf.WriteBytes(fullName)
 		} else {
-			if s.erupeConfig.ClientID >= _config.G51 {
+			if server.erupeConfig.ClientID >= _config.G51 {
 				bf.WriteUint8(0) // Ignored
 			}
 			bf.WriteBytes(stringsupport.PaddedString(string(fullName), 65, false))
 		}
 
-		if s.erupeConfig.ClientID >= _config.GG {
+		if server.erupeConfig.ClientID >= _config.GG {
 			bf.WriteUint32(si.AllowedClientFlags)
 		}
 
@@ -71,7 +71,7 @@ func encodeServerInfo(config *_config.Config, s *Server, local bool) []byte {
 			bf.WriteUint16(uint16(channelIdx | 16))
 			bf.WriteUint16(ci.MaxPlayers)
 			var currentPlayers uint16
-			s.db.QueryRow("SELECT current_players FROM servers WHERE server_id=$1", sid).Scan(&currentPlayers)
+			server.db.QueryRow("SELECT current_players FROM servers WHERE server_id=$1", sid).Scan(&currentPlayers)
 			bf.WriteUint16(currentPlayers)
 			bf.WriteUint16(0)
 			bf.WriteUint16(0)
@@ -86,7 +86,7 @@ func encodeServerInfo(config *_config.Config, s *Server, local bool) []byte {
 		}
 	}
 	bf.WriteUint32(uint32(gametime.TimeAdjusted().Unix()))
-	bf.WriteUint32(uint32(s.erupeConfig.GameplayOptions.ClanMemberLimits[len(s.erupeConfig.GameplayOptions.ClanMemberLimits)-1][1]))
+	bf.WriteUint32(uint32(server.erupeConfig.GameplayOptions.ClanMemberLimits[len(server.erupeConfig.GameplayOptions.ClanMemberLimits)-1][1]))
 	return bf.Data()
 }
 
@@ -108,7 +108,7 @@ func makeHeader(data []byte, respType string, entryCount uint16, key byte) []byt
 	return bf.Data()
 }
 
-func makeSv2Resp(config *_config.Config, s *Server, local bool) []byte {
+func makeSv2Resp(config *_config.Config, server *Server, local bool) []byte {
 	serverInfos := config.Entrance.Entries
 	// Decrease by the number of MezFes Worlds
 	var mf int
@@ -128,9 +128,9 @@ func makeSv2Resp(config *_config.Config, s *Server, local bool) []byte {
 			}
 		}
 	}
-	rawServerData := encodeServerInfo(config, s, local)
+	rawServerData := encodeServerInfo(config, server, local)
 
-	if s.erupeConfig.DebugOptions.LogOutboundMessages {
+	if server.erupeConfig.DebugOptions.LogOutboundMessages {
 		fmt.Printf("[Server] -> [Client]\nData [%d bytes]:\n%s\n", len(rawServerData), hex.Dump(rawServerData))
 	}
 
@@ -144,7 +144,7 @@ func makeSv2Resp(config *_config.Config, s *Server, local bool) []byte {
 	return bf.Data()
 }
 
-func makeUsrResp(pkt []byte, s *Server) []byte {
+func makeUsrResp(pkt []byte, server *Server) []byte {
 	bf := byteframe.NewByteFrameFromBytes(pkt)
 	_ = bf.ReadUint32() // ALL+
 	_ = bf.ReadUint8()  // 0x00
@@ -153,7 +153,7 @@ func makeUsrResp(pkt []byte, s *Server) []byte {
 	for i := 0; i < int(userEntries); i++ {
 		cid := bf.ReadUint32()
 		var sid uint16
-		err := s.db.QueryRow("SELECT(SELECT server_id FROM sign_sessions WHERE char_id=$1) AS _", cid).Scan(&sid)
+		err := server.db.QueryRow("SELECT(SELECT server_id FROM sign_sessions WHERE char_id=$1) AS _", cid).Scan(&sid)
 		if err != nil {
 			resp.WriteUint16(0)
 		} else {
@@ -162,7 +162,7 @@ func makeUsrResp(pkt []byte, s *Server) []byte {
 		resp.WriteUint16(0)
 	}
 
-	if s.erupeConfig.DebugOptions.LogOutboundMessages {
+	if server.erupeConfig.DebugOptions.LogOutboundMessages {
 		fmt.Printf("[Server] -> [Client]\nData [%d bytes]:\n%s\n", len(resp.Data()), hex.Dump(resp.Data()))
 	}
 

@@ -101,9 +101,9 @@ type i18n struct {
 	}
 }
 
-func getLangStrings(s *Server) i18n {
+func getLangStrings(server *Server) i18n {
 	var i i18n
-	switch s.erupeConfig.Language {
+	switch server.erupeConfig.Language {
 	case "jp":
 		i.language = "日本語"
 		i.cafe.reset = "%d/%dにリセット"

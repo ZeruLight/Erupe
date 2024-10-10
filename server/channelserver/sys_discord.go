@@ -2,11 +2,12 @@ package channelserver
 
 import (
 	"fmt"
-	"github.com/bwmarrin/discordgo"
-	"golang.org/x/crypto/bcrypt"
 	"sort"
 	"strings"
 	"unicode"
+
+	"github.com/bwmarrin/discordgo"
+	"golang.org/x/crypto/bcrypt"
 )
 
 type Player struct {
@@ -14,11 +15,11 @@ type Player struct {
 	QuestID  int
 }
 
-func getPlayerSlice(s *Server) []Player {
+func getPlayerSlice(server *Server) []Player {
 	var p []Player
 	var questIndex int
 
-	for _, channel := range s.Channels {
+	for _, channel := range server.Channels {
 		for _, stage := range channel.stages {
 			if len(stage.clients) == 0 {
 				continue
@@ -39,7 +40,7 @@ func getPlayerSlice(s *Server) []Player {
 	return p
 }
 
-func getCharacterList(s *Server) string {
+func getCharacterList(server *Server) string {
 	questEmojis := []string{
 		":person_in_lotus_position:",
 		":white_circle:",
@@ -53,7 +54,7 @@ func getCharacterList(s *Server) string {
 		":black_circle:",
 	}
 
-	playerSlice := getPlayerSlice(s)
+	playerSlice := getPlayerSlice(server)
 
 	sort.SliceStable(playerSlice, func(i, j int) bool {
 		return playerSlice[i].QuestID < playerSlice[j].QuestID
@@ -68,11 +69,11 @@ func getCharacterList(s *Server) string {
 }
 
 // onInteraction handles slash commands
-func (s *Server) onInteraction(ds *discordgo.Session, i *discordgo.InteractionCreate) {
+func (server *Server) onInteraction(ds *discordgo.Session, i *discordgo.InteractionCreate) {
 	switch i.Interaction.ApplicationCommandData().Name {
 	case "link":
 		var temp string
-		err := s.db.QueryRow(`UPDATE users SET discord_id = $1 WHERE discord_token = $2 RETURNING discord_id`, i.Member.User.ID, i.ApplicationCommandData().Options[0].StringValue()).Scan(&temp)
+		err := server.db.QueryRow(`UPDATE users SET discord_id = $1 WHERE discord_token = $2 RETURNING discord_id`, i.Member.User.ID, i.ApplicationCommandData().Options[0].StringValue()).Scan(&temp)
 		if err == nil {
 			ds.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -92,7 +93,7 @@ func (s *Server) onInteraction(ds *discordgo.Session, i *discordgo.InteractionCr
 		}
 	case "password":
 		password, _ := bcrypt.GenerateFromPassword([]byte(i.ApplicationCommandData().Options[0].StringValue()), 10)
-		_, err := s.db.Exec(`UPDATE users SET password = $1 WHERE discord_id = $2`, password, i.Member.User.ID)
+		_, err := server.db.Exec(`UPDATE users SET password = $1 WHERE discord_id = $2`, password, i.Member.User.ID)
 		if err == nil {
 			ds.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -114,9 +115,9 @@ func (s *Server) onInteraction(ds *discordgo.Session, i *discordgo.InteractionCr
 }
 
 // onDiscordMessage handles receiving messages from discord and forwarding them ingame.
-func (s *Server) onDiscordMessage(ds *discordgo.Session, m *discordgo.MessageCreate) {
+func (server *Server) onDiscordMessage(ds *discordgo.Session, m *discordgo.MessageCreate) {
 	// Ignore messages from bots, or messages that are not in the correct channel.
-	if m.Author.Bot || m.ChannelID != s.erupeConfig.Discord.RelayChannel.RelayChannelID {
+	if m.Author.Bot || m.ChannelID != server.erupeConfig.Discord.RelayChannel.RelayChannelID {
 		return
 	}
 
@@ -129,8 +130,8 @@ func (s *Server) onDiscordMessage(ds *discordgo.Session, m *discordgo.MessageCre
 	for i := 0; i < 8-len(m.Author.Username); i++ {
 		paddedName += " "
 	}
-	message := s.discordBot.NormalizeDiscordMessage(fmt.Sprintf("[D] %s > %s", paddedName, m.Content))
-	if len(message) > s.erupeConfig.Discord.RelayChannel.MaxMessageLength {
+	message := server.discordBot.NormalizeDiscordMessage(fmt.Sprintf("[D] %s > %s", paddedName, m.Content))
+	if len(message) > server.erupeConfig.Discord.RelayChannel.MaxMessageLength {
 		return
 	}
 
@@ -144,6 +145,20 @@ func (s *Server) onDiscordMessage(ds *discordgo.Session, m *discordgo.MessageCre
 		messages = append(messages, message[i:end])
 	}
 	for i := range messages {
-		s.BroadcastChatMessage(messages[i])
+		server.BroadcastChatMessage(messages[i])
+	}
+}
+func (server *Server) DiscordChannelSend(charName string, content string) {
+	if server.erupeConfig.Discord.Enabled && server.discordBot != nil {
+		message := fmt.Sprintf("**%s**: %s", charName, content)
+		server.discordBot.RealtimeChannelSend(message)
+	}
+}
+
+func (server *Server) DiscordScreenShotSend(charName string, title string, description string, articleToken string) {
+	if server.erupeConfig.Discord.Enabled && server.discordBot != nil {
+		imageUrl := fmt.Sprintf("%s:%d/api/ss/bbs/%s", server.erupeConfig.Screenshots.Host, server.erupeConfig.Screenshots.Port, articleToken)
+		message := fmt.Sprintf("**%s**: %s - %s %s", charName, title, description, imageUrl)
+		server.discordBot.RealtimeChannelSend(message)
 	}
 }

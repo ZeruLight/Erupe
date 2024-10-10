@@ -4,7 +4,6 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	_config "erupe-ce/config"
-	"erupe-ce/network"
 	"erupe-ce/network/binpacket"
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/utils/byteframe"
@@ -181,41 +180,33 @@ func parseChatCommand(s *Session, command string) {
 		if commands["Reload"].Enabled || s.isOp() {
 			sendServerChatMessage(s, s.server.i18n.commands.reload)
 			var temp mhfpacket.MHFPacket
-			deleteNotif := byteframe.NewByteFrame()
 			for _, object := range s.stage.objects {
 				if object.ownerCharID == s.charID {
 					continue
 				}
 				temp = &mhfpacket.MsgSysDeleteObject{ObjID: object.id}
-				deleteNotif.WriteUint16(uint16(temp.Opcode()))
-				temp.Build(deleteNotif)
+				s.QueueSendMHF(temp)
 			}
 			for _, session := range s.server.sessions {
 				if s == session {
 					continue
 				}
 				temp = &mhfpacket.MsgSysDeleteUser{CharID: session.charID}
-				deleteNotif.WriteUint16(uint16(temp.Opcode()))
-				temp.Build(deleteNotif)
+				s.QueueSendMHF(temp)
 			}
-			deleteNotif.WriteUint16(uint16(network.MSG_SYS_END))
-			s.QueueSend(deleteNotif.Data())
 			time.Sleep(500 * time.Millisecond)
-			reloadNotif := byteframe.NewByteFrame()
 			for _, session := range s.server.sessions {
 				if s == session {
 					continue
 				}
 				temp = &mhfpacket.MsgSysInsertUser{CharID: session.charID}
-				reloadNotif.WriteUint16(uint16(temp.Opcode()))
-				temp.Build(reloadNotif)
+				s.QueueSendMHF(temp)
 				for i := 0; i < 3; i++ {
 					temp = &mhfpacket.MsgSysNotifyUserBinary{
 						CharID:     session.charID,
 						BinaryType: uint8(i + 1),
 					}
-					reloadNotif.WriteUint16(uint16(temp.Opcode()))
-					temp.Build(reloadNotif)
+					s.QueueSendMHF(temp)
 				}
 			}
 			for _, obj := range s.stage.objects {
@@ -230,11 +221,8 @@ func parseChatCommand(s *Session, command string) {
 					Unk0:        0,
 					OwnerCharID: obj.ownerCharID,
 				}
-				reloadNotif.WriteUint16(uint16(temp.Opcode()))
-				temp.Build(reloadNotif)
+				s.QueueSendMHF(temp)
 			}
-			reloadNotif.WriteUint16(uint16(network.MSG_SYS_END))
-			s.QueueSend(reloadNotif.Data())
 		} else {
 			sendDisabledCommandMessage(s, commands["Reload"])
 		}

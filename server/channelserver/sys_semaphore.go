@@ -2,8 +2,6 @@ package channelserver
 
 import (
 	"erupe-ce/network/mhfpacket"
-	"erupe-ce/utils/byteframe"
-
 	"sync"
 )
 
@@ -45,15 +43,6 @@ func (s *Semaphore) BroadcastMHF(pkt mhfpacket.MHFPacket, ignoredSession *Sessio
 		if session == ignoredSession {
 			continue
 		}
-
-		// Make the header
-		bf := byteframe.NewByteFrame()
-		bf.WriteUint16(uint16(pkt.Opcode()))
-
-		// Build the packet onto the byteframe.
-		pkt.Build(bf)
-
-		// Enqueue in a non-blocking way that drops the packet if the connections send buffer channel is full.
-		session.QueueSendNonBlocking(bf.Data())
+		session.QueueSendMHF(pkt)
 	}
 }

@@ -66,7 +66,6 @@ func doStageTransfer(s *Session, ackHandle uint32, stageID string) {
 	doAckSimpleSucceed(s, ackHandle, []byte{0x00, 0x00, 0x00, 0x00})
 
 	var temp mhfpacket.MHFPacket
-	newNotif := byteframe.NewByteFrame()
 
 	// Cast existing user data to new user
 	if !s.userEnteredStage {
@@ -77,15 +76,13 @@ func doStageTransfer(s *Session, ackHandle uint32, stageID string) {
 				continue
 			}
 			temp = &mhfpacket.MsgSysInsertUser{CharID: session.charID}
-			newNotif.WriteUint16(uint16(temp.Opcode()))
-			temp.Build(newNotif)
+			s.QueueSendMHF(temp)
 			for i := 0; i < 3; i++ {
 				temp = &mhfpacket.MsgSysNotifyUserBinary{
 					CharID:     session.charID,
 					BinaryType: uint8(i + 1),
 				}
-				newNotif.WriteUint16(uint16(temp.Opcode()))
-				temp.Build(newNotif)
+				s.QueueSendMHF(temp)
 			}
 		}
 	}
@@ -94,7 +91,6 @@ func doStageTransfer(s *Session, ackHandle uint32, stageID string) {
 		// Notify the client to duplicate the existing objects.
 		s.logger.Info(fmt.Sprintf("Sending existing stage objects to %s", s.Name))
 		s.stage.RLock()
-		var temp mhfpacket.MHFPacket
 		for _, obj := range s.stage.objects {
 			if obj.ownerCharID == s.charID {
 				continue
@@ -107,15 +103,9 @@ func doStageTransfer(s *Session, ackHandle uint32, stageID string) {
 				Unk0:        0,
 				OwnerCharID: obj.ownerCharID,
 			}
-			newNotif.WriteUint16(uint16(temp.Opcode()))
-			temp.Build(newNotif)
+			s.QueueSendMHF(temp)
 		}
 		s.stage.RUnlock()
-	}
-
-	newNotif.WriteUint16(0x0010) // End it.
-	if len(newNotif.Data()) > 2 {
-		s.QueueSend(newNotif.Data())
 	}
 }
 

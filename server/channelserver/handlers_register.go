@@ -116,25 +116,17 @@ func (s *Session) notifyRavi() {
 		return
 	}
 	var temp mhfpacket.MHFPacket
-	raviNotif := byteframe.NewByteFrame()
-	temp = &mhfpacket.MsgSysNotifyRegister{RegisterID: 0x40000}
-	raviNotif.WriteUint16(uint16(temp.Opcode()))
-	temp.Build(raviNotif)
-	temp = &mhfpacket.MsgSysNotifyRegister{RegisterID: 0x50000}
-	raviNotif.WriteUint16(uint16(temp.Opcode()))
-	temp.Build(raviNotif)
-	temp = &mhfpacket.MsgSysNotifyRegister{RegisterID: 0x60000}
-	raviNotif.WriteUint16(uint16(temp.Opcode()))
-	temp.Build(raviNotif)
-	raviNotif.WriteUint16(0x0010) // End it.
-	if s.server.erupeConfig.GameplayOptions.LowLatencyRaviente {
-		for session := range sema.clients {
-			session.QueueSend(raviNotif.Data())
-		}
-	} else {
-		for session := range sema.clients {
-			if session.charID == s.charID {
-				session.QueueSend(raviNotif.Data())
+	for i := 0; i < 3; i++ {
+		temp = &mhfpacket.MsgSysLoadRegister{RegisterID: uint32(0x40000 + i*0x10000)}
+		if s.server.erupeConfig.GameplayOptions.LowLatencyRaviente {
+			for session := range sema.clients {
+				session.QueueSendMHF(temp)
+			}
+		} else {
+			for session := range sema.clients {
+				if session.charID == s.charID {
+					session.QueueSendMHF(temp)
+				}
 			}
 		}
 	}

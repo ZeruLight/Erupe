@@ -8,6 +8,7 @@ import (
 
 	_config "erupe-ce/config"
 	"erupe-ce/network"
+	"erupe-ce/utils/logger"
 
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
@@ -15,7 +16,6 @@ import (
 
 // Config struct allows configuring the server.
 type Config struct {
-	Logger      *zap.Logger
 	DB          *sqlx.DB
 	ErupeConfig *_config.Config
 }
@@ -23,7 +23,7 @@ type Config struct {
 // Server is a MHF sign server.
 type Server struct {
 	sync.Mutex
-	logger         *zap.Logger
+	logger         logger.Logger
 	erupeConfig    *_config.Config
 	sessions       map[int]*Session
 	db             *sqlx.DB
@@ -34,7 +34,7 @@ type Server struct {
 // NewServer creates a new Server type.
 func NewServer(config *Config) *Server {
 	s := &Server{
-		logger:      config.Logger,
+		logger:      logger.Get().Named("sign"),
 		erupeConfig: config.ErupeConfig,
 		db:          config.DB,
 	}

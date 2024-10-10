@@ -7,9 +7,12 @@ import (
 	"erupe-ce/network/binpacket"
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/utils/byteframe"
+	"erupe-ce/utils/logger"
 	"erupe-ce/utils/mhfcid"
 	"erupe-ce/utils/mhfcourse"
 	"erupe-ce/utils/token"
+	"sync"
+
 	"fmt"
 	"math"
 	"strconv"
@@ -39,24 +42,27 @@ const (
 	BroadcastTypeWorld    = 0x0a
 )
 
-var commands map[string]_config.Command
+var (
+	commands   map[string]_config.Command
+	once       sync.Once  // Ensures that initialization happens only once
+	commandsMu sync.Mutex // Mutex to ensure thread safety for commands map
+)
 
-func init() {
-	commands = make(map[string]_config.Command)
-	zapConfig := zap.NewDevelopmentConfig()
-	zapConfig.DisableCaller = true
-	zapLogger, _ := zapConfig.Build()
-	defer zapLogger.Sync()
-	logger := zapLogger.Named("commands")
-	cmds := _config.ErupeConfig.Commands
-	for _, cmd := range cmds {
-		commands[cmd.Name] = cmd
-		if cmd.Enabled {
-			logger.Info(fmt.Sprintf("Command %s: Enabled, prefix: %s", cmd.Name, cmd.Prefix))
-		} else {
-			logger.Info(fmt.Sprintf("Command %s: Disabled", cmd.Name))
+func (server *Server) initCommands() {
+	once.Do(func() {
+		commands = make(map[string]_config.Command)
+
+		commandLogger := logger.Get().Named("command")
+		cmds := _config.ErupeConfig.Commands
+		for _, cmd := range cmds {
+			commands[cmd.Name] = cmd
+			if cmd.Enabled {
+				commandLogger.Info(fmt.Sprintf("%s: Enabled, prefix: %s", cmd.Name, cmd.Prefix))
+			} else {
+				commandLogger.Info(fmt.Sprintf("%s: Disabled", cmd.Name))
+			}
 		}
-	}
+	})
 }
 
 func sendDisabledCommandMessage(s *Session, cmd _config.Command) {

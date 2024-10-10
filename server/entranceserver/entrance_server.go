@@ -10,6 +10,7 @@ import (
 
 	_config "erupe-ce/config"
 	"erupe-ce/network"
+	"erupe-ce/utils/logger"
 
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
@@ -18,7 +19,7 @@ import (
 // Server is a MHF entrance server.
 type Server struct {
 	sync.Mutex
-	logger         *zap.Logger
+	logger         logger.Logger
 	erupeConfig    *_config.Config
 	db             *sqlx.DB
 	listener       net.Listener
@@ -27,7 +28,7 @@ type Server struct {
 
 // Config struct allows configuring the server.
 type Config struct {
-	Logger      *zap.Logger
+	Logger      logger.Logger
 	DB          *sqlx.DB
 	ErupeConfig *_config.Config
 }

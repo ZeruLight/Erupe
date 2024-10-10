@@ -3,6 +3,7 @@ package signserver
 import (
 	"database/sql"
 	"encoding/hex"
+	"erupe-ce/utils/logger"
 	"erupe-ce/utils/stringsupport"
 	"fmt"
 	"net"
@@ -28,7 +29,7 @@ const (
 // Session holds state for the sign server connection.
 type Session struct {
 	sync.Mutex
-	logger    *zap.Logger
+	logger    logger.Logger
 	server    *Server
 	rawConn   net.Conn
 	cryptConn *network.CryptConn

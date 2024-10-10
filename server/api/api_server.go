@@ -9,6 +9,8 @@ import (
 	"sync"
 	"time"
 
+	"erupe-ce/utils/logger"
+
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 	"github.com/jmoiron/sqlx"
@@ -16,7 +18,6 @@ import (
 )
 
 type Config struct {
-	Logger      *zap.Logger
 	DB          *sqlx.DB
 	ErupeConfig *_config.Config
 }
@@ -24,7 +25,7 @@ type Config struct {
 // APIServer is Erupes Standard API interface
 type APIServer struct {
 	sync.Mutex
-	logger         *zap.Logger
+	logger         logger.Logger
 	erupeConfig    *_config.Config
 	db             *sqlx.DB
 	httpServer     *http.Server
@@ -33,8 +34,9 @@ type APIServer struct {
 
 // NewAPIServer creates a new Server type.
 func NewAPIServer(config *Config) *APIServer {
+
 	s := &APIServer{
-		logger:      config.Logger,
+		logger:      logger.Get().Named("API"),
 		erupeConfig: config.ErupeConfig,
 		db:          config.DB,
 		httpServer:  &http.Server{},

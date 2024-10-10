@@ -9,6 +9,7 @@ import (
 	_config "erupe-ce/config"
 	"erupe-ce/server/discordbot"
 	"erupe-ce/utils/gametime"
+	"erupe-ce/utils/logger"
 
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
@@ -17,7 +18,6 @@ import (
 // Config struct allows configuring the server.
 type Config struct {
 	ID          uint16
-	Logger      *zap.Logger
 	DB          *sqlx.DB
 	DiscordBot  *discordbot.DiscordBot
 	ErupeConfig *_config.Config
@@ -39,7 +39,7 @@ type Server struct {
 	GlobalID       string
 	IP             string
 	Port           uint16
-	logger         *zap.Logger
+	logger         logger.Logger
 	db             *sqlx.DB
 	erupeConfig    *_config.Config
 	acceptConns    chan net.Conn
@@ -92,7 +92,7 @@ func NewServer(config *Config) *Server {
 	}
 	server := &Server{
 		ID:              config.ID,
-		logger:          config.Logger,
+		logger:          logger.Get().Named("channel-" + fmt.Sprint(config.ID)),
 		db:              config.DB,
 		erupeConfig:     config.ErupeConfig,
 		acceptConns:     make(chan net.Conn),
@@ -114,9 +114,9 @@ func NewServer(config *Config) *Server {
 		questCacheData: make(map[int][]byte),
 		questCacheTime: make(map[int]time.Time),
 	}
+	server.initCommands()
 
 	server.i18n = getLangStrings(server)
-
 	return server
 }
 

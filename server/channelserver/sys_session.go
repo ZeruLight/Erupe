@@ -15,6 +15,7 @@ import (
 	"erupe-ce/network"
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/utils/byteframe"
+	"erupe-ce/utils/logger"
 	"erupe-ce/utils/stringstack"
 
 	"go.uber.org/zap"
@@ -23,7 +24,7 @@ import (
 // Session holds state for the channel server connection.
 type Session struct {
 	sync.Mutex
-	logger      *zap.Logger
+	logger      logger.Logger
 	server      *Server
 	rawConn     net.Conn
 	cryptConn   *network.CryptConn

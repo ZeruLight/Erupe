@@ -2,6 +2,7 @@ package discordbot
 
 import (
 	_config "erupe-ce/config"
+	"erupe-ce/utils/logger"
 	"regexp"
 
 	"github.com/bwmarrin/discordgo"
@@ -38,21 +39,20 @@ var Commands = []*discordgo.ApplicationCommand{
 type DiscordBot struct {
 	Session      *discordgo.Session
 	config       *_config.Config
-	logger       *zap.Logger
+	logger       logger.Logger
 	MainGuild    *discordgo.Guild
 	RelayChannel *discordgo.Channel
 }
 
 type Options struct {
 	Config *_config.Config
-	Logger *zap.Logger
 }
 
 func NewDiscordBot(options Options) (discordBot *DiscordBot, err error) {
 	session, err := discordgo.New("Bot " + options.Config.Discord.BotToken)
-
+	discordLogger := logger.Get().Named("discord")
 	if err != nil {
-		options.Logger.Fatal("Discord failed", zap.Error(err))
+		discordLogger.Fatal("Discord failed", zap.Error(err))
 		return nil, err
 	}
 
@@ -63,13 +63,13 @@ func NewDiscordBot(options Options) (discordBot *DiscordBot, err error) {
 	}
 
 	if err != nil {
-		options.Logger.Fatal("Discord failed to create relayChannel", zap.Error(err))
+		discordLogger.Fatal("Discord failed to create relayChannel", zap.Error(err))
 		return nil, err
 	}
 
 	discordBot = &DiscordBot{
 		config:       options.Config,
-		logger:       options.Logger,
+		logger:       discordLogger,
 		Session:      session,
 		RelayChannel: relayChannel,
 	}

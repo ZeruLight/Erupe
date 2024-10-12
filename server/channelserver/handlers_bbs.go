@@ -1,6 +1,7 @@
 package channelserver
 
 import (
+	"erupe-ce/config"
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/utils/byteframe"
 	"erupe-ce/utils/stringsupport"
@@ -18,7 +19,7 @@ func handleMsgMhfGetBbsUserStatus(s *Session, p mhfpacket.MHFPacket) {
 	bf.WriteUint32(0)
 	bf.WriteUint32(0)
 	bf.WriteUint32(0)
-	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 // Checks the status of Bultin Board Server to see if authenticated
@@ -29,7 +30,7 @@ func handleMsgMhfGetBbsSnsStatus(s *Session, p mhfpacket.MHFPacket) {
 	bf.WriteUint32(401) //unk http status?
 	bf.WriteUint32(401) //unk http status?
 	bf.WriteUint32(0)
-	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 // Tells the game client what host port and gives the bultin board article a token
@@ -39,15 +40,15 @@ func handleMsgMhfApplyBbsArticle(s *Session, p mhfpacket.MHFPacket) {
 	articleToken := token.Generate(40)
 
 	bf.WriteUint32(200) //http status //200 success //4XX An error occured server side
-	bf.WriteUint32(s.server.erupeConfig.Screenshots.Port)
+	bf.WriteUint32(config.GetConfig().Screenshots.Port)
 	bf.WriteUint32(0)
 	bf.WriteUint32(0)
 	bf.WriteBytes(stringsupport.PaddedString(articleToken, 64, false))
-	bf.WriteBytes(stringsupport.PaddedString(s.server.erupeConfig.Screenshots.Host, 64, false))
+	bf.WriteBytes(stringsupport.PaddedString(config.GetConfig().Screenshots.Host, 64, false))
 	//pkt.unk1[3] ==  Changes sometimes?
-	if s.server.erupeConfig.Screenshots.Enabled && s.server.erupeConfig.Discord.Enabled {
-		s.server.DiscordScreenShotSend(pkt.Name, pkt.Title, pkt.Description, articleToken)
+	if config.GetConfig().Screenshots.Enabled && config.GetConfig().Discord.Enabled {
+		s.Server.DiscordScreenShotSend(pkt.Name, pkt.Title, pkt.Description, articleToken)
 	}
-	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 
 }

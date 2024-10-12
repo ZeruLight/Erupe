@@ -1,9 +1,12 @@
-package signserver
+package sign
 
 import (
 	"database/sql"
 	"encoding/hex"
+	"erupe-ce/config"
+	"erupe-ce/utils/db"
 	"erupe-ce/utils/logger"
+
 	"erupe-ce/utils/stringsupport"
 	"fmt"
 	"net"
@@ -30,7 +33,7 @@ const (
 type Session struct {
 	sync.Mutex
 	logger    logger.Logger
-	server    *Server
+	server    *SignServer
 	rawConn   net.Conn
 	cryptConn *network.CryptConn
 	client    client
@@ -40,7 +43,7 @@ type Session struct {
 func (s *Session) work() {
 	pkt, err := s.cryptConn.ReadPacket()
 
-	if s.server.erupeConfig.DebugOptions.LogInboundMessages {
+	if config.GetConfig().DebugOptions.LogInboundMessages {
 		fmt.Printf("\n[Client] -> [Server]\nData [%d bytes]:\n%s\n", len(pkt), hex.Dump(pkt))
 	}
 
@@ -84,7 +87,7 @@ func (s *Session) handlePacket(pkt []byte) error {
 		}
 	default:
 		s.logger.Warn("Unknown request", zap.String("reqType", reqType))
-		if s.server.erupeConfig.DebugOptions.LogInboundMessages {
+		if config.GetConfig().DebugOptions.LogInboundMessages {
 			fmt.Printf("\n[Client] -> [Server]\nData [%d bytes]:\n%s\n", len(pkt), hex.Dump(pkt))
 		}
 	}
@@ -108,7 +111,7 @@ func (s *Session) authenticate(username string, password string) {
 	default:
 		bf.WriteUint8(uint8(resp))
 	}
-	if s.server.erupeConfig.DebugOptions.LogOutboundMessages {
+	if config.GetConfig().DebugOptions.LogOutboundMessages {
 		fmt.Printf("\n[Server] -> [Client]\nData [%d bytes]:\n%s\n", len(bf.Data()), hex.Dump(bf.Data()))
 	}
 	_ = s.cryptConn.SendPacket(bf.Data())
@@ -118,7 +121,11 @@ func (s *Session) handleWIIUSGN(bf *byteframe.ByteFrame) {
 	_ = bf.ReadBytes(1)
 	wiiuKey := string(bf.ReadBytes(64))
 	var uid uint32
-	err := s.server.db.QueryRow(`SELECT id FROM users WHERE wiiu_key = $1`, wiiuKey).Scan(&uid)
+	database, err := db.GetDB() // Capture both return values
+	if err != nil {
+		s.logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	err = database.QueryRow(`SELECT id FROM users WHERE wiiu_key = $1`, wiiuKey).Scan(&uid)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			s.logger.Info("Unlinked Wii U attempted to authenticate", zap.String("Key", wiiuKey))
@@ -145,7 +152,11 @@ func (s *Session) handlePSSGN(bf *byteframe.ByteFrame) {
 	}
 	s.psn = string(bf.ReadNullTerminatedBytes())
 	var uid uint32
-	err := s.server.db.QueryRow(`SELECT id FROM users WHERE psn_id = $1`, s.psn).Scan(&uid)
+	database, err := db.GetDB() // Capture both return values
+	if err != nil {
+		s.logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	err = database.QueryRow(`SELECT id FROM users WHERE psn_id = $1`, s.psn).Scan(&uid)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			s.cryptConn.SendPacket(s.makeSignResponse(0))
@@ -162,9 +173,13 @@ func (s *Session) handlePSNLink(bf *byteframe.ByteFrame) {
 	credentials := strings.Split(stringsupport.SJISToUTF8(bf.ReadNullTerminatedBytes()), "\n")
 	token := string(bf.ReadNullTerminatedBytes())
 	uid, resp := s.server.validateLogin(credentials[0], credentials[1])
+	database, err := db.GetDB() // Capture both return values
+	if err != nil {
+		s.logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
 	if resp == SIGN_SUCCESS && uid > 0 {
 		var psn string
-		err := s.server.db.QueryRow(`SELECT psn_id FROM sign_sessions WHERE token = $1`, token).Scan(&psn)
+		err := database.QueryRow(`SELECT psn_id FROM sign_sessions WHERE token = $1`, token).Scan(&psn)
 		if err != nil {
 			s.sendCode(SIGN_ECOGLINK)
 			return
@@ -172,7 +187,7 @@ func (s *Session) handlePSNLink(bf *byteframe.ByteFrame) {
 
 		// Since we check for the psn_id, this will never run
 		var exists int
-		err = s.server.db.QueryRow(`SELECT count(*) FROM users WHERE psn_id = $1`, psn).Scan(&exists)
+		err = database.QueryRow(`SELECT count(*) FROM users WHERE psn_id = $1`, psn).Scan(&exists)
 		if err != nil {
 			s.sendCode(SIGN_ECOGLINK)
 			return
@@ -182,7 +197,7 @@ func (s *Session) handlePSNLink(bf *byteframe.ByteFrame) {
 		}
 
 		var currentPSN string
-		err = s.server.db.QueryRow(`SELECT COALESCE(psn_id, '') FROM users WHERE username = $1`, credentials[0]).Scan(&currentPSN)
+		err = database.QueryRow(`SELECT COALESCE(psn_id, '') FROM users WHERE username = $1`, credentials[0]).Scan(&currentPSN)
 		if err != nil {
 			s.sendCode(SIGN_ECOGLINK)
 			return
@@ -191,7 +206,7 @@ func (s *Session) handlePSNLink(bf *byteframe.ByteFrame) {
 			return
 		}
 
-		_, err = s.server.db.Exec(`UPDATE users SET psn_id = $1 WHERE username = $2`, psn, credentials[0])
+		_, err = database.Exec(`UPDATE users SET psn_id = $1 WHERE username = $2`, psn, credentials[0])
 		if err == nil {
 			s.sendCode(SIGN_SUCCESS)
 			return

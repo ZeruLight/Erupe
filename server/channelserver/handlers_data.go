@@ -1,7 +1,8 @@
 package channelserver
 
 import (
-	_config "erupe-ce/config"
+	"erupe-ce/config"
+	"erupe-ce/utils/db"
 	"erupe-ce/utils/gametime"
 	"erupe-ce/utils/mhfmon"
 	"erupe-ce/utils/stringsupport"
@@ -21,9 +22,13 @@ import (
 
 func handleMsgMhfSavedata(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSavedata)
-	characterSaveData, err := GetCharacterSaveData(s, s.charID)
+	database, err := db.GetDB()
 	if err != nil {
-		s.logger.Error("failed to retrieve character save data from db", zap.Error(err), zap.Uint32("charID", s.charID))
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	characterSaveData, err := GetCharacterSaveData(s, s.CharID)
+	if err != nil {
+		s.Logger.Error("failed to retrieve character save data from db", zap.Error(err), zap.Uint32("charID", s.CharID))
 		return
 	}
 	// Var to hold the decompressed savedata for updating the launcher response fields.
@@ -32,26 +37,26 @@ func handleMsgMhfSavedata(s *Session, p mhfpacket.MHFPacket) {
 		// diffs themselves are also potentially compressed
 		diff, err := nullcomp.Decompress(pkt.RawDataPayload)
 		if err != nil {
-			s.logger.Error("Failed to decompress diff", zap.Error(err))
-			doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+			s.Logger.Error("Failed to decompress diff", zap.Error(err))
+			DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 			return
 		}
 		// Perform diff.
-		s.logger.Info("Diffing...")
+		s.Logger.Info("Diffing...")
 		characterSaveData.decompSave = deltacomp.ApplyDataDiff(diff, characterSaveData.decompSave)
 	} else {
 		dumpSaveData(s, pkt.RawDataPayload, "savedata")
 		// Regular blob update.
 		saveData, err := nullcomp.Decompress(pkt.RawDataPayload)
 		if err != nil {
-			s.logger.Error("Failed to decompress savedata from packet", zap.Error(err))
-			doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+			s.Logger.Error("Failed to decompress savedata from packet", zap.Error(err))
+			DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 			return
 		}
-		if s.server.erupeConfig.SaveDumps.RawEnabled {
+		if config.GetConfig().SaveDumps.RawEnabled {
 			dumpSaveData(s, saveData, "raw-savedata")
 		}
-		s.logger.Info("Updating save with blob")
+		s.Logger.Info("Updating save with blob")
 		characterSaveData.decompSave = saveData
 	}
 	characterSaveData.updateStructWithSaveData()
@@ -61,22 +66,22 @@ func handleMsgMhfSavedata(s *Session, p mhfpacket.MHFPacket) {
 		s.Name = characterSaveData.Name
 	}
 
-	if characterSaveData.Name == s.Name || _config.ErupeConfig.ClientID <= _config.S10 {
+	if characterSaveData.Name == s.Name || config.GetConfig().ClientID <= config.S10 {
 		characterSaveData.Save(s)
-		s.logger.Info("Wrote recompressed savedata back to DB.")
+		s.Logger.Info("Wrote recompressed savedata back to DB.")
 	} else {
 		s.rawConn.Close()
-		s.logger.Warn("Save cancelled due to corruption.")
-		if s.server.erupeConfig.DeleteOnSaveCorruption {
-			s.server.db.Exec("UPDATE characters SET deleted=true WHERE id=$1", s.charID)
+		s.Logger.Warn("Save cancelled due to corruption.")
+		if config.GetConfig().DeleteOnSaveCorruption {
+			database.Exec("UPDATE characters SET deleted=true WHERE id=$1", s.CharID)
 		}
 		return
 	}
-	_, err = s.server.db.Exec("UPDATE characters SET name=$1 WHERE id=$2", characterSaveData.Name, s.charID)
+	_, err = database.Exec("UPDATE characters SET name=$1 WHERE id=$2", characterSaveData.Name, s.CharID)
 	if err != nil {
-		s.logger.Error("Failed to update character name in db", zap.Error(err))
+		s.Logger.Error("Failed to update character name in db", zap.Error(err))
 	}
-	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func grpToGR(n int) uint16 {
@@ -115,83 +120,95 @@ func grpToGR(n int) uint16 {
 }
 
 func dumpSaveData(s *Session, data []byte, suffix string) {
-	if !s.server.erupeConfig.SaveDumps.Enabled {
+	if !config.GetConfig().SaveDumps.Enabled {
 		return
 	} else {
-		dir := filepath.Join(s.server.erupeConfig.SaveDumps.OutputDir, fmt.Sprintf("%d", s.charID))
-		path := filepath.Join(s.server.erupeConfig.SaveDumps.OutputDir, fmt.Sprintf("%d", s.charID), fmt.Sprintf("%d_%s.bin", s.charID, suffix))
+		dir := filepath.Join(config.GetConfig().SaveDumps.OutputDir, fmt.Sprintf("%d", s.CharID))
+		path := filepath.Join(config.GetConfig().SaveDumps.OutputDir, fmt.Sprintf("%d", s.CharID), fmt.Sprintf("%d_%s.bin", s.CharID, suffix))
 		_, err := os.Stat(dir)
 		if err != nil {
 			if os.IsNotExist(err) {
 				err = os.MkdirAll(dir, os.ModePerm)
 				if err != nil {
-					s.logger.Error("Error dumping savedata, could not create folder")
+					s.Logger.Error("Error dumping savedata, could not create folder")
 					return
 				}
 			} else {
-				s.logger.Error("Error dumping savedata")
+				s.Logger.Error("Error dumping savedata")
 				return
 			}
 		}
 		err = os.WriteFile(path, data, 0644)
 		if err != nil {
-			s.logger.Error("Error dumping savedata, could not write file", zap.Error(err))
+			s.Logger.Error("Error dumping savedata, could not write file", zap.Error(err))
 		}
 	}
 }
 
 func handleMsgMhfLoaddata(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfLoaddata)
-	if _, err := os.Stat(filepath.Join(s.server.erupeConfig.BinPath, "save_override.bin")); err == nil {
-		data, _ := os.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, "save_override.bin"))
-		doAckBufSucceed(s, pkt.AckHandle, data)
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	if _, err := os.Stat(filepath.Join(config.GetConfig().BinPath, "save_override.bin")); err == nil {
+		data, _ := os.ReadFile(filepath.Join(config.GetConfig().BinPath, "save_override.bin"))
+		DoAckBufSucceed(s, pkt.AckHandle, data)
 		return
 	}
 
 	var data []byte
-	err := s.server.db.QueryRow("SELECT savedata FROM characters WHERE id = $1", s.charID).Scan(&data)
+	err = database.QueryRow("SELECT savedata FROM characters WHERE id = $1", s.CharID).Scan(&data)
 	if err != nil || len(data) == 0 {
-		s.logger.Warn(fmt.Sprintf("Failed to load savedata (CID: %d)", s.charID), zap.Error(err))
+		s.Logger.Warn(fmt.Sprintf("Failed to load savedata (CID: %d)", s.CharID), zap.Error(err))
 		s.rawConn.Close() // Terminate the connection
 		return
 	}
-	doAckBufSucceed(s, pkt.AckHandle, data)
+	DoAckBufSucceed(s, pkt.AckHandle, data)
 
 	decompSaveData, err := nullcomp.Decompress(data)
 	if err != nil {
-		s.logger.Error("Failed to decompress savedata", zap.Error(err))
+		s.Logger.Error("Failed to decompress savedata", zap.Error(err))
 	}
 	bf := byteframe.NewByteFrameFromBytes(decompSaveData)
 	bf.Seek(88, io.SeekStart)
 	name := bf.ReadNullTerminatedBytes()
-	s.server.userBinaryPartsLock.Lock()
-	s.server.userBinaryParts[userBinaryPartID{charID: s.charID, index: 1}] = append(name, []byte{0x00}...)
-	s.server.userBinaryPartsLock.Unlock()
+	s.Server.userBinaryPartsLock.Lock()
+	s.Server.userBinaryParts[userBinaryPartID{charID: s.CharID, index: 1}] = append(name, []byte{0x00}...)
+	s.Server.userBinaryPartsLock.Unlock()
 	s.Name = stringsupport.SJISToUTF8(name)
 }
 
 func handleMsgMhfSaveScenarioData(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSaveScenarioData)
-	dumpSaveData(s, pkt.RawDataPayload, "scenario")
-	_, err := s.server.db.Exec("UPDATE characters SET scenariodata = $1 WHERE id = $2", pkt.RawDataPayload, s.charID)
+	database, err := db.GetDB()
 	if err != nil {
-		s.logger.Error("Failed to update scenario data in db", zap.Error(err))
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
-	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	dumpSaveData(s, pkt.RawDataPayload, "scenario")
+	_, err = database.Exec("UPDATE characters SET scenariodata = $1 WHERE id = $2", pkt.RawDataPayload, s.CharID)
+	if err != nil {
+		s.Logger.Error("Failed to update scenario data in db", zap.Error(err))
+	}
+	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfLoadScenarioData(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfLoadScenarioData)
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
 	var scenarioData []byte
 	bf := byteframe.NewByteFrame()
-	err := s.server.db.QueryRow("SELECT scenariodata FROM characters WHERE id = $1", s.charID).Scan(&scenarioData)
+	err = database.QueryRow("SELECT scenariodata FROM characters WHERE id = $1", s.CharID).Scan(&scenarioData)
 	if err != nil || len(scenarioData) < 10 {
-		s.logger.Error("Failed to load scenariodata", zap.Error(err))
+		s.Logger.Error("Failed to load scenariodata", zap.Error(err))
 		bf.WriteBytes(make([]byte, 10))
 	} else {
 		bf.WriteBytes(scenarioData)
 	}
-	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 var paperGiftData = map[uint32][]PaperGift{
@@ -1509,7 +1526,7 @@ func handleMsgMhfGetPaperData(s *Session, p mhfpacket.MHFPacket) {
 		}
 	default:
 		if pkt.Unk2 < 1000 {
-			s.logger.Info("PaperData request for unknown type", zap.Uint32("Unk2", pkt.Unk2))
+			s.Logger.Info("PaperData request for unknown type", zap.Uint32("Unk2", pkt.Unk2))
 		}
 	}
 
@@ -1518,7 +1535,7 @@ func handleMsgMhfGetPaperData(s *Session, p mhfpacket.MHFPacket) {
 		if ok {
 			paperGift = paperGiftData[pkt.Unk2]
 		} else {
-			s.logger.Info("PaperGift request for unknown type", zap.Uint32("Unk2", pkt.Unk2))
+			s.Logger.Info("PaperGift request for unknown type", zap.Uint32("Unk2", pkt.Unk2))
 		}
 		for _, gift := range paperGift {
 			bf := byteframe.NewByteFrame()
@@ -1528,7 +1545,7 @@ func handleMsgMhfGetPaperData(s *Session, p mhfpacket.MHFPacket) {
 			bf.WriteUint16(gift.Unk3)
 			data = append(data, bf)
 		}
-		doAckEarthSucceed(s, pkt.AckHandle, data)
+		DoAckEarthSucceed(s, pkt.AckHandle, data)
 	} else if pkt.Unk2 == 0 {
 		bf := byteframe.NewByteFrame()
 		bf.WriteUint16(uint16(len(paperMissions.Timetables)))
@@ -1546,7 +1563,7 @@ func handleMsgMhfGetPaperData(s *Session, p mhfpacket.MHFPacket) {
 			bf.WriteUint16(mdata.Reward2ID)
 			bf.WriteUint8(mdata.Reward2Quantity)
 		}
-		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+		DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 	} else {
 		for _, pdata := range paperData {
 			bf := byteframe.NewByteFrame()
@@ -1559,7 +1576,7 @@ func handleMsgMhfGetPaperData(s *Session, p mhfpacket.MHFPacket) {
 			bf.WriteInt16(pdata.Unk6)
 			data = append(data, bf)
 		}
-		doAckEarthSucceed(s, pkt.AckHandle, data)
+		DoAckEarthSucceed(s, pkt.AckHandle, data)
 	}
 }
 

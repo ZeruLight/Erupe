@@ -103,12 +103,12 @@ func handleMsgMhfInfoTournament(s *Session, p mhfpacket.MHFPacket) {
 		}
 	}
 
-	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfEntryTournament(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEntryTournament)
-	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 type TournamentReward struct {
@@ -127,5 +127,5 @@ func handleMsgMhfAcquireTournament(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint16(reward.Unk1)
 		bf.WriteUint16(reward.Unk2)
 	}
-	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }

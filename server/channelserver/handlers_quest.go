@@ -4,10 +4,11 @@ import (
 	"database/sql"
 	"encoding/binary"
 	"erupe-ce/utils/byteframe"
+	"erupe-ce/utils/db"
 	"erupe-ce/utils/decryption"
 	"erupe-ce/utils/gametime"
 
-	_config "erupe-ce/config"
+	"erupe-ce/config"
 	"erupe-ce/network/mhfpacket"
 	ps "erupe-ce/utils/pascalstring"
 	"fmt"
@@ -62,16 +63,16 @@ func BackportQuest(data []byte) []byte {
 	}
 
 	fillLength := uint32(108)
-	if _config.ErupeConfig.ClientID <= _config.S6 {
+	if config.GetConfig().ClientID <= config.S6 {
 		fillLength = 44
-	} else if _config.ErupeConfig.ClientID <= _config.F5 {
+	} else if config.GetConfig().ClientID <= config.F5 {
 		fillLength = 52
-	} else if _config.ErupeConfig.ClientID <= _config.G101 {
+	} else if config.GetConfig().ClientID <= config.G101 {
 		fillLength = 76
 	}
 
 	copy(data[wp:wp+fillLength], data[rp:rp+fillLength])
-	if _config.ErupeConfig.ClientID <= _config.G91 {
+	if config.GetConfig().ClientID <= config.G91 {
 		patterns := [][]byte{
 			{0x0A, 0x00, 0x01, 0x33, 0xD7, 0x00}, // 10% Armor Sphere -> Stone
 			{0x06, 0x00, 0x02, 0x33, 0xD8, 0x00}, // 6% Armor Sphere+ -> Iron Ore
@@ -94,8 +95,8 @@ func handleMsgSysGetFile(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysGetFile)
 
 	if pkt.IsScenario {
-		if s.server.erupeConfig.DebugOptions.QuestTools {
-			s.logger.Debug(
+		if config.GetConfig().DebugOptions.QuestTools {
+			s.Logger.Debug(
 				"Scenario",
 				zap.Uint8("CategoryID", pkt.ScenarioIdentifer.CategoryID),
 				zap.Uint32("MainID", pkt.ScenarioIdentifer.MainID),
@@ -105,49 +106,49 @@ func handleMsgSysGetFile(s *Session, p mhfpacket.MHFPacket) {
 		}
 		filename := fmt.Sprintf("%d_0_0_0_S%d_T%d_C%d", pkt.ScenarioIdentifer.CategoryID, pkt.ScenarioIdentifer.MainID, pkt.ScenarioIdentifer.Flags, pkt.ScenarioIdentifer.ChapterID)
 		// Read the scenario file.
-		data, err := os.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("scenarios/%s.bin", filename)))
+		data, err := os.ReadFile(filepath.Join(config.GetConfig().BinPath, fmt.Sprintf("scenarios/%s.bin", filename)))
 		if err != nil {
-			s.logger.Error(fmt.Sprintf("Failed to open file: %s/scenarios/%s.bin", s.server.erupeConfig.BinPath, filename))
+			s.Logger.Error(fmt.Sprintf("Failed to open file: %s/scenarios/%s.bin", config.GetConfig().BinPath, filename))
 			// This will crash the game.
-			doAckBufSucceed(s, pkt.AckHandle, data)
+			DoAckBufSucceed(s, pkt.AckHandle, data)
 			return
 		}
-		doAckBufSucceed(s, pkt.AckHandle, data)
+		DoAckBufSucceed(s, pkt.AckHandle, data)
 	} else {
-		if s.server.erupeConfig.DebugOptions.QuestTools {
-			s.logger.Debug(
+		if config.GetConfig().DebugOptions.QuestTools {
+			s.Logger.Debug(
 				"Quest",
 				zap.String("Filename", pkt.Filename),
 			)
 		}
 
-		if s.server.erupeConfig.GameplayOptions.SeasonOverride {
+		if config.GetConfig().GameplayOptions.SeasonOverride {
 			pkt.Filename = seasonConversion(s, pkt.Filename)
 		}
 
-		data, err := os.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("quests/%s.bin", pkt.Filename)))
+		data, err := os.ReadFile(filepath.Join(config.GetConfig().BinPath, fmt.Sprintf("quests/%s.bin", pkt.Filename)))
 		if err != nil {
-			s.logger.Error(fmt.Sprintf("Failed to open file: %s/quests/%s.bin", s.server.erupeConfig.BinPath, pkt.Filename))
+			s.Logger.Error(fmt.Sprintf("Failed to open file: %s/quests/%s.bin", config.GetConfig().BinPath, pkt.Filename))
 			// This will crash the game.
-			doAckBufSucceed(s, pkt.AckHandle, data)
+			DoAckBufSucceed(s, pkt.AckHandle, data)
 			return
 		}
-		if _config.ErupeConfig.ClientID <= _config.Z1 && s.server.erupeConfig.DebugOptions.AutoQuestBackport {
+		if config.GetConfig().ClientID <= config.Z1 && config.GetConfig().DebugOptions.AutoQuestBackport {
 			data = BackportQuest(decryption.UnpackSimple(data))
 		}
-		doAckBufSucceed(s, pkt.AckHandle, data)
+		DoAckBufSucceed(s, pkt.AckHandle, data)
 	}
 }
 
 func seasonConversion(s *Session, questFile string) string {
-	filename := fmt.Sprintf("%s%d", questFile[:6], s.server.Season())
+	filename := fmt.Sprintf("%s%d", questFile[:6], s.Server.Season())
 
 	// Return the seasonal file
-	if _, err := os.Stat(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("quests/%s.bin", filename))); err == nil {
+	if _, err := os.Stat(filepath.Join(config.GetConfig().BinPath, fmt.Sprintf("quests/%s.bin", filename))); err == nil {
 		return filename
 	} else {
 		// Attempt to return the requested quest file if the seasonal file doesn't exist
-		if _, err = os.Stat(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("quests/%s.bin", questFile))); err == nil {
+		if _, err = os.Stat(filepath.Join(config.GetConfig().BinPath, fmt.Sprintf("quests/%s.bin", questFile))); err == nil {
 			return questFile
 		}
 
@@ -169,34 +170,42 @@ func seasonConversion(s *Session, questFile string) string {
 func handleMsgMhfLoadFavoriteQuest(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfLoadFavoriteQuest)
 	var data []byte
-	err := s.server.db.QueryRow("SELECT savefavoritequest FROM characters WHERE id = $1", s.charID).Scan(&data)
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	err = database.QueryRow("SELECT savefavoritequest FROM characters WHERE id = $1", s.CharID).Scan(&data)
 	if err == nil && len(data) > 0 {
-		doAckBufSucceed(s, pkt.AckHandle, data)
+		DoAckBufSucceed(s, pkt.AckHandle, data)
 	} else {
-		doAckBufSucceed(s, pkt.AckHandle, []byte{0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
+		DoAckBufSucceed(s, pkt.AckHandle, []byte{0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
 	}
 }
 
 func handleMsgMhfSaveFavoriteQuest(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSaveFavoriteQuest)
 	dumpSaveData(s, pkt.Data, "favquest")
-	s.server.db.Exec("UPDATE characters SET savefavoritequest=$1 WHERE id=$2", pkt.Data, s.charID)
-	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	database.Exec("UPDATE characters SET savefavoritequest=$1 WHERE id=$2", pkt.Data, s.CharID)
+	DoAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
 func loadQuestFile(s *Session, questId int) []byte {
-	data, exists := s.server.questCacheData[questId]
-	if exists && s.server.questCacheTime[questId].Add(time.Duration(s.server.erupeConfig.QuestCacheExpiry)*time.Second).After(time.Now()) {
+	data, exists := s.Server.questCacheData[questId]
+	if exists && s.Server.questCacheTime[questId].Add(time.Duration(config.GetConfig().QuestCacheExpiry)*time.Second).After(time.Now()) {
 		return data
 	}
 
-	file, err := os.ReadFile(filepath.Join(s.server.erupeConfig.BinPath, fmt.Sprintf("quests/%05dd0.bin", questId)))
+	file, err := os.ReadFile(filepath.Join(config.GetConfig().BinPath, fmt.Sprintf("quests/%05dd0.bin", questId)))
 	if err != nil {
 		return nil
 	}
 
 	decrypted := decryption.UnpackSimple(file)
-	if _config.ErupeConfig.ClientID <= _config.Z1 && s.server.erupeConfig.DebugOptions.AutoQuestBackport {
+	if config.GetConfig().ClientID <= config.Z1 && config.GetConfig().DebugOptions.AutoQuestBackport {
 		decrypted = BackportQuest(decrypted)
 	}
 	fileBytes := byteframe.NewByteFrameFromBytes(decrypted)
@@ -204,13 +213,13 @@ func loadQuestFile(s *Session, questId int) []byte {
 	fileBytes.Seek(int64(fileBytes.ReadUint32()), 0)
 
 	bodyLength := 320
-	if _config.ErupeConfig.ClientID <= _config.S6 {
+	if config.GetConfig().ClientID <= config.S6 {
 		bodyLength = 160
-	} else if _config.ErupeConfig.ClientID <= _config.F5 {
+	} else if config.GetConfig().ClientID <= config.F5 {
 		bodyLength = 168
-	} else if _config.ErupeConfig.ClientID <= _config.G101 {
+	} else if config.GetConfig().ClientID <= config.G101 {
 		bodyLength = 192
-	} else if _config.ErupeConfig.ClientID <= _config.Z1 {
+	} else if config.GetConfig().ClientID <= config.Z1 {
 		bodyLength = 224
 	}
 
@@ -240,8 +249,8 @@ func loadQuestFile(s *Session, questId int) []byte {
 	}
 	questBody.WriteBytes(newStrings.Data())
 
-	s.server.questCacheData[questId] = questBody.Data()
-	s.server.questCacheTime[questId] = time.Now()
+	s.Server.questCacheData[questId] = questBody.Data()
+	s.Server.questCacheTime[questId] = time.Now()
 	return questBody.Data()
 }
 
@@ -263,15 +272,15 @@ func makeEventQuest(s *Session, rows *sql.Rows) ([]byte, error) {
 	bf.WriteUint8(0)  // Unk
 	switch questType {
 	case 16:
-		bf.WriteUint8(s.server.erupeConfig.GameplayOptions.RegularRavienteMaxPlayers)
+		bf.WriteUint8(config.GetConfig().GameplayOptions.RegularRavienteMaxPlayers)
 	case 22:
-		bf.WriteUint8(s.server.erupeConfig.GameplayOptions.ViolentRavienteMaxPlayers)
+		bf.WriteUint8(config.GetConfig().GameplayOptions.ViolentRavienteMaxPlayers)
 	case 40:
-		bf.WriteUint8(s.server.erupeConfig.GameplayOptions.BerserkRavienteMaxPlayers)
+		bf.WriteUint8(config.GetConfig().GameplayOptions.BerserkRavienteMaxPlayers)
 	case 50:
-		bf.WriteUint8(s.server.erupeConfig.GameplayOptions.ExtremeRavienteMaxPlayers)
+		bf.WriteUint8(config.GetConfig().GameplayOptions.ExtremeRavienteMaxPlayers)
 	case 51:
-		bf.WriteUint8(s.server.erupeConfig.GameplayOptions.SmallBerserkRavienteMaxPlayers)
+		bf.WriteUint8(config.GetConfig().GameplayOptions.SmallBerserkRavienteMaxPlayers)
 	default:
 		bf.WriteUint8(maxPlayers)
 	}
@@ -282,7 +291,7 @@ func makeEventQuest(s *Session, rows *sql.Rows) ([]byte, error) {
 		bf.WriteBool(true)
 	}
 	bf.WriteUint16(0) // Unk
-	if _config.ErupeConfig.ClientID >= _config.G2 {
+	if config.GetConfig().ClientID >= config.G2 {
 		bf.WriteUint32(mark)
 	}
 	bf.WriteUint16(0) // Unk
@@ -295,7 +304,7 @@ func makeEventQuest(s *Session, rows *sql.Rows) ([]byte, error) {
 	bf.Seek(25, 0)
 	flagByte := bf.ReadUint8()
 	bf.Seek(25, 0)
-	if s.server.erupeConfig.GameplayOptions.SeasonOverride {
+	if config.GetConfig().GameplayOptions.SeasonOverride {
 		bf.WriteUint8(flagByte & 0b11100000)
 	} else {
 		// Allow for seasons to be specified in database, otherwise use the one in the file.
@@ -326,11 +335,14 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 	var totalCount, returnedCount uint16
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint16(0)
-
-	rows, err := s.server.db.Query("SELECT id, COALESCE(max_players, 4) AS max_players, quest_type, quest_id, COALESCE(mark, 0) AS mark, COALESCE(flags, -1), start_time, COALESCE(active_days, 0) AS active_days, COALESCE(inactive_days, 0) AS inactive_days FROM event_quests ORDER BY quest_id")
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	rows, err := database.Query("SELECT id, COALESCE(max_players, 4) AS max_players, quest_type, quest_id, COALESCE(mark, 0) AS mark, COALESCE(flags, -1), start_time, COALESCE(active_days, 0) AS active_days, COALESCE(inactive_days, 0) AS inactive_days FROM event_quests ORDER BY quest_id")
 	if err == nil {
 		currentTime := time.Now()
-		tx, _ := s.server.db.Begin()
+		tx, _ := database.Begin()
 
 		for rows.Next() {
 			var id, mark uint32
@@ -340,7 +352,7 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 
 			err = rows.Scan(&id, &maxPlayers, &questType, &questId, &mark, &flags, &startTime, &activeDays, &inactiveDays)
 			if err != nil {
-				s.logger.Error("Failed to scan event quest row", zap.Error(err))
+				s.Logger.Error("Failed to scan event quest row", zap.Error(err))
 				continue
 			}
 
@@ -375,11 +387,11 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 
 			data, err := makeEventQuest(s, rows)
 			if err != nil {
-				s.logger.Error("Failed to make event quest", zap.Error(err))
+				s.Logger.Error("Failed to make event quest", zap.Error(err))
 				continue
 			} else {
 				if len(data) > 896 || len(data) < 352 {
-					s.logger.Error("Invalid quest data length", zap.Int("len", len(data)))
+					s.Logger.Error("Invalid quest data length", zap.Int("len", len(data)))
 					continue
 				} else {
 					totalCount++
@@ -504,54 +516,54 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 		{ID: 1180, Value: 5},
 	}
 
-	tuneValues = append(tuneValues, tuneValue{1020, uint16(s.server.erupeConfig.GameplayOptions.GCPMultiplier * 100)})
+	tuneValues = append(tuneValues, tuneValue{1020, uint16(config.GetConfig().GameplayOptions.GCPMultiplier * 100)})
 
-	tuneValues = append(tuneValues, tuneValue{1029, uint16(s.server.erupeConfig.GameplayOptions.GUrgentRate * 100)})
+	tuneValues = append(tuneValues, tuneValue{1029, uint16(config.GetConfig().GameplayOptions.GUrgentRate * 100)})
 
-	if s.server.erupeConfig.GameplayOptions.DisableHunterNavi {
+	if config.GetConfig().GameplayOptions.DisableHunterNavi {
 		tuneValues = append(tuneValues, tuneValue{1037, 1})
 	}
 
-	if s.server.erupeConfig.GameplayOptions.EnableKaijiEvent {
+	if config.GetConfig().GameplayOptions.EnableKaijiEvent {
 		tuneValues = append(tuneValues, tuneValue{1106, 1})
 	}
 
-	if s.server.erupeConfig.GameplayOptions.EnableHiganjimaEvent {
+	if config.GetConfig().GameplayOptions.EnableHiganjimaEvent {
 		tuneValues = append(tuneValues, tuneValue{1144, 1})
 	}
 
-	if s.server.erupeConfig.GameplayOptions.EnableNierEvent {
+	if config.GetConfig().GameplayOptions.EnableNierEvent {
 		tuneValues = append(tuneValues, tuneValue{1153, 1})
 	}
 
-	if s.server.erupeConfig.GameplayOptions.DisableRoad {
+	if config.GetConfig().GameplayOptions.DisableRoad {
 		tuneValues = append(tuneValues, tuneValue{1155, 1})
 	}
 
 	// get_hrp_rate_from_rank
-	tuneValues = append(tuneValues, getTuneValueRange(3000, uint16(s.server.erupeConfig.GameplayOptions.HRPMultiplier*100))...)
-	tuneValues = append(tuneValues, getTuneValueRange(3338, uint16(s.server.erupeConfig.GameplayOptions.HRPMultiplierNC*100))...)
+	tuneValues = append(tuneValues, getTuneValueRange(3000, uint16(config.GetConfig().GameplayOptions.HRPMultiplier*100))...)
+	tuneValues = append(tuneValues, getTuneValueRange(3338, uint16(config.GetConfig().GameplayOptions.HRPMultiplierNC*100))...)
 	// get_srp_rate_from_rank
-	tuneValues = append(tuneValues, getTuneValueRange(3013, uint16(s.server.erupeConfig.GameplayOptions.SRPMultiplier*100))...)
-	tuneValues = append(tuneValues, getTuneValueRange(3351, uint16(s.server.erupeConfig.GameplayOptions.SRPMultiplierNC*100))...)
+	tuneValues = append(tuneValues, getTuneValueRange(3013, uint16(config.GetConfig().GameplayOptions.SRPMultiplier*100))...)
+	tuneValues = append(tuneValues, getTuneValueRange(3351, uint16(config.GetConfig().GameplayOptions.SRPMultiplierNC*100))...)
 	// get_grp_rate_from_rank
-	tuneValues = append(tuneValues, getTuneValueRange(3026, uint16(s.server.erupeConfig.GameplayOptions.GRPMultiplier*100))...)
-	tuneValues = append(tuneValues, getTuneValueRange(3364, uint16(s.server.erupeConfig.GameplayOptions.GRPMultiplierNC*100))...)
+	tuneValues = append(tuneValues, getTuneValueRange(3026, uint16(config.GetConfig().GameplayOptions.GRPMultiplier*100))...)
+	tuneValues = append(tuneValues, getTuneValueRange(3364, uint16(config.GetConfig().GameplayOptions.GRPMultiplierNC*100))...)
 	// get_gsrp_rate_from_rank
-	tuneValues = append(tuneValues, getTuneValueRange(3039, uint16(s.server.erupeConfig.GameplayOptions.GSRPMultiplier*100))...)
-	tuneValues = append(tuneValues, getTuneValueRange(3377, uint16(s.server.erupeConfig.GameplayOptions.GSRPMultiplierNC*100))...)
+	tuneValues = append(tuneValues, getTuneValueRange(3039, uint16(config.GetConfig().GameplayOptions.GSRPMultiplier*100))...)
+	tuneValues = append(tuneValues, getTuneValueRange(3377, uint16(config.GetConfig().GameplayOptions.GSRPMultiplierNC*100))...)
 	// get_zeny_rate_from_hrank
-	tuneValues = append(tuneValues, getTuneValueRange(3052, uint16(s.server.erupeConfig.GameplayOptions.ZennyMultiplier*100))...)
-	tuneValues = append(tuneValues, getTuneValueRange(3390, uint16(s.server.erupeConfig.GameplayOptions.ZennyMultiplierNC*100))...)
+	tuneValues = append(tuneValues, getTuneValueRange(3052, uint16(config.GetConfig().GameplayOptions.ZennyMultiplier*100))...)
+	tuneValues = append(tuneValues, getTuneValueRange(3390, uint16(config.GetConfig().GameplayOptions.ZennyMultiplierNC*100))...)
 	// get_zeny_rate_from_grank
-	tuneValues = append(tuneValues, getTuneValueRange(3078, uint16(s.server.erupeConfig.GameplayOptions.GZennyMultiplier*100))...)
-	tuneValues = append(tuneValues, getTuneValueRange(3416, uint16(s.server.erupeConfig.GameplayOptions.GZennyMultiplierNC*100))...)
+	tuneValues = append(tuneValues, getTuneValueRange(3078, uint16(config.GetConfig().GameplayOptions.GZennyMultiplier*100))...)
+	tuneValues = append(tuneValues, getTuneValueRange(3416, uint16(config.GetConfig().GameplayOptions.GZennyMultiplierNC*100))...)
 	// get_reward_rate_from_hrank
-	tuneValues = append(tuneValues, getTuneValueRange(3104, uint16(s.server.erupeConfig.GameplayOptions.MaterialMultiplier*100))...)
-	tuneValues = append(tuneValues, getTuneValueRange(3442, uint16(s.server.erupeConfig.GameplayOptions.MaterialMultiplierNC*100))...)
+	tuneValues = append(tuneValues, getTuneValueRange(3104, uint16(config.GetConfig().GameplayOptions.MaterialMultiplier*100))...)
+	tuneValues = append(tuneValues, getTuneValueRange(3442, uint16(config.GetConfig().GameplayOptions.MaterialMultiplierNC*100))...)
 	// get_reward_rate_from_grank
-	tuneValues = append(tuneValues, getTuneValueRange(3130, uint16(s.server.erupeConfig.GameplayOptions.GMaterialMultiplier*100))...)
-	tuneValues = append(tuneValues, getTuneValueRange(3468, uint16(s.server.erupeConfig.GameplayOptions.GMaterialMultiplierNC*100))...)
+	tuneValues = append(tuneValues, getTuneValueRange(3130, uint16(config.GetConfig().GameplayOptions.GMaterialMultiplier*100))...)
+	tuneValues = append(tuneValues, getTuneValueRange(3468, uint16(config.GetConfig().GameplayOptions.GMaterialMultiplierNC*100))...)
 	// get_lottery_rate_from_hrank
 	tuneValues = append(tuneValues, getTuneValueRange(3156, 0)...)
 	tuneValues = append(tuneValues, getTuneValueRange(3494, 0)...)
@@ -559,11 +571,11 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 	tuneValues = append(tuneValues, getTuneValueRange(3182, 0)...)
 	tuneValues = append(tuneValues, getTuneValueRange(3520, 0)...)
 	// get_hagi_rate_from_hrank
-	tuneValues = append(tuneValues, getTuneValueRange(3208, s.server.erupeConfig.GameplayOptions.ExtraCarves)...)
-	tuneValues = append(tuneValues, getTuneValueRange(3546, s.server.erupeConfig.GameplayOptions.ExtraCarvesNC)...)
+	tuneValues = append(tuneValues, getTuneValueRange(3208, config.GetConfig().GameplayOptions.ExtraCarves)...)
+	tuneValues = append(tuneValues, getTuneValueRange(3546, config.GetConfig().GameplayOptions.ExtraCarvesNC)...)
 	// get_hagi_rate_from_grank
-	tuneValues = append(tuneValues, getTuneValueRange(3234, s.server.erupeConfig.GameplayOptions.GExtraCarves)...)
-	tuneValues = append(tuneValues, getTuneValueRange(3572, s.server.erupeConfig.GameplayOptions.GExtraCarvesNC)...)
+	tuneValues = append(tuneValues, getTuneValueRange(3234, config.GetConfig().GameplayOptions.GExtraCarves)...)
+	tuneValues = append(tuneValues, getTuneValueRange(3572, config.GetConfig().GameplayOptions.GExtraCarvesNC)...)
 	// get_nboost_transcend_rate_from_hrank
 	tuneValues = append(tuneValues, getTuneValueRange(3286, 200)...)
 	tuneValues = append(tuneValues, getTuneValueRange(3312, 300)...)
@@ -580,23 +592,23 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 	tuneValues = temp
 
 	tuneLimit := 770
-	if _config.ErupeConfig.ClientID <= _config.G1 {
+	if config.GetConfig().ClientID <= config.G1 {
 		tuneLimit = 256
-	} else if _config.ErupeConfig.ClientID <= _config.G3 {
+	} else if config.GetConfig().ClientID <= config.G3 {
 		tuneLimit = 283
-	} else if _config.ErupeConfig.ClientID <= _config.GG {
+	} else if config.GetConfig().ClientID <= config.GG {
 		tuneLimit = 315
-	} else if _config.ErupeConfig.ClientID <= _config.G61 {
+	} else if config.GetConfig().ClientID <= config.G61 {
 		tuneLimit = 332
-	} else if _config.ErupeConfig.ClientID <= _config.G7 {
+	} else if config.GetConfig().ClientID <= config.G7 {
 		tuneLimit = 339
-	} else if _config.ErupeConfig.ClientID <= _config.G81 {
+	} else if config.GetConfig().ClientID <= config.G81 {
 		tuneLimit = 396
-	} else if _config.ErupeConfig.ClientID <= _config.G91 {
+	} else if config.GetConfig().ClientID <= config.G91 {
 		tuneLimit = 694
-	} else if _config.ErupeConfig.ClientID <= _config.G101 {
+	} else if config.GetConfig().ClientID <= config.G101 {
 		tuneLimit = 704
-	} else if _config.ErupeConfig.ClientID <= _config.Z2 {
+	} else if config.GetConfig().ClientID <= config.Z2 {
 		tuneLimit = 750
 	}
 	if len(tuneValues) > tuneLimit {
@@ -644,7 +656,7 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 	bf.Seek(0, io.SeekStart)
 	bf.WriteUint16(returnedCount)
 
-	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func getTuneValueRange(start uint16, value uint16) []tuneValue {
@@ -682,5 +694,5 @@ func handleMsgMhfGetUdBonusQuestInfo(s *Session, p mhfpacket.MHFPacket) {
 		resp.WriteUint8(q.Unk6)
 	}
 
-	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
+	DoAckBufSucceed(s, pkt.AckHandle, resp.Data())
 }

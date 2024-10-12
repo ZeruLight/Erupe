@@ -13,7 +13,7 @@ type Raviente struct {
 	support  []uint32
 }
 
-func (server *Server) resetRaviente() {
+func (server *ChannelServer) resetRaviente() {
 	for _, semaphore := range server.semaphore {
 		if strings.HasPrefix(semaphore.name, "hs_l0") {
 			return
@@ -26,7 +26,7 @@ func (server *Server) resetRaviente() {
 	server.raviente.support = make([]uint32, 30)
 }
 
-func (server *Server) GetRaviMultiplier() float64 {
+func (server *ChannelServer) GetRaviMultiplier() float64 {
 	raviSema := server.getRaviSemaphore()
 	if raviSema != nil {
 		var minPlayers int
@@ -43,7 +43,7 @@ func (server *Server) GetRaviMultiplier() float64 {
 	return 0
 }
 
-func (server *Server) UpdateRavi(semaID uint32, index uint8, value uint32, update bool) (uint32, uint32) {
+func (server *ChannelServer) UpdateRavi(semaID uint32, index uint8, value uint32, update bool) (uint32, uint32) {
 	var prev uint32
 	var dest *[]uint32
 	switch semaID {

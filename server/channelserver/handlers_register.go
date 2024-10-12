@@ -1,6 +1,7 @@
 package channelserver
 
 import (
+	"erupe-ce/config"
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/utils/byteframe"
 	"strings"
@@ -10,14 +11,14 @@ func handleMsgMhfRegisterEvent(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfRegisterEvent)
 	bf := byteframe.NewByteFrame()
 	// Some kind of check if there's already a session
-	if pkt.Unk1 && s.server.getRaviSemaphore() == nil {
-		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	if pkt.Unk1 && s.Server.getRaviSemaphore() == nil {
+		DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
 	bf.WriteUint8(uint8(pkt.WorldID))
 	bf.WriteUint8(uint8(pkt.LandID))
-	bf.WriteUint16(s.server.raviente.id)
-	doAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
+	bf.WriteUint16(s.Server.raviente.id)
+	DoAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfReleaseEvent(s *Session, p mhfpacket.MHFPacket) {
@@ -71,23 +72,23 @@ func handleMsgSysOperateRegister(s *Session, p mhfpacket.MHFPacket) {
 	bf = byteframe.NewByteFrame()
 
 	var _old, _new uint32
-	s.server.raviente.Lock()
+	s.Server.raviente.Lock()
 	for _, update := range raviUpdates {
 		switch update.Op {
 		case 2:
-			_old, _new = s.server.UpdateRavi(pkt.SemaphoreID, update.Dest, update.Data, true)
+			_old, _new = s.Server.UpdateRavi(pkt.SemaphoreID, update.Dest, update.Data, true)
 		case 13, 14:
-			_old, _new = s.server.UpdateRavi(pkt.SemaphoreID, update.Dest, update.Data, false)
+			_old, _new = s.Server.UpdateRavi(pkt.SemaphoreID, update.Dest, update.Data, false)
 		}
 		bf.WriteUint8(1)
 		bf.WriteUint8(update.Dest)
 		bf.WriteUint32(_old)
 		bf.WriteUint32(_new)
 	}
-	s.server.raviente.Unlock()
-	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	s.Server.raviente.Unlock()
+	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 
-	if s.server.erupeConfig.GameplayOptions.LowLatencyRaviente {
+	if config.GetConfig().GameplayOptions.LowLatencyRaviente {
 		s.notifyRavi()
 	}
 }
@@ -100,31 +101,31 @@ func handleMsgSysLoadRegister(s *Session, p mhfpacket.MHFPacket) {
 	for i := uint8(0); i < pkt.Values; i++ {
 		switch pkt.RegisterID {
 		case 0x40000:
-			bf.WriteUint32(s.server.raviente.state[i])
+			bf.WriteUint32(s.Server.raviente.state[i])
 		case 0x50000:
-			bf.WriteUint32(s.server.raviente.support[i])
+			bf.WriteUint32(s.Server.raviente.support[i])
 		case 0x60000:
-			bf.WriteUint32(s.server.raviente.register[i])
+			bf.WriteUint32(s.Server.raviente.register[i])
 		}
 	}
-	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func (s *Session) notifyRavi() {
-	sema := s.server.getRaviSemaphore()
+	sema := s.Server.getRaviSemaphore()
 	if sema == nil {
 		return
 	}
 	var temp mhfpacket.MHFPacket
 	for i := 0; i < 3; i++ {
 		temp = &mhfpacket.MsgSysLoadRegister{RegisterID: uint32(0x40000 + i*0x10000)}
-		if s.server.erupeConfig.GameplayOptions.LowLatencyRaviente {
+		if config.GetConfig().GameplayOptions.LowLatencyRaviente {
 			for session := range sema.clients {
 				session.QueueSendMHF(temp)
 			}
 		} else {
 			for session := range sema.clients {
-				if session.charID == s.charID {
+				if session.CharID == s.CharID {
 					session.QueueSendMHF(temp)
 				}
 			}
@@ -132,7 +133,7 @@ func (s *Session) notifyRavi() {
 	}
 }
 
-func (server *Server) getRaviSemaphore() *Semaphore {
+func (server *ChannelServer) getRaviSemaphore() *Semaphore {
 	for _, semaphore := range server.semaphore {
 		if strings.HasPrefix(semaphore.name, "hs_l0") && strings.HasSuffix(semaphore.name, "3") {
 			return semaphore

@@ -1,4 +1,4 @@
-package signserver
+package sign
 
 type RespID uint8
 

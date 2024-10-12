@@ -2,7 +2,7 @@ package api
 
 import (
 	"context"
-	_config "erupe-ce/config"
+	"erupe-ce/config"
 	"fmt"
 	"net/http"
 	"os"
@@ -13,33 +13,24 @@ import (
 
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
-	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )
-
-type Config struct {
-	DB          *sqlx.DB
-	ErupeConfig *_config.Config
-}
 
 // APIServer is Erupes Standard API interface
 type APIServer struct {
 	sync.Mutex
 	logger         logger.Logger
-	erupeConfig    *_config.Config
-	db             *sqlx.DB
+	erupeConfig    *config.Config
 	httpServer     *http.Server
 	isShuttingDown bool
 }
 
 // NewAPIServer creates a new Server type.
-func NewAPIServer(config *Config) *APIServer {
+func NewAPIServer() *APIServer {
 
 	s := &APIServer{
-		logger:      logger.Get().Named("API"),
-		erupeConfig: config.ErupeConfig,
-		db:          config.DB,
-		httpServer:  &http.Server{},
+		logger:     logger.Get().Named("API"),
+		httpServer: &http.Server{},
 	}
 	return s
 }
@@ -58,7 +49,7 @@ func (s *APIServer) Start() error {
 	r.HandleFunc("/api/ss/bbs/{id}", s.ScreenShotGet)
 	handler := handlers.CORS(handlers.AllowedHeaders([]string{"Content-Type"}))(r)
 	s.httpServer.Handler = handlers.LoggingHandler(os.Stdout, handler)
-	s.httpServer.Addr = fmt.Sprintf(":%d", s.erupeConfig.API.Port)
+	s.httpServer.Addr = fmt.Sprintf(":%d", config.GetConfig().API.Port)
 
 	serveError := make(chan error, 1)
 	go func() {

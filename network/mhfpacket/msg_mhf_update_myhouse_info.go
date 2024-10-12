@@ -3,7 +3,7 @@ package mhfpacket
 import (
 	"errors"
 
-	_config "erupe-ce/config"
+	"erupe-ce/config"
 	"erupe-ce/network"
 	"erupe-ce/utils/byteframe"
 )
@@ -22,11 +22,11 @@ func (m *MsgMhfUpdateMyhouseInfo) Opcode() network.PacketID {
 // Parse parses the packet from binary
 func (m *MsgMhfUpdateMyhouseInfo) Parse(bf *byteframe.ByteFrame) error {
 	m.AckHandle = bf.ReadUint32()
-	if _config.ErupeConfig.ClientID >= _config.G10 {
+	if config.GetConfig().ClientID >= config.G10 {
 		m.Data = bf.ReadBytes(362)
-	} else if _config.ErupeConfig.ClientID >= _config.GG {
+	} else if config.GetConfig().ClientID >= config.GG {
 		m.Data = bf.ReadBytes(338)
-	} else if _config.ErupeConfig.ClientID >= _config.F5 {
+	} else if config.GetConfig().ClientID >= config.F5 {
 		// G1 is a guess
 		m.Data = bf.ReadBytes(314)
 	} else {

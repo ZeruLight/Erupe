@@ -1,4 +1,4 @@
-package _config
+package config
 
 import (
 	"fmt"
@@ -6,6 +6,7 @@ import (
 	"net"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/spf13/viper"
@@ -299,15 +300,10 @@ type EntranceChannelInfo struct {
 	CurrentPlayers uint16
 }
 
-var ErupeConfig *Config
-
-func init() {
-	var err error
-	ErupeConfig, err = LoadConfig()
-	if err != nil {
-		preventClose(fmt.Sprintf("Failed to load config: %s", err.Error()))
-	}
-}
+var (
+	once        sync.Once
+	ErupeConfig *Config
+)
 
 // getOutboundIP4 gets the preferred outbound ip4 of this machine
 // From https://stackoverflow.com/a/37382208
@@ -368,7 +364,16 @@ func LoadConfig() (*Config, error) {
 
 	return c, nil
 }
-
+func GetConfig() *Config {
+	once.Do(func() {
+		var err error
+		ErupeConfig, err = LoadConfig()
+		if err != nil {
+			preventClose(fmt.Sprintf("Failed to load config: %s", err.Error()))
+		}
+	})
+	return ErupeConfig
+}
 func preventClose(text string) {
 	if ErupeConfig.DisableSoftCrash {
 		os.Exit(0)

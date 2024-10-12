@@ -1,9 +1,10 @@
 package channelserver
 
 import (
-	_config "erupe-ce/config"
+	"erupe-ce/config"
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/utils/byteframe"
+	"erupe-ce/utils/db"
 	"erupe-ce/utils/mhfitem"
 	ps "erupe-ce/utils/pascalstring"
 	"erupe-ce/utils/stringsupport"
@@ -42,8 +43,12 @@ FROM warehouse
 
 func handleMsgMhfUpdateInterior(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfUpdateInterior)
-	s.server.db.Exec(`UPDATE user_binary SET house_furniture=$1 WHERE id=$2`, pkt.InteriorData, s.charID)
-	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	database.Exec(`UPDATE user_binary SET house_furniture=$1 WHERE id=$2`, pkt.InteriorData, s.CharID)
+	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 type HouseData struct {
@@ -57,6 +62,10 @@ type HouseData struct {
 
 func handleMsgMhfEnumerateHouse(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateHouse)
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint16(0)
 	var houses []HouseData
@@ -65,18 +74,18 @@ func handleMsgMhfEnumerateHouse(s *Session, p mhfpacket.MHFPacket) {
 	switch pkt.Method {
 	case 1:
 		var friendsList string
-		s.server.db.QueryRow("SELECT friends FROM characters WHERE id=$1", s.charID).Scan(&friendsList)
+		database.QueryRow("SELECT friends FROM characters WHERE id=$1", s.CharID).Scan(&friendsList)
 		cids := stringsupport.CSVElems(friendsList)
 		for _, cid := range cids {
 			house := HouseData{}
-			row := s.server.db.QueryRowx(houseQuery, cid)
+			row := database.QueryRowx(houseQuery, cid)
 			err := row.StructScan(&house)
 			if err == nil {
 				houses = append(houses, house)
 			}
 		}
 	case 2:
-		guild, err := GetGuildInfoByCharacterId(s, s.charID)
+		guild, err := GetGuildInfoByCharacterId(s, s.CharID)
 		if err != nil || guild == nil {
 			break
 		}
@@ -86,7 +95,7 @@ func handleMsgMhfEnumerateHouse(s *Session, p mhfpacket.MHFPacket) {
 		}
 		for _, member := range guildMembers {
 			house := HouseData{}
-			row := s.server.db.QueryRowx(houseQuery, member.CharID)
+			row := database.QueryRowx(houseQuery, member.CharID)
 			err = row.StructScan(&house)
 			if err == nil {
 				houses = append(houses, house)
@@ -96,7 +105,7 @@ func handleMsgMhfEnumerateHouse(s *Session, p mhfpacket.MHFPacket) {
 		houseQuery = `SELECT c.id, hr, gr, name, COALESCE(ub.house_state, 2) as house_state, COALESCE(ub.house_password, '') as house_password
 			FROM characters c LEFT JOIN user_binary ub ON ub.id = c.id WHERE name ILIKE $1`
 		house := HouseData{}
-		rows, _ := s.server.db.Queryx(houseQuery, fmt.Sprintf(`%%%s%%`, pkt.Name))
+		rows, _ := database.Queryx(houseQuery, fmt.Sprintf(`%%%s%%`, pkt.Name))
 		for rows.Next() {
 			err := rows.StructScan(&house)
 			if err == nil {
@@ -105,7 +114,7 @@ func handleMsgMhfEnumerateHouse(s *Session, p mhfpacket.MHFPacket) {
 		}
 	case 4:
 		house := HouseData{}
-		row := s.server.db.QueryRowx(houseQuery, pkt.CharID)
+		row := database.QueryRowx(houseQuery, pkt.CharID)
 		err := row.StructScan(&house)
 		if err == nil {
 			houses = append(houses, house)
@@ -122,39 +131,47 @@ func handleMsgMhfEnumerateHouse(s *Session, p mhfpacket.MHFPacket) {
 			bf.WriteUint8(0)
 		}
 		bf.WriteUint16(house.HR)
-		if _config.ErupeConfig.ClientID >= _config.G10 {
+		if config.GetConfig().ClientID >= config.G10 {
 			bf.WriteUint16(house.GR)
 		}
 		ps.Uint8(bf, house.Name, true)
 	}
 	bf.Seek(0, 0)
 	bf.WriteUint16(uint16(len(houses)))
-	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfUpdateHouse(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfUpdateHouse)
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
 	// 01 = closed
 	// 02 = open anyone
 	// 03 = open friends
 	// 04 = open guild
 	// 05 = open friends+guild
-	s.server.db.Exec(`UPDATE user_binary SET house_state=$1, house_password=$2 WHERE id=$3`, pkt.State, pkt.Password, s.charID)
-	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	database.Exec(`UPDATE user_binary SET house_state=$1, house_password=$2 WHERE id=$3`, pkt.State, pkt.Password, s.CharID)
+	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfLoadHouse(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfLoadHouse)
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
 	bf := byteframe.NewByteFrame()
 
 	var state uint8
 	var password string
-	s.server.db.QueryRow(`SELECT COALESCE(house_state, 2) as house_state, COALESCE(house_password, '') as house_password FROM user_binary WHERE id=$1
+	database.QueryRow(`SELECT COALESCE(house_state, 2) as house_state, COALESCE(house_password, '') as house_password FROM user_binary WHERE id=$1
 	`, pkt.CharID).Scan(&state, &password)
 
 	if pkt.Destination != 9 && len(pkt.Password) > 0 && pkt.CheckPass {
 		if pkt.Password != password {
-			doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+			DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 			return
 		}
 	}
@@ -165,10 +182,10 @@ func handleMsgMhfLoadHouse(s *Session, p mhfpacket.MHFPacket) {
 		// Friends list verification
 		if state == 3 || state == 5 {
 			var friendsList string
-			s.server.db.QueryRow(`SELECT friends FROM characters WHERE id=$1`, pkt.CharID).Scan(&friendsList)
+			database.QueryRow(`SELECT friends FROM characters WHERE id=$1`, pkt.CharID).Scan(&friendsList)
 			cids := stringsupport.CSVElems(friendsList)
 			for _, cid := range cids {
-				if uint32(cid) == s.charID {
+				if uint32(cid) == s.CharID {
 					allowed = true
 					break
 				}
@@ -177,8 +194,8 @@ func handleMsgMhfLoadHouse(s *Session, p mhfpacket.MHFPacket) {
 
 		// Guild verification
 		if state > 3 {
-			ownGuild, err := GetGuildInfoByCharacterId(s, s.charID)
-			isApplicant, _ := ownGuild.HasApplicationForCharID(s, s.charID)
+			ownGuild, err := GetGuildInfoByCharacterId(s, s.CharID)
+			isApplicant, _ := ownGuild.HasApplicationForCharID(s, s.CharID)
 			if err == nil && ownGuild != nil {
 				othersGuild, err := GetGuildInfoByCharacterId(s, pkt.CharID)
 				if err == nil && othersGuild != nil {
@@ -190,13 +207,13 @@ func handleMsgMhfLoadHouse(s *Session, p mhfpacket.MHFPacket) {
 		}
 
 		if !allowed {
-			doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+			DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 			return
 		}
 	}
 
 	var houseTier, houseData, houseFurniture, bookshelf, gallery, tore, garden []byte
-	s.server.db.QueryRow(`SELECT house_tier, house_data, house_furniture, bookshelf, gallery, tore, garden FROM user_binary WHERE id=$1
+	database.QueryRow(`SELECT house_tier, house_data, house_furniture, bookshelf, gallery, tore, garden FROM user_binary WHERE id=$1
 	`, pkt.CharID).Scan(&houseTier, &houseData, &houseFurniture, &bookshelf, &gallery, &tore, &garden)
 	if houseFurniture == nil {
 		houseFurniture = make([]byte, 20)
@@ -226,59 +243,76 @@ func handleMsgMhfLoadHouse(s *Session, p mhfpacket.MHFPacket) {
 		}
 	}
 	if len(bf.Data()) == 0 {
-		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+		DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 	} else {
-		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+		DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 	}
 }
 
 func handleMsgMhfGetMyhouseInfo(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetMyhouseInfo)
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
 	var data []byte
-	s.server.db.QueryRow(`SELECT mission FROM user_binary WHERE id=$1`, s.charID).Scan(&data)
+	database.QueryRow(`SELECT mission FROM user_binary WHERE id=$1`, s.CharID).Scan(&data)
 	if len(data) > 0 {
-		doAckBufSucceed(s, pkt.AckHandle, data)
+		DoAckBufSucceed(s, pkt.AckHandle, data)
 	} else {
-		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 9))
+		DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 9))
 	}
 }
 
 func handleMsgMhfUpdateMyhouseInfo(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfUpdateMyhouseInfo)
-	s.server.db.Exec("UPDATE user_binary SET mission=$1 WHERE id=$2", pkt.Data, s.charID)
-	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	database.Exec("UPDATE user_binary SET mission=$1 WHERE id=$2", pkt.Data, s.CharID)
+	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfLoadDecoMyset(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfLoadDecoMyset)
-	var data []byte
-	err := s.server.db.QueryRow("SELECT decomyset FROM characters WHERE id = $1", s.charID).Scan(&data)
+
+	database, err := db.GetDB()
 	if err != nil {
-		s.logger.Error("Failed to load decomyset", zap.Error(err))
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	var data []byte
+	err = database.QueryRow("SELECT decomyset FROM characters WHERE id = $1", s.CharID).Scan(&data)
+	if err != nil {
+		s.Logger.Error("Failed to load decomyset", zap.Error(err))
 	}
 	if len(data) == 0 {
 		data = []byte{0x01, 0x00}
-		if s.server.erupeConfig.ClientID < _config.G10 {
+		if config.GetConfig().ClientID < config.G10 {
 			data = []byte{0x00, 0x00}
 		}
 	}
-	doAckBufSucceed(s, pkt.AckHandle, data)
+	DoAckBufSucceed(s, pkt.AckHandle, data)
 }
 
 func handleMsgMhfSaveDecoMyset(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSaveDecoMyset)
-	var temp []byte
-	err := s.server.db.QueryRow("SELECT decomyset FROM characters WHERE id = $1", s.charID).Scan(&temp)
+	database, err := db.GetDB()
 	if err != nil {
-		s.logger.Error("Failed to load decomyset", zap.Error(err))
-		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	var temp []byte
+	err = database.QueryRow("SELECT decomyset FROM characters WHERE id = $1", s.CharID).Scan(&temp)
+	if err != nil {
+		s.Logger.Error("Failed to load decomyset", zap.Error(err))
+		DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
 
 	// Version handling
 	bf := byteframe.NewByteFrame()
 	var size uint
-	if s.server.erupeConfig.ClientID >= _config.G10 {
+	if config.GetConfig().ClientID >= config.G10 {
 		size = 76
 		bf.WriteUint8(1)
 	} else {
@@ -314,8 +348,8 @@ func handleMsgMhfSaveDecoMyset(s *Session, p mhfpacket.MHFPacket) {
 	}
 
 	dumpSaveData(s, bf.Data(), "decomyset")
-	s.server.db.Exec("UPDATE characters SET decomyset=$1 WHERE id=$2", bf.Data(), s.charID)
-	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	database.Exec("UPDATE characters SET decomyset=$1 WHERE id=$2", bf.Data(), s.CharID)
+	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 type Title struct {
@@ -326,13 +360,17 @@ type Title struct {
 
 func handleMsgMhfEnumerateTitle(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateTitle)
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
 	var count uint16
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint16(0)
 	bf.WriteUint16(0) // Unk
-	rows, err := s.server.db.Queryx("SELECT id, unlocked_at, updated_at FROM titles WHERE char_id=$1", s.charID)
+	rows, err := database.Queryx("SELECT id, unlocked_at, updated_at FROM titles WHERE char_id=$1", s.CharID)
 	if err != nil {
-		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+		DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 		return
 	}
 	for rows.Next() {
@@ -349,35 +387,47 @@ func handleMsgMhfEnumerateTitle(s *Session, p mhfpacket.MHFPacket) {
 	}
 	bf.Seek(0, io.SeekStart)
 	bf.WriteUint16(count)
-	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfAcquireTitle(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfAcquireTitle)
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
 	for _, title := range pkt.TitleIDs {
 		var exists int
-		err := s.server.db.QueryRow(`SELECT count(*) FROM titles WHERE id=$1 AND char_id=$2`, title, s.charID).Scan(&exists)
+		err := database.QueryRow(`SELECT count(*) FROM titles WHERE id=$1 AND char_id=$2`, title, s.CharID).Scan(&exists)
 		if err != nil || exists == 0 {
-			s.server.db.Exec(`INSERT INTO titles VALUES ($1, $2, now(), now())`, title, s.charID)
+			database.Exec(`INSERT INTO titles VALUES ($1, $2, now(), now())`, title, s.CharID)
 		} else {
-			s.server.db.Exec(`UPDATE titles SET updated_at=now() WHERE id=$1 AND char_id=$2`, title, s.charID)
+			database.Exec(`UPDATE titles SET updated_at=now() WHERE id=$1 AND char_id=$2`, title, s.CharID)
 		}
 	}
-	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfResetTitle(s *Session, p mhfpacket.MHFPacket) {}
 
 func initializeWarehouse(s *Session) {
-	var t int
-	err := s.server.db.QueryRow("SELECT character_id FROM warehouse WHERE character_id=$1", s.charID).Scan(&t)
+	database, err := db.GetDB()
 	if err != nil {
-		s.server.db.Exec("INSERT INTO warehouse (character_id) VALUES ($1)", s.charID)
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	var t int
+	err = database.QueryRow("SELECT character_id FROM warehouse WHERE character_id=$1", s.CharID).Scan(&t)
+	if err != nil {
+		database.Exec("INSERT INTO warehouse (character_id) VALUES ($1)", s.CharID)
 	}
 }
 
 func handleMsgMhfOperateWarehouse(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfOperateWarehouse)
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
 	initializeWarehouse(s)
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint8(pkt.Operation)
@@ -386,7 +436,7 @@ func handleMsgMhfOperateWarehouse(s *Session, p mhfpacket.MHFPacket) {
 		var count uint8
 		itemNames := make([]string, 10)
 		equipNames := make([]string, 10)
-		s.server.db.QueryRow(fmt.Sprintf("%s WHERE character_id=$1", warehouseNamesQuery), s.charID).Scan(&itemNames[0],
+		database.QueryRow(fmt.Sprintf("%s WHERE character_id=$1", warehouseNamesQuery), s.CharID).Scan(&itemNames[0],
 			&itemNames[1], &itemNames[2], &itemNames[3], &itemNames[4], &itemNames[5], &itemNames[6], &itemNames[7], &itemNames[8], &itemNames[9], &equipNames[0],
 			&equipNames[1], &equipNames[2], &equipNames[3], &equipNames[4], &equipNames[5], &equipNames[6], &equipNames[7], &equipNames[8], &equipNames[9])
 		bf.WriteUint32(0)
@@ -415,9 +465,9 @@ func handleMsgMhfOperateWarehouse(s *Session, p mhfpacket.MHFPacket) {
 	case 2:
 		switch pkt.BoxType {
 		case 0:
-			s.server.db.Exec(fmt.Sprintf("UPDATE warehouse SET item%dname=$1 WHERE character_id=$2", pkt.BoxIndex), pkt.Name, s.charID)
+			database.Exec(fmt.Sprintf("UPDATE warehouse SET item%dname=$1 WHERE character_id=$2", pkt.BoxIndex), pkt.Name, s.CharID)
 		case 1:
-			s.server.db.Exec(fmt.Sprintf("UPDATE warehouse SET equip%dname=$1 WHERE character_id=$2", pkt.BoxIndex), pkt.Name, s.charID)
+			database.Exec(fmt.Sprintf("UPDATE warehouse SET equip%dname=$1 WHERE character_id=$2", pkt.BoxIndex), pkt.Name, s.CharID)
 		}
 	case 3:
 		bf.WriteUint32(0)     // Usage renewal time, >1 = disabled
@@ -433,28 +483,40 @@ func handleMsgMhfOperateWarehouse(s *Session, p mhfpacket.MHFPacket) {
 	// 2 = Rename
 	// 3 = Get usage limit
 	// 4 = Get gift box names (doesn't do anything?)
-	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func addWarehouseItem(s *Session, item mhfitem.MHFItemStack) {
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
 	giftBox := warehouseGetItems(s, 10)
 	item.WarehouseID = token.RNG.Uint32()
 	giftBox = append(giftBox, item)
-	s.server.db.Exec("UPDATE warehouse SET item10=$1 WHERE character_id=$2", mhfitem.SerializeWarehouseItems(giftBox), s.charID)
+	database.Exec("UPDATE warehouse SET item10=$1 WHERE character_id=$2", mhfitem.SerializeWarehouseItems(giftBox), s.CharID)
 }
 
 func addWarehouseEquipment(s *Session, equipment mhfitem.MHFEquipment) {
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
 	giftBox := warehouseGetEquipment(s, 10)
 	equipment.WarehouseID = token.RNG.Uint32()
 	giftBox = append(giftBox, equipment)
-	s.server.db.Exec("UPDATE warehouse SET equip10=$1 WHERE character_id=$2", mhfitem.SerializeWarehouseEquipment(giftBox), s.charID)
+	database.Exec("UPDATE warehouse SET equip10=$1 WHERE character_id=$2", mhfitem.SerializeWarehouseEquipment(giftBox), s.CharID)
 }
 
 func warehouseGetItems(s *Session, index uint8) []mhfitem.MHFItemStack {
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
 	initializeWarehouse(s)
 	var data []byte
 	var items []mhfitem.MHFItemStack
-	s.server.db.QueryRow(fmt.Sprintf(`SELECT item%d FROM warehouse WHERE character_id=$1`, index), s.charID).Scan(&data)
+	database.QueryRow(fmt.Sprintf(`SELECT item%d FROM warehouse WHERE character_id=$1`, index), s.CharID).Scan(&data)
 	if len(data) > 0 {
 		box := byteframe.NewByteFrameFromBytes(data)
 		numStacks := box.ReadUint16()
@@ -467,9 +529,13 @@ func warehouseGetItems(s *Session, index uint8) []mhfitem.MHFItemStack {
 }
 
 func warehouseGetEquipment(s *Session, index uint8) []mhfitem.MHFEquipment {
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
 	var data []byte
 	var equipment []mhfitem.MHFEquipment
-	s.server.db.QueryRow(fmt.Sprintf(`SELECT equip%d FROM warehouse WHERE character_id=$1`, index), s.charID).Scan(&data)
+	database.QueryRow(fmt.Sprintf(`SELECT equip%d FROM warehouse WHERE character_id=$1`, index), s.CharID).Scan(&data)
 	if len(data) > 0 {
 		box := byteframe.NewByteFrameFromBytes(data)
 		numStacks := box.ReadUint16()
@@ -493,18 +559,22 @@ func handleMsgMhfEnumerateWarehouse(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteBytes(mhfitem.SerializeWarehouseEquipment(equipment))
 	}
 	if bf.Index() > 0 {
-		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+		DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 	} else {
-		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
+		DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
 	}
 }
 
 func handleMsgMhfUpdateWarehouse(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfUpdateWarehouse)
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
 	switch pkt.BoxType {
 	case 0:
 		newStacks := mhfitem.DiffItemStacks(warehouseGetItems(s, pkt.BoxIndex), pkt.UpdatedItems)
-		s.server.db.Exec(fmt.Sprintf(`UPDATE warehouse SET item%d=$1 WHERE character_id=$2`, pkt.BoxIndex), mhfitem.SerializeWarehouseItems(newStacks), s.charID)
+		database.Exec(fmt.Sprintf(`UPDATE warehouse SET item%d=$1 WHERE character_id=$2`, pkt.BoxIndex), mhfitem.SerializeWarehouseItems(newStacks), s.CharID)
 	case 1:
 		var fEquip []mhfitem.MHFEquipment
 		oEquips := warehouseGetEquipment(s, pkt.BoxIndex)
@@ -528,7 +598,7 @@ func handleMsgMhfUpdateWarehouse(s *Session, p mhfpacket.MHFPacket) {
 				fEquip = append(fEquip, oEquip)
 			}
 		}
-		s.server.db.Exec(fmt.Sprintf(`UPDATE warehouse SET equip%d=$1 WHERE character_id=$2`, pkt.BoxIndex), mhfitem.SerializeWarehouseEquipment(fEquip), s.charID)
+		database.Exec(fmt.Sprintf(`UPDATE warehouse SET equip%d=$1 WHERE character_id=$2`, pkt.BoxIndex), mhfitem.SerializeWarehouseEquipment(fEquip), s.CharID)
 	}
-	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }

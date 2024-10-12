@@ -10,7 +10,7 @@ import (
 )
 
 // BroadcastMHF queues a MHFPacket to be sent to all sessions.
-func (server *Server) BroadcastMHF(pkt mhfpacket.MHFPacket, ignoredSession *Session) {
+func (server *ChannelServer) BroadcastMHF(pkt mhfpacket.MHFPacket, ignoredSession *Session) {
 	// Broadcast the data.
 	server.Lock()
 	defer server.Unlock()
@@ -22,7 +22,7 @@ func (server *Server) BroadcastMHF(pkt mhfpacket.MHFPacket, ignoredSession *Sess
 	}
 }
 
-func (server *Server) WorldcastMHF(pkt mhfpacket.MHFPacket, ignoredSession *Session, ignoredChannel *Server) {
+func (server *ChannelServer) WorldcastMHF(pkt mhfpacket.MHFPacket, ignoredSession *Session, ignoredChannel *ChannelServer) {
 	for _, c := range server.Channels {
 		if c == ignoredChannel {
 			continue
@@ -32,7 +32,7 @@ func (server *Server) WorldcastMHF(pkt mhfpacket.MHFPacket, ignoredSession *Sess
 }
 
 // BroadcastChatMessage broadcasts a simple chat message to all the sessions.
-func (server *Server) BroadcastChatMessage(message string) {
+func (server *ChannelServer) BroadcastChatMessage(message string) {
 	bf := byteframe.NewByteFrame()
 	bf.SetLE()
 	msgBinChat := &binpacket.MsgBinChat{
@@ -50,7 +50,7 @@ func (server *Server) BroadcastChatMessage(message string) {
 	}, nil)
 }
 
-func (server *Server) BroadcastRaviente(ip uint32, port uint16, stage []byte, _type uint8) {
+func (server *ChannelServer) BroadcastRaviente(ip uint32, port uint16, stage []byte, _type uint8) {
 	bf := byteframe.NewByteFrame()
 	bf.SetLE()
 	bf.WriteUint16(0)    // Unk

@@ -4,40 +4,50 @@ import (
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/server/channelserver/compression/deltacomp"
 	"erupe-ce/server/channelserver/compression/nullcomp"
+	"erupe-ce/utils/db"
+	"fmt"
+
 	"go.uber.org/zap"
 )
 
 func handleMsgMhfLoadPlateData(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfLoadPlateData)
 	var data []byte
-	err := s.server.db.QueryRow("SELECT platedata FROM characters WHERE id = $1", s.charID).Scan(&data)
+	database, err := db.GetDB()
 	if err != nil {
-		s.logger.Error("Failed to load platedata", zap.Error(err))
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
-	doAckBufSucceed(s, pkt.AckHandle, data)
+	err = database.QueryRow("SELECT platedata FROM characters WHERE id = $1", s.CharID).Scan(&data)
+	if err != nil {
+		s.Logger.Error("Failed to load platedata", zap.Error(err))
+	}
+	DoAckBufSucceed(s, pkt.AckHandle, data)
 }
 
 func handleMsgMhfSavePlateData(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSavePlateData)
-
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
 	if pkt.IsDataDiff {
 		var data []byte
 
 		// Load existing save
-		err := s.server.db.QueryRow("SELECT platedata FROM characters WHERE id = $1", s.charID).Scan(&data)
+		err := database.QueryRow("SELECT platedata FROM characters WHERE id = $1", s.CharID).Scan(&data)
 		if err != nil {
-			s.logger.Error("Failed to load platedata", zap.Error(err))
-			doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+			s.Logger.Error("Failed to load platedata", zap.Error(err))
+			DoAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 			return
 		}
 
 		if len(data) > 0 {
 			// Decompress
-			s.logger.Info("Decompressing...")
+			s.Logger.Info("Decompressing...")
 			data, err = nullcomp.Decompress(data)
 			if err != nil {
-				s.logger.Error("Failed to decompress platedata", zap.Error(err))
-				doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+				s.Logger.Error("Failed to decompress platedata", zap.Error(err))
+				DoAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 				return
 			}
 		} else {
@@ -46,66 +56,73 @@ func handleMsgMhfSavePlateData(s *Session, p mhfpacket.MHFPacket) {
 		}
 
 		// Perform diff and compress it to write back to db
-		s.logger.Info("Diffing...")
+		s.Logger.Info("Diffing...")
 		saveOutput, err := nullcomp.Compress(deltacomp.ApplyDataDiff(pkt.RawDataPayload, data))
 		if err != nil {
-			s.logger.Error("Failed to diff and compress platedata", zap.Error(err))
-			doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+			s.Logger.Error("Failed to diff and compress platedata", zap.Error(err))
+			DoAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 			return
 		}
 
-		_, err = s.server.db.Exec("UPDATE characters SET platedata=$1 WHERE id=$2", saveOutput, s.charID)
+		_, err = database.Exec("UPDATE characters SET platedata=$1 WHERE id=$2", saveOutput, s.CharID)
 		if err != nil {
-			s.logger.Error("Failed to save platedata", zap.Error(err))
-			doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+			s.Logger.Error("Failed to save platedata", zap.Error(err))
+			DoAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 			return
 		}
 
-		s.logger.Info("Wrote recompressed platedata back to DB")
+		s.Logger.Info("Wrote recompressed platedata back to DB")
 	} else {
 		dumpSaveData(s, pkt.RawDataPayload, "platedata")
 		// simply update database, no extra processing
-		_, err := s.server.db.Exec("UPDATE characters SET platedata=$1 WHERE id=$2", pkt.RawDataPayload, s.charID)
+		_, err := database.Exec("UPDATE characters SET platedata=$1 WHERE id=$2", pkt.RawDataPayload, s.CharID)
 		if err != nil {
-			s.logger.Error("Failed to save platedata", zap.Error(err))
+			s.Logger.Error("Failed to save platedata", zap.Error(err))
 		}
 	}
 
-	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+	DoAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
 func handleMsgMhfLoadPlateBox(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfLoadPlateBox)
 	var data []byte
-	err := s.server.db.QueryRow("SELECT platebox FROM characters WHERE id = $1", s.charID).Scan(&data)
+	database, err := db.GetDB()
 	if err != nil {
-		s.logger.Error("Failed to load platebox", zap.Error(err))
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
-	doAckBufSucceed(s, pkt.AckHandle, data)
+	err = database.QueryRow("SELECT platebox FROM characters WHERE id = $1", s.CharID).Scan(&data)
+	if err != nil {
+		s.Logger.Error("Failed to load platebox", zap.Error(err))
+	}
+	DoAckBufSucceed(s, pkt.AckHandle, data)
 }
 
 func handleMsgMhfSavePlateBox(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSavePlateBox)
-
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
 	if pkt.IsDataDiff {
 		var data []byte
 
 		// Load existing save
-		err := s.server.db.QueryRow("SELECT platebox FROM characters WHERE id = $1", s.charID).Scan(&data)
+		err := database.QueryRow("SELECT platebox FROM characters WHERE id = $1", s.CharID).Scan(&data)
 		if err != nil {
-			s.logger.Error("Failed to load platebox", zap.Error(err))
-			doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+			s.Logger.Error("Failed to load platebox", zap.Error(err))
+			DoAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 			return
 		}
 
 		// Decompress
 		if len(data) > 0 {
 			// Decompress
-			s.logger.Info("Decompressing...")
+			s.Logger.Info("Decompressing...")
 			data, err = nullcomp.Decompress(data)
 			if err != nil {
-				s.logger.Error("Failed to decompress platebox", zap.Error(err))
-				doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+				s.Logger.Error("Failed to decompress platebox", zap.Error(err))
+				DoAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 				return
 			}
 		} else {
@@ -114,51 +131,59 @@ func handleMsgMhfSavePlateBox(s *Session, p mhfpacket.MHFPacket) {
 		}
 
 		// Perform diff and compress it to write back to db
-		s.logger.Info("Diffing...")
+		s.Logger.Info("Diffing...")
 		saveOutput, err := nullcomp.Compress(deltacomp.ApplyDataDiff(pkt.RawDataPayload, data))
 		if err != nil {
-			s.logger.Error("Failed to diff and compress platebox", zap.Error(err))
-			doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+			s.Logger.Error("Failed to diff and compress platebox", zap.Error(err))
+			DoAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 			return
 		}
 
-		_, err = s.server.db.Exec("UPDATE characters SET platebox=$1 WHERE id=$2", saveOutput, s.charID)
+		_, err = database.Exec("UPDATE characters SET platebox=$1 WHERE id=$2", saveOutput, s.CharID)
 		if err != nil {
-			s.logger.Error("Failed to save platebox", zap.Error(err))
-			doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+			s.Logger.Error("Failed to save platebox", zap.Error(err))
+			DoAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 			return
 		}
 
-		s.logger.Info("Wrote recompressed platebox back to DB")
+		s.Logger.Info("Wrote recompressed platebox back to DB")
 	} else {
 		dumpSaveData(s, pkt.RawDataPayload, "platebox")
 		// simply update database, no extra processing
-		_, err := s.server.db.Exec("UPDATE characters SET platebox=$1 WHERE id=$2", pkt.RawDataPayload, s.charID)
+		_, err := database.Exec("UPDATE characters SET platebox=$1 WHERE id=$2", pkt.RawDataPayload, s.CharID)
 		if err != nil {
-			s.logger.Error("Failed to save platebox", zap.Error(err))
+			s.Logger.Error("Failed to save platebox", zap.Error(err))
 		}
 	}
-	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+	DoAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
 func handleMsgMhfLoadPlateMyset(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfLoadPlateMyset)
 	var data []byte
-	err := s.server.db.QueryRow("SELECT platemyset FROM characters WHERE id = $1", s.charID).Scan(&data)
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	err = database.QueryRow("SELECT platemyset FROM characters WHERE id = $1", s.CharID).Scan(&data)
 	if len(data) == 0 {
-		s.logger.Error("Failed to load platemyset", zap.Error(err))
+		s.Logger.Error("Failed to load platemyset", zap.Error(err))
 		data = make([]byte, 1920)
 	}
-	doAckBufSucceed(s, pkt.AckHandle, data)
+	DoAckBufSucceed(s, pkt.AckHandle, data)
 }
 
 func handleMsgMhfSavePlateMyset(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSavePlateMyset)
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
 	// looks to always return the full thing, simply update database, no extra processing
 	dumpSaveData(s, pkt.RawDataPayload, "platemyset")
-	_, err := s.server.db.Exec("UPDATE characters SET platemyset=$1 WHERE id=$2", pkt.RawDataPayload, s.charID)
+	_, err = database.Exec("UPDATE characters SET platemyset=$1 WHERE id=$2", pkt.RawDataPayload, s.CharID)
 	if err != nil {
-		s.logger.Error("Failed to save platemyset", zap.Error(err))
+		s.Logger.Error("Failed to save platemyset", zap.Error(err))
 	}
-	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+	DoAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }

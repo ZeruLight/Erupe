@@ -1,7 +1,7 @@
 package discordbot
 
 import (
-	_config "erupe-ce/config"
+	"erupe-ce/config"
 	"erupe-ce/utils/logger"
 	"regexp"
 
@@ -38,18 +38,14 @@ var Commands = []*discordgo.ApplicationCommand{
 
 type DiscordBot struct {
 	Session      *discordgo.Session
-	config       *_config.Config
+	config       *config.Config
 	logger       logger.Logger
 	MainGuild    *discordgo.Guild
 	RelayChannel *discordgo.Channel
 }
 
-type Options struct {
-	Config *_config.Config
-}
-
-func NewDiscordBot(options Options) (discordBot *DiscordBot, err error) {
-	session, err := discordgo.New("Bot " + options.Config.Discord.BotToken)
+func NewDiscordBot() (discordBot *DiscordBot, err error) {
+	session, err := discordgo.New("Bot " + config.GetConfig().Discord.BotToken)
 	discordLogger := logger.Get().Named("discord")
 	if err != nil {
 		discordLogger.Fatal("Discord failed", zap.Error(err))
@@ -58,8 +54,8 @@ func NewDiscordBot(options Options) (discordBot *DiscordBot, err error) {
 
 	var relayChannel *discordgo.Channel
 
-	if options.Config.Discord.RelayChannel.Enabled {
-		relayChannel, err = session.Channel(options.Config.Discord.RelayChannel.RelayChannelID)
+	if config.GetConfig().Discord.RelayChannel.Enabled {
+		relayChannel, err = session.Channel(config.GetConfig().Discord.RelayChannel.RelayChannelID)
 	}
 
 	if err != nil {
@@ -68,7 +64,7 @@ func NewDiscordBot(options Options) (discordBot *DiscordBot, err error) {
 	}
 
 	discordBot = &DiscordBot{
-		config:       options.Config,
+		config:       config.GetConfig(),
 		logger:       discordLogger,
 		Session:      session,
 		RelayChannel: relayChannel,

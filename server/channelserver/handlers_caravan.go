@@ -67,7 +67,7 @@ func handleMsgMhfGetRyoudama(s *Session, p mhfpacket.MHFPacket) {
 			data = append(data, bf)
 		}
 	}
-	doAckEarthSucceed(s, pkt.AckHandle, data)
+	DoAckEarthSucceed(s, pkt.AckHandle, data)
 }
 
 func handleMsgMhfPostRyoudama(s *Session, p mhfpacket.MHFPacket) {}
@@ -75,12 +75,12 @@ func handleMsgMhfPostRyoudama(s *Session, p mhfpacket.MHFPacket) {}
 func handleMsgMhfGetTinyBin(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetTinyBin)
 	// requested after conquest quests
-	doAckBufSucceed(s, pkt.AckHandle, []byte{})
+	DoAckBufSucceed(s, pkt.AckHandle, []byte{})
 }
 
 func handleMsgMhfPostTinyBin(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfPostTinyBin)
-	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfCaravanMyScore(s *Session, p mhfpacket.MHFPacket) {
@@ -92,7 +92,7 @@ func handleMsgMhfCaravanMyScore(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteInt32(0)
 		bf.WriteInt32(0)
 	*/
-	doAckEarthSucceed(s, pkt.AckHandle, data)
+	DoAckEarthSucceed(s, pkt.AckHandle, data)
 }
 
 func handleMsgMhfCaravanRanking(s *Session, p mhfpacket.MHFPacket) {
@@ -108,7 +108,7 @@ func handleMsgMhfCaravanRanking(s *Session, p mhfpacket.MHFPacket) {
 	bf.WriteInt32(1)
 	bf.WriteBytes(stringsupport.PaddedString("Test", 14, true))
 	*/
-	doAckEarthSucceed(s, pkt.AckHandle, data)
+	DoAckEarthSucceed(s, pkt.AckHandle, data)
 }
 
 func handleMsgMhfCaravanMyRank(s *Session, p mhfpacket.MHFPacket) {
@@ -119,5 +119,5 @@ func handleMsgMhfCaravanMyRank(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteInt32(0)
 		bf.WriteInt32(0)
 	*/
-	doAckEarthSucceed(s, pkt.AckHandle, data)
+	DoAckEarthSucceed(s, pkt.AckHandle, data)
 }

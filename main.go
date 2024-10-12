@@ -1,7 +1,7 @@
 package main
 
 import (
-	_config "erupe-ce/config"
+	"erupe-ce/config"
 	"fmt"
 	"net"
 	"os"
@@ -13,26 +13,18 @@ import (
 	"erupe-ce/server/api"
 	"erupe-ce/server/channelserver"
 	"erupe-ce/server/discordbot"
-	"erupe-ce/server/entranceserver"
+	"erupe-ce/server/entrance"
+	"erupe-ce/server/sign"
+	"erupe-ce/utils/db"
 	"erupe-ce/utils/logger"
 
-	"erupe-ce/server/signserver"
 	"erupe-ce/utils/gametime"
 
-	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 	"go.uber.org/zap"
 )
 
 var mainLogger logger.Logger
-
-// Temporary DB auto clean on startup for quick development & testing.
-func cleanDB(db *sqlx.DB) {
-	_ = db.MustExec("DELETE FROM guild_characters")
-	_ = db.MustExec("DELETE FROM guilds")
-	_ = db.MustExec("DELETE FROM characters")
-	_ = db.MustExec("DELETE FROM users")
-}
 
 var Commit = func() string {
 	if info, ok := debug.ReadBuildInfo(); ok {
@@ -54,96 +46,24 @@ func initLogger() {
 	mainLogger = logger.Get().Named("main")
 
 }
+
 func main() {
 	var err error
 
-	config := _config.ErupeConfig
+	config := config.GetConfig()
 	initLogger()
 	mainLogger.Info(fmt.Sprintf("Starting Erupe (9.3b-%s)", Commit()))
 	mainLogger.Info(fmt.Sprintf("Client Mode: %s (%d)", config.ClientMode, config.ClientID))
 
-	if config.Database.Password == "" {
-		preventClose("Database password is blank")
-	}
+	checkAndExitIf(config.Database.Password == "", "Database password is blank")
 
-	if net.ParseIP(config.Host) == nil {
-		ips, _ := net.LookupIP(config.Host)
-		for _, ip := range ips {
-			if ip != nil {
-				config.Host = ip.String()
-				break
-			}
-		}
-		if net.ParseIP(config.Host) == nil {
-			preventClose("Invalid host address")
-		}
-	}
+	resolveHostIP()
 
-	// Discord bot
-	var discordBot *discordbot.DiscordBot = nil
+	discordBot := initializeDiscordBot()
 
-	if config.Discord.Enabled {
-		bot, err := discordbot.NewDiscordBot(discordbot.Options{
-			Config: _config.ErupeConfig,
-		})
-		DiscordFailMsg := "Discord: Failed to start, %s"
-		if err != nil {
-			preventClose(fmt.Sprintf(DiscordFailMsg, err.Error()))
-		}
-
-		// Discord bot
-		err = bot.Start()
-
-		if err != nil {
-			preventClose(fmt.Sprintf(DiscordFailMsg, err.Error()))
-		}
-
-		discordBot = bot
-
-		_, err = discordBot.Session.ApplicationCommandBulkOverwrite(discordBot.Session.State.User.ID, "", discordbot.Commands)
-		if err != nil {
-			preventClose(fmt.Sprintf(DiscordFailMsg, err.Error()))
-		}
-
-		mainLogger.Info("Discord: Started successfully")
-	} else {
-		mainLogger.Info("Discord: Disabled")
-	}
-
-	// Create the postgres DB pool.
-	connectString := fmt.Sprintf(
-		"host='%s' port='%d' user='%s' password='%s' dbname='%s' sslmode=disable",
-		config.Database.Host,
-		config.Database.Port,
-		config.Database.User,
-		config.Database.Password,
-		config.Database.Database,
-	)
-
-	db, err := sqlx.Open("postgres", connectString)
+	database, err := db.InitDB(config)
 	if err != nil {
-		preventClose(fmt.Sprintf("Database: Failed to open, %s", err.Error()))
-	}
-
-	// Test the DB connection.
-	err = db.Ping()
-	if err != nil {
-		preventClose(fmt.Sprintf("Database: Failed to ping, %s", err.Error()))
-	}
-	mainLogger.Info("Database: Started successfully")
-
-	// Clear stale data
-	if config.DebugOptions.ProxyPort == 0 {
-		_ = db.MustExec("DELETE FROM sign_sessions")
-	}
-	_ = db.MustExec("DELETE FROM servers")
-	_ = db.MustExec(`UPDATE guild_characters SET treasure_hunt=NULL`)
-
-	// Clean the DB if the option is on.
-	if config.DebugOptions.CleanDB {
-		mainLogger.Info("Database: Started clearing...")
-		cleanDB(db)
-		mainLogger.Info("Database: Finished clearing")
+		mainLogger.Fatal(fmt.Sprintf("Database initialization failed: %s", err))
 	}
 
 	mainLogger.Info(fmt.Sprintf("Server Time: %s", gametime.TimeAdjusted().String()))
@@ -151,16 +71,10 @@ func main() {
 	// Now start our server(s).
 
 	// Entrance server.
-	entranceLogger := logger.Get().Named("entrance")
 
-	var entranceServer *entranceserver.Server
+	var entranceServer *entrance.EntranceServer
 	if config.Entrance.Enabled {
-		entranceServer = entranceserver.NewServer(
-			&entranceserver.Config{
-				Logger:      entranceLogger,
-				ErupeConfig: _config.ErupeConfig,
-				DB:          db,
-			})
+		entranceServer = entrance.NewServer()
 		err = entranceServer.Start()
 		if err != nil {
 			preventClose(fmt.Sprintf("Entrance: Failed to start, %s", err.Error()))
@@ -171,13 +85,9 @@ func main() {
 	}
 
 	// Sign server.
-	var signServer *signserver.Server
+	var signServer *sign.SignServer
 	if config.Sign.Enabled {
-		signServer = signserver.NewServer(
-			&signserver.Config{
-				ErupeConfig: _config.ErupeConfig,
-				DB:          db,
-			})
+		signServer = sign.NewServer()
 		err = signServer.Start()
 		if err != nil {
 			preventClose(fmt.Sprintf("Sign: Failed to start, %s", err.Error()))
@@ -188,14 +98,10 @@ func main() {
 	}
 
 	// Api server
-	var ApiServer *api.APIServer
+	var apiServer *api.APIServer
 	if config.API.Enabled {
-		ApiServer = api.NewAPIServer(
-			&api.Config{
-				ErupeConfig: _config.ErupeConfig,
-				DB:          db,
-			})
-		err = ApiServer.Start()
+		apiServer = api.NewAPIServer()
+		err = apiServer.Start()
 		if err != nil {
 			preventClose(fmt.Sprintf("API: Failed to start, %s", err.Error()))
 		}
@@ -203,8 +109,7 @@ func main() {
 	} else {
 		mainLogger.Info("API: Disabled")
 	}
-
-	var channelServers []*channelserver.Server
+	var channelServers []*channelserver.ChannelServer
 	if config.Channel.Enabled {
 		channelQuery := ""
 		si := 0
@@ -214,10 +119,8 @@ func main() {
 			for i, ce := range ee.Channels {
 				sid := (4096 + si*256) + (16 + ci)
 				c := *channelserver.NewServer(&channelserver.Config{
-					ID:          uint16(sid),
-					ErupeConfig: _config.ErupeConfig,
-					DB:          db,
-					DiscordBot:  discordBot,
+					ID:         uint16(sid),
+					DiscordBot: discordBot,
 				})
 				if ee.IP == "" {
 					c.IP = config.Host
@@ -242,7 +145,7 @@ func main() {
 		}
 
 		// Register all servers in DB
-		_ = db.MustExec(channelQuery)
+		_ = database.MustExec(channelQuery)
 
 		for _, c := range channelServers {
 			c.Channels = channelServers
@@ -278,7 +181,7 @@ func main() {
 	}
 
 	if config.API.Enabled {
-		ApiServer.Shutdown()
+		apiServer.Shutdown()
 	}
 
 	if config.Entrance.Enabled {
@@ -295,11 +198,46 @@ func wait() {
 }
 
 func preventClose(text string) {
-	if _config.ErupeConfig.DisableSoftCrash {
+	if config.GetConfig().DisableSoftCrash {
 		os.Exit(0)
 	}
 	mainLogger.Error(fmt.Sprintf(("\nFailed to start Erupe:\n" + text)))
 	go wait()
 	mainLogger.Error(fmt.Sprintf(("\nPress Enter/Return to exit...")))
 	os.Exit(0)
+}
+
+func checkAndExitIf(condition bool, message string) {
+	if condition {
+		preventClose(message)
+	}
+}
+
+func resolveHostIP() {
+	if net.ParseIP(config.GetConfig().Host) == nil {
+		ips, err := net.LookupIP(config.GetConfig().Host)
+		if err == nil && len(ips) > 0 {
+			config.GetConfig().Host = ips[0].String()
+		}
+		checkAndExitIf(net.ParseIP(config.GetConfig().Host) == nil, "Invalid host address")
+	}
+}
+
+func initializeDiscordBot() *discordbot.DiscordBot {
+	if !config.GetConfig().Discord.Enabled {
+		mainLogger.Info("Discord: Disabled")
+		return nil
+	}
+
+	bot, err := discordbot.NewDiscordBot()
+	checkAndExitIf(err != nil, fmt.Sprintf("Discord: Failed to start, %s", err))
+
+	err = bot.Start()
+	checkAndExitIf(err != nil, fmt.Sprintf("Discord: Failed to start, %s", err))
+
+	_, err = bot.Session.ApplicationCommandBulkOverwrite(bot.Session.State.User.ID, "", discordbot.Commands)
+	checkAndExitIf(err != nil, fmt.Sprintf("Discord: Failed to register commands, %s", err))
+
+	mainLogger.Info("Discord: Started successfully")
+	return bot
 }

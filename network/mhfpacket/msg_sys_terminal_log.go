@@ -2,7 +2,7 @@ package mhfpacket
 
 import (
 	"errors"
-	_config "erupe-ce/config"
+	"erupe-ce/config"
 
 	"erupe-ce/network"
 	"erupe-ce/utils/byteframe"
@@ -48,7 +48,7 @@ func (m *MsgSysTerminalLog) Parse(bf *byteframe.ByteFrame) error {
 		e.Unk1 = bf.ReadInt32()
 		e.Unk2 = bf.ReadInt32()
 		e.Unk3 = bf.ReadInt32()
-		if _config.ErupeConfig.ClientID >= _config.G1 {
+		if config.GetConfig().ClientID >= config.G1 {
 			for j := 0; j < 4; j++ {
 				e.Unk4 = append(e.Unk4, bf.ReadInt32())
 			}

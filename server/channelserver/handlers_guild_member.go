@@ -1,6 +1,7 @@
 package channelserver
 
 import (
+	"erupe-ce/utils/db"
 	"fmt"
 	"time"
 
@@ -46,10 +47,14 @@ func (gm *GuildMember) IsSubLeader() bool {
 }
 
 func (gm *GuildMember) Save(s *Session) error {
-	_, err := s.server.db.Exec("UPDATE guild_characters SET avoid_leadership=$1, order_index=$2 WHERE character_id=$3", gm.AvoidLeadership, gm.OrderIndex, gm.CharID)
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	_, err = database.Exec("UPDATE guild_characters SET avoid_leadership=$1, order_index=$2 WHERE character_id=$3", gm.AvoidLeadership, gm.OrderIndex, gm.CharID)
 
 	if err != nil {
-		s.logger.Error(
+		s.Logger.Error(
 			"failed to update guild member data",
 			zap.Error(err),
 			zap.Uint32("charID", gm.CharID),
@@ -87,13 +92,17 @@ SELECT * FROM (
 `
 
 func GetGuildMembers(s *Session, guildID uint32, applicants bool) ([]*GuildMember, error) {
-	rows, err := s.server.db.Queryx(fmt.Sprintf(`
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	rows, err := database.Queryx(fmt.Sprintf(`
 			%s
 			WHERE guild_id = $1 AND is_applicant = $2
 	`, guildMembersSelectSQL), guildID, applicants)
 
 	if err != nil {
-		s.logger.Error("failed to retrieve membership data for guild", zap.Error(err), zap.Uint32("guildID", guildID))
+		s.Logger.Error("failed to retrieve membership data for guild", zap.Error(err), zap.Uint32("guildID", guildID))
 		return nil, err
 	}
 
@@ -115,10 +124,15 @@ func GetGuildMembers(s *Session, guildID uint32, applicants bool) ([]*GuildMembe
 }
 
 func GetCharacterGuildData(s *Session, charID uint32) (*GuildMember, error) {
-	rows, err := s.server.db.Queryx(fmt.Sprintf("%s	WHERE character_id=$1", guildMembersSelectSQL), charID)
+
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	rows, err := database.Queryx(fmt.Sprintf("%s	WHERE character_id=$1", guildMembersSelectSQL), charID)
 
 	if err != nil {
-		s.logger.Error(fmt.Sprintf("failed to retrieve membership data for character '%d'", charID))
+		s.Logger.Error(fmt.Sprintf("failed to retrieve membership data for character '%d'", charID))
 		return nil, err
 	}
 
@@ -139,7 +153,7 @@ func buildGuildMemberObjectFromDBResult(rows *sqlx.Rows, err error, s *Session) 
 	err = rows.StructScan(&memberData)
 
 	if err != nil {
-		s.logger.Error("failed to retrieve guild data from database", zap.Error(err))
+		s.Logger.Error("failed to retrieve guild data from database", zap.Error(err))
 		return nil, err
 	}
 

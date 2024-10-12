@@ -2,7 +2,7 @@ package mhfpacket
 
 import (
 	"errors"
-	_config "erupe-ce/config"
+	"erupe-ce/config"
 
 	"erupe-ce/network"
 	"erupe-ce/utils/byteframe"
@@ -30,7 +30,7 @@ func (m *MsgMhfAcquireCafeItem) Parse(bf *byteframe.ByteFrame) error {
 	m.ItemType = bf.ReadUint16()
 	m.ItemID = bf.ReadUint16()
 	m.Quant = bf.ReadUint16()
-	if _config.ErupeConfig.ClientID >= _config.G1 {
+	if config.GetConfig().ClientID >= config.G1 {
 		m.PointCost = bf.ReadUint32()
 	} else {
 		m.PointCost = uint32(bf.ReadUint16())

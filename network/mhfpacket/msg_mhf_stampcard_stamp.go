@@ -2,7 +2,7 @@ package mhfpacket
 
 import (
 	"errors"
-	_config "erupe-ce/config"
+	"erupe-ce/config"
 
 	"erupe-ce/network"
 	"erupe-ce/utils/byteframe"
@@ -31,12 +31,12 @@ func (m *MsgMhfStampcardStamp) Opcode() network.PacketID {
 func (m *MsgMhfStampcardStamp) Parse(bf *byteframe.ByteFrame) error {
 	m.AckHandle = bf.ReadUint32()
 	m.HR = bf.ReadUint16()
-	if _config.ErupeConfig.ClientID >= _config.G1 {
+	if config.GetConfig().ClientID >= config.G1 {
 		m.GR = bf.ReadUint16()
 	}
 	m.Stamps = bf.ReadUint16()
 	bf.ReadUint16() // Zeroed
-	if _config.ErupeConfig.ClientID >= _config.Z2 {
+	if config.GetConfig().ClientID >= config.Z2 {
 		m.Reward1 = uint16(bf.ReadUint32())
 		m.Reward2 = uint16(bf.ReadUint32())
 		m.Item1 = uint16(bf.ReadUint32())

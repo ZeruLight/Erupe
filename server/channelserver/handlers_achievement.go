@@ -3,6 +3,7 @@ package channelserver
 import (
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/utils/byteframe"
+	"erupe-ce/utils/db"
 	"fmt"
 	"io"
 )
@@ -88,19 +89,23 @@ func handleMsgMhfGetAchievement(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetAchievement)
 
 	var exists int
-	err := s.server.db.QueryRow("SELECT id FROM achievements WHERE id=$1", pkt.CharID).Scan(&exists)
+	database, err := db.GetDB()
 	if err != nil {
-		s.server.db.Exec("INSERT INTO achievements (id) VALUES ($1)", pkt.CharID)
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	err = database.QueryRow("SELECT id FROM achievements WHERE id=$1", pkt.CharID).Scan(&exists)
+	if err != nil {
+		database.Exec("INSERT INTO achievements (id) VALUES ($1)", pkt.CharID)
 	}
 
 	var scores [33]int32
-	err = s.server.db.QueryRow("SELECT * FROM achievements WHERE id=$1", pkt.CharID).Scan(&scores[0],
+	err = database.QueryRow("SELECT * FROM achievements WHERE id=$1", pkt.CharID).Scan(&scores[0],
 		&scores[0], &scores[1], &scores[2], &scores[3], &scores[4], &scores[5], &scores[6], &scores[7], &scores[8],
 		&scores[9], &scores[10], &scores[11], &scores[12], &scores[13], &scores[14], &scores[15], &scores[16],
 		&scores[17], &scores[18], &scores[19], &scores[20], &scores[21], &scores[22], &scores[23], &scores[24],
 		&scores[25], &scores[26], &scores[27], &scores[28], &scores[29], &scores[30], &scores[31], &scores[32])
 	if err != nil {
-		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 20))
+		DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 20))
 		return
 	}
 
@@ -136,26 +141,29 @@ func handleMsgMhfGetAchievement(s *Session, p mhfpacket.MHFPacket) {
 	resp.WriteUint32(points)
 	resp.WriteUint32(points)
 	resp.WriteUint32(points)
-	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
+	DoAckBufSucceed(s, pkt.AckHandle, resp.Data())
 }
 
 func handleMsgMhfSetCaAchievementHist(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSetCaAchievementHist)
-	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+	DoAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
 func handleMsgMhfResetAchievement(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfAddAchievement(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfAddAchievement)
-
-	var exists int
-	err := s.server.db.QueryRow("SELECT id FROM achievements WHERE id=$1", s.charID).Scan(&exists)
+	database, err := db.GetDB()
 	if err != nil {
-		s.server.db.Exec("INSERT INTO achievements (id) VALUES ($1)", s.charID)
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	var exists int
+	err = database.QueryRow("SELECT id FROM achievements WHERE id=$1", s.CharID).Scan(&exists)
+	if err != nil {
+		database.Exec("INSERT INTO achievements (id) VALUES ($1)", s.CharID)
 	}
 
-	s.server.db.Exec(fmt.Sprintf("UPDATE achievements SET ach%d=ach%d+1 WHERE id=$1", pkt.AchievementID, pkt.AchievementID), s.charID)
+	database.Exec(fmt.Sprintf("UPDATE achievements SET ach%d=ach%d+1 WHERE id=$1", pkt.AchievementID, pkt.AchievementID), s.CharID)
 }
 
 func handleMsgMhfPaymentAchievement(s *Session, p mhfpacket.MHFPacket) {}

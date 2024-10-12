@@ -5,7 +5,8 @@ import (
 	"database/sql/driver"
 	"encoding/json"
 	"errors"
-	_config "erupe-ce/config"
+	"erupe-ce/config"
+	"erupe-ce/utils/db"
 	"erupe-ce/utils/gametime"
 	"erupe-ce/utils/mhfitem"
 	"fmt"
@@ -123,7 +124,7 @@ func (g *Guild) Rank() uint16 {
 		24, 48, 96, 144, 192, 240, 288, 360, 432,
 		504, 600, 696, 792, 888, 984, 1080, 1200,
 	}
-	if _config.ErupeConfig.ClientID <= _config.Z2 {
+	if config.GetConfig().ClientID <= config.Z2 {
 		rpMap = []uint32{
 			3500, 6000, 8500, 11000, 13500, 16000, 20000, 24000, 28000,
 			33000, 38000, 43000, 48000, 55000, 70000, 90000, 120000,
@@ -131,21 +132,21 @@ func (g *Guild) Rank() uint16 {
 	}
 	for i, u := range rpMap {
 		if g.RankRP < u {
-			if _config.ErupeConfig.ClientID <= _config.S6 && i >= 12 {
+			if config.GetConfig().ClientID <= config.S6 && i >= 12 {
 				return 12
-			} else if _config.ErupeConfig.ClientID <= _config.F5 && i >= 13 {
+			} else if config.GetConfig().ClientID <= config.F5 && i >= 13 {
 				return 13
-			} else if _config.ErupeConfig.ClientID <= _config.G32 && i >= 14 {
+			} else if config.GetConfig().ClientID <= config.G32 && i >= 14 {
 				return 14
 			}
 			return uint16(i)
 		}
 	}
-	if _config.ErupeConfig.ClientID <= _config.S6 {
+	if config.GetConfig().ClientID <= config.S6 {
 		return 12
-	} else if _config.ErupeConfig.ClientID <= _config.F5 {
+	} else if config.GetConfig().ClientID <= config.F5 {
 		return 13
-	} else if _config.ErupeConfig.ClientID <= _config.G32 {
+	} else if config.GetConfig().ClientID <= config.G32 {
 		return 14
 	}
 	return 17
@@ -189,14 +190,18 @@ SELECT
 `
 
 func (guild *Guild) Save(s *Session) error {
-	_, err := s.server.db.Exec(`
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	_, err = database.Exec(`
 		UPDATE guilds SET main_motto=$2, sub_motto=$3, comment=$4, pugi_name_1=$5, pugi_name_2=$6, pugi_name_3=$7,
 		pugi_outfit_1=$8, pugi_outfit_2=$9, pugi_outfit_3=$10, pugi_outfits=$11, icon=$12, leader_id=$13 WHERE id=$1
 	`, guild.ID, guild.MainMotto, guild.SubMotto, guild.Comment, guild.PugiName1, guild.PugiName2, guild.PugiName3,
 		guild.PugiOutfit1, guild.PugiOutfit2, guild.PugiOutfit3, guild.PugiOutfits, guild.Icon, guild.GuildLeader.LeaderCharID)
 
 	if err != nil {
-		s.logger.Error("failed to update guild data", zap.Error(err), zap.Uint32("guildID", guild.ID))
+		s.Logger.Error("failed to update guild data", zap.Error(err), zap.Uint32("guildID", guild.ID))
 		return err
 	}
 
@@ -210,16 +215,19 @@ func (guild *Guild) CreateApplication(s *Session, charID uint32, applicationType
 		VALUES ($1, $2, $3, $4)
 	`
 
-	var err error
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
 
 	if transaction == nil {
-		_, err = s.server.db.Exec(query, guild.ID, charID, s.charID, applicationType)
+		_, err = database.Exec(query, guild.ID, charID, s.CharID, applicationType)
 	} else {
-		_, err = transaction.Exec(query, guild.ID, charID, s.charID, applicationType)
+		_, err = transaction.Exec(query, guild.ID, charID, s.CharID, applicationType)
 	}
 
 	if err != nil {
-		s.logger.Error(
+		s.Logger.Error(
 			"failed to add guild application",
 			zap.Error(err),
 			zap.Uint32("guildID", guild.ID),
@@ -232,17 +240,21 @@ func (guild *Guild) CreateApplication(s *Session, charID uint32, applicationType
 }
 
 func (guild *Guild) Disband(s *Session) error {
-	transaction, err := s.server.db.Begin()
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	transaction, err := database.Begin()
 
 	if err != nil {
-		s.logger.Error("failed to begin transaction", zap.Error(err))
+		s.Logger.Error("failed to begin transaction", zap.Error(err))
 		return err
 	}
 
 	_, err = transaction.Exec("DELETE FROM guild_characters WHERE guild_id = $1", guild.ID)
 
 	if err != nil {
-		s.logger.Error("failed to remove guild characters", zap.Error(err), zap.Uint32("guildId", guild.ID))
+		s.Logger.Error("failed to remove guild characters", zap.Error(err), zap.Uint32("guildId", guild.ID))
 		rollbackTransaction(s, transaction)
 		return err
 	}
@@ -250,7 +262,7 @@ func (guild *Guild) Disband(s *Session) error {
 	_, err = transaction.Exec("DELETE FROM guilds WHERE id = $1", guild.ID)
 
 	if err != nil {
-		s.logger.Error("failed to remove guild", zap.Error(err), zap.Uint32("guildID", guild.ID))
+		s.Logger.Error("failed to remove guild", zap.Error(err), zap.Uint32("guildID", guild.ID))
 		rollbackTransaction(s, transaction)
 		return err
 	}
@@ -258,7 +270,7 @@ func (guild *Guild) Disband(s *Session) error {
 	_, err = transaction.Exec("DELETE FROM guild_alliances WHERE parent_id=$1", guild.ID)
 
 	if err != nil {
-		s.logger.Error("failed to remove guild alliance", zap.Error(err), zap.Uint32("guildID", guild.ID))
+		s.Logger.Error("failed to remove guild alliance", zap.Error(err), zap.Uint32("guildID", guild.ID))
 		rollbackTransaction(s, transaction)
 		return err
 	}
@@ -266,7 +278,7 @@ func (guild *Guild) Disband(s *Session) error {
 	_, err = transaction.Exec("UPDATE guild_alliances SET sub1_id=sub2_id, sub2_id=NULL WHERE sub1_id=$1", guild.ID)
 
 	if err != nil {
-		s.logger.Error("failed to remove guild from alliance", zap.Error(err), zap.Uint32("guildID", guild.ID))
+		s.Logger.Error("failed to remove guild from alliance", zap.Error(err), zap.Uint32("guildID", guild.ID))
 		rollbackTransaction(s, transaction)
 		return err
 	}
@@ -274,7 +286,7 @@ func (guild *Guild) Disband(s *Session) error {
 	_, err = transaction.Exec("UPDATE guild_alliances SET sub2_id=NULL WHERE sub2_id=$1", guild.ID)
 
 	if err != nil {
-		s.logger.Error("failed to remove guild from alliance", zap.Error(err), zap.Uint32("guildID", guild.ID))
+		s.Logger.Error("failed to remove guild from alliance", zap.Error(err), zap.Uint32("guildID", guild.ID))
 		rollbackTransaction(s, transaction)
 		return err
 	}
@@ -282,20 +294,24 @@ func (guild *Guild) Disband(s *Session) error {
 	err = transaction.Commit()
 
 	if err != nil {
-		s.logger.Error("failed to commit transaction", zap.Error(err))
+		s.Logger.Error("failed to commit transaction", zap.Error(err))
 		return err
 	}
 
-	s.logger.Info("Character disbanded guild", zap.Uint32("charID", s.charID), zap.Uint32("guildID", guild.ID))
+	s.Logger.Info("Character disbanded guild", zap.Uint32("charID", s.CharID), zap.Uint32("guildID", guild.ID))
 
 	return nil
 }
 
 func (guild *Guild) RemoveCharacter(s *Session, charID uint32) error {
-	_, err := s.server.db.Exec("DELETE FROM guild_characters WHERE character_id=$1", charID)
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	_, err = database.Exec("DELETE FROM guild_characters WHERE character_id=$1", charID)
 
 	if err != nil {
-		s.logger.Error(
+		s.Logger.Error(
 			"failed to remove character from guild",
 			zap.Error(err),
 			zap.Uint32("charID", charID),
@@ -309,17 +325,21 @@ func (guild *Guild) RemoveCharacter(s *Session, charID uint32) error {
 }
 
 func (guild *Guild) AcceptApplication(s *Session, charID uint32) error {
-	transaction, err := s.server.db.Begin()
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	transaction, err := database.Begin()
 
 	if err != nil {
-		s.logger.Error("failed to start db transaction", zap.Error(err))
+		s.Logger.Error("failed to start db transaction", zap.Error(err))
 		return err
 	}
 
 	_, err = transaction.Exec(`DELETE FROM guild_applications WHERE character_id = $1`, charID)
 
 	if err != nil {
-		s.logger.Error("failed to accept character's guild application", zap.Error(err))
+		s.Logger.Error("failed to accept character's guild application", zap.Error(err))
 		rollbackTransaction(s, transaction)
 		return err
 	}
@@ -330,7 +350,7 @@ func (guild *Guild) AcceptApplication(s *Session, charID uint32) error {
 	`, guild.ID, charID)
 
 	if err != nil {
-		s.logger.Error(
+		s.Logger.Error(
 			"failed to add applicant to guild",
 			zap.Error(err),
 			zap.Uint32("guildID", guild.ID),
@@ -343,7 +363,7 @@ func (guild *Guild) AcceptApplication(s *Session, charID uint32) error {
 	err = transaction.Commit()
 
 	if err != nil {
-		s.logger.Error("failed to commit db transaction", zap.Error(err))
+		s.Logger.Error("failed to commit db transaction", zap.Error(err))
 		rollbackTransaction(s, transaction)
 		return err
 	}
@@ -354,13 +374,17 @@ func (guild *Guild) AcceptApplication(s *Session, charID uint32) error {
 // This is relying on the fact that invitation ID is also character ID right now
 // if invitation ID changes, this will break.
 func (guild *Guild) CancelInvitation(s *Session, charID uint32) error {
-	_, err := s.server.db.Exec(
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	_, err = database.Exec(
 		`DELETE FROM guild_applications WHERE character_id = $1 AND guild_id = $2 AND application_type = 'invited'`,
 		charID, guild.ID,
 	)
 
 	if err != nil {
-		s.logger.Error(
+		s.Logger.Error(
 			"failed to cancel guild invitation",
 			zap.Error(err),
 			zap.Uint32("guildID", guild.ID),
@@ -373,13 +397,17 @@ func (guild *Guild) CancelInvitation(s *Session, charID uint32) error {
 }
 
 func (guild *Guild) RejectApplication(s *Session, charID uint32) error {
-	_, err := s.server.db.Exec(
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	_, err = database.Exec(
 		`DELETE FROM guild_applications WHERE character_id = $1 AND guild_id = $2 AND application_type = 'applied'`,
 		charID, guild.ID,
 	)
 
 	if err != nil {
-		s.logger.Error(
+		s.Logger.Error(
 			"failed to reject guild application",
 			zap.Error(err),
 			zap.Uint32("guildID", guild.ID),
@@ -392,10 +420,14 @@ func (guild *Guild) RejectApplication(s *Session, charID uint32) error {
 }
 
 func (guild *Guild) ArrangeCharacters(s *Session, charIDs []uint32) error {
-	transaction, err := s.server.db.Begin()
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	transaction, err := database.Begin()
 
 	if err != nil {
-		s.logger.Error("failed to start db transaction", zap.Error(err))
+		s.Logger.Error("failed to start db transaction", zap.Error(err))
 		return err
 	}
 
@@ -406,7 +438,7 @@ func (guild *Guild) ArrangeCharacters(s *Session, charIDs []uint32) error {
 			err = transaction.Rollback()
 
 			if err != nil {
-				s.logger.Error("failed to rollback db transaction", zap.Error(err))
+				s.Logger.Error("failed to rollback db transaction", zap.Error(err))
 			}
 
 			return err
@@ -416,7 +448,7 @@ func (guild *Guild) ArrangeCharacters(s *Session, charIDs []uint32) error {
 	err = transaction.Commit()
 
 	if err != nil {
-		s.logger.Error("failed to commit db transaction", zap.Error(err))
+		s.Logger.Error("failed to commit db transaction", zap.Error(err))
 		return err
 	}
 
@@ -424,20 +456,24 @@ func (guild *Guild) ArrangeCharacters(s *Session, charIDs []uint32) error {
 }
 
 func (guild *Guild) GetApplicationForCharID(s *Session, charID uint32, applicationType GuildApplicationType) (*GuildApplication, error) {
-	row := s.server.db.QueryRowx(`
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	row := database.QueryRowx(`
 		SELECT * from guild_applications WHERE character_id = $1 AND guild_id = $2 AND application_type = $3
 	`, charID, guild.ID, applicationType)
 
 	application := &GuildApplication{}
 
-	err := row.StructScan(application)
+	err = row.StructScan(application)
 
 	if errors.Is(err, sql.ErrNoRows) {
 		return nil, nil
 	}
 
 	if err != nil {
-		s.logger.Error(
+		s.Logger.Error(
 			"failed to retrieve guild application for character",
 			zap.Error(err),
 			zap.Uint32("charID", charID),
@@ -450,20 +486,24 @@ func (guild *Guild) GetApplicationForCharID(s *Session, charID uint32, applicati
 }
 
 func (guild *Guild) HasApplicationForCharID(s *Session, charID uint32) (bool, error) {
-	row := s.server.db.QueryRowx(`
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	row := database.QueryRowx(`
 		SELECT 1 from guild_applications WHERE character_id = $1 AND guild_id = $2
 	`, charID, guild.ID)
 
 	num := 0
 
-	err := row.Scan(&num)
+	err = row.Scan(&num)
 
 	if errors.Is(err, sql.ErrNoRows) {
 		return false, nil
 	}
 
 	if err != nil {
-		s.logger.Error(
+		s.Logger.Error(
 			"failed to retrieve guild applications for character",
 			zap.Error(err),
 			zap.Uint32("charID", charID),
@@ -476,10 +516,14 @@ func (guild *Guild) HasApplicationForCharID(s *Session, charID uint32) (bool, er
 }
 
 func CreateGuild(s *Session, guildName string) (int32, error) {
-	transaction, err := s.server.db.Begin()
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	transaction, err := database.Begin()
 
 	if err != nil {
-		s.logger.Error("failed to start db transaction", zap.Error(err))
+		s.Logger.Error("failed to start db transaction", zap.Error(err))
 		return 0, err
 	}
 
@@ -489,11 +533,11 @@ func CreateGuild(s *Session, guildName string) (int32, error) {
 
 	guildResult, err := transaction.Query(
 		"INSERT INTO guilds (name, leader_id) VALUES ($1, $2) RETURNING id",
-		guildName, s.charID,
+		guildName, s.CharID,
 	)
 
 	if err != nil {
-		s.logger.Error("failed to create guild", zap.Error(err))
+		s.Logger.Error("failed to create guild", zap.Error(err))
 		rollbackTransaction(s, transaction)
 		return 0, err
 	}
@@ -505,7 +549,7 @@ func CreateGuild(s *Session, guildName string) (int32, error) {
 	err = guildResult.Scan(&guildId)
 
 	if err != nil {
-		s.logger.Error("failed to retrieve guild ID", zap.Error(err))
+		s.Logger.Error("failed to retrieve guild ID", zap.Error(err))
 		rollbackTransaction(s, transaction)
 		return 0, err
 	}
@@ -513,7 +557,7 @@ func CreateGuild(s *Session, guildName string) (int32, error) {
 	err = guildResult.Close()
 
 	if err != nil {
-		s.logger.Error("failed to finalise query", zap.Error(err))
+		s.Logger.Error("failed to finalise query", zap.Error(err))
 		rollbackTransaction(s, transaction)
 		return 0, err
 	}
@@ -521,10 +565,10 @@ func CreateGuild(s *Session, guildName string) (int32, error) {
 	_, err = transaction.Exec(`
 		INSERT INTO guild_characters (guild_id, character_id)
 		VALUES ($1, $2)
-	`, guildId, s.charID)
+	`, guildId, s.CharID)
 
 	if err != nil {
-		s.logger.Error("failed to add character to guild", zap.Error(err))
+		s.Logger.Error("failed to add character to guild", zap.Error(err))
 		rollbackTransaction(s, transaction)
 		return 0, err
 	}
@@ -532,7 +576,7 @@ func CreateGuild(s *Session, guildName string) (int32, error) {
 	err = transaction.Commit()
 
 	if err != nil {
-		s.logger.Error("failed to commit guild creation", zap.Error(err))
+		s.Logger.Error("failed to commit guild creation", zap.Error(err))
 		return 0, err
 	}
 
@@ -543,19 +587,23 @@ func rollbackTransaction(s *Session, transaction *sql.Tx) {
 	err := transaction.Rollback()
 
 	if err != nil {
-		s.logger.Error("failed to rollback transaction", zap.Error(err))
+		s.Logger.Error("failed to rollback transaction", zap.Error(err))
 	}
 }
 
 func GetGuildInfoByID(s *Session, guildID uint32) (*Guild, error) {
-	rows, err := s.server.db.Queryx(fmt.Sprintf(`
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	rows, err := database.Queryx(fmt.Sprintf(`
 		%s
 		WHERE g.id = $1
 		LIMIT 1
 	`, guildInfoSelectQuery), guildID)
 
 	if err != nil {
-		s.logger.Error("failed to retrieve guild", zap.Error(err), zap.Uint32("guildID", guildID))
+		s.Logger.Error("failed to retrieve guild", zap.Error(err), zap.Uint32("guildID", guildID))
 		return nil, err
 	}
 
@@ -571,7 +619,11 @@ func GetGuildInfoByID(s *Session, guildID uint32) (*Guild, error) {
 }
 
 func GetGuildInfoByCharacterId(s *Session, charID uint32) (*Guild, error) {
-	rows, err := s.server.db.Queryx(fmt.Sprintf(`
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	rows, err := database.Queryx(fmt.Sprintf(`
 		%s
 		WHERE EXISTS(
 				SELECT 1
@@ -590,7 +642,7 @@ func GetGuildInfoByCharacterId(s *Session, charID uint32) (*Guild, error) {
 	`, guildInfoSelectQuery), charID)
 
 	if err != nil {
-		s.logger.Error("failed to retrieve guild for character", zap.Error(err), zap.Uint32("charID", charID))
+		s.Logger.Error("failed to retrieve guild for character", zap.Error(err), zap.Uint32("charID", charID))
 		return nil, err
 	}
 
@@ -611,14 +663,14 @@ func buildGuildObjectFromDbResult(result *sqlx.Rows, err error, s *Session) (*Gu
 	err = result.StructScan(guild)
 
 	if err != nil {
-		s.logger.Error("failed to retrieve guild data from database", zap.Error(err))
+		s.Logger.Error("failed to retrieve guild data from database", zap.Error(err))
 		return nil, err
 	}
 
 	return guild, nil
 }
 
-func handleMsgMhfCreateGuild(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfCreateGuild(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfCreateGuild)
 
 	guildId, err := CreateGuild(s, pkt.Name)
@@ -630,7 +682,7 @@ func handleMsgMhfCreateGuild(s *Session, p mhfpacket.MHFPacket) {
 		// style message, it's better than nothing for now.
 		bf.WriteUint32(0x01010101)
 
-		doAckSimpleFail(s, pkt.AckHandle, bf.Data())
+		DoAckSimpleFail(s, pkt.AckHandle, bf.Data())
 		return
 	}
 
@@ -638,26 +690,29 @@ func handleMsgMhfCreateGuild(s *Session, p mhfpacket.MHFPacket) {
 
 	bf.WriteUint32(uint32(guildId))
 
-	doAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
+	DoAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
 }
 
-func handleMsgMhfOperateGuild(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfOperateGuild(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfOperateGuild)
 
 	guild, err := GetGuildInfoByID(s, pkt.GuildID)
-	characterGuildInfo, err := GetCharacterGuildData(s, s.charID)
+	characterGuildInfo, err := GetCharacterGuildData(s, s.CharID)
 	if err != nil {
-		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+		DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
-
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
 	bf := byteframe.NewByteFrame()
 
 	switch pkt.Action {
 	case mhfpacket.OperateGuildDisband:
 		response := 1
-		if guild.LeaderCharID != s.charID {
-			s.logger.Warn(fmt.Sprintf("character '%d' is attempting to manage guild '%d' without permission", s.charID, guild.ID))
+		if guild.LeaderCharID != s.CharID {
+			s.Logger.Warn(fmt.Sprintf("character '%d' is attempting to manage guild '%d' without permission", s.CharID, guild.ID))
 			response = 0
 		} else {
 			err = guild.Disband(s)
@@ -686,7 +741,7 @@ func handleMsgMhfOperateGuild(s *Session, p mhfpacket.MHFPacket) {
 			guild.Save(s)
 		}
 	case mhfpacket.OperateGuildApply:
-		err = guild.CreateApplication(s, s.charID, GuildApplicationTypeApplied, nil)
+		err = guild.CreateApplication(s, s.CharID, GuildApplicationTypeApplied, nil)
 		if err == nil {
 			bf.WriteUint32(guild.LeaderCharID)
 		} else {
@@ -694,16 +749,16 @@ func handleMsgMhfOperateGuild(s *Session, p mhfpacket.MHFPacket) {
 		}
 	case mhfpacket.OperateGuildLeave:
 		if characterGuildInfo.IsApplicant {
-			err = guild.RejectApplication(s, s.charID)
+			err = guild.RejectApplication(s, s.CharID)
 		} else {
-			err = guild.RemoveCharacter(s, s.charID)
+			err = guild.RemoveCharacter(s, s.CharID)
 		}
 		response := 1
 		if err != nil {
 			response = 0
 		} else {
 			mail := Mail{
-				RecipientID:     s.charID,
+				RecipientID:     s.CharID,
 				Subject:         "Withdrawal",
 				Body:            fmt.Sprintf("You have withdrawn from 「%s」.", guild.Name),
 				IsSystemMessage: true,
@@ -714,23 +769,23 @@ func handleMsgMhfOperateGuild(s *Session, p mhfpacket.MHFPacket) {
 	case mhfpacket.OperateGuildDonateRank:
 		bf.WriteBytes(handleDonateRP(s, uint16(pkt.Data1.ReadUint32()), guild, 0))
 	case mhfpacket.OperateGuildSetApplicationDeny:
-		s.server.db.Exec("UPDATE guilds SET recruiting=false WHERE id=$1", guild.ID)
+		database.Exec("UPDATE guilds SET recruiting=false WHERE id=$1", guild.ID)
 	case mhfpacket.OperateGuildSetApplicationAllow:
-		s.server.db.Exec("UPDATE guilds SET recruiting=true WHERE id=$1", guild.ID)
+		database.Exec("UPDATE guilds SET recruiting=true WHERE id=$1", guild.ID)
 	case mhfpacket.OperateGuildSetAvoidLeadershipTrue:
 		handleAvoidLeadershipUpdate(s, pkt, true)
 	case mhfpacket.OperateGuildSetAvoidLeadershipFalse:
 		handleAvoidLeadershipUpdate(s, pkt, false)
 	case mhfpacket.OperateGuildUpdateComment:
 		if !characterGuildInfo.IsLeader && !characterGuildInfo.IsSubLeader() {
-			doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+			DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 			return
 		}
 		guild.Comment = stringsupport.SJISToUTF8(pkt.Data2.ReadNullTerminatedBytes())
 		guild.Save(s)
 	case mhfpacket.OperateGuildUpdateMotto:
 		if !characterGuildInfo.IsLeader && !characterGuildInfo.IsSubLeader() {
-			doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+			DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 			return
 		}
 		_ = pkt.Data1.ReadUint16()
@@ -751,7 +806,7 @@ func handleMsgMhfOperateGuild(s *Session, p mhfpacket.MHFPacket) {
 		handleChangePugi(s, uint8(pkt.Data1.ReadUint32()), guild, 3)
 	case mhfpacket.OperateGuildUnlockOutfit:
 		// TODO: This doesn't implement blocking, if someone unlocked the same outfit at the same time
-		s.server.db.Exec(`UPDATE guilds SET pugi_outfits=pugi_outfits+$1 WHERE id=$2`, int(math.Pow(float64(pkt.Data1.ReadUint32()), 2)), guild.ID)
+		database.Exec(`UPDATE guilds SET pugi_outfits=pugi_outfits+$1 WHERE id=$2`, int(math.Pow(float64(pkt.Data1.ReadUint32()), 2)), guild.ID)
 	case mhfpacket.OperateGuildDonateRoom:
 		quantity := uint16(pkt.Data1.ReadUint32())
 		bf.WriteBytes(handleDonateRP(s, quantity, guild, 2))
@@ -759,20 +814,20 @@ func handleMsgMhfOperateGuild(s *Session, p mhfpacket.MHFPacket) {
 		quantity := uint16(pkt.Data1.ReadUint32())
 		bf.WriteBytes(handleDonateRP(s, quantity, guild, 1))
 		// TODO: Move this value onto rp_yesterday and reset to 0... daily?
-		s.server.db.Exec(`UPDATE guild_characters SET rp_today=rp_today+$1 WHERE character_id=$2`, quantity, s.charID)
+		database.Exec(`UPDATE guild_characters SET rp_today=rp_today+$1 WHERE character_id=$2`, quantity, s.CharID)
 	case mhfpacket.OperateGuildEventExchange:
 		rp := uint16(pkt.Data1.ReadUint32())
 		var balance uint32
-		s.server.db.QueryRow(`UPDATE guilds SET event_rp=event_rp-$1 WHERE id=$2 RETURNING event_rp`, rp, guild.ID).Scan(&balance)
+		database.QueryRow(`UPDATE guilds SET event_rp=event_rp-$1 WHERE id=$2 RETURNING event_rp`, rp, guild.ID).Scan(&balance)
 		bf.WriteUint32(balance)
 	default:
 		panic(fmt.Sprintf("unhandled operate guild action '%d'", pkt.Action))
 	}
 
 	if len(bf.Data()) > 0 {
-		doAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
+		DoAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
 	} else {
-		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+		DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 	}
 }
 
@@ -802,16 +857,20 @@ func handleChangePugi(s *Session, outfit uint8, guild *Guild, num int) {
 }
 
 func handleDonateRP(s *Session, amount uint16, guild *Guild, _type int) []byte {
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint32(0)
-	saveData, err := GetCharacterSaveData(s, s.charID)
+	saveData, err := GetCharacterSaveData(s, s.CharID)
 	if err != nil {
 		return bf.Data()
 	}
 	var resetRoom bool
 	if _type == 2 {
 		var currentRP uint16
-		s.server.db.QueryRow(`SELECT room_rp FROM guilds WHERE id = $1`, guild.ID).Scan(&currentRP)
+		database.QueryRow(`SELECT room_rp FROM guilds WHERE id = $1`, guild.ID).Scan(&currentRP)
 		if currentRP+amount >= 30 {
 			amount = 30 - currentRP
 			resetRoom = true
@@ -819,17 +878,18 @@ func handleDonateRP(s *Session, amount uint16, guild *Guild, _type int) []byte {
 	}
 	saveData.RP -= amount
 	saveData.Save(s)
+
 	switch _type {
 	case 0:
-		s.server.db.Exec(`UPDATE guilds SET rank_rp = rank_rp + $1 WHERE id = $2`, amount, guild.ID)
+		database.Exec(`UPDATE guilds SET rank_rp = rank_rp + $1 WHERE id = $2`, amount, guild.ID)
 	case 1:
-		s.server.db.Exec(`UPDATE guilds SET event_rp = event_rp + $1 WHERE id = $2`, amount, guild.ID)
+		database.Exec(`UPDATE guilds SET event_rp = event_rp + $1 WHERE id = $2`, amount, guild.ID)
 	case 2:
 		if resetRoom {
-			s.server.db.Exec(`UPDATE guilds SET room_rp = 0 WHERE id = $1`, guild.ID)
-			s.server.db.Exec(`UPDATE guilds SET room_expiry = $1 WHERE id = $2`, gametime.TimeAdjusted().Add(time.Hour*24*7), guild.ID)
+			database.Exec(`UPDATE guilds SET room_rp = 0 WHERE id = $1`, guild.ID)
+			database.Exec(`UPDATE guilds SET room_expiry = $1 WHERE id = $2`, gametime.TimeAdjusted().Add(time.Hour*24*7), guild.ID)
 		} else {
-			s.server.db.Exec(`UPDATE guilds SET room_rp = room_rp + $1 WHERE id = $2`, amount, guild.ID)
+			database.Exec(`UPDATE guilds SET room_rp = room_rp + $1 WHERE id = $2`, amount, guild.ID)
 		}
 	}
 	bf.Seek(0, 0)
@@ -838,10 +898,10 @@ func handleDonateRP(s *Session, amount uint16, guild *Guild, _type int) []byte {
 }
 
 func handleAvoidLeadershipUpdate(s *Session, pkt *mhfpacket.MsgMhfOperateGuild, avoidLeadership bool) {
-	characterGuildData, err := GetCharacterGuildData(s, s.charID)
+	characterGuildData, err := GetCharacterGuildData(s, s.CharID)
 
 	if err != nil {
-		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+		DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
 
@@ -850,27 +910,27 @@ func handleAvoidLeadershipUpdate(s *Session, pkt *mhfpacket.MsgMhfOperateGuild, 
 	err = characterGuildData.Save(s)
 
 	if err != nil {
-		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+		DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
 
-	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
-func handleMsgMhfOperateGuildMember(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfOperateGuildMember(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfOperateGuildMember)
 
 	guild, err := GetGuildInfoByCharacterId(s, pkt.CharID)
 
 	if err != nil || guild == nil {
-		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+		DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
 
-	actorCharacter, err := GetCharacterGuildData(s, s.charID)
+	actorCharacter, err := GetCharacterGuildData(s, s.CharID)
 
-	if err != nil || (!actorCharacter.IsSubLeader() && guild.LeaderCharID != s.charID) {
-		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+	if err != nil || (!actorCharacter.IsSubLeader() && guild.LeaderCharID != s.CharID) {
+		DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
 
@@ -901,26 +961,26 @@ func handleMsgMhfOperateGuildMember(s *Session, p mhfpacket.MHFPacket) {
 			IsSystemMessage: true,
 		}
 	default:
-		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
-		s.logger.Warn(fmt.Sprintf("unhandled operateGuildMember action '%d'", pkt.Action))
+		DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+		s.Logger.Warn(fmt.Sprintf("unhandled operateGuildMember action '%d'", pkt.Action))
 	}
 
 	if err != nil {
-		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+		DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 	} else {
 		mail.Send(s, nil)
-		for _, channel := range s.server.Channels {
+		for _, channel := range s.Server.Channels {
 			for _, session := range channel.sessions {
-				if session.charID == pkt.CharID {
+				if session.CharID == pkt.CharID {
 					SendMailNotification(s, &mail, session)
 				}
 			}
 		}
-		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+		DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 	}
 }
 
-func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfInfoGuild)
 
 	var guild *Guild
@@ -929,7 +989,7 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 	if pkt.GuildID > 0 {
 		guild, err = GetGuildInfoByID(s, pkt.GuildID)
 	} else {
-		guild, err = GetGuildInfoByCharacterId(s, s.charID)
+		guild, err = GetGuildInfoByCharacterId(s, s.CharID)
 	}
 
 	if err == nil && guild != nil {
@@ -939,7 +999,7 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 		guildComment := stringsupport.UTF8ToSJIS(guild.Comment)
 		guildLeaderName := stringsupport.UTF8ToSJIS(guild.LeaderName)
 
-		characterGuildData, err := GetCharacterGuildData(s, s.charID)
+		characterGuildData, err := GetCharacterGuildData(s, s.CharID)
 		characterJoinedAt := uint32(0xFFFFFFFF)
 
 		if characterGuildData != nil && characterGuildData.JoinedAt != nil {
@@ -951,7 +1011,7 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 			resp.WriteUint32(0) // Count
 			resp.WriteUint8(0)  // Unk, read if count == 0.
 
-			doAckBufSucceed(s, pkt.AckHandle, resp.Data())
+			DoAckBufSucceed(s, pkt.AckHandle, resp.Data())
 			return
 		}
 
@@ -977,7 +1037,7 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 
 		if characterGuildData == nil || characterGuildData.IsApplicant {
 			bf.WriteUint16(0x00)
-		} else if guild.LeaderCharID == s.charID {
+		} else if guild.LeaderCharID == s.CharID {
 			bf.WriteUint16(0x01)
 		} else {
 			bf.WriteUint16(0x02)
@@ -1006,15 +1066,15 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint8(guild.PugiOutfit1)
 		bf.WriteUint8(guild.PugiOutfit2)
 		bf.WriteUint8(guild.PugiOutfit3)
-		if s.server.erupeConfig.ClientID >= _config.Z1 {
+		if config.GetConfig().ClientID >= config.Z1 {
 			bf.WriteUint8(guild.PugiOutfit1)
 			bf.WriteUint8(guild.PugiOutfit2)
 			bf.WriteUint8(guild.PugiOutfit3)
 		}
 		bf.WriteUint32(guild.PugiOutfits)
 
-		limit := s.server.erupeConfig.GameplayOptions.ClanMemberLimits[0][1]
-		for _, j := range s.server.erupeConfig.GameplayOptions.ClanMemberLimits {
+		limit := config.GetConfig().GameplayOptions.ClanMemberLimits[0][1]
+		for _, j := range config.GetConfig().GameplayOptions.ClanMemberLimits {
 			if guild.Rank() >= uint16(j[0]) {
 				limit = j[1]
 			}
@@ -1159,23 +1219,26 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 		}
 		bf.WriteUint8(0) // Unk
 
-		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+		DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 	} else {
-		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 5))
+		DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 5))
 	}
 }
 
-func handleMsgMhfEnumerateGuild(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfEnumerateGuild(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateGuild)
 
 	var guilds []*Guild
 	var alliances []*GuildAlliance
 	var rows *sqlx.Rows
 	var err error
-
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
 	if pkt.Type <= 8 {
 		var tempGuilds []*Guild
-		rows, err = s.server.db.Queryx(guildInfoSelectQuery)
+		rows, err = database.Queryx(guildInfoSelectQuery)
 		if err == nil {
 			for rows.Next() {
 				guild, err := buildGuildObjectFromDbResult(rows, err, s)
@@ -1258,7 +1321,7 @@ func handleMsgMhfEnumerateGuild(s *Session, p mhfpacket.MHFPacket) {
 
 	if pkt.Type > 8 {
 		var tempAlliances []*GuildAlliance
-		rows, err = s.server.db.Queryx(allianceInfoSelectQuery)
+		rows, err = database.Queryx(allianceInfoSelectQuery)
 		if err == nil {
 			for rows.Next() {
 				alliance, _ := buildAllianceObjectFromDbResult(rows, err, s)
@@ -1365,25 +1428,25 @@ func handleMsgMhfEnumerateGuild(s *Session, p mhfpacket.MHFPacket) {
 		}
 	}
 
-	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
-func handleMsgMhfArrangeGuildMember(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfArrangeGuildMember(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfArrangeGuildMember)
 
 	guild, err := GetGuildInfoByID(s, pkt.GuildID)
 
 	if err != nil {
-		s.logger.Error(
+		s.Logger.Error(
 			"failed to respond to ArrangeGuildMember message",
-			zap.Uint32("charID", s.charID),
+			zap.Uint32("charID", s.CharID),
 		)
 		return
 	}
 
-	if guild.LeaderCharID != s.charID {
-		s.logger.Error("non leader attempting to rearrange guild members!",
-			zap.Uint32("charID", s.charID),
+	if guild.LeaderCharID != s.CharID {
+		s.Logger.Error("non leader attempting to rearrange guild members!",
+			zap.Uint32("charID", s.CharID),
 			zap.Uint32("guildID", guild.ID),
 		)
 		return
@@ -1392,18 +1455,18 @@ func handleMsgMhfArrangeGuildMember(s *Session, p mhfpacket.MHFPacket) {
 	err = guild.ArrangeCharacters(s, pkt.CharIDs)
 
 	if err != nil {
-		s.logger.Error(
+		s.Logger.Error(
 			"failed to respond to ArrangeGuildMember message",
-			zap.Uint32("charID", s.charID),
+			zap.Uint32("charID", s.CharID),
 			zap.Uint32("guildID", guild.ID),
 		)
 		return
 	}
 
-	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
-func handleMsgMhfEnumerateGuildMember(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfEnumerateGuildMember(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateGuildMember)
 
 	var guild *Guild
@@ -1412,13 +1475,13 @@ func handleMsgMhfEnumerateGuildMember(s *Session, p mhfpacket.MHFPacket) {
 	if pkt.GuildID > 0 {
 		guild, err = GetGuildInfoByID(s, pkt.GuildID)
 	} else {
-		guild, err = GetGuildInfoByCharacterId(s, s.charID)
+		guild, err = GetGuildInfoByCharacterId(s, s.CharID)
 	}
 
 	if guild != nil {
-		isApplicant, _ := guild.HasApplicationForCharID(s, s.charID)
+		isApplicant, _ := guild.HasApplicationForCharID(s, s.CharID)
 		if isApplicant {
-			doAckBufSucceed(s, pkt.AckHandle, make([]byte, 2))
+			DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 2))
 			return
 		}
 	}
@@ -1428,24 +1491,24 @@ func handleMsgMhfEnumerateGuildMember(s *Session, p mhfpacket.MHFPacket) {
 	}
 
 	if err != nil {
-		s.logger.Warn("failed to retrieve guild sending no result message")
-		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 2))
+		s.Logger.Warn("failed to retrieve guild sending no result message")
+		DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 2))
 		return
 	} else if guild == nil {
-		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 2))
+		DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 2))
 		return
 	}
 
 	guildMembers, err := GetGuildMembers(s, guild.ID, false)
 
 	if err != nil {
-		s.logger.Error("failed to retrieve guild")
+		s.Logger.Error("failed to retrieve guild")
 		return
 	}
 
 	alliance, err := GetAllianceData(s, guild.AllianceID)
 	if err != nil {
-		s.logger.Error("Failed to get alliance data")
+		s.Logger.Error("Failed to get alliance data")
 		return
 	}
 
@@ -1460,10 +1523,10 @@ func handleMsgMhfEnumerateGuildMember(s *Session, p mhfpacket.MHFPacket) {
 	for _, member := range guildMembers {
 		bf.WriteUint32(member.CharID)
 		bf.WriteUint16(member.HR)
-		if s.server.erupeConfig.ClientID >= _config.G10 {
+		if config.GetConfig().ClientID >= config.G10 {
 			bf.WriteUint16(member.GR)
 		}
-		if s.server.erupeConfig.ClientID < _config.ZZ {
+		if config.GetConfig().ClientID < config.ZZ {
 			// Magnet Spike crash workaround
 			bf.WriteUint16(0)
 		} else {
@@ -1521,18 +1584,18 @@ func handleMsgMhfEnumerateGuildMember(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint16(member.RPYesterday)
 	}
 
-	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
-func handleMsgMhfGetGuildManageRight(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfGetGuildManageRight(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetGuildManageRight)
 
-	guild, err := GetGuildInfoByCharacterId(s, s.charID)
+	guild, err := GetGuildInfoByCharacterId(s, s.CharID)
 	if guild == nil && s.prevGuildID != 0 {
 		guild, err = GetGuildInfoByID(s, s.prevGuildID)
 		s.prevGuildID = 0
 		if guild == nil || err != nil {
-			doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
+			DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
 			return
 		}
 	}
@@ -1545,28 +1608,28 @@ func handleMsgMhfGetGuildManageRight(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteBool(member.Recruiter)
 		bf.WriteBytes(make([]byte, 3))
 	}
-	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
-func handleMsgMhfGetUdGuildMapInfo(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfGetUdGuildMapInfo(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetUdGuildMapInfo)
-	doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+	DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 }
 
-func handleMsgMhfGetGuildTargetMemberNum(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfGetGuildTargetMemberNum(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetGuildTargetMemberNum)
 
 	var guild *Guild
 	var err error
 
 	if pkt.GuildID == 0x0 {
-		guild, err = GetGuildInfoByCharacterId(s, s.charID)
+		guild, err = GetGuildInfoByCharacterId(s, s.CharID)
 	} else {
 		guild, err = GetGuildInfoByID(s, pkt.GuildID)
 	}
 
 	if err != nil || guild == nil {
-		doAckBufSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x02})
+		DoAckBufSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x02})
 		return
 	}
 
@@ -1575,13 +1638,17 @@ func handleMsgMhfGetGuildTargetMemberNum(s *Session, p mhfpacket.MHFPacket) {
 	bf.WriteUint16(0x0)
 	bf.WriteUint16(guild.MemberCount - 1)
 
-	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func guildGetItems(s *Session, guildID uint32) []mhfitem.MHFItemStack {
 	var data []byte
 	var items []mhfitem.MHFItemStack
-	s.server.db.QueryRow(`SELECT item_box FROM guilds WHERE id=$1`, guildID).Scan(&data)
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	database.QueryRow(`SELECT item_box FROM guilds WHERE id=$1`, guildID).Scan(&data)
 	if len(data) > 0 {
 		box := byteframe.NewByteFrameFromBytes(data)
 		numStacks := box.ReadUint16()
@@ -1593,22 +1660,26 @@ func guildGetItems(s *Session, guildID uint32) []mhfitem.MHFItemStack {
 	return items
 }
 
-func handleMsgMhfEnumerateGuildItem(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfEnumerateGuildItem(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateGuildItem)
 	items := guildGetItems(s, pkt.GuildID)
 	bf := byteframe.NewByteFrame()
 	bf.WriteBytes(mhfitem.SerializeWarehouseItems(items))
-	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
-func handleMsgMhfUpdateGuildItem(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfUpdateGuildItem(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfUpdateGuildItem)
 	newStacks := mhfitem.DiffItemStacks(guildGetItems(s, pkt.GuildID), pkt.UpdatedItems)
-	s.server.db.Exec(`UPDATE guilds SET item_box=$1 WHERE id=$2`, mhfitem.SerializeWarehouseItems(newStacks), pkt.GuildID)
-	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	database.Exec(`UPDATE guilds SET item_box=$1 WHERE id=$2`, mhfitem.SerializeWarehouseItems(newStacks), pkt.GuildID)
+	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
-func handleMsgMhfUpdateGuildIcon(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfUpdateGuildIcon(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfUpdateGuildIcon)
 
 	guild, err := GetGuildInfoByID(s, pkt.GuildID)
@@ -1617,19 +1688,19 @@ func handleMsgMhfUpdateGuildIcon(s *Session, p mhfpacket.MHFPacket) {
 		panic(err)
 	}
 
-	characterInfo, err := GetCharacterGuildData(s, s.charID)
+	characterInfo, err := GetCharacterGuildData(s, s.CharID)
 
 	if err != nil {
 		panic(err)
 	}
 
 	if !characterInfo.IsSubLeader() && !characterInfo.IsLeader {
-		s.logger.Warn(
+		s.Logger.Warn(
 			"character without leadership attempting to update guild icon",
 			zap.Uint32("guildID", guild.ID),
-			zap.Uint32("charID", s.charID),
+			zap.Uint32("charID", s.CharID),
 		)
-		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+		DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
 
@@ -1657,14 +1728,14 @@ func handleMsgMhfUpdateGuildIcon(s *Session, p mhfpacket.MHFPacket) {
 	err = guild.Save(s)
 
 	if err != nil {
-		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+		DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
 
-	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
-func handleMsgMhfReadGuildcard(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfReadGuildcard(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfReadGuildcard)
 
 	resp := byteframe.NewByteFrame()
@@ -1677,7 +1748,7 @@ func handleMsgMhfReadGuildcard(s *Session, p mhfpacket.MHFPacket) {
 	resp.WriteUint32(0)
 	resp.WriteUint32(0)
 
-	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
+	DoAckBufSucceed(s, pkt.AckHandle, resp.Data())
 }
 
 type GuildMission struct {
@@ -1692,7 +1763,7 @@ type GuildMission struct {
 	RewardLevel uint16
 }
 
-func handleMsgMhfGetGuildMissionList(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfGetGuildMissionList(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetGuildMissionList)
 	bf := byteframe.NewByteFrame()
 	missions := []GuildMission{
@@ -1724,29 +1795,29 @@ func handleMsgMhfGetGuildMissionList(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint16(mission.RewardLevel)
 		bf.WriteUint32(uint32(gametime.TimeAdjusted().Unix()))
 	}
-	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
-func handleMsgMhfGetGuildMissionRecord(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfGetGuildMissionRecord(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetGuildMissionRecord)
 
 	// No guild mission records = 0x190 empty bytes
-	doAckBufSucceed(s, pkt.AckHandle, make([]byte, 0x190))
+	DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 0x190))
 }
 
-func handleMsgMhfAddGuildMissionCount(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfAddGuildMissionCount(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfAddGuildMissionCount)
-	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
-func handleMsgMhfSetGuildMissionTarget(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfSetGuildMissionTarget(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSetGuildMissionTarget)
-	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
-func handleMsgMhfCancelGuildMissionTarget(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfCancelGuildMissionTarget(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfCancelGuildMissionTarget)
-	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 type GuildMeal struct {
@@ -1756,13 +1827,17 @@ type GuildMeal struct {
 	CreatedAt time.Time `db:"created_at"`
 }
 
-func handleMsgMhfLoadGuildCooking(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfLoadGuildCooking(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfLoadGuildCooking)
-	guild, _ := GetGuildInfoByCharacterId(s, s.charID)
-	data, err := s.server.db.Queryx("SELECT id, meal_id, level, created_at FROM guild_meals WHERE guild_id = $1", guild.ID)
+	database, err := db.GetDB()
 	if err != nil {
-		s.logger.Error("Failed to get guild meals from db", zap.Error(err))
-		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 2))
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	guild, _ := GetGuildInfoByCharacterId(s, s.CharID)
+	data, err := database.Queryx("SELECT id, meal_id, level, created_at FROM guild_meals WHERE guild_id = $1", guild.ID)
+	if err != nil {
+		s.Logger.Error("Failed to get guild meals from db", zap.Error(err))
+		DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 2))
 		return
 	}
 	var meals []GuildMeal
@@ -1784,17 +1859,21 @@ func handleMsgMhfLoadGuildCooking(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint32(meal.Level)
 		bf.WriteUint32(uint32(meal.CreatedAt.Unix()))
 	}
-	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
-func handleMsgMhfRegistGuildCooking(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfRegistGuildCooking(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfRegistGuildCooking)
-	guild, _ := GetGuildInfoByCharacterId(s, s.charID)
-	startTime := gametime.TimeAdjusted().Add(time.Duration(s.server.erupeConfig.GameplayOptions.ClanMealDuration-3600) * time.Second)
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	guild, _ := GetGuildInfoByCharacterId(s, s.CharID)
+	startTime := gametime.TimeAdjusted().Add(time.Duration(config.GetConfig().GameplayOptions.ClanMealDuration-3600) * time.Second)
 	if pkt.OverwriteID != 0 {
-		s.server.db.Exec("UPDATE guild_meals SET meal_id = $1, level = $2, created_at = $3 WHERE id = $4", pkt.MealID, pkt.Success, startTime, pkt.OverwriteID)
+		database.Exec("UPDATE guild_meals SET meal_id = $1, level = $2, created_at = $3 WHERE id = $4", pkt.MealID, pkt.Success, startTime, pkt.OverwriteID)
 	} else {
-		s.server.db.QueryRow("INSERT INTO guild_meals (guild_id, meal_id, level, created_at) VALUES ($1, $2, $3, $4) RETURNING id", guild.ID, pkt.MealID, pkt.Success, startTime).Scan(&pkt.OverwriteID)
+		database.QueryRow("INSERT INTO guild_meals (guild_id, meal_id, level, created_at) VALUES ($1, $2, $3, $4) RETURNING id", guild.ID, pkt.MealID, pkt.Success, startTime).Scan(&pkt.OverwriteID)
 	}
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint16(1)
@@ -1802,37 +1881,41 @@ func handleMsgMhfRegistGuildCooking(s *Session, p mhfpacket.MHFPacket) {
 	bf.WriteUint32(uint32(pkt.MealID))
 	bf.WriteUint32(uint32(pkt.Success))
 	bf.WriteUint32(uint32(startTime.Unix()))
-	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
-func handleMsgMhfGetGuildWeeklyBonusMaster(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfGetGuildWeeklyBonusMaster(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetGuildWeeklyBonusMaster)
 
 	// Values taken from brand new guild capture
-	doAckBufSucceed(s, pkt.AckHandle, make([]byte, 40))
+	DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 40))
 }
-func handleMsgMhfGetGuildWeeklyBonusActiveCount(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfGetGuildWeeklyBonusActiveCount(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetGuildWeeklyBonusActiveCount)
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint8(60) // Active count
 	bf.WriteUint8(60) // Current active count
 	bf.WriteUint8(0)  // New active count
-	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
-func handleMsgMhfGuildHuntdata(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfGuildHuntdata(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGuildHuntdata)
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
 	bf := byteframe.NewByteFrame()
 	switch pkt.Operation {
 	case 0: // Acquire
-		s.server.db.Exec(`UPDATE guild_characters SET box_claimed=$1 WHERE character_id=$2`, gametime.TimeAdjusted(), s.charID)
+		database.Exec(`UPDATE guild_characters SET box_claimed=$1 WHERE character_id=$2`, gametime.TimeAdjusted(), s.CharID)
 	case 1: // Enumerate
 		bf.WriteUint8(0) // Entries
-		rows, err := s.server.db.Query(`SELECT kl.id, kl.monster FROM kill_logs kl
+		rows, err := database.Query(`SELECT kl.id, kl.monster FROM kill_logs kl
 			INNER JOIN guild_characters gc ON kl.character_id = gc.character_id
 			WHERE gc.guild_id=$1
 			AND kl.timestamp >= (SELECT box_claimed FROM guild_characters WHERE character_id=$2)
-		`, pkt.GuildID, s.charID)
+		`, pkt.GuildID, s.CharID)
 		if err == nil {
 			var count uint8
 			var huntID, monID uint32
@@ -1854,14 +1937,14 @@ func handleMsgMhfGuildHuntdata(s *Session, p mhfpacket.MHFPacket) {
 			bf.WriteUint8(count)
 		}
 	case 2: // Check
-		guild, err := GetGuildInfoByCharacterId(s, s.charID)
+		guild, err := GetGuildInfoByCharacterId(s, s.CharID)
 		if err == nil {
 			var count uint8
-			err = s.server.db.QueryRow(`SELECT COUNT(*) FROM kill_logs kl
+			err = database.QueryRow(`SELECT COUNT(*) FROM kill_logs kl
 				INNER JOIN guild_characters gc ON kl.character_id = gc.character_id
 				WHERE gc.guild_id=$1
 				AND kl.timestamp >= (SELECT box_claimed FROM guild_characters WHERE character_id=$2)
-			`, guild.ID, s.charID).Scan(&count)
+			`, guild.ID, s.CharID).Scan(&count)
 			if err == nil && count > 0 {
 				bf.WriteBool(true)
 			} else {
@@ -1871,7 +1954,7 @@ func handleMsgMhfGuildHuntdata(s *Session, p mhfpacket.MHFPacket) {
 			bf.WriteBool(false)
 		}
 	}
-	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 type MessageBoardPost struct {
@@ -1884,19 +1967,23 @@ type MessageBoardPost struct {
 	LikedBy   string    `db:"liked_by"`
 }
 
-func handleMsgMhfEnumerateGuildMessageBoard(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfEnumerateGuildMessageBoard(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateGuildMessageBoard)
-	guild, _ := GetGuildInfoByCharacterId(s, s.charID)
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	guild, _ := GetGuildInfoByCharacterId(s, s.CharID)
 	if pkt.BoardType == 1 {
 		pkt.MaxPosts = 4
 	}
-	msgs, err := s.server.db.Queryx("SELECT id, stamp_id, title, body, author_id, created_at, liked_by FROM guild_posts WHERE guild_id = $1 AND post_type = $2 ORDER BY created_at DESC", guild.ID, int(pkt.BoardType))
+	msgs, err := database.Queryx("SELECT id, stamp_id, title, body, author_id, created_at, liked_by FROM guild_posts WHERE guild_id = $1 AND post_type = $2 ORDER BY created_at DESC", guild.ID, int(pkt.BoardType))
 	if err != nil {
-		s.logger.Error("Failed to get guild messages from db", zap.Error(err))
-		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
+		s.Logger.Error("Failed to get guild messages from db", zap.Error(err))
+		DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
-	s.server.db.Exec("UPDATE characters SET guild_post_checked = now() WHERE id = $1", s.charID)
+	database.Exec("UPDATE characters SET guild_post_checked = now() WHERE id = $1", s.CharID)
 	bf := byteframe.NewByteFrame()
 	var postCount uint32
 	for msgs.Next() {
@@ -1911,7 +1998,7 @@ func handleMsgMhfEnumerateGuildMessageBoard(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint32(0)
 		bf.WriteUint32(uint32(postData.Timestamp.Unix()))
 		bf.WriteUint32(uint32(stringsupport.CSVLength(postData.LikedBy)))
-		bf.WriteBool(stringsupport.CSVContains(postData.LikedBy, int(s.charID)))
+		bf.WriteBool(stringsupport.CSVContains(postData.LikedBy, int(s.CharID)))
 		bf.WriteUint32(postData.StampID)
 		ps.Uint32(bf, postData.Title, true)
 		ps.Uint32(bf, postData.Body, true)
@@ -1919,106 +2006,114 @@ func handleMsgMhfEnumerateGuildMessageBoard(s *Session, p mhfpacket.MHFPacket) {
 	data := byteframe.NewByteFrame()
 	data.WriteUint32(postCount)
 	data.WriteBytes(bf.Data())
-	doAckBufSucceed(s, pkt.AckHandle, data.Data())
+	DoAckBufSucceed(s, pkt.AckHandle, data.Data())
 }
 
-func handleMsgMhfUpdateGuildMessageBoard(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfUpdateGuildMessageBoard(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfUpdateGuildMessageBoard)
-	guild, err := GetGuildInfoByCharacterId(s, s.charID)
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	guild, err := GetGuildInfoByCharacterId(s, s.CharID)
 	applicant := false
 	if guild != nil {
-		applicant, _ = guild.HasApplicationForCharID(s, s.charID)
+		applicant, _ = guild.HasApplicationForCharID(s, s.CharID)
 	}
 	if err != nil || guild == nil || applicant {
-		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+		DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
 	switch pkt.MessageOp {
 	case 0: // Create message
-		s.server.db.Exec("INSERT INTO guild_posts (guild_id, author_id, stamp_id, post_type, title, body) VALUES ($1, $2, $3, $4, $5, $6)", guild.ID, s.charID, pkt.StampID, pkt.PostType, pkt.Title, pkt.Body)
+		database.Exec("INSERT INTO guild_posts (guild_id, author_id, stamp_id, post_type, title, body) VALUES ($1, $2, $3, $4, $5, $6)", guild.ID, s.CharID, pkt.StampID, pkt.PostType, pkt.Title, pkt.Body)
 		// TODO: if there are too many messages, purge excess
 	case 1: // Delete message
-		s.server.db.Exec("DELETE FROM guild_posts WHERE id = $1", pkt.PostID)
+		database.Exec("DELETE FROM guild_posts WHERE id = $1", pkt.PostID)
 	case 2: // Update message
-		s.server.db.Exec("UPDATE guild_posts SET title = $1, body = $2 WHERE id = $3", pkt.Title, pkt.Body, pkt.PostID)
+		database.Exec("UPDATE guild_posts SET title = $1, body = $2 WHERE id = $3", pkt.Title, pkt.Body, pkt.PostID)
 	case 3: // Update stamp
-		s.server.db.Exec("UPDATE guild_posts SET stamp_id = $1 WHERE id = $2", pkt.StampID, pkt.PostID)
+		database.Exec("UPDATE guild_posts SET stamp_id = $1 WHERE id = $2", pkt.StampID, pkt.PostID)
 	case 4: // Like message
 		var likedBy string
-		err := s.server.db.QueryRow("SELECT liked_by FROM guild_posts WHERE id = $1", pkt.PostID).Scan(&likedBy)
+		err := database.QueryRow("SELECT liked_by FROM guild_posts WHERE id = $1", pkt.PostID).Scan(&likedBy)
 		if err != nil {
-			s.logger.Error("Failed to get guild message like data from db", zap.Error(err))
+			s.Logger.Error("Failed to get guild message like data from db", zap.Error(err))
 		} else {
 			if pkt.LikeState {
-				likedBy = stringsupport.CSVAdd(likedBy, int(s.charID))
-				s.server.db.Exec("UPDATE guild_posts SET liked_by = $1 WHERE id = $2", likedBy, pkt.PostID)
+				likedBy = stringsupport.CSVAdd(likedBy, int(s.CharID))
+				database.Exec("UPDATE guild_posts SET liked_by = $1 WHERE id = $2", likedBy, pkt.PostID)
 			} else {
-				likedBy = stringsupport.CSVRemove(likedBy, int(s.charID))
-				s.server.db.Exec("UPDATE guild_posts SET liked_by = $1 WHERE id = $2", likedBy, pkt.PostID)
+				likedBy = stringsupport.CSVRemove(likedBy, int(s.CharID))
+				database.Exec("UPDATE guild_posts SET liked_by = $1 WHERE id = $2", likedBy, pkt.PostID)
 			}
 		}
 	case 5: // Check for new messages
 		var timeChecked time.Time
 		var newPosts int
-		err := s.server.db.QueryRow("SELECT guild_post_checked FROM characters WHERE id = $1", s.charID).Scan(&timeChecked)
+		err := database.QueryRow("SELECT guild_post_checked FROM characters WHERE id = $1", s.CharID).Scan(&timeChecked)
 		if err == nil {
-			s.server.db.QueryRow("SELECT COUNT(*) FROM guild_posts WHERE guild_id = $1 AND (EXTRACT(epoch FROM created_at)::int) > $2", guild.ID, timeChecked.Unix()).Scan(&newPosts)
+			database.QueryRow("SELECT COUNT(*) FROM guild_posts WHERE guild_id = $1 AND (EXTRACT(epoch FROM created_at)::int) > $2", guild.ID, timeChecked.Unix()).Scan(&newPosts)
 			if newPosts > 0 {
-				doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x01})
+				DoAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x01})
 				return
 			}
 		}
 	}
-	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
-func handleMsgMhfEntryRookieGuild(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfEntryRookieGuild(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEntryRookieGuild)
-	doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+	DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 }
 
-func handleMsgMhfUpdateForceGuildRank(s *Session, p mhfpacket.MHFPacket) {}
+func HandleMsgMhfUpdateForceGuildRank(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfAddGuildWeeklyBonusExceptionalUser(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfAddGuildWeeklyBonusExceptionalUser(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfAddGuildWeeklyBonusExceptionalUser)
 	// TODO: record pkt.NumUsers to DB
 	// must use addition
-	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+	DoAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
-func handleMsgMhfGenerateUdGuildMap(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfGenerateUdGuildMap(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGenerateUdGuildMap)
-	doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+	DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 }
 
-func handleMsgMhfUpdateGuild(s *Session, p mhfpacket.MHFPacket) {}
+func HandleMsgMhfUpdateGuild(s *Session, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfSetGuildManageRight(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfSetGuildManageRight(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSetGuildManageRight)
-	s.server.db.Exec("UPDATE guild_characters SET recruiter=$1 WHERE character_id=$2", pkt.Allowed, pkt.CharID)
-	doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	database.Exec("UPDATE guild_characters SET recruiter=$1 WHERE character_id=$2", pkt.Allowed, pkt.CharID)
+	DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
-func handleMsgMhfCheckMonthlyItem(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfCheckMonthlyItem(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfCheckMonthlyItem)
-	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x01})
+	DoAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x01})
 	// TODO: Implement month-by-month tracker, 0 = Not claimed, 1 = Claimed
 	// Also handles HLC and EXC items, IDs = 064D, 076B
 }
 
-func handleMsgMhfAcquireMonthlyItem(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfAcquireMonthlyItem(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfAcquireMonthlyItem)
-	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
-func handleMsgMhfEnumerateInvGuild(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfEnumerateInvGuild(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateInvGuild)
 	stubEnumerateNoResults(s, pkt.AckHandle)
 }
 
-func handleMsgMhfOperationInvGuild(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfOperationInvGuild(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfOperationInvGuild)
-	doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+	DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 }
 
-func handleMsgMhfUpdateGuildcard(s *Session, p mhfpacket.MHFPacket) {}
+func HandleMsgMhfUpdateGuildcard(s *Session, p mhfpacket.MHFPacket) {}

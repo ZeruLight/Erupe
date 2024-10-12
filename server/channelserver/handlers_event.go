@@ -1,9 +1,11 @@
 package channelserver
 
 import (
-	_config "erupe-ce/config"
+	"erupe-ce/config"
+	"erupe-ce/utils/db"
 	"erupe-ce/utils/gametime"
 	"erupe-ce/utils/token"
+	"fmt"
 	"math"
 	"time"
 
@@ -45,7 +47,7 @@ func handleMsgMhfEnumerateEvent(s *Session, p mhfpacket.MHFPacket) {
 		}
 	}
 
-	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 type activeFeature struct {
@@ -55,7 +57,10 @@ type activeFeature struct {
 
 func handleMsgMhfGetWeeklySchedule(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetWeeklySchedule)
-
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
 	var features []activeFeature
 	times := []time.Time{
 		gametime.TimeMidnight().Add(-24 * time.Hour),
@@ -65,12 +70,12 @@ func handleMsgMhfGetWeeklySchedule(s *Session, p mhfpacket.MHFPacket) {
 
 	for _, t := range times {
 		var temp activeFeature
-		err := s.server.db.QueryRowx(`SELECT start_time, featured FROM feature_weapon WHERE start_time=$1`, t).StructScan(&temp)
+		err := database.QueryRowx(`SELECT start_time, featured FROM feature_weapon WHERE start_time=$1`, t).StructScan(&temp)
 		if err != nil || temp.StartTime.IsZero() {
-			weapons := token.RNG.Intn(s.server.erupeConfig.GameplayOptions.MaxFeatureWeapons-s.server.erupeConfig.GameplayOptions.MinFeatureWeapons+1) + s.server.erupeConfig.GameplayOptions.MinFeatureWeapons
+			weapons := token.RNG.Intn(config.GetConfig().GameplayOptions.MaxFeatureWeapons-config.GetConfig().GameplayOptions.MinFeatureWeapons+1) + config.GetConfig().GameplayOptions.MinFeatureWeapons
 			temp = generateFeatureWeapons(weapons)
 			temp.StartTime = t
-			s.server.db.Exec(`INSERT INTO feature_weapon VALUES ($1, $2)`, temp.StartTime, temp.ActiveFeatures)
+			database.Exec(`INSERT INTO feature_weapon VALUES ($1, $2)`, temp.StartTime, temp.ActiveFeatures)
 		}
 		features = append(features, temp)
 	}
@@ -83,18 +88,18 @@ func handleMsgMhfGetWeeklySchedule(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint32(feature.ActiveFeatures)
 		bf.WriteUint16(0)
 	}
-	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func generateFeatureWeapons(count int) activeFeature {
 	_max := 14
-	if _config.ErupeConfig.ClientID < _config.ZZ {
+	if config.GetConfig().ClientID < config.ZZ {
 		_max = 13
 	}
-	if _config.ErupeConfig.ClientID < _config.G10 {
+	if config.GetConfig().ClientID < config.G10 {
 		_max = 12
 	}
-	if _config.ErupeConfig.ClientID < _config.GG {
+	if config.GetConfig().ClientID < config.GG {
 		_max = 11
 	}
 	if count > _max {
@@ -131,14 +136,17 @@ type loginBoost struct {
 
 func handleMsgMhfGetKeepLoginBoostStatus(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetKeepLoginBoostStatus)
-
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
 	bf := byteframe.NewByteFrame()
 
 	var loginBoosts []loginBoost
-	rows, err := s.server.db.Queryx("SELECT week_req, expiration, reset FROM login_boost WHERE char_id=$1 ORDER BY week_req", s.charID)
-	if err != nil || s.server.erupeConfig.GameplayOptions.DisableLoginBoost {
+	rows, err := database.Queryx("SELECT week_req, expiration, reset FROM login_boost WHERE char_id=$1 ORDER BY week_req", s.CharID)
+	if err != nil || config.GetConfig().GameplayOptions.DisableLoginBoost {
 		rows.Close()
-		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 35))
+		DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 35))
 		return
 	}
 	for rows.Next() {
@@ -156,7 +164,7 @@ func handleMsgMhfGetKeepLoginBoostStatus(s *Session, p mhfpacket.MHFPacket) {
 			{WeekReq: 5, Expiration: temp},
 		}
 		for _, boost := range loginBoosts {
-			s.server.db.Exec(`INSERT INTO login_boost VALUES ($1, $2, $3, $4)`, s.charID, boost.WeekReq, boost.Expiration, time.Time{})
+			database.Exec(`INSERT INTO login_boost VALUES ($1, $2, $3, $4)`, s.CharID, boost.WeekReq, boost.Expiration, time.Time{})
 		}
 	}
 
@@ -165,7 +173,7 @@ func handleMsgMhfGetKeepLoginBoostStatus(s *Session, p mhfpacket.MHFPacket) {
 		if !boost.Reset.IsZero() && boost.Reset.Before(gametime.TimeAdjusted()) {
 			boost.Expiration = gametime.TimeWeekStart()
 			boost.Reset = time.Time{}
-			s.server.db.Exec(`UPDATE login_boost SET expiration=$1, reset=$2 WHERE char_id=$3 AND week_req=$4`, boost.Expiration, boost.Reset, s.charID, boost.WeekReq)
+			database.Exec(`UPDATE login_boost SET expiration=$1, reset=$2 WHERE char_id=$3 AND week_req=$4`, boost.Expiration, boost.Reset, s.CharID, boost.WeekReq)
 		}
 
 		boost.WeekCount = uint8((gametime.TimeAdjusted().Unix()-boost.Expiration.Unix())/604800 + 1)
@@ -191,7 +199,7 @@ func handleMsgMhfGetKeepLoginBoostStatus(s *Session, p mhfpacket.MHFPacket) {
 		}
 	}
 
-	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfUseKeepLoginBoost(s *Session, p mhfpacket.MHFPacket) {
@@ -208,13 +216,17 @@ func handleMsgMhfUseKeepLoginBoost(s *Session, p mhfpacket.MHFPacket) {
 		expiration = gametime.TimeAdjusted().Add(240 * time.Minute)
 	}
 	bf.WriteUint32(uint32(expiration.Unix()))
-	s.server.db.Exec(`UPDATE login_boost SET expiration=$1, reset=$2 WHERE char_id=$3 AND week_req=$4`, expiration, gametime.TimeWeekNext(), s.charID, pkt.BoostWeekUsed)
-	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	database.Exec(`UPDATE login_boost SET expiration=$1, reset=$2 WHERE char_id=$3 AND week_req=$4`, expiration, gametime.TimeWeekNext(), s.CharID, pkt.BoostWeekUsed)
+	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfGetRestrictionEvent(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfSetRestrictionEvent(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSetRestrictionEvent)
-	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }

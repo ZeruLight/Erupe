@@ -3,6 +3,7 @@ package api
 import (
 	"context"
 	"database/sql"
+	"erupe-ce/utils/db"
 	"erupe-ce/utils/token"
 	"fmt"
 	"time"
@@ -21,7 +22,11 @@ func (s *APIServer) createNewUser(ctx context.Context, username string, password
 		id     uint32
 		rights uint32
 	)
-	err = s.db.QueryRowContext(
+	database, err := db.GetDB()
+	if err != nil {
+		s.logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	err = database.QueryRowContext(
 		ctx, `
 		INSERT INTO users (username, password, return_expires)
 		VALUES ($1, $2, $3)
@@ -35,7 +40,11 @@ func (s *APIServer) createNewUser(ctx context.Context, username string, password
 func (s *APIServer) createLoginToken(ctx context.Context, uid uint32) (uint32, string, error) {
 	loginToken := token.Generate(16)
 	var tid uint32
-	err := s.db.QueryRowContext(ctx, "INSERT INTO sign_sessions (user_id, token) VALUES ($1, $2) RETURNING id", uid, loginToken).Scan(&tid)
+	database, err := db.GetDB()
+	if err != nil {
+		s.logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	err = database.QueryRowContext(ctx, "INSERT INTO sign_sessions (user_id, token) VALUES ($1, $2) RETURNING id", uid, loginToken).Scan(&tid)
 	if err != nil {
 		return 0, "", err
 	}
@@ -44,7 +53,11 @@ func (s *APIServer) createLoginToken(ctx context.Context, uid uint32) (uint32, s
 
 func (s *APIServer) userIDFromToken(ctx context.Context, token string) (uint32, error) {
 	var userID uint32
-	err := s.db.QueryRowContext(ctx, "SELECT user_id FROM sign_sessions WHERE token = $1", token).Scan(&userID)
+	database, err := db.GetDB()
+	if err != nil {
+		s.logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	err = database.QueryRowContext(ctx, "SELECT user_id FROM sign_sessions WHERE token = $1", token).Scan(&userID)
 	if err == sql.ErrNoRows {
 		return 0, fmt.Errorf("invalid login token")
 	} else if err != nil {
@@ -55,17 +68,21 @@ func (s *APIServer) userIDFromToken(ctx context.Context, token string) (uint32, 
 
 func (s *APIServer) createCharacter(ctx context.Context, userID uint32) (Character, error) {
 	var character Character
-	err := s.db.GetContext(ctx, &character,
+	database, err := db.GetDB()
+	if err != nil {
+		s.logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	err = database.GetContext(ctx, &character,
 		"SELECT id, name, is_female, weapon_type, hr, gr, last_login FROM characters WHERE is_new_character = true AND user_id = $1 LIMIT 1",
 		userID,
 	)
 	if err == sql.ErrNoRows {
 		var count int
-		s.db.QueryRowContext(ctx, "SELECT COUNT(*) FROM characters WHERE user_id = $1", userID).Scan(&count)
+		database.QueryRowContext(ctx, "SELECT COUNT(*) FROM characters WHERE user_id = $1", userID).Scan(&count)
 		if count >= 16 {
 			return character, fmt.Errorf("cannot have more than 16 characters")
 		}
-		err = s.db.GetContext(ctx, &character, `
+		err = database.GetContext(ctx, &character, `
 			INSERT INTO characters (
 				user_id, is_female, is_new_character, name, unk_desc_string,
 				hr, gr, weapon_type, last_login
@@ -80,21 +97,29 @@ func (s *APIServer) createCharacter(ctx context.Context, userID uint32) (Charact
 
 func (s *APIServer) deleteCharacter(ctx context.Context, userID uint32, charID uint32) error {
 	var isNew bool
-	err := s.db.QueryRow("SELECT is_new_character FROM characters WHERE id = $1", charID).Scan(&isNew)
+	database, err := db.GetDB()
+	if err != nil {
+		s.logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	err = database.QueryRow("SELECT is_new_character FROM characters WHERE id = $1", charID).Scan(&isNew)
 	if err != nil {
 		return err
 	}
 	if isNew {
-		_, err = s.db.Exec("DELETE FROM characters WHERE id = $1", charID)
+		_, err = database.Exec("DELETE FROM characters WHERE id = $1", charID)
 	} else {
-		_, err = s.db.Exec("UPDATE characters SET deleted = true WHERE id = $1", charID)
+		_, err = database.Exec("UPDATE characters SET deleted = true WHERE id = $1", charID)
 	}
 	return err
 }
 
 func (s *APIServer) getCharactersForUser(ctx context.Context, uid uint32) ([]Character, error) {
 	var characters []Character
-	err := s.db.SelectContext(
+	database, err := db.GetDB()
+	if err != nil {
+		s.logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	err = database.SelectContext(
 		ctx, &characters, `
 		SELECT id, name, is_female, weapon_type, hr, gr, last_login
 		FROM characters
@@ -109,25 +134,33 @@ func (s *APIServer) getCharactersForUser(ctx context.Context, uid uint32) ([]Cha
 
 func (s *APIServer) getReturnExpiry(uid uint32) time.Time {
 	var returnExpiry, lastLogin time.Time
-	s.db.Get(&lastLogin, "SELECT COALESCE(last_login, now()) FROM users WHERE id=$1", uid)
+	database, err := db.GetDB()
+	if err != nil {
+		s.logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	err = database.Get(&lastLogin, "SELECT COALESCE(last_login, now()) FROM users WHERE id=$1", uid)
 	if time.Now().Add((time.Hour * 24) * -90).After(lastLogin) {
 		returnExpiry = time.Now().Add(time.Hour * 24 * 30)
-		s.db.Exec("UPDATE users SET return_expires=$1 WHERE id=$2", returnExpiry, uid)
+		database.Exec("UPDATE users SET return_expires=$1 WHERE id=$2", returnExpiry, uid)
 	} else {
-		err := s.db.Get(&returnExpiry, "SELECT return_expires FROM users WHERE id=$1", uid)
+		err := database.Get(&returnExpiry, "SELECT return_expires FROM users WHERE id=$1", uid)
 		if err != nil {
 			returnExpiry = time.Now()
-			s.db.Exec("UPDATE users SET return_expires=$1 WHERE id=$2", returnExpiry, uid)
+			database.Exec("UPDATE users SET return_expires=$1 WHERE id=$2", returnExpiry, uid)
 		}
 	}
-	s.db.Exec("UPDATE users SET last_login=$1 WHERE id=$2", time.Now(), uid)
+	database.Exec("UPDATE users SET last_login=$1 WHERE id=$2", time.Now(), uid)
 	return returnExpiry
 }
 
 func (s *APIServer) exportSave(ctx context.Context, uid uint32, cid uint32) (map[string]interface{}, error) {
-	row := s.db.QueryRowxContext(ctx, "SELECT * FROM characters WHERE id=$1 AND user_id=$2", cid, uid)
+	database, err := db.GetDB()
+	if err != nil {
+		s.logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	row := database.QueryRowxContext(ctx, "SELECT * FROM characters WHERE id=$1 AND user_id=$2", cid, uid)
 	result := make(map[string]interface{})
-	err := row.MapScan(result)
+	err = row.MapScan(result)
 	if err != nil {
 		return nil, err
 	}

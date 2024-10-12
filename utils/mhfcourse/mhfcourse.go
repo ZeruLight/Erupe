@@ -1,7 +1,7 @@
 package mhfcourse
 
 import (
-	_config "erupe-ce/config"
+	"erupe-ce/config"
 	"math"
 	"sort"
 	"time"
@@ -68,7 +68,7 @@ func CourseExists(ID uint16, c []Course) bool {
 // GetCourseStruct returns a slice of Course(s) from a rights integer
 func GetCourseStruct(rights uint32) ([]Course, uint32) {
 	var resp []Course
-	for _, c := range _config.ErupeConfig.DefaultCourses {
+	for _, c := range config.GetConfig().DefaultCourses {
 		resp = append(resp, Course{ID: c})
 	}
 	s := Courses()

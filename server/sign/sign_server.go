@@ -1,4 +1,4 @@
-package signserver
+package sign
 
 import (
 	"fmt"
@@ -6,44 +6,33 @@ import (
 	"net"
 	"sync"
 
-	_config "erupe-ce/config"
+	"erupe-ce/config"
 	"erupe-ce/network"
 	"erupe-ce/utils/logger"
 
-	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )
 
-// Config struct allows configuring the server.
-type Config struct {
-	DB          *sqlx.DB
-	ErupeConfig *_config.Config
-}
-
-// Server is a MHF sign server.
-type Server struct {
+// SignServer is a MHF sign server.
+type SignServer struct {
 	sync.Mutex
 	logger         logger.Logger
-	erupeConfig    *_config.Config
 	sessions       map[int]*Session
-	db             *sqlx.DB
 	listener       net.Listener
 	isShuttingDown bool
 }
 
 // NewServer creates a new Server type.
-func NewServer(config *Config) *Server {
-	s := &Server{
-		logger:      logger.Get().Named("sign"),
-		erupeConfig: config.ErupeConfig,
-		db:          config.DB,
+func NewServer() *SignServer {
+	s := &SignServer{
+		logger: logger.Get().Named("sign"),
 	}
 	return s
 }
 
 // Start starts the server in a new goroutine.
-func (server *Server) Start() error {
-	l, err := net.Listen("tcp", fmt.Sprintf(":%d", server.erupeConfig.Sign.Port))
+func (server *SignServer) Start() error {
+	l, err := net.Listen("tcp", fmt.Sprintf(":%d", config.GetConfig().Sign.Port))
 	if err != nil {
 		return err
 	}
@@ -55,7 +44,7 @@ func (server *Server) Start() error {
 }
 
 // Shutdown exits the server gracefully.
-func (server *Server) Shutdown() {
+func (server *SignServer) Shutdown() {
 	server.logger.Debug("Shutting down...")
 
 	server.Lock()
@@ -66,7 +55,7 @@ func (server *Server) Shutdown() {
 	server.listener.Close()
 }
 
-func (server *Server) acceptClients() {
+func (server *SignServer) acceptClients() {
 	for {
 		conn, err := server.listener.Accept()
 		if err != nil {
@@ -86,7 +75,7 @@ func (server *Server) acceptClients() {
 	}
 }
 
-func (server *Server) handleConnection(conn net.Conn) {
+func (server *SignServer) handleConnection(conn net.Conn) {
 	server.logger.Debug("New connection", zap.String("RemoteAddr", conn.RemoteAddr().String()))
 	defer conn.Close()
 

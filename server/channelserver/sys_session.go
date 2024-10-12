@@ -3,20 +3,20 @@ package channelserver
 import (
 	"encoding/binary"
 	"encoding/hex"
-	_config "erupe-ce/config"
+	"erupe-ce/config"
+	"erupe-ce/network"
+	"erupe-ce/network/mhfpacket"
+	"erupe-ce/utils/byteframe"
+	"erupe-ce/utils/db"
 	"erupe-ce/utils/gametime"
+	"erupe-ce/utils/logger"
 	"erupe-ce/utils/mhfcourse"
+	"erupe-ce/utils/stringstack"
 	"fmt"
 	"io"
 	"net"
 	"sync"
 	"time"
-
-	"erupe-ce/network"
-	"erupe-ce/network/mhfpacket"
-	"erupe-ce/utils/byteframe"
-	"erupe-ce/utils/logger"
-	"erupe-ce/utils/stringstack"
 
 	"go.uber.org/zap"
 )
@@ -24,8 +24,8 @@ import (
 // Session holds state for the channel server connection.
 type Session struct {
 	sync.Mutex
-	logger      logger.Logger
-	server      *Server
+	Logger      logger.Logger
+	Server      *ChannelServer
 	rawConn     net.Conn
 	cryptConn   *network.CryptConn
 	sendPackets chan mhfpacket.MHFPacket
@@ -37,7 +37,7 @@ type Session struct {
 	reservationStage *Stage // Required for the stateful MsgSysUnreserveStage packet.
 	stagePass        string // Temporary storage
 	prevGuildID      uint32 // Stores the last GuildID used in InfoGuild
-	charID           uint32
+	CharID           uint32
 	logKey           []byte
 	sessionStart     int64
 	courses          []mhfcourse.Course
@@ -66,10 +66,10 @@ type Session struct {
 }
 
 // NewSession creates a new Session type.
-func NewSession(server *Server, conn net.Conn) *Session {
+func NewSession(server *ChannelServer, conn net.Conn) *Session {
 	s := &Session{
-		logger:         server.logger.Named(conn.RemoteAddr().String()),
-		server:         server,
+		Logger:         server.logger.Named(conn.RemoteAddr().String()),
+		Server:         server,
 		rawConn:        conn,
 		cryptConn:      network.NewCryptConn(conn),
 		sendPackets:    make(chan mhfpacket.MHFPacket, 20),
@@ -85,7 +85,7 @@ func NewSession(server *Server, conn net.Conn) *Session {
 
 // Start starts the session packet send and recv loop(s).
 func (s *Session) Start() {
-	s.logger.Debug("New connection", zap.String("RemoteAddr", s.rawConn.RemoteAddr().String()))
+	s.Logger.Debug("New connection", zap.String("RemoteAddr", s.rawConn.RemoteAddr().String()))
 	// Unlike the sign and entrance server,
 	// the client DOES NOT initalize the channel connection with 8 NULL bytes.
 	go s.sendLoop()
@@ -97,7 +97,7 @@ func (s *Session) QueueSendMHF(pkt mhfpacket.MHFPacket) {
 	select {
 	case s.sendPackets <- pkt:
 	default:
-		s.logger.Warn("Packet queue too full, dropping!")
+		s.Logger.Warn("Packet queue too full, dropping!")
 	}
 }
 
@@ -123,11 +123,11 @@ func (s *Session) sendLoop() {
 		if len(buffer) > 0 {
 			err := s.cryptConn.SendPacket(buffer)
 			if err != nil {
-				s.logger.Warn("Failed to send packet")
+				s.Logger.Warn("Failed to send packet")
 			}
 			buffer = buffer[:0]
 		}
-		time.Sleep(time.Duration(_config.ErupeConfig.LoopDelay) * time.Millisecond)
+		time.Sleep(time.Duration(config.GetConfig().LoopDelay) * time.Millisecond)
 	}
 }
 
@@ -143,16 +143,16 @@ func (s *Session) recvLoop() {
 		}
 		pkt, err := s.cryptConn.ReadPacket()
 		if err == io.EOF {
-			s.logger.Info(fmt.Sprintf("[%s] Disconnected", s.Name))
+			s.Logger.Info(fmt.Sprintf("[%s] Disconnected", s.Name))
 			logoutPlayer(s)
 			return
 		} else if err != nil {
-			s.logger.Warn("Error on ReadPacket, exiting recv loop", zap.Error(err))
+			s.Logger.Warn("Error on ReadPacket, exiting recv loop", zap.Error(err))
 			logoutPlayer(s)
 			return
 		}
 		s.handlePacketGroup(pkt)
-		time.Sleep(time.Duration(_config.ErupeConfig.LoopDelay) * time.Millisecond)
+		time.Sleep(time.Duration(config.GetConfig().LoopDelay) * time.Millisecond)
 	}
 }
 
@@ -220,9 +220,9 @@ func ignored(opcode network.PacketID) bool {
 }
 
 func (s *Session) logMessage(opcode uint16, data []byte, sender string, recipient string) {
-	if sender == "Server" && !s.server.erupeConfig.DebugOptions.LogOutboundMessages {
+	if sender == "Server" && !config.GetConfig().DebugOptions.LogOutboundMessages {
 		return
-	} else if sender != "Server" && !s.server.erupeConfig.DebugOptions.LogInboundMessages {
+	} else if sender != "Server" && !config.GetConfig().DebugOptions.LogInboundMessages {
 		return
 	}
 
@@ -240,8 +240,8 @@ func (s *Session) logMessage(opcode uint16, data []byte, sender string, recipien
 		fmt.Printf("[%s] -> [%s]\n", sender, recipient)
 	}
 	fmt.Printf("Opcode: (Dec: %d Hex: 0x%04X Name: %s) \n", opcode, opcode, opcodePID)
-	if s.server.erupeConfig.DebugOptions.LogMessageData {
-		if len(data) <= s.server.erupeConfig.DebugOptions.MaxHexdumpLength {
+	if config.GetConfig().DebugOptions.LogMessageData {
+		if len(data) <= config.GetConfig().DebugOptions.MaxHexdumpLength {
 			fmt.Printf("Data [%d bytes]:\n%s\n", len(data), hex.Dump(data))
 		} else {
 			fmt.Printf("Data [%d bytes]: (Too long!)\n\n", len(data))
@@ -254,23 +254,23 @@ func (s *Session) logMessage(opcode uint16, data []byte, sender string, recipien
 func (s *Session) SetObjectID() {
 	for i := uint16(1); i < 127; i++ {
 		exists := false
-		for _, j := range s.server.objectIDs {
+		for _, j := range s.Server.objectIDs {
 			if i == j {
 				exists = true
 				break
 			}
 		}
 		if !exists {
-			s.server.objectIDs[s] = i
+			s.Server.objectIDs[s] = i
 			return
 		}
 	}
-	s.server.objectIDs[s] = 0
+	s.Server.objectIDs[s] = 0
 }
 
 func (s *Session) NextObjectID() uint32 {
 	bf := byteframe.NewByteFrame()
-	bf.WriteUint16(s.server.objectIDs[s])
+	bf.WriteUint16(s.Server.objectIDs[s])
 	s.objectIndex++
 	bf.WriteUint16(s.objectIndex)
 	bf.Seek(0, 0)
@@ -287,7 +287,11 @@ func (s *Session) GetSemaphoreID() uint32 {
 
 func (s *Session) isOp() bool {
 	var op bool
-	err := s.server.db.QueryRow(`SELECT op FROM users u WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$1)`, s.charID).Scan(&op)
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	err = database.QueryRow(`SELECT op FROM users u WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$1)`, s.CharID).Scan(&op)
 	if err == nil && op {
 		return true
 	}

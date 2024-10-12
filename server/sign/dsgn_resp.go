@@ -1,12 +1,13 @@
-package signserver
+package sign
 
 import (
 	"erupe-ce/utils/byteframe"
+	"erupe-ce/utils/db"
 	"erupe-ce/utils/gametime"
 	ps "erupe-ce/utils/pascalstring"
 	"erupe-ce/utils/stringsupport"
 
-	_config "erupe-ce/config"
+	"erupe-ce/config"
 	"fmt"
 	"strings"
 	"time"
@@ -40,7 +41,7 @@ func (s *Session) makeSignResponse(uid uint32) []byte {
 		return bf.Data()
 	}
 
-	if s.client == PS3 && (s.server.erupeConfig.PatchServerFile == "" || s.server.erupeConfig.PatchServerManifest == "") {
+	if s.client == PS3 && (config.GetConfig().PatchServerFile == "" || config.GetConfig().PatchServerManifest == "") {
 		bf.WriteUint8(uint8(SIGN_EABORT))
 		return bf.Data()
 	}
@@ -53,16 +54,16 @@ func (s *Session) makeSignResponse(uid uint32) []byte {
 	bf.WriteBytes([]byte(sessToken))
 	bf.WriteUint32(uint32(gametime.TimeAdjusted().Unix()))
 	if s.client == PS3 {
-		ps.Uint8(bf, fmt.Sprintf("%s/ps3", s.server.erupeConfig.PatchServerManifest), false)
-		ps.Uint8(bf, fmt.Sprintf("%s/ps3", s.server.erupeConfig.PatchServerFile), false)
+		ps.Uint8(bf, fmt.Sprintf("%s/ps3", config.GetConfig().PatchServerManifest), false)
+		ps.Uint8(bf, fmt.Sprintf("%s/ps3", config.GetConfig().PatchServerFile), false)
 	} else {
-		ps.Uint8(bf, s.server.erupeConfig.PatchServerManifest, false)
-		ps.Uint8(bf, s.server.erupeConfig.PatchServerFile, false)
+		ps.Uint8(bf, config.GetConfig().PatchServerManifest, false)
+		ps.Uint8(bf, config.GetConfig().PatchServerFile, false)
 	}
 	if strings.Split(s.rawConn.RemoteAddr().String(), ":")[0] == "127.0.0.1" {
-		ps.Uint8(bf, fmt.Sprintf("127.0.0.1:%d", s.server.erupeConfig.Entrance.Port), false)
+		ps.Uint8(bf, fmt.Sprintf("127.0.0.1:%d", config.GetConfig().Entrance.Port), false)
 	} else {
-		ps.Uint8(bf, fmt.Sprintf("%s:%d", s.server.erupeConfig.Host, s.server.erupeConfig.Entrance.Port), false)
+		ps.Uint8(bf, fmt.Sprintf("%s:%d", config.GetConfig().Host, config.GetConfig().Entrance.Port), false)
 	}
 
 	lastPlayed := uint32(0)
@@ -71,7 +72,7 @@ func (s *Session) makeSignResponse(uid uint32) []byte {
 			lastPlayed = char.ID
 		}
 		bf.WriteUint32(char.ID)
-		if s.server.erupeConfig.DebugOptions.MaxLauncherHR {
+		if config.GetConfig().DebugOptions.MaxLauncherHR {
 			bf.WriteUint16(999)
 		} else {
 			bf.WriteUint16(char.HR)
@@ -84,7 +85,7 @@ func (s *Session) makeSignResponse(uid uint32) []byte {
 		bf.WriteBool(true)                                                       // Use uint16 GR, no reason not to
 		bf.WriteBytes(stringsupport.PaddedString(char.Name, 16, true))           // Character name
 		bf.WriteBytes(stringsupport.PaddedString(char.UnkDescString, 32, false)) // unk str
-		if s.server.erupeConfig.ClientID >= _config.G7 {
+		if config.GetConfig().ClientID >= config.G7 {
 			bf.WriteUint16(char.GR)
 			bf.WriteUint8(0) // Unk
 			bf.WriteUint8(0) // Unk
@@ -125,13 +126,13 @@ func (s *Session) makeSignResponse(uid uint32) []byte {
 		}
 	}
 
-	if s.server.erupeConfig.HideLoginNotice {
+	if config.GetConfig().HideLoginNotice {
 		bf.WriteBool(false)
 	} else {
 		bf.WriteBool(true)
 		bf.WriteUint8(0)
 		bf.WriteUint8(0)
-		ps.Uint16(bf, strings.Join(s.server.erupeConfig.LoginNotices[:], "<PAGE>"), true)
+		ps.Uint16(bf, strings.Join(config.GetConfig().LoginNotices[:], "<PAGE>"), true)
 	}
 
 	bf.WriteUint32(s.server.getLastCID(uid))
@@ -332,18 +333,21 @@ func (s *Session) makeSignResponse(uid uint32) []byte {
 
 	bf.WriteUint16(uint16(len(filters.Data())))
 	bf.WriteBytes(filters.Data())
-
+	database, err := db.GetDB() // Capture both return values
+	if err != nil {
+		s.logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
 	if s.client == VITA || s.client == PS3 || s.client == PS4 {
 		var psnUser string
-		s.server.db.QueryRow("SELECT psn_id FROM users WHERE id = $1", uid).Scan(&psnUser)
+		database.QueryRow("SELECT psn_id FROM users WHERE id = $1", uid).Scan(&psnUser)
 		bf.WriteBytes(stringsupport.PaddedString(psnUser, 20, true))
 	}
 
-	bf.WriteUint16(s.server.erupeConfig.DebugOptions.CapLink.Values[0])
-	if s.server.erupeConfig.DebugOptions.CapLink.Values[0] == 51728 {
-		bf.WriteUint16(s.server.erupeConfig.DebugOptions.CapLink.Values[1])
-		if s.server.erupeConfig.DebugOptions.CapLink.Values[1] == 20000 || s.server.erupeConfig.DebugOptions.CapLink.Values[1] == 20002 {
-			ps.Uint16(bf, s.server.erupeConfig.DebugOptions.CapLink.Key, false)
+	bf.WriteUint16(config.GetConfig().DebugOptions.CapLink.Values[0])
+	if config.GetConfig().DebugOptions.CapLink.Values[0] == 51728 {
+		bf.WriteUint16(config.GetConfig().DebugOptions.CapLink.Values[1])
+		if config.GetConfig().DebugOptions.CapLink.Values[1] == 20000 || config.GetConfig().DebugOptions.CapLink.Values[1] == 20002 {
+			ps.Uint16(bf, config.GetConfig().DebugOptions.CapLink.Key, false)
 		}
 	}
 	caStruct := []struct {
@@ -357,31 +361,31 @@ func (s *Session) makeSignResponse(uid uint32) []byte {
 		bf.WriteUint32(caStruct[i].Unk1)
 		ps.Uint8(bf, caStruct[i].Unk2, false)
 	}
-	bf.WriteUint16(s.server.erupeConfig.DebugOptions.CapLink.Values[2])
-	bf.WriteUint16(s.server.erupeConfig.DebugOptions.CapLink.Values[3])
-	bf.WriteUint16(s.server.erupeConfig.DebugOptions.CapLink.Values[4])
-	if s.server.erupeConfig.DebugOptions.CapLink.Values[2] == 51729 && s.server.erupeConfig.DebugOptions.CapLink.Values[3] == 1 && s.server.erupeConfig.DebugOptions.CapLink.Values[4] == 20000 {
-		ps.Uint16(bf, fmt.Sprintf(`%s:%d`, s.server.erupeConfig.DebugOptions.CapLink.Host, s.server.erupeConfig.DebugOptions.CapLink.Port), false)
+	bf.WriteUint16(config.GetConfig().DebugOptions.CapLink.Values[2])
+	bf.WriteUint16(config.GetConfig().DebugOptions.CapLink.Values[3])
+	bf.WriteUint16(config.GetConfig().DebugOptions.CapLink.Values[4])
+	if config.GetConfig().DebugOptions.CapLink.Values[2] == 51729 && config.GetConfig().DebugOptions.CapLink.Values[3] == 1 && config.GetConfig().DebugOptions.CapLink.Values[4] == 20000 {
+		ps.Uint16(bf, fmt.Sprintf(`%s:%d`, config.GetConfig().DebugOptions.CapLink.Host, config.GetConfig().DebugOptions.CapLink.Port), false)
 	}
 
 	bf.WriteUint32(uint32(s.server.getReturnExpiry(uid).Unix()))
 	bf.WriteUint32(0)
 
 	tickets := []uint32{
-		s.server.erupeConfig.GameplayOptions.MezFesSoloTickets,
-		s.server.erupeConfig.GameplayOptions.MezFesGroupTickets,
+		config.GetConfig().GameplayOptions.MezFesSoloTickets,
+		config.GetConfig().GameplayOptions.MezFesGroupTickets,
 	}
 	stalls := []uint8{
 		10, 3, 6, 9, 4, 8, 5, 7,
 	}
-	if s.server.erupeConfig.GameplayOptions.MezFesSwitchMinigame {
+	if config.GetConfig().GameplayOptions.MezFesSwitchMinigame {
 		stalls[4] = 2
 	}
 
 	// We can just use the start timestamp as the event ID
 	bf.WriteUint32(uint32(gametime.TimeWeekStart().Unix()))
 	// Start time
-	bf.WriteUint32(uint32(gametime.TimeWeekNext().Add(-time.Duration(s.server.erupeConfig.GameplayOptions.MezFesDuration) * time.Second).Unix()))
+	bf.WriteUint32(uint32(gametime.TimeWeekNext().Add(-time.Duration(config.GetConfig().GameplayOptions.MezFesDuration) * time.Second).Unix()))
 	// End time
 	bf.WriteUint32(uint32(gametime.TimeWeekNext().Unix()))
 	bf.WriteUint8(uint8(len(tickets)))

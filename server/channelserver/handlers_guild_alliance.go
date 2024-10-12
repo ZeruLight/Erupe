@@ -2,6 +2,7 @@ package channelserver
 
 import (
 	"erupe-ce/utils/byteframe"
+	"erupe-ce/utils/db"
 	ps "erupe-ce/utils/pascalstring"
 	"fmt"
 	"time"
@@ -45,12 +46,16 @@ type GuildAlliance struct {
 }
 
 func GetAllianceData(s *Session, AllianceID uint32) (*GuildAlliance, error) {
-	rows, err := s.server.db.Queryx(fmt.Sprintf(`
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	rows, err := database.Queryx(fmt.Sprintf(`
 		%s
 		WHERE ga.id = $1
 	`, allianceInfoSelectQuery), AllianceID)
 	if err != nil {
-		s.logger.Error("Failed to retrieve alliance data from database", zap.Error(err))
+		s.Logger.Error("Failed to retrieve alliance data from database", zap.Error(err))
 		return nil, err
 	}
 	defer rows.Close()
@@ -68,13 +73,13 @@ func buildAllianceObjectFromDbResult(result *sqlx.Rows, err error, s *Session) (
 	err = result.StructScan(alliance)
 
 	if err != nil {
-		s.logger.Error("failed to retrieve alliance from database", zap.Error(err))
+		s.Logger.Error("failed to retrieve alliance from database", zap.Error(err))
 		return nil, err
 	}
 
 	parentGuild, err := GetGuildInfoByID(s, alliance.ParentGuildID)
 	if err != nil {
-		s.logger.Error("Failed to get parent guild info", zap.Error(err))
+		s.Logger.Error("Failed to get parent guild info", zap.Error(err))
 		return nil, err
 	} else {
 		alliance.ParentGuild = *parentGuild
@@ -84,7 +89,7 @@ func buildAllianceObjectFromDbResult(result *sqlx.Rows, err error, s *Session) (
 	if alliance.SubGuild1ID > 0 {
 		subGuild1, err := GetGuildInfoByID(s, alliance.SubGuild1ID)
 		if err != nil {
-			s.logger.Error("Failed to get sub guild 1 info", zap.Error(err))
+			s.Logger.Error("Failed to get sub guild 1 info", zap.Error(err))
 			return nil, err
 		} else {
 			alliance.SubGuild1 = *subGuild1
@@ -95,7 +100,7 @@ func buildAllianceObjectFromDbResult(result *sqlx.Rows, err error, s *Session) (
 	if alliance.SubGuild2ID > 0 {
 		subGuild2, err := GetGuildInfoByID(s, alliance.SubGuild2ID)
 		if err != nil {
-			s.logger.Error("Failed to get sub guild 2 info", zap.Error(err))
+			s.Logger.Error("Failed to get sub guild 2 info", zap.Error(err))
 			return nil, err
 		} else {
 			alliance.SubGuild2 = *subGuild2
@@ -106,92 +111,99 @@ func buildAllianceObjectFromDbResult(result *sqlx.Rows, err error, s *Session) (
 	return alliance, nil
 }
 
-func handleMsgMhfCreateJoint(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfCreateJoint(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfCreateJoint)
-	_, err := s.server.db.Exec("INSERT INTO guild_alliances (name, parent_id) VALUES ($1, $2)", pkt.Name, pkt.GuildID)
+	database, err := db.GetDB()
 	if err != nil {
-		s.logger.Error("Failed to create guild alliance in db", zap.Error(err))
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
-	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x01, 0x01, 0x01, 0x01})
+	_, err = database.Exec("INSERT INTO guild_alliances (name, parent_id) VALUES ($1, $2)", pkt.Name, pkt.GuildID)
+	if err != nil {
+		s.Logger.Error("Failed to create guild alliance in db", zap.Error(err))
+	}
+	DoAckSimpleSucceed(s, pkt.AckHandle, []byte{0x01, 0x01, 0x01, 0x01})
 }
 
-func handleMsgMhfOperateJoint(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfOperateJoint(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfOperateJoint)
-
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
 	guild, err := GetGuildInfoByID(s, pkt.GuildID)
 	if err != nil {
-		s.logger.Error("Failed to get guild info", zap.Error(err))
+		s.Logger.Error("Failed to get guild info", zap.Error(err))
 	}
 	alliance, err := GetAllianceData(s, pkt.AllianceID)
 	if err != nil {
-		s.logger.Error("Failed to get alliance info", zap.Error(err))
+		s.Logger.Error("Failed to get alliance info", zap.Error(err))
 	}
 
 	switch pkt.Action {
 	case mhfpacket.OPERATE_JOINT_DISBAND:
-		if guild.LeaderCharID == s.charID && alliance.ParentGuildID == guild.ID {
-			_, err = s.server.db.Exec("DELETE FROM guild_alliances WHERE id=$1", alliance.ID)
+		if guild.LeaderCharID == s.CharID && alliance.ParentGuildID == guild.ID {
+			_, err = database.Exec("DELETE FROM guild_alliances WHERE id=$1", alliance.ID)
 			if err != nil {
-				s.logger.Error("Failed to disband alliance", zap.Error(err))
+				s.Logger.Error("Failed to disband alliance", zap.Error(err))
 			}
-			doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+			DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 		} else {
-			s.logger.Warn(
+			s.Logger.Warn(
 				"Non-owner of alliance attempted disband",
-				zap.Uint32("CharID", s.charID),
+				zap.Uint32("CharID", s.CharID),
 				zap.Uint32("AllyID", alliance.ID),
 			)
-			doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+			DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 		}
 	case mhfpacket.OPERATE_JOINT_LEAVE:
-		if guild.LeaderCharID == s.charID {
+		if guild.LeaderCharID == s.CharID {
 			if guild.ID == alliance.SubGuild1ID && alliance.SubGuild2ID > 0 {
-				s.server.db.Exec(`UPDATE guild_alliances SET sub1_id = sub2_id, sub2_id = NULL WHERE id = $1`, alliance.ID)
+				database.Exec(`UPDATE guild_alliances SET sub1_id = sub2_id, sub2_id = NULL WHERE id = $1`, alliance.ID)
 			} else if guild.ID == alliance.SubGuild1ID && alliance.SubGuild2ID == 0 {
-				s.server.db.Exec(`UPDATE guild_alliances SET sub1_id = NULL WHERE id = $1`, alliance.ID)
+				database.Exec(`UPDATE guild_alliances SET sub1_id = NULL WHERE id = $1`, alliance.ID)
 			} else {
-				s.server.db.Exec(`UPDATE guild_alliances SET sub2_id = NULL WHERE id = $1`, alliance.ID)
+				database.Exec(`UPDATE guild_alliances SET sub2_id = NULL WHERE id = $1`, alliance.ID)
 			}
 			// TODO: Handle deleting Alliance applications
-			doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+			DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 		} else {
-			s.logger.Warn(
+			s.Logger.Warn(
 				"Non-owner of guild attempted alliance leave",
-				zap.Uint32("CharID", s.charID),
+				zap.Uint32("CharID", s.CharID),
 			)
-			doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+			DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 		}
 	case mhfpacket.OPERATE_JOINT_KICK:
-		if alliance.ParentGuild.LeaderCharID == s.charID {
+		if alliance.ParentGuild.LeaderCharID == s.CharID {
 			kickedGuildID := pkt.Data1.ReadUint32()
 			if kickedGuildID == alliance.SubGuild1ID && alliance.SubGuild2ID > 0 {
-				s.server.db.Exec(`UPDATE guild_alliances SET sub1_id = sub2_id, sub2_id = NULL WHERE id = $1`, alliance.ID)
+				database.Exec(`UPDATE guild_alliances SET sub1_id = sub2_id, sub2_id = NULL WHERE id = $1`, alliance.ID)
 			} else if kickedGuildID == alliance.SubGuild1ID && alliance.SubGuild2ID == 0 {
-				s.server.db.Exec(`UPDATE guild_alliances SET sub1_id = NULL WHERE id = $1`, alliance.ID)
+				database.Exec(`UPDATE guild_alliances SET sub1_id = NULL WHERE id = $1`, alliance.ID)
 			} else {
-				s.server.db.Exec(`UPDATE guild_alliances SET sub2_id = NULL WHERE id = $1`, alliance.ID)
+				database.Exec(`UPDATE guild_alliances SET sub2_id = NULL WHERE id = $1`, alliance.ID)
 			}
-			doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+			DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 		} else {
-			s.logger.Warn(
+			s.Logger.Warn(
 				"Non-owner of alliance attempted kick",
-				zap.Uint32("CharID", s.charID),
+				zap.Uint32("CharID", s.CharID),
 				zap.Uint32("AllyID", alliance.ID),
 			)
-			doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+			DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 		}
 	default:
-		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+		DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 		panic(fmt.Sprintf("Unhandled operate joint action '%d'", pkt.Action))
 	}
 }
 
-func handleMsgMhfInfoJoint(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfInfoJoint(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfInfoJoint)
 	bf := byteframe.NewByteFrame()
 	alliance, err := GetAllianceData(s, pkt.AllianceID)
 	if err != nil {
-		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+		DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 	} else {
 		bf.WriteUint32(alliance.ID)
 		bf.WriteUint32(uint32(alliance.CreatedAt.Unix()))
@@ -229,6 +241,6 @@ func handleMsgMhfInfoJoint(s *Session, p mhfpacket.MHFPacket) {
 			ps.Uint16(bf, alliance.SubGuild2.Name, true)
 			ps.Uint16(bf, alliance.SubGuild2.LeaderName, true)
 		}
-		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+		DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 	}
 }

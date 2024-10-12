@@ -6,23 +6,21 @@ import (
 	"sync"
 	"time"
 
-	_config "erupe-ce/config"
+	"erupe-ce/config"
 	"erupe-ce/server/discordbot"
+	"erupe-ce/utils/db"
 	"erupe-ce/utils/gametime"
 	"erupe-ce/utils/logger"
 
-	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )
 
 // Config struct allows configuring the server.
 type Config struct {
-	ID          uint16
-	DB          *sqlx.DB
-	DiscordBot  *discordbot.DiscordBot
-	ErupeConfig *_config.Config
-	Name        string
-	Enable      bool
+	ID         uint16
+	DiscordBot *discordbot.DiscordBot
+	Name       string
+	Enable     bool
 }
 
 // Map key type for a user binary part.
@@ -31,17 +29,16 @@ type userBinaryPartID struct {
 	index  uint8
 }
 
-// Server is a MHF channel server.
-type Server struct {
+// ChannelServer is a MHF channel server.
+type ChannelServer struct {
 	sync.Mutex
-	Channels       []*Server
+	Channels       []*ChannelServer
 	ID             uint16
 	GlobalID       string
 	IP             string
 	Port           uint16
 	logger         logger.Logger
-	db             *sqlx.DB
-	erupeConfig    *_config.Config
+	erupeConfig    *config.Config
 	acceptConns    chan net.Conn
 	deleteConns    chan net.Conn
 	sessions       map[net.Conn]*Session
@@ -76,7 +73,7 @@ type Server struct {
 }
 
 // NewServer creates a new Server type.
-func NewServer(config *Config) *Server {
+func NewServer(config *Config) *ChannelServer {
 	stageNames := []string{
 		"sl1Ns200p0a0u0", // Mezeporta
 		"sl1Ns211p0a0u0", // Rasta bar
@@ -90,11 +87,9 @@ func NewServer(config *Config) *Server {
 	for _, name := range stageNames {
 		stages[name] = NewStage(name)
 	}
-	server := &Server{
+	server := &ChannelServer{
 		ID:              config.ID,
 		logger:          logger.Get().Named("channel-" + fmt.Sprint(config.ID)),
-		db:              config.DB,
-		erupeConfig:     config.ErupeConfig,
 		acceptConns:     make(chan net.Conn),
 		deleteConns:     make(chan net.Conn),
 		sessions:        make(map[net.Conn]*Session),
@@ -121,7 +116,7 @@ func NewServer(config *Config) *Server {
 }
 
 // Start starts the server in a new goroutine.
-func (server *Server) Start() error {
+func (server *ChannelServer) Start() error {
 	l, err := net.Listen("tcp", fmt.Sprintf(":%d", server.Port))
 	if err != nil {
 		return err
@@ -130,9 +125,8 @@ func (server *Server) Start() error {
 
 	go server.acceptClients()
 	go server.manageSessions()
-
 	// Start the discord bot for chat integration.
-	if server.erupeConfig.Discord.Enabled && server.discordBot != nil {
+	if config.GetConfig().Discord.Enabled && server.discordBot != nil {
 		server.discordBot.Session.AddHandler(server.onDiscordMessage)
 		server.discordBot.Session.AddHandler(server.onInteraction)
 	}
@@ -141,7 +135,7 @@ func (server *Server) Start() error {
 }
 
 // Shutdown tries to shut down the server gracefully.
-func (server *Server) Shutdown() {
+func (server *ChannelServer) Shutdown() {
 	server.Lock()
 	server.isShuttingDown = true
 	server.Unlock()
@@ -151,7 +145,7 @@ func (server *Server) Shutdown() {
 	close(server.acceptConns)
 }
 
-func (server *Server) acceptClients() {
+func (server *ChannelServer) acceptClients() {
 	for {
 		conn, err := server.listener.Accept()
 		if err != nil {
@@ -170,7 +164,7 @@ func (server *Server) acceptClients() {
 	}
 }
 
-func (server *Server) manageSessions() {
+func (server *ChannelServer) manageSessions() {
 	for {
 		select {
 		case newConn := <-server.acceptConns:
@@ -201,10 +195,10 @@ func (server *Server) manageSessions() {
 	}
 }
 
-func (server *Server) FindSessionByCharID(charID uint32) *Session {
+func (server *ChannelServer) FindSessionByCharID(charID uint32) *Session {
 	for _, c := range server.Channels {
 		for _, session := range c.sessions {
-			if session.charID == charID {
+			if session.CharID == charID {
 				return session
 			}
 		}
@@ -212,10 +206,14 @@ func (server *Server) FindSessionByCharID(charID uint32) *Session {
 	return nil
 }
 
-func (server *Server) DisconnectUser(uid uint32) {
+func (server *ChannelServer) DisconnectUser(uid uint32) {
 	var cid uint32
 	var cids []uint32
-	rows, _ := server.db.Query(`SELECT id FROM characters WHERE user_id=$1`, uid)
+	database, err := db.GetDB()
+	if err != nil {
+		server.logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	rows, _ := database.Query(`SELECT id FROM characters WHERE user_id=$1`, uid)
 	for rows.Next() {
 		rows.Scan(&cid)
 		cids = append(cids, cid)
@@ -223,7 +221,7 @@ func (server *Server) DisconnectUser(uid uint32) {
 	for _, c := range server.Channels {
 		for _, session := range c.sessions {
 			for _, cid := range cids {
-				if session.charID == cid {
+				if session.CharID == cid {
 					session.rawConn.Close()
 					break
 				}
@@ -232,7 +230,7 @@ func (server *Server) DisconnectUser(uid uint32) {
 	}
 }
 
-func (server *Server) FindObjectByChar(charID uint32) *Object {
+func (server *ChannelServer) FindObjectByChar(charID uint32) *Object {
 	server.stagesLock.RLock()
 	defer server.stagesLock.RUnlock()
 	for _, stage := range server.stages {
@@ -250,7 +248,7 @@ func (server *Server) FindObjectByChar(charID uint32) *Object {
 	return nil
 }
 
-func (server *Server) HasSemaphore(ses *Session) bool {
+func (server *ChannelServer) HasSemaphore(ses *Session) bool {
 	for _, semaphore := range server.semaphore {
 		if semaphore.host == ses {
 			return true
@@ -259,7 +257,7 @@ func (server *Server) HasSemaphore(ses *Session) bool {
 	return false
 }
 
-func (server *Server) Season() uint8 {
+func (server *ChannelServer) Season() uint8 {
 	sid := int64(((server.ID & 0xFF00) - 4096) / 256)
 	return uint8(((gametime.TimeAdjusted().Unix() / 86400) + sid) % 3)
 }

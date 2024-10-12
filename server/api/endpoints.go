@@ -5,7 +5,8 @@ import (
 	"encoding/json"
 	"encoding/xml"
 	"errors"
-	_config "erupe-ce/config"
+	"erupe-ce/config"
+	"erupe-ce/utils/db"
 	"erupe-ce/utils/gametime"
 	"fmt"
 	"image"
@@ -30,9 +31,9 @@ const (
 )
 
 type LauncherResponse struct {
-	Banners  []_config.APISignBanner  `json:"banners"`
-	Messages []_config.APISignMessage `json:"messages"`
-	Links    []_config.APISignLink    `json:"links"`
+	Banners  []config.APISignBanner  `json:"banners"`
+	Messages []config.APISignMessage `json:"messages"`
+	Links    []config.APISignLink    `json:"links"`
 }
 
 type User struct {
@@ -137,7 +138,11 @@ func (s *APIServer) Login(w http.ResponseWriter, r *http.Request) {
 		userRights uint32
 		password   string
 	)
-	err := s.db.QueryRow("SELECT id, password, rights FROM users WHERE username = $1", reqData.Username).Scan(&userID, &password, &userRights)
+	database, err := db.GetDB()
+	if err != nil {
+		s.logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	err = database.QueryRow("SELECT id, password, rights FROM users WHERE username = $1", reqData.Username).Scan(&userID, &password, &userRights)
 	if err == sql.ErrNoRows {
 		w.WriteHeader(400)
 		w.Write([]byte("username-error"))

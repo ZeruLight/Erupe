@@ -1,10 +1,13 @@
 package channelserver
 
 import (
+	"erupe-ce/config"
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/utils/byteframe"
+	"erupe-ce/utils/db"
 	"erupe-ce/utils/gametime"
 	"erupe-ce/utils/stringsupport"
+	"fmt"
 	"time"
 )
 
@@ -21,24 +24,27 @@ type TreasureHunt struct {
 	Claimed     bool      `db:"claimed"`
 }
 
-func handleMsgMhfEnumerateGuildTresure(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfEnumerateGuildTresure(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateGuildTresure)
-	guild, err := GetGuildInfoByCharacterId(s, s.charID)
+	guild, err := GetGuildInfoByCharacterId(s, s.CharID)
 	if err != nil || guild == nil {
-		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
+		DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
 	var hunts []TreasureHunt
 	var hunt TreasureHunt
-
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
 	switch pkt.MaxHunts {
 	case 1:
-		err = s.server.db.QueryRowx(`SELECT id, host_id, destination, level, start, hunt_data FROM guild_hunts WHERE host_id=$1 AND acquired=FALSE`, s.charID).StructScan(&hunt)
+		err = database.QueryRowx(`SELECT id, host_id, destination, level, start, hunt_data FROM guild_hunts WHERE host_id=$1 AND acquired=FALSE`, s.CharID).StructScan(&hunt)
 		if err == nil {
 			hunts = append(hunts, hunt)
 		}
 	case 30:
-		rows, err := s.server.db.Queryx(`SELECT gh.id, gh.host_id, gh.destination, gh.level, gh.start, gh.collected, gh.hunt_data,
+		rows, err := database.Queryx(`SELECT gh.id, gh.host_id, gh.destination, gh.level, gh.start, gh.collected, gh.hunt_data,
 			(SELECT COUNT(*) FROM guild_characters gc WHERE gc.treasure_hunt = gh.id AND gc.character_id <> $1) AS hunters,
 			CASE
 				WHEN ghc.character_id IS NOT NULL THEN true
@@ -47,15 +53,15 @@ func handleMsgMhfEnumerateGuildTresure(s *Session, p mhfpacket.MHFPacket) {
 			FROM guild_hunts gh
 			LEFT JOIN guild_hunts_claimed ghc ON gh.id = ghc.hunt_id AND ghc.character_id = $1
 			WHERE gh.guild_id=$2 AND gh.level=2 AND gh.acquired=TRUE
-		`, s.charID, guild.ID)
+		`, s.CharID, guild.ID)
 		if err != nil {
 			rows.Close()
-			doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
+			DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
 			return
 		} else {
 			for rows.Next() {
 				err = rows.StructScan(&hunt)
-				if err == nil && hunt.Start.Add(time.Second*time.Duration(s.server.erupeConfig.GameplayOptions.TreasureHuntExpiry)).After(gametime.TimeAdjusted()) {
+				if err == nil && hunt.Start.Add(time.Second*time.Duration(config.GetConfig().GameplayOptions.TreasureHuntExpiry)).After(gametime.TimeAdjusted()) {
 					hunts = append(hunts, hunt)
 				}
 			}
@@ -77,22 +83,22 @@ func handleMsgMhfEnumerateGuildTresure(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteBool(h.Claimed)
 		bf.WriteBytes(h.HuntData)
 	}
-	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
-func handleMsgMhfRegistGuildTresure(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfRegistGuildTresure(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfRegistGuildTresure)
 	bf := byteframe.NewByteFrameFromBytes(pkt.Data)
 	huntData := byteframe.NewByteFrame()
-	guild, err := GetGuildInfoByCharacterId(s, s.charID)
+	guild, err := GetGuildInfoByCharacterId(s, s.CharID)
 	if err != nil || guild == nil {
-		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+		DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
 	guildCats := getGuildAirouList(s)
 	destination := bf.ReadUint32()
 	level := bf.ReadUint32()
-	huntData.WriteUint32(s.charID)
+	huntData.WriteUint32(s.CharID)
 	huntData.WriteBytes(stringsupport.PaddedString(s.Name, 18, true))
 	catsUsed := ""
 	for i := 0; i < 5; i++ {
@@ -109,29 +115,41 @@ func handleMsgMhfRegistGuildTresure(s *Session, p mhfpacket.MHFPacket) {
 			huntData.WriteBytes(bf.ReadBytes(9))
 		}
 	}
-	s.server.db.Exec(`INSERT INTO guild_hunts (guild_id, host_id, destination, level, hunt_data, cats_used) VALUES ($1, $2, $3, $4, $5, $6)
-		`, guild.ID, s.charID, destination, level, huntData.Data(), catsUsed)
-	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	database.Exec(`INSERT INTO guild_hunts (guild_id, host_id, destination, level, hunt_data, cats_used) VALUES ($1, $2, $3, $4, $5, $6)
+		`, guild.ID, s.CharID, destination, level, huntData.Data(), catsUsed)
+	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
-func handleMsgMhfAcquireGuildTresure(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfAcquireGuildTresure(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfAcquireGuildTresure)
-	s.server.db.Exec(`UPDATE guild_hunts SET acquired=true WHERE id=$1`, pkt.HuntID)
-	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	database.Exec(`UPDATE guild_hunts SET acquired=true WHERE id=$1`, pkt.HuntID)
+	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
-func handleMsgMhfOperateGuildTresureReport(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfOperateGuildTresureReport(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfOperateGuildTresureReport)
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
 	switch pkt.State {
 	case 0: // Report registration
-		s.server.db.Exec(`UPDATE guild_characters SET treasure_hunt=$1 WHERE character_id=$2`, pkt.HuntID, s.charID)
+		database.Exec(`UPDATE guild_characters SET treasure_hunt=$1 WHERE character_id=$2`, pkt.HuntID, s.CharID)
 	case 1: // Collected by hunter
-		s.server.db.Exec(`UPDATE guild_hunts SET collected=true WHERE id=$1`, pkt.HuntID)
-		s.server.db.Exec(`UPDATE guild_characters SET treasure_hunt=NULL WHERE treasure_hunt=$1`, pkt.HuntID)
+		database.Exec(`UPDATE guild_hunts SET collected=true WHERE id=$1`, pkt.HuntID)
+		database.Exec(`UPDATE guild_characters SET treasure_hunt=NULL WHERE treasure_hunt=$1`, pkt.HuntID)
 	case 2: // Claim treasure
-		s.server.db.Exec(`INSERT INTO guild_hunts_claimed VALUES ($1, $2)`, pkt.HuntID, s.charID)
+		database.Exec(`INSERT INTO guild_hunts_claimed VALUES ($1, $2)`, pkt.HuntID, s.CharID)
 	}
-	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 type TreasureSouvenir struct {
@@ -139,7 +157,7 @@ type TreasureSouvenir struct {
 	Quantity    uint32
 }
 
-func handleMsgMhfGetGuildTresureSouvenir(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfGetGuildTresureSouvenir(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetGuildTresureSouvenir)
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint32(0)
@@ -149,10 +167,10 @@ func handleMsgMhfGetGuildTresureSouvenir(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint32(souvenir.Destination)
 		bf.WriteUint32(souvenir.Quantity)
 	}
-	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
-func handleMsgMhfAcquireGuildTresureSouvenir(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfAcquireGuildTresureSouvenir(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfAcquireGuildTresureSouvenir)
-	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }

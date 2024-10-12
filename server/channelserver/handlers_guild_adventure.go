@@ -1,10 +1,12 @@
 package channelserver
 
 import (
+	"fmt"
 	"time"
 
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/utils/byteframe"
+	"erupe-ce/utils/db"
 	"erupe-ce/utils/gametime"
 	"erupe-ce/utils/stringsupport"
 
@@ -20,13 +22,17 @@ type GuildAdventure struct {
 	CollectedBy string `db:"collected_by"`
 }
 
-func handleMsgMhfLoadGuildAdventure(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfLoadGuildAdventure(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfLoadGuildAdventure)
-	guild, _ := GetGuildInfoByCharacterId(s, s.charID)
-	data, err := s.server.db.Queryx("SELECT id, destination, charge, depart, return, collected_by FROM guild_adventures WHERE guild_id = $1", guild.ID)
+	database, err := db.GetDB()
 	if err != nil {
-		s.logger.Error("Failed to get guild adventures from db", zap.Error(err))
-		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 1))
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	guild, _ := GetGuildInfoByCharacterId(s, s.CharID)
+	data, err := database.Queryx("SELECT id, destination, charge, depart, return, collected_by FROM guild_adventures WHERE guild_id = $1", guild.ID)
+	if err != nil {
+		s.Logger.Error("Failed to get guild adventures from db", zap.Error(err))
+		DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 1))
 		return
 	}
 	temp := byteframe.NewByteFrame()
@@ -43,55 +49,71 @@ func handleMsgMhfLoadGuildAdventure(s *Session, p mhfpacket.MHFPacket) {
 		temp.WriteUint32(adventureData.Charge)
 		temp.WriteUint32(adventureData.Depart)
 		temp.WriteUint32(adventureData.Return)
-		temp.WriteBool(stringsupport.CSVContains(adventureData.CollectedBy, int(s.charID)))
+		temp.WriteBool(stringsupport.CSVContains(adventureData.CollectedBy, int(s.CharID)))
 	}
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint8(uint8(count))
 	bf.WriteBytes(temp.Data())
-	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
-func handleMsgMhfRegistGuildAdventure(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfRegistGuildAdventure(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfRegistGuildAdventure)
-	guild, _ := GetGuildInfoByCharacterId(s, s.charID)
-	_, err := s.server.db.Exec("INSERT INTO guild_adventures (guild_id, destination, depart, return) VALUES ($1, $2, $3, $4)", guild.ID, pkt.Destination, gametime.TimeAdjusted().Unix(), gametime.TimeAdjusted().Add(6*time.Hour).Unix())
+	database, err := db.GetDB()
 	if err != nil {
-		s.logger.Error("Failed to register guild adventure", zap.Error(err))
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
-	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	guild, _ := GetGuildInfoByCharacterId(s, s.CharID)
+	_, err = database.Exec("INSERT INTO guild_adventures (guild_id, destination, depart, return) VALUES ($1, $2, $3, $4)", guild.ID, pkt.Destination, gametime.TimeAdjusted().Unix(), gametime.TimeAdjusted().Add(6*time.Hour).Unix())
+	if err != nil {
+		s.Logger.Error("Failed to register guild adventure", zap.Error(err))
+	}
+	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
-func handleMsgMhfAcquireGuildAdventure(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfAcquireGuildAdventure(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfAcquireGuildAdventure)
-	var collectedBy string
-	err := s.server.db.QueryRow("SELECT collected_by FROM guild_adventures WHERE id = $1", pkt.ID).Scan(&collectedBy)
+	database, err := db.GetDB()
 	if err != nil {
-		s.logger.Error("Error parsing adventure collected by", zap.Error(err))
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	var collectedBy string
+	err = database.QueryRow("SELECT collected_by FROM guild_adventures WHERE id = $1", pkt.ID).Scan(&collectedBy)
+	if err != nil {
+		s.Logger.Error("Error parsing adventure collected by", zap.Error(err))
 	} else {
-		collectedBy = stringsupport.CSVAdd(collectedBy, int(s.charID))
-		_, err := s.server.db.Exec("UPDATE guild_adventures SET collected_by = $1 WHERE id = $2", collectedBy, pkt.ID)
+		collectedBy = stringsupport.CSVAdd(collectedBy, int(s.CharID))
+		_, err := database.Exec("UPDATE guild_adventures SET collected_by = $1 WHERE id = $2", collectedBy, pkt.ID)
 		if err != nil {
-			s.logger.Error("Failed to collect adventure in db", zap.Error(err))
+			s.Logger.Error("Failed to collect adventure in db", zap.Error(err))
 		}
 	}
-	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
-func handleMsgMhfChargeGuildAdventure(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfChargeGuildAdventure(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfChargeGuildAdventure)
-	_, err := s.server.db.Exec("UPDATE guild_adventures SET charge = charge + $1 WHERE id = $2", pkt.Amount, pkt.ID)
+	database, err := db.GetDB()
 	if err != nil {
-		s.logger.Error("Failed to charge guild adventure", zap.Error(err))
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
-	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	_, err = database.Exec("UPDATE guild_adventures SET charge = charge + $1 WHERE id = $2", pkt.Amount, pkt.ID)
+	if err != nil {
+		s.Logger.Error("Failed to charge guild adventure", zap.Error(err))
+	}
+	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
-func handleMsgMhfRegistGuildAdventureDiva(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfRegistGuildAdventureDiva(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfRegistGuildAdventureDiva)
-	guild, _ := GetGuildInfoByCharacterId(s, s.charID)
-	_, err := s.server.db.Exec("INSERT INTO guild_adventures (guild_id, destination, charge, depart, return) VALUES ($1, $2, $3, $4, $5)", guild.ID, pkt.Destination, pkt.Charge, gametime.TimeAdjusted().Unix(), gametime.TimeAdjusted().Add(1*time.Hour).Unix())
+	database, err := db.GetDB()
 	if err != nil {
-		s.logger.Error("Failed to register guild adventure", zap.Error(err))
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
-	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	guild, _ := GetGuildInfoByCharacterId(s, s.CharID)
+	_, err = database.Exec("INSERT INTO guild_adventures (guild_id, destination, charge, depart, return) VALUES ($1, $2, $3, $4, $5)", guild.ID, pkt.Destination, pkt.Charge, gametime.TimeAdjusted().Unix(), gametime.TimeAdjusted().Add(1*time.Hour).Unix())
+	if err != nil {
+		s.Logger.Error("Failed to register guild adventure", zap.Error(err))
+	}
+	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }

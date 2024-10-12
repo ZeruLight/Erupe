@@ -2,7 +2,7 @@ package mhfpacket
 
 import (
 	"errors"
-	_config "erupe-ce/config"
+	"erupe-ce/config"
 	"erupe-ce/network"
 	"erupe-ce/utils/byteframe"
 )
@@ -26,10 +26,10 @@ func (m *MsgMhfApplyDistItem) Parse(bf *byteframe.ByteFrame) error {
 	m.AckHandle = bf.ReadUint32()
 	m.DistributionType = bf.ReadUint8()
 	m.DistributionID = bf.ReadUint32()
-	if _config.ErupeConfig.ClientID >= _config.G8 {
+	if config.GetConfig().ClientID >= config.G8 {
 		m.Unk2 = bf.ReadUint32()
 	}
-	if _config.ErupeConfig.ClientID >= _config.G10 {
+	if config.GetConfig().ClientID >= config.G10 {
 		m.Unk3 = bf.ReadUint32()
 	}
 	return nil

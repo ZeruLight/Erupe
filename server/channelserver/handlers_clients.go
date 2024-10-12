@@ -3,7 +3,9 @@ package channelserver
 import (
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/utils/byteframe"
+	"erupe-ce/utils/db"
 	"erupe-ce/utils/stringsupport"
+	"fmt"
 
 	"go.uber.org/zap"
 )
@@ -11,15 +13,15 @@ import (
 func handleMsgSysEnumerateClient(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysEnumerateClient)
 
-	s.server.stagesLock.RLock()
-	stage, ok := s.server.stages[pkt.StageID]
+	s.Server.stagesLock.RLock()
+	stage, ok := s.Server.stages[pkt.StageID]
 	if !ok {
-		s.server.stagesLock.RUnlock()
-		s.logger.Warn("Can't enumerate clients for stage that doesn't exist!", zap.String("stageID", pkt.StageID))
-		doAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+		s.Server.stagesLock.RUnlock()
+		s.Logger.Warn("Can't enumerate clients for stage that doesn't exist!", zap.String("stageID", pkt.StageID))
+		DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
-	s.server.stagesLock.RUnlock()
+	s.Server.stagesLock.RUnlock()
 
 	// Read-lock the stage and make the response with all of the charID's in the stage.
 	resp := byteframe.NewByteFrame()
@@ -52,23 +54,26 @@ func handleMsgSysEnumerateClient(s *Session, p mhfpacket.MHFPacket) {
 	}
 	stage.RUnlock()
 
-	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
-	s.logger.Debug("MsgSysEnumerateClient Done!")
+	DoAckBufSucceed(s, pkt.AckHandle, resp.Data())
+	s.Logger.Debug("MsgSysEnumerateClient Done!")
 }
 
 func handleMsgMhfListMember(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfListMember)
-
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
 	var csv string
 	var count uint32
 	resp := byteframe.NewByteFrame()
 	resp.WriteUint32(0) // Blacklist count
-	err := s.server.db.QueryRow("SELECT blocked FROM characters WHERE id=$1", s.charID).Scan(&csv)
+	err = database.QueryRow("SELECT blocked FROM characters WHERE id=$1", s.CharID).Scan(&csv)
 	if err == nil {
 		cids := stringsupport.CSVElems(csv)
 		for _, cid := range cids {
 			var name string
-			err = s.server.db.QueryRow("SELECT name FROM characters WHERE id=$1", cid).Scan(&name)
+			err = database.QueryRow("SELECT name FROM characters WHERE id=$1", cid).Scan(&name)
 			if err != nil {
 				continue
 			}
@@ -80,36 +85,40 @@ func handleMsgMhfListMember(s *Session, p mhfpacket.MHFPacket) {
 	}
 	resp.Seek(0, 0)
 	resp.WriteUint32(count)
-	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
+	DoAckBufSucceed(s, pkt.AckHandle, resp.Data())
 }
 
 func handleMsgMhfOprMember(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfOprMember)
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
 	var csv string
 	for _, cid := range pkt.CharIDs {
 		if pkt.Blacklist {
-			err := s.server.db.QueryRow("SELECT blocked FROM characters WHERE id=$1", s.charID).Scan(&csv)
+			err := database.QueryRow("SELECT blocked FROM characters WHERE id=$1", s.CharID).Scan(&csv)
 			if err == nil {
 				if pkt.Operation {
 					csv = stringsupport.CSVRemove(csv, int(cid))
 				} else {
 					csv = stringsupport.CSVAdd(csv, int(cid))
 				}
-				s.server.db.Exec("UPDATE characters SET blocked=$1 WHERE id=$2", csv, s.charID)
+				database.Exec("UPDATE characters SET blocked=$1 WHERE id=$2", csv, s.CharID)
 			}
 		} else { // Friendlist
-			err := s.server.db.QueryRow("SELECT friends FROM characters WHERE id=$1", s.charID).Scan(&csv)
+			err := database.QueryRow("SELECT friends FROM characters WHERE id=$1", s.CharID).Scan(&csv)
 			if err == nil {
 				if pkt.Operation {
 					csv = stringsupport.CSVRemove(csv, int(cid))
 				} else {
 					csv = stringsupport.CSVAdd(csv, int(cid))
 				}
-				s.server.db.Exec("UPDATE characters SET friends=$1 WHERE id=$2", csv, s.charID)
+				database.Exec("UPDATE characters SET friends=$1 WHERE id=$2", csv, s.CharID)
 			}
 		}
 	}
-	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfShutClient(s *Session, p mhfpacket.MHFPacket) {}

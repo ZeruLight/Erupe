@@ -1,7 +1,7 @@
 package channelserver
 
 import (
-	_config "erupe-ce/config"
+	"erupe-ce/config"
 	"fmt"
 	"strings"
 	"time"
@@ -10,6 +10,7 @@ import (
 
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/utils/byteframe"
+	"erupe-ce/utils/db"
 	"erupe-ce/utils/stringsupport"
 )
 
@@ -59,15 +60,18 @@ func handleMsgMhfGetTowerInfo(s *Session, p mhfpacket.MHFPacket) {
 		History: []TowerInfoHistory{{make([]int16, 5), make([]int16, 5)}},
 		Level:   []TowerInfoLevel{{0, 0, 0, 0}, {0, 0, 0, 0}},
 	}
-
-	var tempSkills string
-	err := s.server.db.QueryRow(`SELECT COALESCE(tr, 0),  COALESCE(trp, 0),  COALESCE(tsp, 0), COALESCE(block1, 0), COALESCE(block2, 0), COALESCE(skills, $1) FROM tower WHERE char_id=$2
-		`, EmptyTowerCSV(64), s.charID).Scan(&towerInfo.TRP[0].TR, &towerInfo.TRP[0].TRP, &towerInfo.Skill[0].TSP, &towerInfo.Level[0].Floors, &towerInfo.Level[1].Floors, &tempSkills)
+	database, err := db.GetDB()
 	if err != nil {
-		s.server.db.Exec(`INSERT INTO tower (char_id) VALUES ($1)`, s.charID)
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	var tempSkills string
+	err = database.QueryRow(`SELECT COALESCE(tr, 0),  COALESCE(trp, 0),  COALESCE(tsp, 0), COALESCE(block1, 0), COALESCE(block2, 0), COALESCE(skills, $1) FROM tower WHERE char_id=$2
+		`, EmptyTowerCSV(64), s.CharID).Scan(&towerInfo.TRP[0].TR, &towerInfo.TRP[0].TRP, &towerInfo.Skill[0].TSP, &towerInfo.Level[0].Floors, &towerInfo.Level[1].Floors, &tempSkills)
+	if err != nil {
+		database.Exec(`INSERT INTO tower (char_id) VALUES ($1)`, s.CharID)
 	}
 
-	if _config.ErupeConfig.ClientID <= _config.G7 {
+	if config.GetConfig().ClientID <= config.G7 {
 		towerInfo.Level = towerInfo.Level[:1]
 	}
 
@@ -113,14 +117,14 @@ func handleMsgMhfGetTowerInfo(s *Session, p mhfpacket.MHFPacket) {
 			data = append(data, bf)
 		}
 	}
-	doAckEarthSucceed(s, pkt.AckHandle, data)
+	DoAckEarthSucceed(s, pkt.AckHandle, data)
 }
 
 func handleMsgMhfPostTowerInfo(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfPostTowerInfo)
 
-	if s.server.erupeConfig.DebugOptions.QuestTools {
-		s.logger.Debug(
+	if config.GetConfig().DebugOptions.QuestTools {
+		s.Logger.Debug(
 			p.Opcode().String(),
 			zap.Uint32("InfoType", pkt.InfoType),
 			zap.Uint32("Unk1", pkt.Unk1),
@@ -134,17 +138,20 @@ func handleMsgMhfPostTowerInfo(s *Session, p mhfpacket.MHFPacket) {
 			zap.Int64("Unk9", pkt.Unk9),
 		)
 	}
-
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
 	switch pkt.InfoType {
 	case 2:
 		var skills string
-		s.server.db.QueryRow(`SELECT COALESCE(skills, $1) FROM tower WHERE char_id=$2`, EmptyTowerCSV(64), s.charID).Scan(&skills)
-		s.server.db.Exec(`UPDATE tower SET skills=$1, tsp=tsp-$2 WHERE char_id=$3`, stringsupport.CSVSetIndex(skills, int(pkt.Skill), stringsupport.CSVGetIndex(skills, int(pkt.Skill))+1), pkt.Cost, s.charID)
+		database.QueryRow(`SELECT COALESCE(skills, $1) FROM tower WHERE char_id=$2`, EmptyTowerCSV(64), s.CharID).Scan(&skills)
+		database.Exec(`UPDATE tower SET skills=$1, tsp=tsp-$2 WHERE char_id=$3`, stringsupport.CSVSetIndex(skills, int(pkt.Skill), stringsupport.CSVGetIndex(skills, int(pkt.Skill))+1), pkt.Cost, s.CharID)
 	case 1, 7:
 		// This might give too much TSP? No idea what the rate is supposed to be
-		s.server.db.Exec(`UPDATE tower SET tr=$1, trp=COALESCE(trp, 0)+$2, tsp=COALESCE(tsp, 0)+$3, block1=COALESCE(block1, 0)+$4 WHERE char_id=$5`, pkt.TR, pkt.TRP, pkt.Cost, pkt.Block1, s.charID)
+		database.Exec(`UPDATE tower SET tr=$1, trp=COALESCE(trp, 0)+$2, tsp=COALESCE(tsp, 0)+$3, block1=COALESCE(block1, 0)+$4 WHERE char_id=$5`, pkt.TR, pkt.TRP, pkt.Cost, pkt.Block1, s.CharID)
 	}
-	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 // Default missions
@@ -250,7 +257,10 @@ func handleMsgMhfGetTenrouirai(s *Session, p mhfpacket.MHFPacket) {
 		Data:     tenrouiraiData,
 		Ticket:   []TenrouiraiTicket{{0, 0, 0}},
 	}
-
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
 	switch pkt.Unk1 {
 	case 1:
 		for _, tdata := range tenrouirai.Data {
@@ -284,8 +294,8 @@ func handleMsgMhfGetTenrouirai(s *Session, p mhfpacket.MHFPacket) {
 			data = append(data, bf)
 		}
 	case 4:
-		s.server.db.QueryRow(`SELECT tower_mission_page FROM guilds WHERE id=$1`, pkt.GuildID).Scan(&tenrouirai.Progress[0].Page)
-		s.server.db.QueryRow(`SELECT SUM(tower_mission_1) AS _, SUM(tower_mission_2) AS _, SUM(tower_mission_3) AS _ FROM guild_characters WHERE guild_id=$1
+		database.QueryRow(`SELECT tower_mission_page FROM guilds WHERE id=$1`, pkt.GuildID).Scan(&tenrouirai.Progress[0].Page)
+		database.QueryRow(`SELECT SUM(tower_mission_1) AS _, SUM(tower_mission_2) AS _, SUM(tower_mission_3) AS _ FROM guild_characters WHERE guild_id=$1
 				`, pkt.GuildID).Scan(&tenrouirai.Progress[0].Mission1, &tenrouirai.Progress[0].Mission2, &tenrouirai.Progress[0].Mission3)
 
 		if tenrouirai.Progress[0].Mission1 > tenrouiraiData[(tenrouirai.Progress[0].Page*3)-3].Goal {
@@ -313,7 +323,7 @@ func handleMsgMhfGetTenrouirai(s *Session, p mhfpacket.MHFPacket) {
 				pkt.Unk3 = 3
 			}
 		}
-		rows, _ := s.server.db.Query(fmt.Sprintf(`SELECT name, tower_mission_%d FROM guild_characters gc INNER JOIN characters c ON gc.character_id = c.id WHERE guild_id=$1 AND tower_mission_%d IS NOT NULL ORDER BY tower_mission_%d DESC`, pkt.Unk3, pkt.Unk3, pkt.Unk3), pkt.GuildID)
+		rows, _ := database.Query(fmt.Sprintf(`SELECT name, tower_mission_%d FROM guild_characters gc INNER JOIN characters c ON gc.character_id = c.id WHERE guild_id=$1 AND tower_mission_%d IS NOT NULL ORDER BY tower_mission_%d DESC`, pkt.Unk3, pkt.Unk3, pkt.Unk3), pkt.GuildID)
 		for rows.Next() {
 			temp := TenrouiraiCharScore{}
 			rows.Scan(&temp.Name, &temp.Score)
@@ -326,7 +336,7 @@ func handleMsgMhfGetTenrouirai(s *Session, p mhfpacket.MHFPacket) {
 			data = append(data, bf)
 		}
 	case 6:
-		s.server.db.QueryRow(`SELECT tower_rp FROM guilds WHERE id=$1`, pkt.GuildID).Scan(&tenrouirai.Ticket[0].RP)
+		database.QueryRow(`SELECT tower_rp FROM guilds WHERE id=$1`, pkt.GuildID).Scan(&tenrouirai.Ticket[0].RP)
 		for _, ticket := range tenrouirai.Ticket {
 			bf := byteframe.NewByteFrame()
 			bf.WriteUint8(ticket.Unk0)
@@ -336,14 +346,17 @@ func handleMsgMhfGetTenrouirai(s *Session, p mhfpacket.MHFPacket) {
 		}
 	}
 
-	doAckEarthSucceed(s, pkt.AckHandle, data)
+	DoAckEarthSucceed(s, pkt.AckHandle, data)
 }
 
 func handleMsgMhfPostTenrouirai(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfPostTenrouirai)
-
-	if s.server.erupeConfig.DebugOptions.QuestTools {
-		s.logger.Debug(
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	if config.GetConfig().DebugOptions.QuestTools {
+		s.Logger.Debug(
 			p.Opcode().String(),
 			zap.Uint8("Unk0", pkt.Unk0),
 			zap.Uint8("Op", pkt.Op),
@@ -360,7 +373,7 @@ func handleMsgMhfPostTenrouirai(s *Session, p mhfpacket.MHFPacket) {
 
 	if pkt.Op == 2 {
 		var page, requirement, donated int
-		s.server.db.QueryRow(`SELECT tower_mission_page, tower_rp FROM guilds WHERE id=$1`, pkt.GuildID).Scan(&page, &donated)
+		database.QueryRow(`SELECT tower_mission_page, tower_rp FROM guilds WHERE id=$1`, pkt.GuildID).Scan(&page, &donated)
 
 		for i := 0; i < (page*3)+1; i++ {
 			requirement += int(tenrouiraiData[i].Cost)
@@ -368,24 +381,24 @@ func handleMsgMhfPostTenrouirai(s *Session, p mhfpacket.MHFPacket) {
 
 		bf := byteframe.NewByteFrame()
 
-		sd, err := GetCharacterSaveData(s, s.charID)
+		sd, err := GetCharacterSaveData(s, s.CharID)
 		if err == nil && sd != nil {
 			sd.RP -= pkt.DonatedRP
 			sd.Save(s)
 			if donated+int(pkt.DonatedRP) >= requirement {
-				s.server.db.Exec(`UPDATE guilds SET tower_mission_page=tower_mission_page+1 WHERE id=$1`, pkt.GuildID)
-				s.server.db.Exec(`UPDATE guild_characters SET tower_mission_1=NULL, tower_mission_2=NULL, tower_mission_3=NULL WHERE guild_id=$1`, pkt.GuildID)
+				database.Exec(`UPDATE guilds SET tower_mission_page=tower_mission_page+1 WHERE id=$1`, pkt.GuildID)
+				database.Exec(`UPDATE guild_characters SET tower_mission_1=NULL, tower_mission_2=NULL, tower_mission_3=NULL WHERE guild_id=$1`, pkt.GuildID)
 				pkt.DonatedRP = uint16(requirement - donated)
 			}
 			bf.WriteUint32(uint32(pkt.DonatedRP))
-			s.server.db.Exec(`UPDATE guilds SET tower_rp=tower_rp+$1 WHERE id=$2`, pkt.DonatedRP, pkt.GuildID)
+			database.Exec(`UPDATE guilds SET tower_rp=tower_rp+$1 WHERE id=$2`, pkt.DonatedRP, pkt.GuildID)
 		} else {
 			bf.WriteUint32(0)
 		}
 
-		doAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
+		DoAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
 	} else {
-		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+		DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 	}
 }
 
@@ -405,7 +418,7 @@ func handleMsgMhfPresentBox(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteInt32(0)
 		bf.WriteInt32(0)
 	*/
-	doAckEarthSucceed(s, pkt.AckHandle, data)
+	DoAckEarthSucceed(s, pkt.AckHandle, data)
 }
 
 type GemInfo struct {
@@ -425,9 +438,12 @@ func handleMsgMhfGetGemInfo(s *Session, p mhfpacket.MHFPacket) {
 	var data []*byteframe.ByteFrame
 	gemInfo := []GemInfo{}
 	gemHistory := []GemHistory{}
-
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
 	var tempGems string
-	s.server.db.QueryRow(`SELECT COALESCE(gems, $1) FROM tower WHERE char_id=$2`, EmptyTowerCSV(30), s.charID).Scan(&tempGems)
+	database.QueryRow(`SELECT COALESCE(gems, $1) FROM tower WHERE char_id=$2`, EmptyTowerCSV(30), s.CharID).Scan(&tempGems)
 	for i, v := range stringsupport.CSVElems(tempGems) {
 		gemInfo = append(gemInfo, GemInfo{uint16((i / 5 << 8) + (i%5 + 1)), uint16(v)})
 	}
@@ -450,14 +466,14 @@ func handleMsgMhfGetGemInfo(s *Session, p mhfpacket.MHFPacket) {
 			data = append(data, bf)
 		}
 	}
-	doAckEarthSucceed(s, pkt.AckHandle, data)
+	DoAckEarthSucceed(s, pkt.AckHandle, data)
 }
 
 func handleMsgMhfPostGemInfo(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfPostGemInfo)
 
-	if s.server.erupeConfig.DebugOptions.QuestTools {
-		s.logger.Debug(
+	if config.GetConfig().DebugOptions.QuestTools {
+		s.Logger.Debug(
 			p.Opcode().String(),
 			zap.Uint32("Op", pkt.Op),
 			zap.Uint32("Unk1", pkt.Unk1),
@@ -468,25 +484,28 @@ func handleMsgMhfPostGemInfo(s *Session, p mhfpacket.MHFPacket) {
 			zap.Int32("Unk6", pkt.Unk6),
 		)
 	}
-
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
 	var gems string
-	s.server.db.QueryRow(`SELECT COALESCE(gems, $1) FROM tower WHERE char_id=$2`, EmptyTowerCSV(30), s.charID).Scan(&gems)
+	database.QueryRow(`SELECT COALESCE(gems, $1) FROM tower WHERE char_id=$2`, EmptyTowerCSV(30), s.CharID).Scan(&gems)
 	switch pkt.Op {
 	case 1: // Add gem
 		i := int((pkt.Gem >> 8 * 5) + (pkt.Gem - pkt.Gem&0xFF00 - 1%5))
-		s.server.db.Exec(`UPDATE tower SET gems=$1 WHERE char_id=$2`, stringsupport.CSVSetIndex(gems, i, stringsupport.CSVGetIndex(gems, i)+int(pkt.Quantity)), s.charID)
+		database.Exec(`UPDATE tower SET gems=$1 WHERE char_id=$2`, stringsupport.CSVSetIndex(gems, i, stringsupport.CSVGetIndex(gems, i)+int(pkt.Quantity)), s.CharID)
 	case 2: // Transfer gem
 		// no way im doing this for now
 	}
-	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfGetNotice(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetNotice)
-	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfPostNotice(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfPostNotice)
-	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }

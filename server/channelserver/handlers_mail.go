@@ -2,7 +2,9 @@ package channelserver
 
 import (
 	"database/sql"
+	"erupe-ce/utils/db"
 	"erupe-ce/utils/stringsupport"
+	"fmt"
 	"time"
 
 	"erupe-ce/network/binpacket"
@@ -31,21 +33,23 @@ type Mail struct {
 }
 
 func (m *Mail) Send(s *Session, transaction *sql.Tx) error {
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
 	query := `
 		INSERT INTO mail (sender_id, recipient_id, subject, body, attached_item, attached_item_amount, is_guild_invite, is_sys_message)
 		VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
 	`
 
-	var err error
-
 	if transaction == nil {
-		_, err = s.server.db.Exec(query, m.SenderID, m.RecipientID, m.Subject, m.Body, m.AttachedItemID, m.AttachedItemAmount, m.IsGuildInvite, m.IsSystemMessage)
+		_, err = database.Exec(query, m.SenderID, m.RecipientID, m.Subject, m.Body, m.AttachedItemID, m.AttachedItemAmount, m.IsGuildInvite, m.IsSystemMessage)
 	} else {
 		_, err = transaction.Exec(query, m.SenderID, m.RecipientID, m.Subject, m.Body, m.AttachedItemID, m.AttachedItemAmount, m.IsGuildInvite, m.IsSystemMessage)
 	}
 
 	if err != nil {
-		s.logger.Error(
+		s.Logger.Error(
 			"failed to send mail",
 			zap.Error(err),
 			zap.Uint32("senderID", m.SenderID),
@@ -64,12 +68,16 @@ func (m *Mail) Send(s *Session, transaction *sql.Tx) error {
 }
 
 func (m *Mail) MarkRead(s *Session) error {
-	_, err := s.server.db.Exec(`
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	_, err = database.Exec(`
 		UPDATE mail SET read = true WHERE id = $1
 	`, m.ID)
 
 	if err != nil {
-		s.logger.Error(
+		s.Logger.Error(
 			"failed to mark mail as read",
 			zap.Error(err),
 			zap.Int("mailID", m.ID),
@@ -81,7 +89,11 @@ func (m *Mail) MarkRead(s *Session) error {
 }
 
 func GetMailListForCharacter(s *Session, charID uint32) ([]Mail, error) {
-	rows, err := s.server.db.Queryx(`
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	rows, err := database.Queryx(`
 		SELECT
 			m.id,
 			m.sender_id,
@@ -105,7 +117,7 @@ func GetMailListForCharacter(s *Session, charID uint32) ([]Mail, error) {
 	`, charID)
 
 	if err != nil {
-		s.logger.Error("failed to get mail for character", zap.Error(err), zap.Uint32("charID", charID))
+		s.Logger.Error("failed to get mail for character", zap.Error(err), zap.Uint32("charID", charID))
 		return nil, err
 	}
 
@@ -129,7 +141,11 @@ func GetMailListForCharacter(s *Session, charID uint32) ([]Mail, error) {
 }
 
 func GetMailByID(s *Session, ID int) (*Mail, error) {
-	row := s.server.db.QueryRowx(`
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	row := database.QueryRowx(`
 		SELECT
 			m.id,
 			m.sender_id,
@@ -154,10 +170,10 @@ func GetMailByID(s *Session, ID int) (*Mail, error) {
 
 	mail := &Mail{}
 
-	err := row.StructScan(mail)
+	err = row.StructScan(mail)
 
 	if err != nil {
-		s.logger.Error(
+		s.Logger.Error(
 			"failed to retrieve mail",
 			zap.Error(err),
 			zap.Int("mailID", ID),
@@ -190,11 +206,15 @@ func SendMailNotification(s *Session, m *Mail, recipient *Session) {
 }
 
 func getCharacterName(s *Session, charID uint32) string {
-	row := s.server.db.QueryRow("SELECT name FROM characters WHERE id = $1", charID)
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	row := database.QueryRow("SELECT name FROM characters WHERE id = $1", charID)
 
 	charName := ""
 
-	err := row.Scan(&charName)
+	err = row.Scan(&charName)
 
 	if err != nil {
 		return ""
@@ -204,32 +224,35 @@ func getCharacterName(s *Session, charID uint32) string {
 
 func handleMsgMhfReadMail(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfReadMail)
-
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
 	mailId := s.mailList[pkt.AccIndex]
 	if mailId == 0 {
-		doAckBufSucceed(s, pkt.AckHandle, []byte{0})
+		DoAckBufSucceed(s, pkt.AckHandle, []byte{0})
 		return
 	}
 
 	mail, err := GetMailByID(s, mailId)
 	if err != nil {
-		doAckBufSucceed(s, pkt.AckHandle, []byte{0})
+		DoAckBufSucceed(s, pkt.AckHandle, []byte{0})
 		return
 	}
 
-	s.server.db.Exec(`UPDATE mail SET read = true WHERE id = $1`, mail.ID)
+	database.Exec(`UPDATE mail SET read = true WHERE id = $1`, mail.ID)
 	bf := byteframe.NewByteFrame()
 	body := stringsupport.UTF8ToSJIS(mail.Body)
 	bf.WriteNullTerminatedBytes(body)
-	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfListMail(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfListMail)
 
-	mail, err := GetMailListForCharacter(s, s.charID)
+	mail, err := GetMailListForCharacter(s, s.CharID)
 	if err != nil {
-		doAckBufSucceed(s, pkt.AckHandle, []byte{0})
+		DoAckBufSucceed(s, pkt.AckHandle, []byte{0})
 		return
 	}
 
@@ -290,64 +313,71 @@ func handleMsgMhfListMail(s *Session, p mhfpacket.MHFPacket) {
 		}
 	}
 
-	doAckBufSucceed(s, pkt.AckHandle, msg.Data())
+	DoAckBufSucceed(s, pkt.AckHandle, msg.Data())
 }
 
 func handleMsgMhfOprtMail(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfOprtMail)
-
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
 	mail, err := GetMailByID(s, s.mailList[pkt.AccIndex])
 	if err != nil {
-		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+		DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
 
 	switch pkt.Operation {
 	case mhfpacket.OperateMailDelete:
-		s.server.db.Exec(`UPDATE mail SET deleted = true WHERE id = $1`, mail.ID)
+		database.Exec(`UPDATE mail SET deleted = true WHERE id = $1`, mail.ID)
 	case mhfpacket.OperateMailLock:
-		s.server.db.Exec(`UPDATE mail SET locked = TRUE WHERE id = $1`, mail.ID)
+		database.Exec(`UPDATE mail SET locked = TRUE WHERE id = $1`, mail.ID)
 	case mhfpacket.OperateMailUnlock:
-		s.server.db.Exec(`UPDATE mail SET locked = FALSE WHERE id = $1`, mail.ID)
+		database.Exec(`UPDATE mail SET locked = FALSE WHERE id = $1`, mail.ID)
 	case mhfpacket.OperateMailAcquireItem:
-		s.server.db.Exec(`UPDATE mail SET attached_item_received = TRUE WHERE id = $1`, mail.ID)
+		database.Exec(`UPDATE mail SET attached_item_received = TRUE WHERE id = $1`, mail.ID)
 	}
-	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfSendMail(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSendMail)
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
 	query := `
 		INSERT INTO mail (sender_id, recipient_id, subject, body, attached_item, attached_item_amount, is_guild_invite)
 		VALUES ($1, $2, $3, $4, $5, $6, $7)
 	`
 
 	if pkt.RecipientID == 0 { // Guild mail
-		g, err := GetGuildInfoByCharacterId(s, s.charID)
+		g, err := GetGuildInfoByCharacterId(s, s.CharID)
 		if err != nil {
-			s.logger.Error("Failed to get guild info for mail")
-			doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+			s.Logger.Error("Failed to get guild info for mail")
+			DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 			return
 		}
 		gm, err := GetGuildMembers(s, g.ID, false)
 		if err != nil {
-			s.logger.Error("Failed to get guild members for mail")
-			doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+			s.Logger.Error("Failed to get guild members for mail")
+			DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 			return
 		}
 		for i := 0; i < len(gm); i++ {
-			_, err := s.server.db.Exec(query, s.charID, gm[i].CharID, pkt.Subject, pkt.Body, 0, 0, false)
+			_, err := database.Exec(query, s.CharID, gm[i].CharID, pkt.Subject, pkt.Body, 0, 0, false)
 			if err != nil {
-				s.logger.Error("Failed to send mail")
-				doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+				s.Logger.Error("Failed to send mail")
+				DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 				return
 			}
 		}
 	} else {
-		_, err := s.server.db.Exec(query, s.charID, pkt.RecipientID, pkt.Subject, pkt.Body, pkt.ItemID, pkt.Quantity, false)
+		_, err := database.Exec(query, s.CharID, pkt.RecipientID, pkt.Subject, pkt.Body, pkt.ItemID, pkt.Quantity, false)
 		if err != nil {
-			s.logger.Error("Failed to send mail")
+			s.Logger.Error("Failed to send mail")
 		}
 	}
-	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }

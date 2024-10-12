@@ -1,6 +1,7 @@
 package channelserver
 
 import (
+	"erupe-ce/utils/db"
 	"fmt"
 	"sort"
 	"strings"
@@ -15,7 +16,7 @@ type Player struct {
 	QuestID  int
 }
 
-func getPlayerSlice(server *Server) []Player {
+func getPlayerSlice(server *ChannelServer) []Player {
 	var p []Player
 	var questIndex int
 
@@ -40,7 +41,7 @@ func getPlayerSlice(server *Server) []Player {
 	return p
 }
 
-func getCharacterList(server *Server) string {
+func getCharacterList(server *ChannelServer) string {
 	questEmojis := []string{
 		":person_in_lotus_position:",
 		":white_circle:",
@@ -69,11 +70,15 @@ func getCharacterList(server *Server) string {
 }
 
 // onInteraction handles slash commands
-func (server *Server) onInteraction(ds *discordgo.Session, i *discordgo.InteractionCreate) {
+func (server *ChannelServer) onInteraction(ds *discordgo.Session, i *discordgo.InteractionCreate) {
+	database, err := db.GetDB()
+	if err != nil {
+		server.logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
 	switch i.Interaction.ApplicationCommandData().Name {
 	case "link":
 		var temp string
-		err := server.db.QueryRow(`UPDATE users SET discord_id = $1 WHERE discord_token = $2 RETURNING discord_id`, i.Member.User.ID, i.ApplicationCommandData().Options[0].StringValue()).Scan(&temp)
+		err := database.QueryRow(`UPDATE users SET discord_id = $1 WHERE discord_token = $2 RETURNING discord_id`, i.Member.User.ID, i.ApplicationCommandData().Options[0].StringValue()).Scan(&temp)
 		if err == nil {
 			ds.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -93,7 +98,7 @@ func (server *Server) onInteraction(ds *discordgo.Session, i *discordgo.Interact
 		}
 	case "password":
 		password, _ := bcrypt.GenerateFromPassword([]byte(i.ApplicationCommandData().Options[0].StringValue()), 10)
-		_, err := server.db.Exec(`UPDATE users SET password = $1 WHERE discord_id = $2`, password, i.Member.User.ID)
+		_, err := database.Exec(`UPDATE users SET password = $1 WHERE discord_id = $2`, password, i.Member.User.ID)
 		if err == nil {
 			ds.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -115,7 +120,7 @@ func (server *Server) onInteraction(ds *discordgo.Session, i *discordgo.Interact
 }
 
 // onDiscordMessage handles receiving messages from discord and forwarding them ingame.
-func (server *Server) onDiscordMessage(ds *discordgo.Session, m *discordgo.MessageCreate) {
+func (server *ChannelServer) onDiscordMessage(ds *discordgo.Session, m *discordgo.MessageCreate) {
 	// Ignore messages from bots, or messages that are not in the correct channel.
 	if m.Author.Bot || m.ChannelID != server.erupeConfig.Discord.RelayChannel.RelayChannelID {
 		return
@@ -148,14 +153,14 @@ func (server *Server) onDiscordMessage(ds *discordgo.Session, m *discordgo.Messa
 		server.BroadcastChatMessage(messages[i])
 	}
 }
-func (server *Server) DiscordChannelSend(charName string, content string) {
+func (server *ChannelServer) DiscordChannelSend(charName string, content string) {
 	if server.erupeConfig.Discord.Enabled && server.discordBot != nil {
 		message := fmt.Sprintf("**%s**: %s", charName, content)
 		server.discordBot.RealtimeChannelSend(message)
 	}
 }
 
-func (server *Server) DiscordScreenShotSend(charName string, title string, description string, articleToken string) {
+func (server *ChannelServer) DiscordScreenShotSend(charName string, title string, description string, articleToken string) {
 	if server.erupeConfig.Discord.Enabled && server.discordBot != nil {
 		imageUrl := fmt.Sprintf("%s:%d/api/ss/bbs/%s", server.erupeConfig.Screenshots.Host, server.erupeConfig.Screenshots.Port, articleToken)
 		message := fmt.Sprintf("**%s**: %s - %s %s", charName, title, description, imageUrl)

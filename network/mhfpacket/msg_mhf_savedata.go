@@ -2,7 +2,7 @@ package mhfpacket
 
 import (
 	"errors"
-	_config "erupe-ce/config"
+	"erupe-ce/config"
 
 	"erupe-ce/network"
 	"erupe-ce/utils/byteframe"
@@ -29,7 +29,7 @@ func (m *MsgMhfSavedata) Parse(bf *byteframe.ByteFrame) error {
 	m.AllocMemSize = bf.ReadUint32()
 	m.SaveType = bf.ReadUint8()
 	m.Unk1 = bf.ReadUint32()
-	if _config.ErupeConfig.ClientID >= _config.G1 {
+	if config.GetConfig().ClientID >= config.G1 {
 		m.DataSize = bf.ReadUint32()
 	}
 	if m.DataSize == 0 { // seems to be used when DataSize = 0 rather than on savetype?

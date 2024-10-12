@@ -1,13 +1,16 @@
 package channelserver
 
 import (
-	_config "erupe-ce/config"
+	config "erupe-ce/config"
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/server/channelserver/compression/deltacomp"
 	"erupe-ce/server/channelserver/compression/nullcomp"
+
 	"erupe-ce/utils/byteframe"
+	"erupe-ce/utils/db"
 	"erupe-ce/utils/gametime"
 	"erupe-ce/utils/stringsupport"
+	"fmt"
 	"io"
 	"time"
 
@@ -17,22 +20,30 @@ import (
 func handleMsgMhfLoadPartner(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfLoadPartner)
 	var data []byte
-	err := s.server.db.QueryRow("SELECT partner FROM characters WHERE id = $1", s.charID).Scan(&data)
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	err = database.QueryRow("SELECT partner FROM characters WHERE id = $1", s.CharID).Scan(&data)
 	if len(data) == 0 {
-		s.logger.Error("Failed to load partner", zap.Error(err))
+		s.Logger.Error("Failed to load partner", zap.Error(err))
 		data = make([]byte, 9)
 	}
-	doAckBufSucceed(s, pkt.AckHandle, data)
+	DoAckBufSucceed(s, pkt.AckHandle, data)
 }
 
 func handleMsgMhfSavePartner(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSavePartner)
-	dumpSaveData(s, pkt.RawDataPayload, "partner")
-	_, err := s.server.db.Exec("UPDATE characters SET partner=$1 WHERE id=$2", pkt.RawDataPayload, s.charID)
+	database, err := db.GetDB()
 	if err != nil {
-		s.logger.Error("Failed to save partner", zap.Error(err))
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
-	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+	dumpSaveData(s, pkt.RawDataPayload, "partner")
+	_, err = database.Exec("UPDATE characters SET partner=$1 WHERE id=$2", pkt.RawDataPayload, s.CharID)
+	if err != nil {
+		s.Logger.Error("Failed to save partner", zap.Error(err))
+	}
+	DoAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
 func handleMsgMhfLoadLegendDispatch(s *Session, p mhfpacket.MHFPacket) {
@@ -51,36 +62,44 @@ func handleMsgMhfLoadLegendDispatch(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint32(dispatch.Unk)
 		bf.WriteUint32(dispatch.Timestamp)
 	}
-	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfLoadHunterNavi(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfLoadHunterNavi)
 	naviLength := 552
-	if s.server.erupeConfig.ClientID <= _config.G7 {
+	if config.GetConfig().ClientID <= config.G7 {
 		naviLength = 280
 	}
 	var data []byte
-	err := s.server.db.QueryRow("SELECT hunternavi FROM characters WHERE id = $1", s.charID).Scan(&data)
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+	err = database.QueryRow("SELECT hunternavi FROM characters WHERE id = $1", s.CharID).Scan(&data)
 	if len(data) == 0 {
-		s.logger.Error("Failed to load hunternavi", zap.Error(err))
+		s.Logger.Error("Failed to load hunternavi", zap.Error(err))
 		data = make([]byte, naviLength)
 	}
-	doAckBufSucceed(s, pkt.AckHandle, data)
+	DoAckBufSucceed(s, pkt.AckHandle, data)
 }
 
 func handleMsgMhfSaveHunterNavi(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSaveHunterNavi)
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
 	if pkt.IsDataDiff {
 		naviLength := 552
-		if s.server.erupeConfig.ClientID <= _config.G7 {
+		if config.GetConfig().ClientID <= config.G7 {
 			naviLength = 280
 		}
 		var data []byte
 		// Load existing save
-		err := s.server.db.QueryRow("SELECT hunternavi FROM characters WHERE id = $1", s.charID).Scan(&data)
+		err := database.QueryRow("SELECT hunternavi FROM characters WHERE id = $1", s.CharID).Scan(&data)
 		if err != nil {
-			s.logger.Error("Failed to load hunternavi", zap.Error(err))
+			s.Logger.Error("Failed to load hunternavi", zap.Error(err))
 		}
 
 		// Check if we actually had any hunternavi data, using a blank buffer if not.
@@ -90,22 +109,22 @@ func handleMsgMhfSaveHunterNavi(s *Session, p mhfpacket.MHFPacket) {
 		}
 
 		// Perform diff and compress it to write back to db
-		s.logger.Info("Diffing...")
+		s.Logger.Info("Diffing...")
 		saveOutput := deltacomp.ApplyDataDiff(pkt.RawDataPayload, data)
-		_, err = s.server.db.Exec("UPDATE characters SET hunternavi=$1 WHERE id=$2", saveOutput, s.charID)
+		_, err = database.Exec("UPDATE characters SET hunternavi=$1 WHERE id=$2", saveOutput, s.CharID)
 		if err != nil {
-			s.logger.Error("Failed to save hunternavi", zap.Error(err))
+			s.Logger.Error("Failed to save hunternavi", zap.Error(err))
 		}
-		s.logger.Info("Wrote recompressed hunternavi back to DB")
+		s.Logger.Info("Wrote recompressed hunternavi back to DB")
 	} else {
 		dumpSaveData(s, pkt.RawDataPayload, "hunternavi")
 		// simply update database, no extra processing
-		_, err := s.server.db.Exec("UPDATE characters SET hunternavi=$1 WHERE id=$2", pkt.RawDataPayload, s.charID)
+		_, err := database.Exec("UPDATE characters SET hunternavi=$1 WHERE id=$2", pkt.RawDataPayload, s.CharID)
 		if err != nil {
-			s.logger.Error("Failed to save hunternavi", zap.Error(err))
+			s.Logger.Error("Failed to save hunternavi", zap.Error(err))
 		}
 	}
-	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+	DoAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
 func handleMsgMhfMercenaryHuntdata(s *Session, p mhfpacket.MHFPacket) {
@@ -116,9 +135,9 @@ func handleMsgMhfMercenaryHuntdata(s *Session, p mhfpacket.MHFPacket) {
 		// struct Hunt
 		//   uint32 HuntID
 		//   uint32 MonID
-		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 1))
+		DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 1))
 	} else {
-		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 0))
+		DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 0))
 	}
 }
 
@@ -132,39 +151,51 @@ func handleMsgMhfEnumerateMercenaryLog(s *Session, p mhfpacket.MHFPacket) {
 	//   []byte Name (len 18)
 	//   uint8 Unk
 	//   uint8 Unk
-	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfCreateMercenary(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfCreateMercenary)
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
 	bf := byteframe.NewByteFrame()
 	var nextID uint32
-	_ = s.server.db.QueryRow("SELECT nextval('rasta_id_seq')").Scan(&nextID)
-	s.server.db.Exec("UPDATE characters SET rasta_id=$1 WHERE id=$2", nextID, s.charID)
+	_ = database.QueryRow("SELECT nextval('rasta_id_seq')").Scan(&nextID)
+	database.Exec("UPDATE characters SET rasta_id=$1 WHERE id=$2", nextID, s.CharID)
 	bf.WriteUint32(nextID)
-	doAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
+	DoAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfSaveMercenary(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSaveMercenary)
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
 	dumpSaveData(s, pkt.MercData, "mercenary")
 	if len(pkt.MercData) > 0 {
 		temp := byteframe.NewByteFrameFromBytes(pkt.MercData)
-		s.server.db.Exec("UPDATE characters SET savemercenary=$1, rasta_id=$2 WHERE id=$3", pkt.MercData, temp.ReadUint32(), s.charID)
+		database.Exec("UPDATE characters SET savemercenary=$1, rasta_id=$2 WHERE id=$3", pkt.MercData, temp.ReadUint32(), s.CharID)
 	}
-	s.server.db.Exec("UPDATE characters SET gcp=$1, pact_id=$2 WHERE id=$3", pkt.GCP, pkt.PactMercID, s.charID)
-	doAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+	database.Exec("UPDATE characters SET gcp=$1, pact_id=$2 WHERE id=$3", pkt.GCP, pkt.PactMercID, s.CharID)
+	DoAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
 func handleMsgMhfReadMercenaryW(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfReadMercenaryW)
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
 	bf := byteframe.NewByteFrame()
 
 	var pactID, cid uint32
 	var name string
-	s.server.db.QueryRow("SELECT pact_id FROM characters WHERE id=$1", s.charID).Scan(&pactID)
+	database.QueryRow("SELECT pact_id FROM characters WHERE id=$1", s.CharID).Scan(&pactID)
 	if pactID > 0 {
-		s.server.db.QueryRow("SELECT name, id FROM characters WHERE rasta_id = $1", pactID).Scan(&name, &cid)
+		database.QueryRow("SELECT name, id FROM characters WHERE rasta_id = $1", pactID).Scan(&name, &cid)
 		bf.WriteUint8(1) // numLends
 		bf.WriteUint32(pactID)
 		bf.WriteUint32(cid)
@@ -179,7 +210,7 @@ func handleMsgMhfReadMercenaryW(s *Session, p mhfpacket.MHFPacket) {
 	var loans uint8
 	temp := byteframe.NewByteFrame()
 	if pkt.Op < 2 {
-		rows, _ := s.server.db.Query("SELECT name, id, pact_id FROM characters WHERE pact_id=(SELECT rasta_id FROM characters WHERE id=$1)", s.charID)
+		rows, _ := database.Query("SELECT name, id, pact_id FROM characters WHERE pact_id=(SELECT rasta_id FROM characters WHERE id=$1)", s.CharID)
 		for rows.Next() {
 			err := rows.Scan(&name, &cid, &pactID)
 			if err != nil {
@@ -199,8 +230,8 @@ func handleMsgMhfReadMercenaryW(s *Session, p mhfpacket.MHFPacket) {
 	if pkt.Op < 1 {
 		var data []byte
 		var gcp uint32
-		s.server.db.QueryRow("SELECT savemercenary FROM characters WHERE id=$1", s.charID).Scan(&data)
-		s.server.db.QueryRow("SELECT COALESCE(gcp, 0) FROM characters WHERE id=$1", s.charID).Scan(&gcp)
+		database.QueryRow("SELECT savemercenary FROM characters WHERE id=$1", s.CharID).Scan(&data)
+		database.QueryRow("SELECT COALESCE(gcp, 0) FROM characters WHERE id=$1", s.CharID).Scan(&gcp)
 
 		if len(data) == 0 {
 			bf.WriteBool(false)
@@ -211,53 +242,69 @@ func handleMsgMhfReadMercenaryW(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint32(gcp)
 	}
 
-	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfReadMercenaryM(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfReadMercenaryM)
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
 	var data []byte
-	s.server.db.QueryRow("SELECT savemercenary FROM characters WHERE id = $1", pkt.CharID).Scan(&data)
+	database.QueryRow("SELECT savemercenary FROM characters WHERE id = $1", pkt.CharID).Scan(&data)
 	resp := byteframe.NewByteFrame()
 	if len(data) == 0 {
 		resp.WriteBool(false)
 	} else {
 		resp.WriteBytes(data)
 	}
-	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
+	DoAckBufSucceed(s, pkt.AckHandle, resp.Data())
 }
 
 func handleMsgMhfContractMercenary(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfContractMercenary)
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
 	switch pkt.Op {
 	case 0: // Form loan
-		s.server.db.Exec("UPDATE characters SET pact_id=$1 WHERE id=$2", pkt.PactMercID, pkt.CID)
+		database.Exec("UPDATE characters SET pact_id=$1 WHERE id=$2", pkt.PactMercID, pkt.CID)
 	case 1: // Cancel lend
-		s.server.db.Exec("UPDATE characters SET pact_id=0 WHERE id=$1", s.charID)
+		database.Exec("UPDATE characters SET pact_id=0 WHERE id=$1", s.CharID)
 	case 2: // Cancel loan
-		s.server.db.Exec("UPDATE characters SET pact_id=0 WHERE id=$1", pkt.CID)
+		database.Exec("UPDATE characters SET pact_id=0 WHERE id=$1", pkt.CID)
 	}
-	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfLoadOtomoAirou(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfLoadOtomoAirou)
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
 	var data []byte
-	err := s.server.db.QueryRow("SELECT otomoairou FROM characters WHERE id = $1", s.charID).Scan(&data)
+	err = database.QueryRow("SELECT otomoairou FROM characters WHERE id = $1", s.CharID).Scan(&data)
 	if len(data) == 0 {
-		s.logger.Error("Failed to load otomoairou", zap.Error(err))
+		s.Logger.Error("Failed to load otomoairou", zap.Error(err))
 		data = make([]byte, 10)
 	}
-	doAckBufSucceed(s, pkt.AckHandle, data)
+	DoAckBufSucceed(s, pkt.AckHandle, data)
 }
 
 func handleMsgMhfSaveOtomoAirou(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSaveOtomoAirou)
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
 	dumpSaveData(s, pkt.RawDataPayload, "otomoairou")
 	decomp, err := nullcomp.Decompress(pkt.RawDataPayload[1:])
 	if err != nil {
-		s.logger.Error("Failed to decompress airou", zap.Error(err))
-		doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+		s.Logger.Error("Failed to decompress airou", zap.Error(err))
+		DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
 	bf := byteframe.NewByteFrameFromBytes(decomp)
@@ -270,7 +317,7 @@ func handleMsgMhfSaveOtomoAirou(s *Session, p mhfpacket.MHFPacket) {
 		dataLen := bf.ReadUint32()
 		catID := bf.ReadUint32()
 		if catID == 0 {
-			_ = s.server.db.QueryRow("SELECT nextval('airou_id_seq')").Scan(&catID)
+			_ = database.QueryRow("SELECT nextval('airou_id_seq')").Scan(&catID)
 		}
 		exists := bf.ReadBool()
 		data := bf.ReadBytes(uint(dataLen) - 5)
@@ -287,12 +334,12 @@ func handleMsgMhfSaveOtomoAirou(s *Session, p mhfpacket.MHFPacket) {
 	save.WriteUint8(catsExist)
 	comp, err := nullcomp.Compress(save.Data())
 	if err != nil {
-		s.logger.Error("Failed to compress airou", zap.Error(err))
+		s.Logger.Error("Failed to compress airou", zap.Error(err))
 	} else {
 		comp = append([]byte{0x01}, comp...)
-		s.server.db.Exec("UPDATE characters SET otomoairou=$1 WHERE id=$2", comp, s.charID)
+		database.Exec("UPDATE characters SET otomoairou=$1 WHERE id=$2", comp, s.CharID)
 	}
-	doAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfEnumerateAiroulist(s *Session, p mhfpacket.MHFPacket) {
@@ -311,7 +358,7 @@ func handleMsgMhfEnumerateAiroulist(s *Session, p mhfpacket.MHFPacket) {
 		resp.WriteUint16(cat.WeaponID)
 		resp.WriteUint32(0) // 32 bit unix timestamp, either time at which the cat stops being fatigued or the time at which it started
 	}
-	doAckBufSucceed(s, pkt.AckHandle, resp.Data())
+	DoAckBufSucceed(s, pkt.AckHandle, resp.Data())
 }
 
 type Airou struct {
@@ -326,17 +373,21 @@ type Airou struct {
 }
 
 func getGuildAirouList(s *Session) []Airou {
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
 	var guildCats []Airou
 	bannedCats := make(map[uint32]int)
-	guild, err := GetGuildInfoByCharacterId(s, s.charID)
+	guild, err := GetGuildInfoByCharacterId(s, s.CharID)
 	if err != nil {
 		return guildCats
 	}
-	rows, err := s.server.db.Query(`SELECT cats_used FROM guild_hunts gh
+	rows, err := database.Query(`SELECT cats_used FROM guild_hunts gh
 		INNER JOIN characters c ON gh.host_id = c.id WHERE c.id=$1
-	`, s.charID)
+	`, s.CharID)
 	if err != nil {
-		s.logger.Warn("Failed to get recently used airous", zap.Error(err))
+		s.Logger.Warn("Failed to get recently used airous", zap.Error(err))
 		return guildCats
 	}
 
@@ -347,19 +398,19 @@ func getGuildAirouList(s *Session) []Airou {
 		if err != nil {
 			continue
 		}
-		if startTemp.Add(time.Second * time.Duration(s.server.erupeConfig.GameplayOptions.TreasureHuntPartnyaCooldown)).Before(gametime.TimeAdjusted()) {
+		if startTemp.Add(time.Second * time.Duration(config.GetConfig().GameplayOptions.TreasureHuntPartnyaCooldown)).Before(gametime.TimeAdjusted()) {
 			for i, j := range stringsupport.CSVElems(csvTemp) {
 				bannedCats[uint32(j)] = i
 			}
 		}
 	}
 
-	rows, err = s.server.db.Query(`SELECT c.otomoairou FROM characters c
+	rows, err = database.Query(`SELECT c.otomoairou FROM characters c
 	INNER JOIN guild_characters gc ON gc.character_id = c.id
 	WHERE gc.guild_id = $1 AND c.otomoairou IS NOT NULL
 	ORDER BY c.id LIMIT 60`, guild.ID)
 	if err != nil {
-		s.logger.Warn("Selecting otomoairou based on guild failed", zap.Error(err))
+		s.Logger.Warn("Selecting otomoairou based on guild failed", zap.Error(err))
 		return guildCats
 	}
 
@@ -373,7 +424,7 @@ func getGuildAirouList(s *Session) []Airou {
 		if data[0] == 1 {
 			decomp, err := nullcomp.Decompress(data[1:])
 			if err != nil {
-				s.logger.Warn("decomp failure", zap.Error(err))
+				s.Logger.Warn("decomp failure", zap.Error(err))
 				continue
 			}
 			bf := byteframe.NewByteFrameFromBytes(decomp)

@@ -1,23 +1,24 @@
 package channelserver
 
 import (
+	"erupe-ce/config"
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/utils/byteframe"
 )
 
-func doAckEarthSucceed(s *Session, ackHandle uint32, data []*byteframe.ByteFrame) {
+func DoAckEarthSucceed(s *Session, ackHandle uint32, data []*byteframe.ByteFrame) {
 	bf := byteframe.NewByteFrame()
-	bf.WriteUint32(uint32(s.server.erupeConfig.EarthID))
+	bf.WriteUint32(uint32(config.GetConfig().EarthID))
 	bf.WriteUint32(0)
 	bf.WriteUint32(0)
 	bf.WriteUint32(uint32(len(data)))
 	for i := range data {
 		bf.WriteBytes(data[i].Data())
 	}
-	doAckBufSucceed(s, ackHandle, bf.Data())
+	DoAckBufSucceed(s, ackHandle, bf.Data())
 }
 
-func doAckBufSucceed(s *Session, ackHandle uint32, data []byte) {
+func DoAckBufSucceed(s *Session, ackHandle uint32, data []byte) {
 	s.QueueSendMHF(&mhfpacket.MsgSysAck{
 		AckHandle:        ackHandle,
 		IsBufferResponse: true,
@@ -26,7 +27,7 @@ func doAckBufSucceed(s *Session, ackHandle uint32, data []byte) {
 	})
 }
 
-func doAckBufFail(s *Session, ackHandle uint32, data []byte) {
+func DoAckBufFail(s *Session, ackHandle uint32, data []byte) {
 	s.QueueSendMHF(&mhfpacket.MsgSysAck{
 		AckHandle:        ackHandle,
 		IsBufferResponse: true,
@@ -35,7 +36,7 @@ func doAckBufFail(s *Session, ackHandle uint32, data []byte) {
 	})
 }
 
-func doAckSimpleSucceed(s *Session, ackHandle uint32, data []byte) {
+func DoAckSimpleSucceed(s *Session, ackHandle uint32, data []byte) {
 	s.QueueSendMHF(&mhfpacket.MsgSysAck{
 		AckHandle:        ackHandle,
 		IsBufferResponse: false,
@@ -44,7 +45,7 @@ func doAckSimpleSucceed(s *Session, ackHandle uint32, data []byte) {
 	})
 }
 
-func doAckSimpleFail(s *Session, ackHandle uint32, data []byte) {
+func DoAckSimpleFail(s *Session, ackHandle uint32, data []byte) {
 	s.QueueSendMHF(&mhfpacket.MsgSysAck{
 		AckHandle:        ackHandle,
 		IsBufferResponse: false,

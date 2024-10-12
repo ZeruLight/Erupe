@@ -1,5 +1,9 @@
 package channelserver
 
+import (
+	"erupe-ce/config"
+)
+
 type i18n struct {
 	language string
 	cafe     struct {
@@ -101,9 +105,9 @@ type i18n struct {
 	}
 }
 
-func getLangStrings(server *Server) i18n {
+func getLangStrings(server *ChannelServer) i18n {
 	var i i18n
-	switch server.erupeConfig.Language {
+	switch config.GetConfig().Language {
 	case "jp":
 		i.language = "日本語"
 		i.cafe.reset = "%d/%dにリセット"

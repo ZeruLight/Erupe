@@ -1,4 +1,4 @@
-package entranceserver
+package entrance
 
 import (
 	"encoding/hex"
@@ -8,45 +8,33 @@ import (
 	"strings"
 	"sync"
 
-	_config "erupe-ce/config"
+	"erupe-ce/config"
 	"erupe-ce/network"
 	"erupe-ce/utils/logger"
 
-	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )
 
-// Server is a MHF entrance server.
-type Server struct {
+// EntranceServer is a MHF entrance server.
+type EntranceServer struct {
 	sync.Mutex
 	logger         logger.Logger
-	erupeConfig    *_config.Config
-	db             *sqlx.DB
 	listener       net.Listener
 	isShuttingDown bool
 }
 
-// Config struct allows configuring the server.
-type Config struct {
-	Logger      logger.Logger
-	DB          *sqlx.DB
-	ErupeConfig *_config.Config
-}
-
 // NewServer creates a new Server type.
-func NewServer(config *Config) *Server {
-	server := &Server{
-		logger:      config.Logger,
-		erupeConfig: config.ErupeConfig,
-		db:          config.DB,
+func NewServer() *EntranceServer {
+	server := &EntranceServer{
+		logger: logger.Get().Named("entrance"),
 	}
 	return server
 }
 
 // Start starts the server in a new goroutine.
-func (server *Server) Start() error {
+func (server *EntranceServer) Start() error {
 
-	l, err := net.Listen("tcp", fmt.Sprintf(":%d", server.erupeConfig.Entrance.Port))
+	l, err := net.Listen("tcp", fmt.Sprintf(":%d", config.GetConfig().Entrance.Port))
 	if err != nil {
 		return err
 	}
@@ -59,7 +47,7 @@ func (server *Server) Start() error {
 }
 
 // Shutdown exits the server gracefully.
-func (server *Server) Shutdown() {
+func (server *EntranceServer) Shutdown() {
 	server.logger.Debug("Shutting down...")
 
 	server.Lock()
@@ -71,7 +59,7 @@ func (server *Server) Shutdown() {
 }
 
 // acceptClients handles accepting new clients in a loop.
-func (server *Server) acceptClients() {
+func (server *EntranceServer) acceptClients() {
 	for {
 		conn, err := server.listener.Accept()
 		if err != nil {
@@ -92,7 +80,7 @@ func (server *Server) acceptClients() {
 	}
 }
 
-func (server *Server) handleEntranceServerConnection(conn net.Conn) {
+func (server *EntranceServer) handleEntranceServerConnection(conn net.Conn) {
 	defer conn.Close()
 	// Client initalizes the connection with a one-time buffer of 8 NULL bytes.
 	nullInit := make([]byte, 8)
@@ -113,7 +101,7 @@ func (server *Server) handleEntranceServerConnection(conn net.Conn) {
 		return
 	}
 
-	if server.erupeConfig.DebugOptions.LogInboundMessages {
+	if config.GetConfig().DebugOptions.LogInboundMessages {
 		fmt.Printf("[Client] -> [Server]\nData [%d bytes]:\n%s\n", len(pkt), hex.Dump(pkt))
 	}
 
@@ -121,7 +109,7 @@ func (server *Server) handleEntranceServerConnection(conn net.Conn) {
 	if strings.Split(conn.RemoteAddr().String(), ":")[0] == "127.0.0.1" {
 		local = true
 	}
-	data := makeSv2Resp(server.erupeConfig, server, local)
+	data := makeSv2Resp(server, local)
 	if len(pkt) > 5 {
 		data = append(data, makeUsrResp(pkt, server)...)
 	}

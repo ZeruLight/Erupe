@@ -3,6 +3,7 @@ package channelserver
 import (
 	"erupe-ce/config"
 	"erupe-ce/network/mhfpacket"
+	"erupe-ce/utils/broadcast"
 	"erupe-ce/utils/byteframe"
 	"erupe-ce/utils/db"
 	ps "erupe-ce/utils/pascalstring"
@@ -122,7 +123,7 @@ func handleMsgMhfEnumerateDistItem(s *Session, p mhfpacket.MHFPacket) {
 			}
 		}
 	}
-	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 type DistributionItem struct {
@@ -166,7 +167,7 @@ func handleMsgMhfApplyDistItem(s *Session, p mhfpacket.MHFPacket) {
 			bf.WriteUint32(item.ID)
 		}
 	}
-	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfAcquireDistItem(s *Session, p mhfpacket.MHFPacket) {
@@ -199,7 +200,7 @@ func handleMsgMhfAcquireDistItem(s *Session, p mhfpacket.MHFPacket) {
 			}
 		}
 	}
-	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfGetDistDescription(s *Session, p mhfpacket.MHFPacket) {
@@ -212,11 +213,11 @@ func handleMsgMhfGetDistDescription(s *Session, p mhfpacket.MHFPacket) {
 	err = database.QueryRow("SELECT description FROM distribution WHERE id = $1", pkt.DistributionID).Scan(&desc)
 	if err != nil {
 		s.Logger.Error("Error parsing item distribution description", zap.Error(err))
-		DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
+		broadcast.DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
 	bf := byteframe.NewByteFrame()
 	ps.Uint16(bf, desc, true)
 	ps.Uint16(bf, "", false)
-	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }

@@ -6,9 +6,11 @@ import (
 	"encoding/json"
 	"errors"
 	"erupe-ce/config"
+	"erupe-ce/utils/broadcast"
 	"erupe-ce/utils/db"
 	"erupe-ce/utils/gametime"
 	"erupe-ce/utils/mhfitem"
+
 	"fmt"
 	"math"
 	"sort"
@@ -682,7 +684,7 @@ func HandleMsgMhfCreateGuild(s *Session, p mhfpacket.MHFPacket) {
 		// style message, it's better than nothing for now.
 		bf.WriteUint32(0x01010101)
 
-		DoAckSimpleFail(s, pkt.AckHandle, bf.Data())
+		broadcast.DoAckSimpleFail(s, pkt.AckHandle, bf.Data())
 		return
 	}
 
@@ -690,7 +692,7 @@ func HandleMsgMhfCreateGuild(s *Session, p mhfpacket.MHFPacket) {
 
 	bf.WriteUint32(uint32(guildId))
 
-	DoAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func HandleMsgMhfOperateGuild(s *Session, p mhfpacket.MHFPacket) {
@@ -699,7 +701,7 @@ func HandleMsgMhfOperateGuild(s *Session, p mhfpacket.MHFPacket) {
 	guild, err := GetGuildInfoByID(s, pkt.GuildID)
 	characterGuildInfo, err := GetCharacterGuildData(s, s.CharID)
 	if err != nil {
-		DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+		broadcast.DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
 	database, err := db.GetDB()
@@ -778,14 +780,14 @@ func HandleMsgMhfOperateGuild(s *Session, p mhfpacket.MHFPacket) {
 		handleAvoidLeadershipUpdate(s, pkt, false)
 	case mhfpacket.OperateGuildUpdateComment:
 		if !characterGuildInfo.IsLeader && !characterGuildInfo.IsSubLeader() {
-			DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+			broadcast.DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 			return
 		}
 		guild.Comment = stringsupport.SJISToUTF8(pkt.Data2.ReadNullTerminatedBytes())
 		guild.Save(s)
 	case mhfpacket.OperateGuildUpdateMotto:
 		if !characterGuildInfo.IsLeader && !characterGuildInfo.IsSubLeader() {
-			DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+			broadcast.DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 			return
 		}
 		_ = pkt.Data1.ReadUint16()
@@ -825,9 +827,9 @@ func HandleMsgMhfOperateGuild(s *Session, p mhfpacket.MHFPacket) {
 	}
 
 	if len(bf.Data()) > 0 {
-		DoAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
+		broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
 	} else {
-		DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+		broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 	}
 }
 
@@ -901,7 +903,7 @@ func handleAvoidLeadershipUpdate(s *Session, pkt *mhfpacket.MsgMhfOperateGuild, 
 	characterGuildData, err := GetCharacterGuildData(s, s.CharID)
 
 	if err != nil {
-		DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+		broadcast.DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
 
@@ -910,11 +912,11 @@ func handleAvoidLeadershipUpdate(s *Session, pkt *mhfpacket.MsgMhfOperateGuild, 
 	err = characterGuildData.Save(s)
 
 	if err != nil {
-		DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+		broadcast.DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
 
-	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func HandleMsgMhfOperateGuildMember(s *Session, p mhfpacket.MHFPacket) {
@@ -923,14 +925,14 @@ func HandleMsgMhfOperateGuildMember(s *Session, p mhfpacket.MHFPacket) {
 	guild, err := GetGuildInfoByCharacterId(s, pkt.CharID)
 
 	if err != nil || guild == nil {
-		DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+		broadcast.DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
 
 	actorCharacter, err := GetCharacterGuildData(s, s.CharID)
 
 	if err != nil || (!actorCharacter.IsSubLeader() && guild.LeaderCharID != s.CharID) {
-		DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+		broadcast.DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
 
@@ -961,12 +963,12 @@ func HandleMsgMhfOperateGuildMember(s *Session, p mhfpacket.MHFPacket) {
 			IsSystemMessage: true,
 		}
 	default:
-		DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+		broadcast.DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 		s.Logger.Warn(fmt.Sprintf("unhandled operateGuildMember action '%d'", pkt.Action))
 	}
 
 	if err != nil {
-		DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+		broadcast.DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 	} else {
 		mail.Send(s, nil)
 		for _, channel := range s.Server.Channels {
@@ -976,7 +978,7 @@ func HandleMsgMhfOperateGuildMember(s *Session, p mhfpacket.MHFPacket) {
 				}
 			}
 		}
-		DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+		broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 	}
 }
 
@@ -1011,7 +1013,7 @@ func HandleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 			resp.WriteUint32(0) // Count
 			resp.WriteUint8(0)  // Unk, read if count == 0.
 
-			DoAckBufSucceed(s, pkt.AckHandle, resp.Data())
+			broadcast.DoAckBufSucceed(s, pkt.AckHandle, resp.Data())
 			return
 		}
 
@@ -1219,9 +1221,9 @@ func HandleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 		}
 		bf.WriteUint8(0) // Unk
 
-		DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+		broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 	} else {
-		DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 5))
+		broadcast.DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 5))
 	}
 }
 
@@ -1428,7 +1430,7 @@ func HandleMsgMhfEnumerateGuild(s *Session, p mhfpacket.MHFPacket) {
 		}
 	}
 
-	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func HandleMsgMhfArrangeGuildMember(s *Session, p mhfpacket.MHFPacket) {
@@ -1463,7 +1465,7 @@ func HandleMsgMhfArrangeGuildMember(s *Session, p mhfpacket.MHFPacket) {
 		return
 	}
 
-	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func HandleMsgMhfEnumerateGuildMember(s *Session, p mhfpacket.MHFPacket) {
@@ -1481,7 +1483,7 @@ func HandleMsgMhfEnumerateGuildMember(s *Session, p mhfpacket.MHFPacket) {
 	if guild != nil {
 		isApplicant, _ := guild.HasApplicationForCharID(s, s.CharID)
 		if isApplicant {
-			DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 2))
+			broadcast.DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 2))
 			return
 		}
 	}
@@ -1492,10 +1494,10 @@ func HandleMsgMhfEnumerateGuildMember(s *Session, p mhfpacket.MHFPacket) {
 
 	if err != nil {
 		s.Logger.Warn("failed to retrieve guild sending no result message")
-		DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 2))
+		broadcast.DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 2))
 		return
 	} else if guild == nil {
-		DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 2))
+		broadcast.DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 2))
 		return
 	}
 
@@ -1584,7 +1586,7 @@ func HandleMsgMhfEnumerateGuildMember(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint16(member.RPYesterday)
 	}
 
-	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func HandleMsgMhfGetGuildManageRight(s *Session, p mhfpacket.MHFPacket) {
@@ -1595,7 +1597,7 @@ func HandleMsgMhfGetGuildManageRight(s *Session, p mhfpacket.MHFPacket) {
 		guild, err = GetGuildInfoByID(s, s.prevGuildID)
 		s.prevGuildID = 0
 		if guild == nil || err != nil {
-			DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
+			broadcast.DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
 			return
 		}
 	}
@@ -1608,12 +1610,12 @@ func HandleMsgMhfGetGuildManageRight(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteBool(member.Recruiter)
 		bf.WriteBytes(make([]byte, 3))
 	}
-	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func HandleMsgMhfGetUdGuildMapInfo(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetUdGuildMapInfo)
-	DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+	broadcast.DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func HandleMsgMhfGetGuildTargetMemberNum(s *Session, p mhfpacket.MHFPacket) {
@@ -1629,7 +1631,7 @@ func HandleMsgMhfGetGuildTargetMemberNum(s *Session, p mhfpacket.MHFPacket) {
 	}
 
 	if err != nil || guild == nil {
-		DoAckBufSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x02})
+		broadcast.DoAckBufSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x02})
 		return
 	}
 
@@ -1638,7 +1640,7 @@ func HandleMsgMhfGetGuildTargetMemberNum(s *Session, p mhfpacket.MHFPacket) {
 	bf.WriteUint16(0x0)
 	bf.WriteUint16(guild.MemberCount - 1)
 
-	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func guildGetItems(s *Session, guildID uint32) []mhfitem.MHFItemStack {
@@ -1665,7 +1667,7 @@ func HandleMsgMhfEnumerateGuildItem(s *Session, p mhfpacket.MHFPacket) {
 	items := guildGetItems(s, pkt.GuildID)
 	bf := byteframe.NewByteFrame()
 	bf.WriteBytes(mhfitem.SerializeWarehouseItems(items))
-	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func HandleMsgMhfUpdateGuildItem(s *Session, p mhfpacket.MHFPacket) {
@@ -1676,7 +1678,7 @@ func HandleMsgMhfUpdateGuildItem(s *Session, p mhfpacket.MHFPacket) {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
 	database.Exec(`UPDATE guilds SET item_box=$1 WHERE id=$2`, mhfitem.SerializeWarehouseItems(newStacks), pkt.GuildID)
-	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func HandleMsgMhfUpdateGuildIcon(s *Session, p mhfpacket.MHFPacket) {
@@ -1700,7 +1702,7 @@ func HandleMsgMhfUpdateGuildIcon(s *Session, p mhfpacket.MHFPacket) {
 			zap.Uint32("guildID", guild.ID),
 			zap.Uint32("charID", s.CharID),
 		)
-		DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+		broadcast.DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
 
@@ -1728,11 +1730,11 @@ func HandleMsgMhfUpdateGuildIcon(s *Session, p mhfpacket.MHFPacket) {
 	err = guild.Save(s)
 
 	if err != nil {
-		DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+		broadcast.DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
 
-	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func HandleMsgMhfReadGuildcard(s *Session, p mhfpacket.MHFPacket) {
@@ -1748,7 +1750,7 @@ func HandleMsgMhfReadGuildcard(s *Session, p mhfpacket.MHFPacket) {
 	resp.WriteUint32(0)
 	resp.WriteUint32(0)
 
-	DoAckBufSucceed(s, pkt.AckHandle, resp.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, resp.Data())
 }
 
 type GuildMission struct {
@@ -1795,29 +1797,29 @@ func HandleMsgMhfGetGuildMissionList(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint16(mission.RewardLevel)
 		bf.WriteUint32(uint32(gametime.TimeAdjusted().Unix()))
 	}
-	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func HandleMsgMhfGetGuildMissionRecord(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetGuildMissionRecord)
 
 	// No guild mission records = 0x190 empty bytes
-	DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 0x190))
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 0x190))
 }
 
 func HandleMsgMhfAddGuildMissionCount(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfAddGuildMissionCount)
-	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func HandleMsgMhfSetGuildMissionTarget(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSetGuildMissionTarget)
-	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func HandleMsgMhfCancelGuildMissionTarget(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfCancelGuildMissionTarget)
-	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 type GuildMeal struct {
@@ -1837,7 +1839,7 @@ func HandleMsgMhfLoadGuildCooking(s *Session, p mhfpacket.MHFPacket) {
 	data, err := database.Queryx("SELECT id, meal_id, level, created_at FROM guild_meals WHERE guild_id = $1", guild.ID)
 	if err != nil {
 		s.Logger.Error("Failed to get guild meals from db", zap.Error(err))
-		DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 2))
+		broadcast.DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 2))
 		return
 	}
 	var meals []GuildMeal
@@ -1859,7 +1861,7 @@ func HandleMsgMhfLoadGuildCooking(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint32(meal.Level)
 		bf.WriteUint32(uint32(meal.CreatedAt.Unix()))
 	}
-	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func HandleMsgMhfRegistGuildCooking(s *Session, p mhfpacket.MHFPacket) {
@@ -1881,14 +1883,14 @@ func HandleMsgMhfRegistGuildCooking(s *Session, p mhfpacket.MHFPacket) {
 	bf.WriteUint32(uint32(pkt.MealID))
 	bf.WriteUint32(uint32(pkt.Success))
 	bf.WriteUint32(uint32(startTime.Unix()))
-	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func HandleMsgMhfGetGuildWeeklyBonusMaster(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetGuildWeeklyBonusMaster)
 
 	// Values taken from brand new guild capture
-	DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 40))
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 40))
 }
 func HandleMsgMhfGetGuildWeeklyBonusActiveCount(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetGuildWeeklyBonusActiveCount)
@@ -1896,7 +1898,7 @@ func HandleMsgMhfGetGuildWeeklyBonusActiveCount(s *Session, p mhfpacket.MHFPacke
 	bf.WriteUint8(60) // Active count
 	bf.WriteUint8(60) // Current active count
 	bf.WriteUint8(0)  // New active count
-	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func HandleMsgMhfGuildHuntdata(s *Session, p mhfpacket.MHFPacket) {
@@ -1954,7 +1956,7 @@ func HandleMsgMhfGuildHuntdata(s *Session, p mhfpacket.MHFPacket) {
 			bf.WriteBool(false)
 		}
 	}
-	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 type MessageBoardPost struct {
@@ -1980,7 +1982,7 @@ func HandleMsgMhfEnumerateGuildMessageBoard(s *Session, p mhfpacket.MHFPacket) {
 	msgs, err := database.Queryx("SELECT id, stamp_id, title, body, author_id, created_at, liked_by FROM guild_posts WHERE guild_id = $1 AND post_type = $2 ORDER BY created_at DESC", guild.ID, int(pkt.BoardType))
 	if err != nil {
 		s.Logger.Error("Failed to get guild messages from db", zap.Error(err))
-		DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
+		broadcast.DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
 	database.Exec("UPDATE characters SET guild_post_checked = now() WHERE id = $1", s.CharID)
@@ -2006,7 +2008,7 @@ func HandleMsgMhfEnumerateGuildMessageBoard(s *Session, p mhfpacket.MHFPacket) {
 	data := byteframe.NewByteFrame()
 	data.WriteUint32(postCount)
 	data.WriteBytes(bf.Data())
-	DoAckBufSucceed(s, pkt.AckHandle, data.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, data.Data())
 }
 
 func HandleMsgMhfUpdateGuildMessageBoard(s *Session, p mhfpacket.MHFPacket) {
@@ -2021,7 +2023,7 @@ func HandleMsgMhfUpdateGuildMessageBoard(s *Session, p mhfpacket.MHFPacket) {
 		applicant, _ = guild.HasApplicationForCharID(s, s.CharID)
 	}
 	if err != nil || guild == nil || applicant {
-		DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+		broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
 	switch pkt.MessageOp {
@@ -2055,17 +2057,17 @@ func HandleMsgMhfUpdateGuildMessageBoard(s *Session, p mhfpacket.MHFPacket) {
 		if err == nil {
 			database.QueryRow("SELECT COUNT(*) FROM guild_posts WHERE guild_id = $1 AND (EXTRACT(epoch FROM created_at)::int) > $2", guild.ID, timeChecked.Unix()).Scan(&newPosts)
 			if newPosts > 0 {
-				DoAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x01})
+				broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x01})
 				return
 			}
 		}
 	}
-	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func HandleMsgMhfEntryRookieGuild(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEntryRookieGuild)
-	DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+	broadcast.DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func HandleMsgMhfUpdateForceGuildRank(s *Session, p mhfpacket.MHFPacket) {}
@@ -2074,12 +2076,12 @@ func HandleMsgMhfAddGuildWeeklyBonusExceptionalUser(s *Session, p mhfpacket.MHFP
 	pkt := p.(*mhfpacket.MsgMhfAddGuildWeeklyBonusExceptionalUser)
 	// TODO: record pkt.NumUsers to DB
 	// must use addition
-	DoAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
 func HandleMsgMhfGenerateUdGuildMap(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGenerateUdGuildMap)
-	DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+	broadcast.DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func HandleMsgMhfUpdateGuild(s *Session, p mhfpacket.MHFPacket) {}
@@ -2091,19 +2093,19 @@ func HandleMsgMhfSetGuildManageRight(s *Session, p mhfpacket.MHFPacket) {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
 	database.Exec("UPDATE guild_characters SET recruiter=$1 WHERE character_id=$2", pkt.Allowed, pkt.CharID)
-	DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func HandleMsgMhfCheckMonthlyItem(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfCheckMonthlyItem)
-	DoAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x01})
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x01})
 	// TODO: Implement month-by-month tracker, 0 = Not claimed, 1 = Claimed
 	// Also handles HLC and EXC items, IDs = 064D, 076B
 }
 
 func HandleMsgMhfAcquireMonthlyItem(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfAcquireMonthlyItem)
-	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func HandleMsgMhfEnumerateInvGuild(s *Session, p mhfpacket.MHFPacket) {
@@ -2113,7 +2115,7 @@ func HandleMsgMhfEnumerateInvGuild(s *Session, p mhfpacket.MHFPacket) {
 
 func HandleMsgMhfOperationInvGuild(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfOperationInvGuild)
-	DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+	broadcast.DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func HandleMsgMhfUpdateGuildcard(s *Session, p mhfpacket.MHFPacket) {}

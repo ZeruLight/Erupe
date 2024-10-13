@@ -2,6 +2,7 @@ package channelserver
 
 import (
 	"erupe-ce/network/mhfpacket"
+	"erupe-ce/utils/broadcast"
 	"erupe-ce/utils/byteframe"
 	"erupe-ce/utils/db"
 	"fmt"
@@ -23,7 +24,7 @@ func handleMsgMhfAddKouryouPoint(s *Session, p mhfpacket.MHFPacket) {
 	}
 	resp := byteframe.NewByteFrame()
 	resp.WriteUint32(uint32(points))
-	DoAckBufSucceed(s, pkt.AckHandle, resp.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, resp.Data())
 }
 
 func handleMsgMhfGetKouryouPoint(s *Session, p mhfpacket.MHFPacket) {
@@ -39,7 +40,7 @@ func handleMsgMhfGetKouryouPoint(s *Session, p mhfpacket.MHFPacket) {
 	}
 	resp := byteframe.NewByteFrame()
 	resp.WriteUint32(uint32(points))
-	DoAckBufSucceed(s, pkt.AckHandle, resp.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, resp.Data())
 }
 
 func handleMsgMhfExchangeKouryouPoint(s *Session, p mhfpacket.MHFPacket) {
@@ -56,5 +57,5 @@ func handleMsgMhfExchangeKouryouPoint(s *Session, p mhfpacket.MHFPacket) {
 	}
 	resp := byteframe.NewByteFrame()
 	resp.WriteUint32(uint32(points))
-	DoAckBufSucceed(s, pkt.AckHandle, resp.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, resp.Data())
 }

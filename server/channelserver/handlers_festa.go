@@ -3,6 +3,7 @@ package channelserver
 import (
 	"erupe-ce/config"
 	"erupe-ce/network/mhfpacket"
+	"erupe-ce/utils/broadcast"
 	"erupe-ce/utils/byteframe"
 	"erupe-ce/utils/db"
 	"erupe-ce/utils/gametime"
@@ -20,7 +21,7 @@ func handleMsgMhfSaveMezfesData(s *Session, p mhfpacket.MHFPacket) {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
 	database.Exec(`UPDATE characters SET mezfes=$1 WHERE id=$2`, pkt.RawDataPayload, s.CharID)
-	DoAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
 func handleMsgMhfLoadMezfesData(s *Session, p mhfpacket.MHFPacket) {
@@ -41,7 +42,7 @@ func handleMsgMhfLoadMezfesData(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint32(0)
 		bf.WriteUint32(0)
 	}
-	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfEnumerateRanking(s *Session, p mhfpacket.MHFPacket) {
@@ -74,7 +75,7 @@ func handleMsgMhfEnumerateRanking(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint32(uint32(gametime.TimeAdjusted().Unix())) // TS Current Time
 		bf.WriteUint8(3)
 		bf.WriteBytes(make([]byte, 4))
-		DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+		broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 		return
 	}
 	bf.WriteUint32(uint32(gametime.TimeAdjusted().Unix())) // TS Current Time
@@ -100,7 +101,7 @@ func handleMsgMhfEnumerateRanking(s *Session, p mhfpacket.MHFPacket) {
 		psUint16 desc
 	*/
 
-	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func cleanupFesta(s *Session) {
@@ -198,7 +199,7 @@ func handleMsgMhfInfoFesta(s *Session, p mhfpacket.MHFPacket) {
 	var timestamps []uint32
 	if config.GetConfig().DebugOptions.FestaOverride >= 0 {
 		if config.GetConfig().DebugOptions.FestaOverride == 0 {
-			DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
+			broadcast.DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
 			return
 		}
 		timestamps = generateFestaTimestamps(s, uint32(config.GetConfig().DebugOptions.FestaOverride), true)
@@ -207,7 +208,7 @@ func handleMsgMhfInfoFesta(s *Session, p mhfpacket.MHFPacket) {
 	}
 
 	if timestamps[0] > uint32(gametime.TimeAdjusted().Unix()) {
-		DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
+		broadcast.DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
 
@@ -372,7 +373,7 @@ func handleMsgMhfInfoFesta(s *Session, p mhfpacket.MHFPacket) {
 	if config.GetConfig().ClientID >= config.G52 {
 		ps.Uint16(bf, "", false)
 	}
-	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 // state festa (U)ser
@@ -388,7 +389,7 @@ func handleMsgMhfStateFestaU(s *Session, p mhfpacket.MHFPacket) {
 		applicant, _ = guild.HasApplicationForCharID(s, s.CharID)
 	}
 	if err != nil || guild == nil || applicant {
-		DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+		broadcast.DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
 	var souls, exists uint32
@@ -403,7 +404,7 @@ func handleMsgMhfStateFestaU(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteBool(false)
 		bf.WriteBool(true)
 	}
-	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 // state festa (G)uild
@@ -421,7 +422,7 @@ func handleMsgMhfStateFestaG(s *Session, p mhfpacket.MHFPacket) {
 		resp.WriteInt32(-1)
 		resp.WriteInt32(0)
 		resp.WriteInt32(0)
-		DoAckBufSucceed(s, pkt.AckHandle, resp.Data())
+		broadcast.DoAckBufSucceed(s, pkt.AckHandle, resp.Data())
 		return
 	}
 	resp.WriteUint32(guild.Souls)
@@ -429,19 +430,19 @@ func handleMsgMhfStateFestaG(s *Session, p mhfpacket.MHFPacket) {
 	resp.WriteInt32(1) // unk, rank?
 	resp.WriteInt32(1) // unk
 	resp.WriteInt32(1) // unk
-	DoAckBufSucceed(s, pkt.AckHandle, resp.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, resp.Data())
 }
 
 func handleMsgMhfEnumerateFestaMember(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateFestaMember)
 	guild, err := GetGuildInfoByCharacterId(s, s.CharID)
 	if err != nil || guild == nil {
-		DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+		broadcast.DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
 	members, err := GetGuildMembers(s, guild.ID, false)
 	if err != nil {
-		DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+		broadcast.DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
 	sort.Slice(members, func(i, j int) bool {
@@ -465,7 +466,7 @@ func handleMsgMhfEnumerateFestaMember(s *Session, p mhfpacket.MHFPacket) {
 			bf.WriteUint32(member.Souls)
 		}
 	}
-	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfVoteFesta(s *Session, p mhfpacket.MHFPacket) {
@@ -475,7 +476,7 @@ func handleMsgMhfVoteFesta(s *Session, p mhfpacket.MHFPacket) {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
 	database.Exec(`UPDATE guild_characters SET trial_vote=$1 WHERE character_id=$2`, pkt.TrialID, s.CharID)
-	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfEntryFesta(s *Session, p mhfpacket.MHFPacket) {
@@ -486,7 +487,7 @@ func handleMsgMhfEntryFesta(s *Session, p mhfpacket.MHFPacket) {
 	}
 	guild, err := GetGuildInfoByCharacterId(s, s.CharID)
 	if err != nil || guild == nil {
-		DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+		broadcast.DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
 	team := uint32(token.RNG.Intn(2))
@@ -498,7 +499,7 @@ func handleMsgMhfEntryFesta(s *Session, p mhfpacket.MHFPacket) {
 	}
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint32(team)
-	DoAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfChargeFesta(s *Session, p mhfpacket.MHFPacket) {
@@ -515,7 +516,7 @@ func handleMsgMhfChargeFesta(s *Session, p mhfpacket.MHFPacket) {
 		_, _ = tx.Exec(`INSERT INTO festa_submissions VALUES ($1, $2, $3, $4, now())`, s.CharID, pkt.GuildID, i, pkt.Souls[i])
 	}
 	_ = tx.Commit()
-	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfAcquireFesta(s *Session, p mhfpacket.MHFPacket) {
@@ -525,7 +526,7 @@ func handleMsgMhfAcquireFesta(s *Session, p mhfpacket.MHFPacket) {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
 	database.Exec("INSERT INTO public.festa_prizes_accepted VALUES (0, $1)", s.CharID)
-	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfAcquireFestaPersonalPrize(s *Session, p mhfpacket.MHFPacket) {
@@ -535,7 +536,7 @@ func handleMsgMhfAcquireFestaPersonalPrize(s *Session, p mhfpacket.MHFPacket) {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
 	database.Exec("INSERT INTO public.festa_prizes_accepted VALUES ($1, $2)", pkt.PrizeID, s.CharID)
-	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfAcquireFestaIntermediatePrize(s *Session, p mhfpacket.MHFPacket) {
@@ -545,7 +546,7 @@ func handleMsgMhfAcquireFestaIntermediatePrize(s *Session, p mhfpacket.MHFPacket
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
 	database.Exec("INSERT INTO public.festa_prizes_accepted VALUES ($1, $2)", pkt.PrizeID, s.CharID)
-	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 type Prize struct {
@@ -584,7 +585,7 @@ func handleMsgMhfEnumerateFestaPersonalPrize(s *Session, p mhfpacket.MHFPacket) 
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint32(count)
 	bf.WriteBytes(prizeData.Data())
-	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfEnumerateFestaIntermediatePrize(s *Session, p mhfpacket.MHFPacket) {
@@ -614,5 +615,5 @@ func handleMsgMhfEnumerateFestaIntermediatePrize(s *Session, p mhfpacket.MHFPack
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint32(count)
 	bf.WriteBytes(prizeData.Data())
-	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }

@@ -3,11 +3,13 @@ package channelserver
 import (
 	"encoding/binary"
 	"erupe-ce/config"
+	"erupe-ce/utils/broadcast"
 	"erupe-ce/utils/db"
 	"erupe-ce/utils/gametime"
 	"erupe-ce/utils/mhfcourse"
 	"erupe-ce/utils/mhfitem"
 	"erupe-ce/utils/mhfmon"
+
 	ps "erupe-ce/utils/pascalstring"
 	"erupe-ce/utils/stringsupport"
 	"fmt"
@@ -29,7 +31,7 @@ func stubEnumerateNoResults(s *Session, ackHandle uint32) {
 	enumBf := byteframe.NewByteFrame()
 	enumBf.WriteUint32(0) // Entry count (count for quests, rankings, events, etc.)
 
-	DoAckBufSucceed(s, ackHandle, enumBf.Data())
+	broadcast.DoAckBufSucceed(s, ackHandle, enumBf.Data())
 }
 
 func updateRights(s *Session) {
@@ -80,7 +82,7 @@ func handleMsgSysTerminalLog(s *Session, p mhfpacket.MHFPacket) {
 	}
 	resp := byteframe.NewByteFrame()
 	resp.WriteUint32(pkt.LogID + 1) // LogID to use for requests after this.
-	DoAckSimpleSucceed(s, pkt.AckHandle, resp.Data())
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, resp.Data())
 }
 
 func handleMsgSysLogin(s *Session, p mhfpacket.MHFPacket) {
@@ -127,7 +129,7 @@ func handleMsgSysLogin(s *Session, p mhfpacket.MHFPacket) {
 		panic(err)
 	}
 
-	DoAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
 
 	updateRights(s)
 
@@ -234,7 +236,7 @@ func handleMsgSysSetStatus(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgSysPing(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysPing)
-	DoAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
 func handleMsgSysTime(s *Session, p mhfpacket.MHFPacket) {
@@ -265,7 +267,7 @@ func handleMsgSysIssueLogkey(s *Session, p mhfpacket.MHFPacket) {
 	// Issue it.
 	resp := byteframe.NewByteFrame()
 	resp.WriteBytes(logKey)
-	DoAckBufSucceed(s, pkt.AckHandle, resp.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, resp.Data())
 }
 
 func handleMsgSysRecordLog(s *Session, p mhfpacket.MHFPacket) {
@@ -287,7 +289,7 @@ func handleMsgSysRecordLog(s *Session, p mhfpacket.MHFPacket) {
 	}
 	// remove a client returning to town from reserved slots to make sure the stage is hidden from board
 	delete(s.stage.reservedClientSlots, s.CharID)
-	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgSysEcho(s *Session, p mhfpacket.MHFPacket) {}
@@ -312,12 +314,12 @@ func handleMsgSysLockGlobalSema(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint8(0)
 		ps.Uint16(bf, pkt.ServerChannelIDString, false)
 	}
-	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgSysUnlockGlobalSema(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysUnlockGlobalSema)
-	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgSysUpdateRight(s *Session, p mhfpacket.MHFPacket) {}
@@ -329,7 +331,7 @@ func handleMsgSysAuthTerminal(s *Session, p mhfpacket.MHFPacket) {}
 func handleMsgSysRightsReload(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysRightsReload)
 	updateRights(s)
-	DoAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
 func handleMsgMhfTransitMessage(s *Session, p mhfpacket.MHFPacket) {
@@ -578,7 +580,7 @@ func handleMsgMhfTransitMessage(s *Session, p mhfpacket.MHFPacket) {
 	}
 	resp.Seek(0, io.SeekStart)
 	resp.WriteUint16(count)
-	DoAckBufSucceed(s, pkt.AckHandle, resp.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, resp.Data())
 }
 
 func handleMsgCaExchangeItem(s *Session, p mhfpacket.MHFPacket) {}
@@ -588,7 +590,7 @@ func handleMsgMhfServerCommand(s *Session, p mhfpacket.MHFPacket) {}
 func handleMsgMhfAnnounce(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfAnnounce)
 	s.Server.BroadcastRaviente(pkt.IPAddress, pkt.Port, pkt.StageID, pkt.Data.ReadUint8())
-	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfSetLoginwindow(s *Session, p mhfpacket.MHFPacket) {}
@@ -611,7 +613,7 @@ func handleMsgMhfGetCaUniqueID(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfTransferItem(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfTransferItem)
-	DoAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
 func handleMsgMhfEnumeratePrice(s *Session, p mhfpacket.MHFPacket) {
@@ -776,7 +778,7 @@ func handleMsgMhfEnumeratePrice(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint16(gz.Unk3)
 		bf.WriteUint8(gz.Unk4)
 	}
-	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfEnumerateOrder(s *Session, p mhfpacket.MHFPacket) {
@@ -810,7 +812,7 @@ func handleMsgMhfEnumerateUnionItem(s *Session, p mhfpacket.MHFPacket) {
 	items := userGetItems(s)
 	bf := byteframe.NewByteFrame()
 	bf.WriteBytes(mhfitem.SerializeWarehouseItems(items))
-	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfUpdateUnionItem(s *Session, p mhfpacket.MHFPacket) {
@@ -821,7 +823,7 @@ func handleMsgMhfUpdateUnionItem(s *Session, p mhfpacket.MHFPacket) {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
 	database.Exec(`UPDATE users u SET item_box=$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)`, mhfitem.SerializeWarehouseItems(newStacks), s.CharID)
-	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfGetCogInfo(s *Session, p mhfpacket.MHFPacket) {}
@@ -855,7 +857,7 @@ func handleMsgMhfCheckWeeklyStamp(s *Session, p mhfpacket.MHFPacket) {
 	bf.WriteUint16(0)
 	bf.WriteUint16(0)
 	bf.WriteUint32(uint32(gametime.TimeWeekStart().Unix()))
-	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfExchangeWeeklyStamp(s *Session, p mhfpacket.MHFPacket) {
@@ -885,7 +887,7 @@ func handleMsgMhfExchangeWeeklyStamp(s *Session, p mhfpacket.MHFPacket) {
 	bf.WriteUint16(tktStack.Item.ItemID)
 	bf.WriteUint16(tktStack.Quantity)
 	bf.WriteUint32(uint32(gametime.TimeWeekStart().Unix()))
-	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func getGoocooData(s *Session, cid uint32) [][]byte {
@@ -917,7 +919,7 @@ func handleMsgMhfEnumerateGuacot(s *Session, p mhfpacket.MHFPacket) {
 	for _, goocoo := range goocoos {
 		bf.WriteBytes(goocoo)
 	}
-	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfUpdateGuacot(s *Session, p mhfpacket.MHFPacket) {
@@ -944,7 +946,7 @@ func handleMsgMhfUpdateGuacot(s *Session, p mhfpacket.MHFPacket) {
 			dumpSaveData(s, bf.Data(), fmt.Sprintf("goocoo-%d", goocoo.Index))
 		}
 	}
-	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 type Scenario struct {
@@ -969,7 +971,7 @@ func handleMsgMhfInfoScenarioCounter(s *Session, p mhfpacket.MHFPacket) {
 	if err != nil {
 		scenarioData.Close()
 		s.Logger.Error("Failed to get scenario counter info from db", zap.Error(err))
-		DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 1))
+		broadcast.DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 1))
 		return
 	}
 	for scenarioData.Next() {
@@ -998,7 +1000,7 @@ func handleMsgMhfInfoScenarioCounter(s *Session, p mhfpacket.MHFPacket) {
 		}
 		bf.WriteUint8(scenario.CategoryID)
 	}
-	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfGetEtcPoints(s *Session, p mhfpacket.MHFPacket) {
@@ -1020,7 +1022,7 @@ func handleMsgMhfGetEtcPoints(s *Session, p mhfpacket.MHFPacket) {
 	resp.WriteUint32(bonusQuests)
 	resp.WriteUint32(dailyQuests)
 	resp.WriteUint32(promoPoints)
-	DoAckBufSucceed(s, pkt.AckHandle, resp.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, resp.Data())
 }
 
 func handleMsgMhfUpdateEtcPoint(s *Session, p mhfpacket.MHFPacket) {
@@ -1048,7 +1050,7 @@ func handleMsgMhfUpdateEtcPoint(s *Session, p mhfpacket.MHFPacket) {
 			database.Exec(fmt.Sprintf(`UPDATE characters SET %s = %s + $1 WHERE id = $2`, column, column), pkt.Delta, s.CharID)
 		}
 	}
-	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfStampcardStamp(s *Session, p mhfpacket.MHFPacket) {
@@ -1109,14 +1111,14 @@ func handleMsgMhfStampcardStamp(s *Session, p mhfpacket.MHFPacket) {
 	bf.WriteUint16(rewardUnk)
 	bf.WriteUint16(reward.Item.ItemID)
 	bf.WriteUint16(reward.Quantity)
-	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfStampcardPrize(s *Session, p mhfpacket.MHFPacket) {}
 
 func handleMsgMhfUnreserveSrg(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfUnreserveSrg)
-	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfKickExportForce(s *Session, p mhfpacket.MHFPacket) {}
@@ -1139,7 +1141,7 @@ func handleMsgMhfGetEarthStatus(s *Session, p mhfpacket.MHFPacket) {
 		}
 		bf.WriteInt32(m)
 	}
-	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfRegistSpabiTime(s *Session, p mhfpacket.MHFPacket) {}
@@ -1178,7 +1180,7 @@ func handleMsgMhfGetEarthValue(s *Session, p mhfpacket.MHFPacket) {
 		}
 		data = append(data, bf)
 	}
-	DoAckEarthSucceed(s, pkt.AckHandle, data)
+	broadcast.DoAckEarthSucceed(s, pkt.AckHandle, data)
 }
 
 func handleMsgMhfDebugPostValue(s *Session, p mhfpacket.MHFPacket) {}
@@ -1189,7 +1191,7 @@ func handleMsgMhfGetRandFromTable(s *Session, p mhfpacket.MHFPacket) {
 	for i := uint16(0); i < pkt.Results; i++ {
 		bf.WriteUint32(0)
 	}
-	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfGetSenyuDailyCount(s *Session, p mhfpacket.MHFPacket) {
@@ -1197,7 +1199,7 @@ func handleMsgMhfGetSenyuDailyCount(s *Session, p mhfpacket.MHFPacket) {
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint16(0)
 	bf.WriteUint16(0)
-	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 type SeibattleTimetable struct {
@@ -1335,12 +1337,12 @@ func handleMsgMhfGetSeibattle(s *Session, p mhfpacket.MHFPacket) {
 			data = append(data, bf)
 		}
 	}
-	DoAckEarthSucceed(s, pkt.AckHandle, data)
+	broadcast.DoAckEarthSucceed(s, pkt.AckHandle, data)
 }
 
 func handleMsgMhfPostSeibattle(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfPostSeibattle)
-	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfGetDailyMissionMaster(s *Session, p mhfpacket.MHFPacket) {}
@@ -1373,7 +1375,7 @@ func handleMsgMhfGetEquipSkinHist(s *Session, p mhfpacket.MHFPacket) {
 		s.Logger.Error("Failed to load skin_hist", zap.Error(err))
 		data = make([]byte, size)
 	}
-	DoAckBufSucceed(s, pkt.AckHandle, data)
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, data)
 }
 
 func handleMsgMhfUpdateEquipSkinHist(s *Session, p mhfpacket.MHFPacket) {
@@ -1387,7 +1389,7 @@ func handleMsgMhfUpdateEquipSkinHist(s *Session, p mhfpacket.MHFPacket) {
 	err = database.QueryRow("SELECT COALESCE(skin_hist, $2) FROM characters WHERE id = $1", s.CharID, make([]byte, size)).Scan(&data)
 	if err != nil {
 		s.Logger.Error("Failed to get skin_hist", zap.Error(err))
-		DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+		broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
 
@@ -1399,14 +1401,14 @@ func handleMsgMhfUpdateEquipSkinHist(s *Session, p mhfpacket.MHFPacket) {
 	data[startByte+byteInd] |= bits.Reverse8(1 << uint(bitInByte))
 	dumpSaveData(s, data, "skinhist")
 	database.Exec("UPDATE characters SET skin_hist=$1 WHERE id=$2", data, s.CharID)
-	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfGetUdShopCoin(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetUdShopCoin)
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint32(0)
-	DoAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfUseUdShopCoin(s *Session, p mhfpacket.MHFPacket) {}
@@ -1424,7 +1426,7 @@ func handleMsgMhfGetEnhancedMinidata(s *Session, p mhfpacket.MHFPacket) {
 		s.Logger.Error("Failed to load minidata")
 		data = make([]byte, 1)
 	}
-	DoAckBufSucceed(s, pkt.AckHandle, data)
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, data)
 }
 
 func handleMsgMhfSetEnhancedMinidata(s *Session, p mhfpacket.MHFPacket) {
@@ -1438,7 +1440,7 @@ func handleMsgMhfSetEnhancedMinidata(s *Session, p mhfpacket.MHFPacket) {
 	if err != nil {
 		s.Logger.Error("Failed to save minidata", zap.Error(err))
 	}
-	DoAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
 func handleMsgMhfGetLobbyCrowd(s *Session, p mhfpacket.MHFPacket) {
@@ -1448,7 +1450,7 @@ func handleMsgMhfGetLobbyCrowd(s *Session, p mhfpacket.MHFPacket) {
 	// It can be worried about later if we ever get to the point where there are
 	// full servers to actually need to migrate people from and empty ones to
 	pkt := p.(*mhfpacket.MsgMhfGetLobbyCrowd)
-	DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 0x320))
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 0x320))
 }
 
 type TrendWeapon struct {
@@ -1488,7 +1490,7 @@ func handleMsgMhfGetTrendWeapon(s *Session, p mhfpacket.MHFPacket) {
 	}
 	bf.Seek(0, 0)
 	bf.WriteUint8(x)
-	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfUpdateUseTrendWeaponLog(s *Session, p mhfpacket.MHFPacket) {
@@ -1499,5 +1501,5 @@ func handleMsgMhfUpdateUseTrendWeaponLog(s *Session, p mhfpacket.MHFPacket) {
 	}
 	database.Exec(`INSERT INTO trend_weapons (weapon_id, weapon_type, count) VALUES ($1, $2, 1) ON CONFLICT (weapon_id) DO
 		UPDATE SET count = trend_weapons.count+1`, pkt.WeaponID, pkt.WeaponType)
-	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }

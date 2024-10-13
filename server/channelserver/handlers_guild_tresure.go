@@ -3,6 +3,7 @@ package channelserver
 import (
 	"erupe-ce/config"
 	"erupe-ce/network/mhfpacket"
+	"erupe-ce/utils/broadcast"
 	"erupe-ce/utils/byteframe"
 	"erupe-ce/utils/db"
 	"erupe-ce/utils/gametime"
@@ -28,7 +29,7 @@ func HandleMsgMhfEnumerateGuildTresure(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateGuildTresure)
 	guild, err := GetGuildInfoByCharacterId(s, s.CharID)
 	if err != nil || guild == nil {
-		DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
+		broadcast.DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
 	var hunts []TreasureHunt
@@ -56,7 +57,7 @@ func HandleMsgMhfEnumerateGuildTresure(s *Session, p mhfpacket.MHFPacket) {
 		`, s.CharID, guild.ID)
 		if err != nil {
 			rows.Close()
-			DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
+			broadcast.DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
 			return
 		} else {
 			for rows.Next() {
@@ -83,7 +84,7 @@ func HandleMsgMhfEnumerateGuildTresure(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteBool(h.Claimed)
 		bf.WriteBytes(h.HuntData)
 	}
-	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func HandleMsgMhfRegistGuildTresure(s *Session, p mhfpacket.MHFPacket) {
@@ -92,7 +93,7 @@ func HandleMsgMhfRegistGuildTresure(s *Session, p mhfpacket.MHFPacket) {
 	huntData := byteframe.NewByteFrame()
 	guild, err := GetGuildInfoByCharacterId(s, s.CharID)
 	if err != nil || guild == nil {
-		DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+		broadcast.DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
 	guildCats := getGuildAirouList(s)
@@ -121,7 +122,7 @@ func HandleMsgMhfRegistGuildTresure(s *Session, p mhfpacket.MHFPacket) {
 	}
 	database.Exec(`INSERT INTO guild_hunts (guild_id, host_id, destination, level, hunt_data, cats_used) VALUES ($1, $2, $3, $4, $5, $6)
 		`, guild.ID, s.CharID, destination, level, huntData.Data(), catsUsed)
-	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func HandleMsgMhfAcquireGuildTresure(s *Session, p mhfpacket.MHFPacket) {
@@ -131,7 +132,7 @@ func HandleMsgMhfAcquireGuildTresure(s *Session, p mhfpacket.MHFPacket) {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
 	database.Exec(`UPDATE guild_hunts SET acquired=true WHERE id=$1`, pkt.HuntID)
-	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func HandleMsgMhfOperateGuildTresureReport(s *Session, p mhfpacket.MHFPacket) {
@@ -149,7 +150,7 @@ func HandleMsgMhfOperateGuildTresureReport(s *Session, p mhfpacket.MHFPacket) {
 	case 2: // Claim treasure
 		database.Exec(`INSERT INTO guild_hunts_claimed VALUES ($1, $2)`, pkt.HuntID, s.CharID)
 	}
-	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 type TreasureSouvenir struct {
@@ -167,10 +168,10 @@ func HandleMsgMhfGetGuildTresureSouvenir(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint32(souvenir.Destination)
 		bf.WriteUint32(souvenir.Quantity)
 	}
-	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func HandleMsgMhfAcquireGuildTresureSouvenir(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfAcquireGuildTresureSouvenir)
-	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }

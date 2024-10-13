@@ -5,6 +5,7 @@ import (
 	"errors"
 	"erupe-ce/config"
 	"erupe-ce/utils/bfutil"
+	"erupe-ce/utils/broadcast"
 	"erupe-ce/utils/db"
 	"erupe-ce/utils/stringsupport"
 	"fmt"
@@ -260,5 +261,5 @@ func (save *CharacterSaveData) updateStructWithSaveData() {
 
 func handleMsgMhfSexChanger(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSexChanger)
-	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }

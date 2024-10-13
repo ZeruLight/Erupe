@@ -1,6 +1,7 @@
 package channelserver
 
 import (
+	"erupe-ce/utils/broadcast"
 	"erupe-ce/utils/byteframe"
 	"erupe-ce/utils/db"
 	"erupe-ce/utils/gametime"
@@ -29,7 +30,7 @@ func handleMsgMhfAcquireCafeItem(s *Session, p mhfpacket.MHFPacket) {
 	}
 	resp := byteframe.NewByteFrame()
 	resp.WriteUint32(netcafePoints)
-	DoAckSimpleSucceed(s, pkt.AckHandle, resp.Data())
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, resp.Data())
 }
 
 func handleMsgMhfUpdateCafepoint(s *Session, p mhfpacket.MHFPacket) {
@@ -45,7 +46,7 @@ func handleMsgMhfUpdateCafepoint(s *Session, p mhfpacket.MHFPacket) {
 	}
 	resp := byteframe.NewByteFrame()
 	resp.WriteUint32(netcafePoints)
-	DoAckSimpleSucceed(s, pkt.AckHandle, resp.Data())
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, resp.Data())
 }
 
 func handleMsgMhfCheckDailyCafepoint(s *Session, p mhfpacket.MHFPacket) {
@@ -82,7 +83,7 @@ func handleMsgMhfCheckDailyCafepoint(s *Session, p mhfpacket.MHFPacket) {
 	bf.WriteUint32(bondBonus)
 	bf.WriteUint32(bonusQuests)
 	bf.WriteUint32(dailyQuests)
-	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfGetCafeDuration(s *Session, p mhfpacket.MHFPacket) {
@@ -117,7 +118,7 @@ func handleMsgMhfGetCafeDuration(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint16(0)
 		ps.Uint16(bf, fmt.Sprintf(s.Server.i18n.cafe.reset, int(cafeReset.Month()), cafeReset.Day()), true)
 	}
-	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 type CafeBonus struct {
@@ -147,7 +148,7 @@ func handleMsgMhfGetCafeDurationBonusInfo(s *Session, p mhfpacket.MHFPacket) {
 	FROM cafebonus cb ORDER BY id ASC;`, s.CharID)
 	if err != nil {
 		s.Logger.Error("Error getting cafebonus", zap.Error(err))
-		DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
+		broadcast.DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
 	} else {
 		for rows.Next() {
 			count++
@@ -167,7 +168,7 @@ func handleMsgMhfGetCafeDurationBonusInfo(s *Session, p mhfpacket.MHFPacket) {
 		resp.WriteUint32(uint32(gametime.TimeAdjusted().Unix()))
 		resp.WriteUint32(count)
 		resp.WriteBytes(bf.Data())
-		DoAckBufSucceed(s, pkt.AckHandle, resp.Data())
+		broadcast.DoAckBufSucceed(s, pkt.AckHandle, resp.Data())
 	}
 }
 
@@ -193,7 +194,7 @@ func handleMsgMhfReceiveCafeDurationBonus(s *Session, p mhfpacket.MHFPacket) {
 		WHERE ch.id = $1 
 	) >= time_req`, s.CharID, gametime.TimeAdjusted().Unix()-s.sessionStart)
 	if err != nil {
-		DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+		broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 	} else {
 		for rows.Next() {
 			cafeBonus := &CafeBonus{}
@@ -209,7 +210,7 @@ func handleMsgMhfReceiveCafeDurationBonus(s *Session, p mhfpacket.MHFPacket) {
 		}
 		bf.Seek(0, io.SeekStart)
 		bf.WriteUint32(count)
-		DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+		broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 	}
 }
 
@@ -231,7 +232,7 @@ func handleMsgMhfPostCafeDurationBonusReceived(s *Session, p mhfpacket.MHFPacket
 		}
 		database.Exec("INSERT INTO public.cafe_accepted VALUES ($1, $2)", cbID, s.CharID)
 	}
-	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func addPointNetcafe(s *Session, p int) error {
@@ -263,17 +264,17 @@ func handleMsgMhfStartBoostTime(s *Session, p mhfpacket.MHFPacket) {
 	boostLimit := gametime.TimeAdjusted().Add(time.Duration(config.GetConfig().GameplayOptions.BoostTimeDuration) * time.Second)
 	if config.GetConfig().GameplayOptions.DisableBoostTime {
 		bf.WriteUint32(0)
-		DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+		broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 		return
 	}
 	database.Exec("UPDATE characters SET boost_time=$1 WHERE id=$2", boostLimit, s.CharID)
 	bf.WriteUint32(uint32(boostLimit.Unix()))
-	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfGetBoostTime(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetBoostTime)
-	DoAckBufSucceed(s, pkt.AckHandle, []byte{})
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, []byte{})
 }
 
 func handleMsgMhfGetBoostTimeLimit(s *Session, p mhfpacket.MHFPacket) {
@@ -290,8 +291,8 @@ func handleMsgMhfGetBoostTimeLimit(s *Session, p mhfpacket.MHFPacket) {
 	} else {
 		bf.WriteUint32(uint32(boostLimit.Unix()))
 	}
-	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
-	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfGetBoostRight(s *Session, p mhfpacket.MHFPacket) {
@@ -303,27 +304,27 @@ func handleMsgMhfGetBoostRight(s *Session, p mhfpacket.MHFPacket) {
 	}
 	err = database.QueryRow("SELECT boost_time FROM characters WHERE id=$1", s.CharID).Scan(&boostLimit)
 	if err != nil {
-		DoAckBufSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+		broadcast.DoAckBufSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 		return
 	}
 	if boostLimit.After(gametime.TimeAdjusted()) {
-		DoAckBufSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x01})
+		broadcast.DoAckBufSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x01})
 	} else {
-		DoAckBufSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x02})
+		broadcast.DoAckBufSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x02})
 	}
 }
 
 func handleMsgMhfPostBoostTimeQuestReturn(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfPostBoostTimeQuestReturn)
-	DoAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
 func handleMsgMhfPostBoostTime(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfPostBoostTime)
-	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfPostBoostTimeLimit(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfPostBoostTimeLimit)
-	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }

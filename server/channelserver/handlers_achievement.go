@@ -2,6 +2,7 @@ package channelserver
 
 import (
 	"erupe-ce/network/mhfpacket"
+	"erupe-ce/utils/broadcast"
 	"erupe-ce/utils/byteframe"
 	"erupe-ce/utils/db"
 	"fmt"
@@ -105,7 +106,7 @@ func handleMsgMhfGetAchievement(s *Session, p mhfpacket.MHFPacket) {
 		&scores[17], &scores[18], &scores[19], &scores[20], &scores[21], &scores[22], &scores[23], &scores[24],
 		&scores[25], &scores[26], &scores[27], &scores[28], &scores[29], &scores[30], &scores[31], &scores[32])
 	if err != nil {
-		DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 20))
+		broadcast.DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 20))
 		return
 	}
 
@@ -141,12 +142,12 @@ func handleMsgMhfGetAchievement(s *Session, p mhfpacket.MHFPacket) {
 	resp.WriteUint32(points)
 	resp.WriteUint32(points)
 	resp.WriteUint32(points)
-	DoAckBufSucceed(s, pkt.AckHandle, resp.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, resp.Data())
 }
 
 func handleMsgMhfSetCaAchievementHist(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSetCaAchievementHist)
-	DoAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
 func handleMsgMhfResetAchievement(s *Session, p mhfpacket.MHFPacket) {}

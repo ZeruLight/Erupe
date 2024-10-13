@@ -5,6 +5,7 @@ import (
 
 	"erupe-ce/config"
 	"erupe-ce/network/mhfpacket"
+	"erupe-ce/utils/broadcast"
 	"erupe-ce/utils/byteframe"
 )
 
@@ -25,7 +26,7 @@ func handleMsgSysCreateObject(s *Session, p mhfpacket.MHFPacket) {
 	// Response to our requesting client.
 	resp := byteframe.NewByteFrame()
 	resp.WriteUint32(newObj.id) // New local obj handle.
-	DoAckSimpleSucceed(s, pkt.AckHandle, resp.Data())
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, resp.Data())
 	// Duplicate the object creation to all sessions in the same stage.
 	dupObjUpdate := &mhfpacket.MsgSysDuplicateObject{
 		ObjID:       newObj.id,

@@ -2,6 +2,7 @@ package channelserver
 
 import (
 	"database/sql"
+	"erupe-ce/utils/broadcast"
 	"erupe-ce/utils/db"
 	"erupe-ce/utils/stringsupport"
 	"fmt"
@@ -230,13 +231,13 @@ func handleMsgMhfReadMail(s *Session, p mhfpacket.MHFPacket) {
 	}
 	mailId := s.mailList[pkt.AccIndex]
 	if mailId == 0 {
-		DoAckBufSucceed(s, pkt.AckHandle, []byte{0})
+		broadcast.DoAckBufSucceed(s, pkt.AckHandle, []byte{0})
 		return
 	}
 
 	mail, err := GetMailByID(s, mailId)
 	if err != nil {
-		DoAckBufSucceed(s, pkt.AckHandle, []byte{0})
+		broadcast.DoAckBufSucceed(s, pkt.AckHandle, []byte{0})
 		return
 	}
 
@@ -244,7 +245,7 @@ func handleMsgMhfReadMail(s *Session, p mhfpacket.MHFPacket) {
 	bf := byteframe.NewByteFrame()
 	body := stringsupport.UTF8ToSJIS(mail.Body)
 	bf.WriteNullTerminatedBytes(body)
-	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfListMail(s *Session, p mhfpacket.MHFPacket) {
@@ -252,7 +253,7 @@ func handleMsgMhfListMail(s *Session, p mhfpacket.MHFPacket) {
 
 	mail, err := GetMailListForCharacter(s, s.CharID)
 	if err != nil {
-		DoAckBufSucceed(s, pkt.AckHandle, []byte{0})
+		broadcast.DoAckBufSucceed(s, pkt.AckHandle, []byte{0})
 		return
 	}
 
@@ -313,7 +314,7 @@ func handleMsgMhfListMail(s *Session, p mhfpacket.MHFPacket) {
 		}
 	}
 
-	DoAckBufSucceed(s, pkt.AckHandle, msg.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, msg.Data())
 }
 
 func handleMsgMhfOprtMail(s *Session, p mhfpacket.MHFPacket) {
@@ -324,7 +325,7 @@ func handleMsgMhfOprtMail(s *Session, p mhfpacket.MHFPacket) {
 	}
 	mail, err := GetMailByID(s, s.mailList[pkt.AccIndex])
 	if err != nil {
-		DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+		broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
 
@@ -338,7 +339,7 @@ func handleMsgMhfOprtMail(s *Session, p mhfpacket.MHFPacket) {
 	case mhfpacket.OperateMailAcquireItem:
 		database.Exec(`UPDATE mail SET attached_item_received = TRUE WHERE id = $1`, mail.ID)
 	}
-	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfSendMail(s *Session, p mhfpacket.MHFPacket) {
@@ -356,20 +357,20 @@ func handleMsgMhfSendMail(s *Session, p mhfpacket.MHFPacket) {
 		g, err := GetGuildInfoByCharacterId(s, s.CharID)
 		if err != nil {
 			s.Logger.Error("Failed to get guild info for mail")
-			DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+			broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 			return
 		}
 		gm, err := GetGuildMembers(s, g.ID, false)
 		if err != nil {
 			s.Logger.Error("Failed to get guild members for mail")
-			DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+			broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 			return
 		}
 		for i := 0; i < len(gm); i++ {
 			_, err := database.Exec(query, s.CharID, gm[i].CharID, pkt.Subject, pkt.Body, 0, 0, false)
 			if err != nil {
 				s.Logger.Error("Failed to send mail")
-				DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+				broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 				return
 			}
 		}
@@ -379,5 +380,5 @@ func handleMsgMhfSendMail(s *Session, p mhfpacket.MHFPacket) {
 			s.Logger.Error("Failed to send mail")
 		}
 	}
-	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }

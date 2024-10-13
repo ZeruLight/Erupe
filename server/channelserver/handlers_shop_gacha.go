@@ -3,6 +3,7 @@ package channelserver
 import (
 	"erupe-ce/config"
 	"erupe-ce/network/mhfpacket"
+	"erupe-ce/utils/broadcast"
 	"erupe-ce/utils/byteframe"
 	"erupe-ce/utils/db"
 	"erupe-ce/utils/gametime"
@@ -134,13 +135,13 @@ func handleMsgMhfEnumerateShop(s *Session, p mhfpacket.MHFPacket) {
 	case 1: // Running gachas
 		// Fundamentally, gacha works completely differently, just hide it for now.
 		if config.GetConfig().ClientID <= config.G7 {
-			DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
+			broadcast.DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
 			return
 		}
 
 		rows, err := database.Queryx("SELECT id, min_gr, min_hr, name, url_banner, url_feature, url_thumbnail, wide, recommended, gacha_type, hidden FROM gacha_shop")
 		if err != nil {
-			DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
+			broadcast.DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
 			return
 		}
 		bf := byteframe.NewByteFrame()
@@ -180,7 +181,7 @@ func handleMsgMhfEnumerateShop(s *Session, p mhfpacket.MHFPacket) {
 				bf.WriteBool(g.Hidden)
 			}
 		}
-		DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+		broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 	case 2: // Actual gacha
 		bf := byteframe.NewByteFrame()
 		bf.WriteUint32(pkt.ShopID)
@@ -188,7 +189,7 @@ func handleMsgMhfEnumerateShop(s *Session, p mhfpacket.MHFPacket) {
 		database.QueryRow(`SELECT gacha_type FROM gacha_shop WHERE id = $1`, pkt.ShopID).Scan(&gachaType)
 		rows, err := database.Queryx(`SELECT entry_type, id, item_type, item_number, item_quantity, weight, rarity, rolls, daily_limit, frontier_points, COALESCE(name, '') AS name FROM gacha_entries WHERE gacha_id = $1 ORDER BY weight DESC`, pkt.ShopID)
 		if err != nil {
-			DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
+			broadcast.DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
 			return
 		}
 		var divisor float64
@@ -245,7 +246,7 @@ func handleMsgMhfEnumerateShop(s *Session, p mhfpacket.MHFPacket) {
 				bf.WriteUint16(gi.Quantity)
 			}
 		}
-		DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+		broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 	case 3: // Hunting Festival Exchange
 		fallthrough
 	case 4: // N Points, 0-6
@@ -267,7 +268,7 @@ func handleMsgMhfEnumerateShop(s *Session, p mhfpacket.MHFPacket) {
 			items = items[:pkt.Limit]
 		}
 		writeShopItems(bf, items)
-		DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+		broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 	}
 }
 
@@ -291,14 +292,14 @@ func handleMsgMhfAcquireExchangeShop(s *Session, p mhfpacket.MHFPacket) {
 			WHERE EXCLUDED.character_id=$1 AND EXCLUDED.shop_item_id=$2
 		`, s.CharID, itemHash, buyCount)
 	}
-	DoAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
 func handleMsgMhfGetGachaPlayHistory(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetGachaPlayHistory)
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint8(1)
-	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfGetGachaPoint(s *Session, p mhfpacket.MHFPacket) {
@@ -313,7 +314,7 @@ func handleMsgMhfGetGachaPoint(s *Session, p mhfpacket.MHFPacket) {
 	resp.WriteUint32(gp)
 	resp.WriteUint32(gt)
 	resp.WriteUint32(fp)
-	DoAckBufSucceed(s, pkt.AckHandle, resp.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, resp.Data())
 }
 
 func handleMsgMhfUseGachaPoint(s *Session, p mhfpacket.MHFPacket) {
@@ -328,7 +329,7 @@ func handleMsgMhfUseGachaPoint(s *Session, p mhfpacket.MHFPacket) {
 	if pkt.PremiumCoins > 0 {
 		database.Exec(`UPDATE users u SET gacha_premium=gacha_premium-$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)`, pkt.PremiumCoins, s.CharID)
 	}
-	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func spendGachaCoin(s *Session, quantity uint16) {
@@ -471,9 +472,9 @@ func handleMsgMhfReceiveGachaItem(s *Session, p mhfpacket.MHFPacket) {
 		resp := byteframe.NewByteFrame()
 		resp.WriteUint8(36)
 		resp.WriteBytes(data[1:181])
-		DoAckBufSucceed(s, pkt.AckHandle, resp.Data())
+		broadcast.DoAckBufSucceed(s, pkt.AckHandle, resp.Data())
 	} else {
-		DoAckBufSucceed(s, pkt.AckHandle, data)
+		broadcast.DoAckBufSucceed(s, pkt.AckHandle, data)
 	}
 
 	if !pkt.Freeze {
@@ -501,13 +502,13 @@ func handleMsgMhfPlayNormalGacha(s *Session, p mhfpacket.MHFPacket) {
 	}
 	err, rolls := transactGacha(s, pkt.GachaID, pkt.RollType)
 	if err != nil {
-		DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 1))
+		broadcast.DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 1))
 		return
 	}
 
 	rows, err := database.Queryx(`SELECT id, weight, rarity FROM gacha_entries WHERE gacha_id = $1 AND entry_type = 100 ORDER BY weight DESC`, pkt.GachaID)
 	if err != nil {
-		DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 1))
+		broadcast.DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 1))
 		return
 	}
 	for rows.Next() {
@@ -540,7 +541,7 @@ func handleMsgMhfPlayNormalGacha(s *Session, p mhfpacket.MHFPacket) {
 
 	bf.WriteUint8(uint8(len(rewards)))
 	bf.WriteBytes(temp.Data())
-	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 	addGachaItem(s, rewards)
 }
 
@@ -553,7 +554,7 @@ func handleMsgMhfPlayStepupGacha(s *Session, p mhfpacket.MHFPacket) {
 	var reward GachaItem
 	err, rolls := transactGacha(s, pkt.GachaID, pkt.RollType)
 	if err != nil {
-		DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 1))
+		broadcast.DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 1))
 		return
 	}
 	database, err := db.GetDB()
@@ -566,7 +567,7 @@ func handleMsgMhfPlayStepupGacha(s *Session, p mhfpacket.MHFPacket) {
 
 	rows, err := database.Queryx(`SELECT id, weight, rarity FROM gacha_entries WHERE gacha_id = $1 AND entry_type = 100 ORDER BY weight DESC`, pkt.GachaID)
 	if err != nil {
-		DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 1))
+		broadcast.DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 1))
 		return
 	}
 	for rows.Next() {
@@ -607,7 +608,7 @@ func handleMsgMhfPlayStepupGacha(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint8(0)
 	}
 	bf.WriteBytes(temp.Data())
-	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 	addGachaItem(s, rewards)
 	addGachaItem(s, guaranteedItems)
 }
@@ -630,7 +631,7 @@ func handleMsgMhfGetStepupStatus(s *Session, p mhfpacket.MHFPacket) {
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint8(step)
 	bf.WriteUint32(uint32(gametime.TimeAdjusted().Unix()))
-	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfGetBoxGachaInfo(s *Session, p mhfpacket.MHFPacket) {
@@ -641,7 +642,7 @@ func handleMsgMhfGetBoxGachaInfo(s *Session, p mhfpacket.MHFPacket) {
 	}
 	entries, err := database.Queryx(`SELECT entry_id FROM gacha_box WHERE gacha_id = $1 AND character_id = $2`, pkt.GachaID, s.CharID)
 	if err != nil {
-		DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 1))
+		broadcast.DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 1))
 		return
 	}
 	var entryIDs []uint32
@@ -656,7 +657,7 @@ func handleMsgMhfGetBoxGachaInfo(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint32(entryIDs[i])
 		bf.WriteBool(true)
 	}
-	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfPlayBoxGacha(s *Session, p mhfpacket.MHFPacket) {
@@ -668,7 +669,7 @@ func handleMsgMhfPlayBoxGacha(s *Session, p mhfpacket.MHFPacket) {
 	var reward GachaItem
 	err, rolls := transactGacha(s, pkt.GachaID, pkt.RollType)
 	if err != nil {
-		DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 1))
+		broadcast.DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 1))
 		return
 	}
 	database, err := db.GetDB()
@@ -677,7 +678,7 @@ func handleMsgMhfPlayBoxGacha(s *Session, p mhfpacket.MHFPacket) {
 	}
 	rows, err := database.Queryx(`SELECT id, weight, rarity FROM gacha_entries WHERE gacha_id = $1 AND entry_type = 100 ORDER BY weight DESC`, pkt.GachaID)
 	if err != nil {
-		DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 1))
+		broadcast.DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 1))
 		return
 	}
 	for rows.Next() {
@@ -707,7 +708,7 @@ func handleMsgMhfPlayBoxGacha(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint16(r.Quantity)
 		bf.WriteUint8(0)
 	}
-	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 	addGachaItem(s, rewards)
 }
 
@@ -718,7 +719,7 @@ func handleMsgMhfResetBoxGachaInfo(s *Session, p mhfpacket.MHFPacket) {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
 	database.Exec("DELETE FROM gacha_box WHERE gacha_id = $1 AND character_id = $2", pkt.GachaID, s.CharID)
-	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfExchangeFpoint2Item(s *Session, p mhfpacket.MHFPacket) {
@@ -734,7 +735,7 @@ func handleMsgMhfExchangeFpoint2Item(s *Session, p mhfpacket.MHFPacket) {
 	database.QueryRow("UPDATE users u SET frontier_points=frontier_points::int - $1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2) RETURNING frontier_points", cost, s.CharID).Scan(&balance)
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint32(balance)
-	DoAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfExchangeItem2Fpoint(s *Session, p mhfpacket.MHFPacket) {
@@ -750,7 +751,7 @@ func handleMsgMhfExchangeItem2Fpoint(s *Session, p mhfpacket.MHFPacket) {
 	database.QueryRow("UPDATE users u SET frontier_points=COALESCE(frontier_points::int + $1, $1) WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2) RETURNING frontier_points", cost, s.CharID).Scan(&balance)
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint32(balance)
-	DoAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 type FPointExchange struct {
@@ -804,12 +805,12 @@ func handleMsgMhfGetFpointExchangeList(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint16(e.FPoints)
 	}
 
-	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfPlayFreeGacha(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfPlayFreeGacha)
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint32(1)
-	DoAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
 }

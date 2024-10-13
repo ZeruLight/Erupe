@@ -6,6 +6,7 @@ import (
 	"erupe-ce/server/channelserver/compression/deltacomp"
 	"erupe-ce/server/channelserver/compression/nullcomp"
 
+	"erupe-ce/utils/broadcast"
 	"erupe-ce/utils/byteframe"
 	"erupe-ce/utils/db"
 	"erupe-ce/utils/gametime"
@@ -29,7 +30,7 @@ func handleMsgMhfLoadPartner(s *Session, p mhfpacket.MHFPacket) {
 		s.Logger.Error("Failed to load partner", zap.Error(err))
 		data = make([]byte, 9)
 	}
-	DoAckBufSucceed(s, pkt.AckHandle, data)
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, data)
 }
 
 func handleMsgMhfSavePartner(s *Session, p mhfpacket.MHFPacket) {
@@ -43,7 +44,7 @@ func handleMsgMhfSavePartner(s *Session, p mhfpacket.MHFPacket) {
 	if err != nil {
 		s.Logger.Error("Failed to save partner", zap.Error(err))
 	}
-	DoAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
 func handleMsgMhfLoadLegendDispatch(s *Session, p mhfpacket.MHFPacket) {
@@ -62,7 +63,7 @@ func handleMsgMhfLoadLegendDispatch(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint32(dispatch.Unk)
 		bf.WriteUint32(dispatch.Timestamp)
 	}
-	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfLoadHunterNavi(s *Session, p mhfpacket.MHFPacket) {
@@ -81,7 +82,7 @@ func handleMsgMhfLoadHunterNavi(s *Session, p mhfpacket.MHFPacket) {
 		s.Logger.Error("Failed to load hunternavi", zap.Error(err))
 		data = make([]byte, naviLength)
 	}
-	DoAckBufSucceed(s, pkt.AckHandle, data)
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, data)
 }
 
 func handleMsgMhfSaveHunterNavi(s *Session, p mhfpacket.MHFPacket) {
@@ -124,7 +125,7 @@ func handleMsgMhfSaveHunterNavi(s *Session, p mhfpacket.MHFPacket) {
 			s.Logger.Error("Failed to save hunternavi", zap.Error(err))
 		}
 	}
-	DoAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
 func handleMsgMhfMercenaryHuntdata(s *Session, p mhfpacket.MHFPacket) {
@@ -135,9 +136,9 @@ func handleMsgMhfMercenaryHuntdata(s *Session, p mhfpacket.MHFPacket) {
 		// struct Hunt
 		//   uint32 HuntID
 		//   uint32 MonID
-		DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 1))
+		broadcast.DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 1))
 	} else {
-		DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 0))
+		broadcast.DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 0))
 	}
 }
 
@@ -151,7 +152,7 @@ func handleMsgMhfEnumerateMercenaryLog(s *Session, p mhfpacket.MHFPacket) {
 	//   []byte Name (len 18)
 	//   uint8 Unk
 	//   uint8 Unk
-	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfCreateMercenary(s *Session, p mhfpacket.MHFPacket) {
@@ -165,7 +166,7 @@ func handleMsgMhfCreateMercenary(s *Session, p mhfpacket.MHFPacket) {
 	_ = database.QueryRow("SELECT nextval('rasta_id_seq')").Scan(&nextID)
 	database.Exec("UPDATE characters SET rasta_id=$1 WHERE id=$2", nextID, s.CharID)
 	bf.WriteUint32(nextID)
-	DoAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfSaveMercenary(s *Session, p mhfpacket.MHFPacket) {
@@ -180,7 +181,7 @@ func handleMsgMhfSaveMercenary(s *Session, p mhfpacket.MHFPacket) {
 		database.Exec("UPDATE characters SET savemercenary=$1, rasta_id=$2 WHERE id=$3", pkt.MercData, temp.ReadUint32(), s.CharID)
 	}
 	database.Exec("UPDATE characters SET gcp=$1, pact_id=$2 WHERE id=$3", pkt.GCP, pkt.PactMercID, s.CharID)
-	DoAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
 func handleMsgMhfReadMercenaryW(s *Session, p mhfpacket.MHFPacket) {
@@ -242,7 +243,7 @@ func handleMsgMhfReadMercenaryW(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint32(gcp)
 	}
 
-	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfReadMercenaryM(s *Session, p mhfpacket.MHFPacket) {
@@ -259,7 +260,7 @@ func handleMsgMhfReadMercenaryM(s *Session, p mhfpacket.MHFPacket) {
 	} else {
 		resp.WriteBytes(data)
 	}
-	DoAckBufSucceed(s, pkt.AckHandle, resp.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, resp.Data())
 }
 
 func handleMsgMhfContractMercenary(s *Session, p mhfpacket.MHFPacket) {
@@ -276,7 +277,7 @@ func handleMsgMhfContractMercenary(s *Session, p mhfpacket.MHFPacket) {
 	case 2: // Cancel loan
 		database.Exec("UPDATE characters SET pact_id=0 WHERE id=$1", pkt.CID)
 	}
-	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfLoadOtomoAirou(s *Session, p mhfpacket.MHFPacket) {
@@ -291,7 +292,7 @@ func handleMsgMhfLoadOtomoAirou(s *Session, p mhfpacket.MHFPacket) {
 		s.Logger.Error("Failed to load otomoairou", zap.Error(err))
 		data = make([]byte, 10)
 	}
-	DoAckBufSucceed(s, pkt.AckHandle, data)
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, data)
 }
 
 func handleMsgMhfSaveOtomoAirou(s *Session, p mhfpacket.MHFPacket) {
@@ -304,7 +305,7 @@ func handleMsgMhfSaveOtomoAirou(s *Session, p mhfpacket.MHFPacket) {
 	decomp, err := nullcomp.Decompress(pkt.RawDataPayload[1:])
 	if err != nil {
 		s.Logger.Error("Failed to decompress airou", zap.Error(err))
-		DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+		broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
 	bf := byteframe.NewByteFrameFromBytes(decomp)
@@ -339,7 +340,7 @@ func handleMsgMhfSaveOtomoAirou(s *Session, p mhfpacket.MHFPacket) {
 		comp = append([]byte{0x01}, comp...)
 		database.Exec("UPDATE characters SET otomoairou=$1 WHERE id=$2", comp, s.CharID)
 	}
-	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfEnumerateAiroulist(s *Session, p mhfpacket.MHFPacket) {
@@ -358,7 +359,7 @@ func handleMsgMhfEnumerateAiroulist(s *Session, p mhfpacket.MHFPacket) {
 		resp.WriteUint16(cat.WeaponID)
 		resp.WriteUint32(0) // 32 bit unix timestamp, either time at which the cat stops being fatigued or the time at which it started
 	}
-	DoAckBufSucceed(s, pkt.AckHandle, resp.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, resp.Data())
 }
 
 type Airou struct {

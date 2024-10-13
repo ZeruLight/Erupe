@@ -3,6 +3,7 @@ package channelserver
 import (
 	"database/sql"
 	"encoding/binary"
+	"erupe-ce/utils/broadcast"
 	"erupe-ce/utils/byteframe"
 	"erupe-ce/utils/db"
 	"erupe-ce/utils/decryption"
@@ -110,10 +111,10 @@ func handleMsgSysGetFile(s *Session, p mhfpacket.MHFPacket) {
 		if err != nil {
 			s.Logger.Error(fmt.Sprintf("Failed to open file: %s/scenarios/%s.bin", config.GetConfig().BinPath, filename))
 			// This will crash the game.
-			DoAckBufSucceed(s, pkt.AckHandle, data)
+			broadcast.DoAckBufSucceed(s, pkt.AckHandle, data)
 			return
 		}
-		DoAckBufSucceed(s, pkt.AckHandle, data)
+		broadcast.DoAckBufSucceed(s, pkt.AckHandle, data)
 	} else {
 		if config.GetConfig().DebugOptions.QuestTools {
 			s.Logger.Debug(
@@ -130,13 +131,13 @@ func handleMsgSysGetFile(s *Session, p mhfpacket.MHFPacket) {
 		if err != nil {
 			s.Logger.Error(fmt.Sprintf("Failed to open file: %s/quests/%s.bin", config.GetConfig().BinPath, pkt.Filename))
 			// This will crash the game.
-			DoAckBufSucceed(s, pkt.AckHandle, data)
+			broadcast.DoAckBufSucceed(s, pkt.AckHandle, data)
 			return
 		}
 		if config.GetConfig().ClientID <= config.Z1 && config.GetConfig().DebugOptions.AutoQuestBackport {
 			data = BackportQuest(decryption.UnpackSimple(data))
 		}
-		DoAckBufSucceed(s, pkt.AckHandle, data)
+		broadcast.DoAckBufSucceed(s, pkt.AckHandle, data)
 	}
 }
 
@@ -176,9 +177,9 @@ func handleMsgMhfLoadFavoriteQuest(s *Session, p mhfpacket.MHFPacket) {
 	}
 	err = database.QueryRow("SELECT savefavoritequest FROM characters WHERE id = $1", s.CharID).Scan(&data)
 	if err == nil && len(data) > 0 {
-		DoAckBufSucceed(s, pkt.AckHandle, data)
+		broadcast.DoAckBufSucceed(s, pkt.AckHandle, data)
 	} else {
-		DoAckBufSucceed(s, pkt.AckHandle, []byte{0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
+		broadcast.DoAckBufSucceed(s, pkt.AckHandle, []byte{0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
 	}
 }
 
@@ -190,7 +191,7 @@ func handleMsgMhfSaveFavoriteQuest(s *Session, p mhfpacket.MHFPacket) {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
 	database.Exec("UPDATE characters SET savefavoritequest=$1 WHERE id=$2", pkt.Data, s.CharID)
-	DoAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
 func loadQuestFile(s *Session, questId int) []byte {
@@ -656,7 +657,7 @@ func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
 	bf.Seek(0, io.SeekStart)
 	bf.WriteUint16(returnedCount)
 
-	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func getTuneValueRange(start uint16, value uint16) []tuneValue {
@@ -694,5 +695,5 @@ func handleMsgMhfGetUdBonusQuestInfo(s *Session, p mhfpacket.MHFPacket) {
 		resp.WriteUint8(q.Unk6)
 	}
 
-	DoAckBufSucceed(s, pkt.AckHandle, resp.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, resp.Data())
 }

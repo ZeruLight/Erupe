@@ -2,6 +2,7 @@ package channelserver
 
 import (
 	"erupe-ce/network/mhfpacket"
+	"erupe-ce/utils/broadcast"
 	"erupe-ce/utils/byteframe"
 	"erupe-ce/utils/db"
 	"erupe-ce/utils/stringsupport"
@@ -18,7 +19,7 @@ func handleMsgSysEnumerateClient(s *Session, p mhfpacket.MHFPacket) {
 	if !ok {
 		s.Server.stagesLock.RUnlock()
 		s.Logger.Warn("Can't enumerate clients for stage that doesn't exist!", zap.String("stageID", pkt.StageID))
-		DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+		broadcast.DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
 	s.Server.stagesLock.RUnlock()
@@ -54,7 +55,7 @@ func handleMsgSysEnumerateClient(s *Session, p mhfpacket.MHFPacket) {
 	}
 	stage.RUnlock()
 
-	DoAckBufSucceed(s, pkt.AckHandle, resp.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, resp.Data())
 	s.Logger.Debug("MsgSysEnumerateClient Done!")
 }
 
@@ -85,7 +86,7 @@ func handleMsgMhfListMember(s *Session, p mhfpacket.MHFPacket) {
 	}
 	resp.Seek(0, 0)
 	resp.WriteUint32(count)
-	DoAckBufSucceed(s, pkt.AckHandle, resp.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, resp.Data())
 }
 
 func handleMsgMhfOprMember(s *Session, p mhfpacket.MHFPacket) {
@@ -118,7 +119,7 @@ func handleMsgMhfOprMember(s *Session, p mhfpacket.MHFPacket) {
 			}
 		}
 	}
-	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfShutClient(s *Session, p mhfpacket.MHFPacket) {}

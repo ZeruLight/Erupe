@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"erupe-ce/network/mhfpacket"
+	"erupe-ce/utils/broadcast"
 	"erupe-ce/utils/byteframe"
 	ps "erupe-ce/utils/pascalstring"
 
@@ -17,13 +18,13 @@ func handleMsgSysCreateStage(s *Session, p mhfpacket.MHFPacket) {
 	s.Server.Lock()
 	defer s.Server.Unlock()
 	if _, exists := s.Server.stages[pkt.StageID]; exists {
-		DoAckSimpleFail(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+		broadcast.DoAckSimpleFail(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 	} else {
 		stage := NewStage(pkt.StageID)
 		stage.host = s
 		stage.maxPlayers = uint16(pkt.PlayerCount)
 		s.Server.stages[stage.id] = stage
-		DoAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+		broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 	}
 }
 
@@ -63,7 +64,7 @@ func doStageTransfer(s *Session, ackHandle uint32, stageID string) {
 	s.QueueSendMHF(&mhfpacket.MsgSysCleanupObject{})
 
 	// Confirm the stage entry.
-	DoAckSimpleSucceed(s, ackHandle, []byte{0x00, 0x00, 0x00, 0x00})
+	broadcast.DoAckSimpleSucceed(s, ackHandle, []byte{0x00, 0x00, 0x00, 0x00})
 
 	var temp mhfpacket.MHFPacket
 
@@ -153,7 +154,7 @@ func handleMsgSysEnterStage(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysEnterStage)
 
 	if isStageFull(s, pkt.StageID) {
-		DoAckSimpleFail(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x01})
+		broadcast.DoAckSimpleFail(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x01})
 		return
 	}
 
@@ -183,7 +184,7 @@ func handleMsgSysBackStage(s *Session, p mhfpacket.MHFPacket) {
 
 	if isStageFull(s, backStage) {
 		s.stageMoveStack.Push(backStage)
-		DoAckSimpleFail(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x01})
+		broadcast.DoAckSimpleFail(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x01})
 		return
 	}
 
@@ -202,7 +203,7 @@ func handleMsgSysMoveStage(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysMoveStage)
 
 	if isStageFull(s, pkt.StageID) {
-		DoAckSimpleFail(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x01})
+		broadcast.DoAckSimpleFail(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x01})
 		return
 	}
 
@@ -218,7 +219,7 @@ func handleMsgSysLockStage(s *Session, p mhfpacket.MHFPacket) {
 		stage.locked = true
 		stage.Unlock()
 	}
-	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgSysUnlockStage(s *Session, p mhfpacket.MHFPacket) {
@@ -251,15 +252,15 @@ func handleMsgSysReserveStage(s *Session, p mhfpacket.MHFPacket) {
 			case 17: // 0x11
 				stage.reservedClientSlots[s.CharID] = true
 			}
-			DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+			broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 		} else if uint16(len(stage.reservedClientSlots)) < stage.maxPlayers {
 			if stage.locked {
-				DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+				broadcast.DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 				return
 			}
 			if len(stage.password) > 0 {
 				if stage.password != s.stagePass {
-					DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+					broadcast.DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 					return
 				}
 			}
@@ -268,13 +269,13 @@ func handleMsgSysReserveStage(s *Session, p mhfpacket.MHFPacket) {
 			s.Lock()
 			s.reservationStage = stage
 			s.Unlock()
-			DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+			broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 		} else {
-			DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+			broadcast.DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 		}
 	} else {
 		s.Logger.Error("Failed to get stage", zap.String("StageID", pkt.StageID))
-		DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+		broadcast.DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
 	}
 }
 
@@ -328,15 +329,15 @@ func handleMsgSysGetStageBinary(s *Session, p mhfpacket.MHFPacket) {
 	if stage, exists := s.Server.stages[pkt.StageID]; exists {
 		stage.Lock()
 		if binaryData, exists := stage.rawBinaryData[stageBinaryKey{pkt.BinaryType0, pkt.BinaryType1}]; exists {
-			DoAckBufSucceed(s, pkt.AckHandle, binaryData)
+			broadcast.DoAckBufSucceed(s, pkt.AckHandle, binaryData)
 		} else if pkt.BinaryType1 == 4 {
 			// Unknown binary type that is supposedly generated server side
 			// Temporary response
-			DoAckBufSucceed(s, pkt.AckHandle, []byte{})
+			broadcast.DoAckBufSucceed(s, pkt.AckHandle, []byte{})
 		} else {
 			s.Logger.Warn("Failed to get stage binary", zap.Uint8("BinaryType0", pkt.BinaryType0), zap.Uint8("pkt.BinaryType1", pkt.BinaryType1))
 			s.Logger.Warn("Sending blank stage binary")
-			DoAckBufSucceed(s, pkt.AckHandle, []byte{})
+			broadcast.DoAckBufSucceed(s, pkt.AckHandle, []byte{})
 		}
 		stage.Unlock()
 	} else {
@@ -350,7 +351,7 @@ func handleMsgSysWaitStageBinary(s *Session, p mhfpacket.MHFPacket) {
 	if stage, exists := s.Server.stages[pkt.StageID]; exists {
 		if pkt.BinaryType0 == 1 && pkt.BinaryType1 == 12 {
 			// This might contain the hunter count, or max player count?
-			DoAckBufSucceed(s, pkt.AckHandle, []byte{0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
+			broadcast.DoAckBufSucceed(s, pkt.AckHandle, []byte{0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
 			return
 		}
 		for {
@@ -360,7 +361,7 @@ func handleMsgSysWaitStageBinary(s *Session, p mhfpacket.MHFPacket) {
 			stage.Unlock()
 			s.Logger.Debug("MsgSysWaitStageBinary after lock and get stage")
 			if gotBinary {
-				DoAckBufSucceed(s, pkt.AckHandle, stageBinary)
+				broadcast.DoAckBufSucceed(s, pkt.AckHandle, stageBinary)
 				break
 			} else {
 				s.Logger.Debug("Waiting stage binary", zap.Uint8("BinaryType0", pkt.BinaryType0), zap.Uint8("pkt.BinaryType1", pkt.BinaryType1))
@@ -420,5 +421,5 @@ func handleMsgSysEnumerateStage(s *Session, p mhfpacket.MHFPacket) {
 	bf.Seek(0, 0)
 	bf.WriteUint16(joinable)
 
-	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }

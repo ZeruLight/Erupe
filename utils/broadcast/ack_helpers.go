@@ -1,4 +1,4 @@
-package channelserver
+package broadcast
 
 import (
 	"erupe-ce/config"
@@ -6,7 +6,11 @@ import (
 	"erupe-ce/utils/byteframe"
 )
 
-func DoAckEarthSucceed(s *Session, ackHandle uint32, data []*byteframe.ByteFrame) {
+type AckSession interface {
+	QueueSendMHF(packet mhfpacket.MHFPacket)
+}
+
+func DoAckEarthSucceed(s AckSession, ackHandle uint32, data []*byteframe.ByteFrame) {
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint32(uint32(config.GetConfig().EarthID))
 	bf.WriteUint32(0)
@@ -18,7 +22,7 @@ func DoAckEarthSucceed(s *Session, ackHandle uint32, data []*byteframe.ByteFrame
 	DoAckBufSucceed(s, ackHandle, bf.Data())
 }
 
-func DoAckBufSucceed(s *Session, ackHandle uint32, data []byte) {
+func DoAckBufSucceed(s AckSession, ackHandle uint32, data []byte) {
 	s.QueueSendMHF(&mhfpacket.MsgSysAck{
 		AckHandle:        ackHandle,
 		IsBufferResponse: true,
@@ -27,7 +31,7 @@ func DoAckBufSucceed(s *Session, ackHandle uint32, data []byte) {
 	})
 }
 
-func DoAckBufFail(s *Session, ackHandle uint32, data []byte) {
+func DoAckBufFail(s AckSession, ackHandle uint32, data []byte) {
 	s.QueueSendMHF(&mhfpacket.MsgSysAck{
 		AckHandle:        ackHandle,
 		IsBufferResponse: true,
@@ -36,7 +40,7 @@ func DoAckBufFail(s *Session, ackHandle uint32, data []byte) {
 	})
 }
 
-func DoAckSimpleSucceed(s *Session, ackHandle uint32, data []byte) {
+func DoAckSimpleSucceed(s AckSession, ackHandle uint32, data []byte) {
 	s.QueueSendMHF(&mhfpacket.MsgSysAck{
 		AckHandle:        ackHandle,
 		IsBufferResponse: false,
@@ -45,7 +49,7 @@ func DoAckSimpleSucceed(s *Session, ackHandle uint32, data []byte) {
 	})
 }
 
-func DoAckSimpleFail(s *Session, ackHandle uint32, data []byte) {
+func DoAckSimpleFail(s AckSession, ackHandle uint32, data []byte) {
 	s.QueueSendMHF(&mhfpacket.MsgSysAck{
 		AckHandle:        ackHandle,
 		IsBufferResponse: false,

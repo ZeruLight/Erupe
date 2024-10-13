@@ -2,6 +2,7 @@ package channelserver
 
 import (
 	"erupe-ce/config"
+	"erupe-ce/utils/broadcast"
 	"erupe-ce/utils/db"
 	"erupe-ce/utils/gametime"
 	"erupe-ce/utils/mhfmon"
@@ -38,7 +39,7 @@ func handleMsgMhfSavedata(s *Session, p mhfpacket.MHFPacket) {
 		diff, err := nullcomp.Decompress(pkt.RawDataPayload)
 		if err != nil {
 			s.Logger.Error("Failed to decompress diff", zap.Error(err))
-			DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+			broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 			return
 		}
 		// Perform diff.
@@ -50,7 +51,7 @@ func handleMsgMhfSavedata(s *Session, p mhfpacket.MHFPacket) {
 		saveData, err := nullcomp.Decompress(pkt.RawDataPayload)
 		if err != nil {
 			s.Logger.Error("Failed to decompress savedata from packet", zap.Error(err))
-			DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+			broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 			return
 		}
 		if config.GetConfig().SaveDumps.RawEnabled {
@@ -81,7 +82,7 @@ func handleMsgMhfSavedata(s *Session, p mhfpacket.MHFPacket) {
 	if err != nil {
 		s.Logger.Error("Failed to update character name in db", zap.Error(err))
 	}
-	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func grpToGR(n int) uint16 {
@@ -153,7 +154,7 @@ func handleMsgMhfLoaddata(s *Session, p mhfpacket.MHFPacket) {
 	}
 	if _, err := os.Stat(filepath.Join(config.GetConfig().BinPath, "save_override.bin")); err == nil {
 		data, _ := os.ReadFile(filepath.Join(config.GetConfig().BinPath, "save_override.bin"))
-		DoAckBufSucceed(s, pkt.AckHandle, data)
+		broadcast.DoAckBufSucceed(s, pkt.AckHandle, data)
 		return
 	}
 
@@ -164,7 +165,7 @@ func handleMsgMhfLoaddata(s *Session, p mhfpacket.MHFPacket) {
 		s.rawConn.Close() // Terminate the connection
 		return
 	}
-	DoAckBufSucceed(s, pkt.AckHandle, data)
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, data)
 
 	decompSaveData, err := nullcomp.Decompress(data)
 	if err != nil {
@@ -190,7 +191,7 @@ func handleMsgMhfSaveScenarioData(s *Session, p mhfpacket.MHFPacket) {
 	if err != nil {
 		s.Logger.Error("Failed to update scenario data in db", zap.Error(err))
 	}
-	DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfLoadScenarioData(s *Session, p mhfpacket.MHFPacket) {
@@ -208,7 +209,7 @@ func handleMsgMhfLoadScenarioData(s *Session, p mhfpacket.MHFPacket) {
 	} else {
 		bf.WriteBytes(scenarioData)
 	}
-	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 var paperGiftData = map[uint32][]PaperGift{
@@ -1545,7 +1546,7 @@ func handleMsgMhfGetPaperData(s *Session, p mhfpacket.MHFPacket) {
 			bf.WriteUint16(gift.Unk3)
 			data = append(data, bf)
 		}
-		DoAckEarthSucceed(s, pkt.AckHandle, data)
+		broadcast.DoAckEarthSucceed(s, pkt.AckHandle, data)
 	} else if pkt.Unk2 == 0 {
 		bf := byteframe.NewByteFrame()
 		bf.WriteUint16(uint16(len(paperMissions.Timetables)))
@@ -1563,7 +1564,7 @@ func handleMsgMhfGetPaperData(s *Session, p mhfpacket.MHFPacket) {
 			bf.WriteUint16(mdata.Reward2ID)
 			bf.WriteUint8(mdata.Reward2Quantity)
 		}
-		DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+		broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 	} else {
 		for _, pdata := range paperData {
 			bf := byteframe.NewByteFrame()
@@ -1576,7 +1577,7 @@ func handleMsgMhfGetPaperData(s *Session, p mhfpacket.MHFPacket) {
 			bf.WriteInt16(pdata.Unk6)
 			data = append(data, bf)
 		}
-		DoAckEarthSucceed(s, pkt.AckHandle, data)
+		broadcast.DoAckEarthSucceed(s, pkt.AckHandle, data)
 	}
 }
 

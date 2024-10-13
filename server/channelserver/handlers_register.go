@@ -3,6 +3,7 @@ package channelserver
 import (
 	"erupe-ce/config"
 	"erupe-ce/network/mhfpacket"
+	"erupe-ce/utils/broadcast"
 	"erupe-ce/utils/byteframe"
 	"strings"
 )
@@ -12,13 +13,13 @@ func handleMsgMhfRegisterEvent(s *Session, p mhfpacket.MHFPacket) {
 	bf := byteframe.NewByteFrame()
 	// Some kind of check if there's already a session
 	if pkt.Unk1 && s.Server.getRaviSemaphore() == nil {
-		DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+		broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
 		return
 	}
 	bf.WriteUint8(uint8(pkt.WorldID))
 	bf.WriteUint8(uint8(pkt.LandID))
 	bf.WriteUint16(s.Server.raviente.id)
-	DoAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfReleaseEvent(s *Session, p mhfpacket.MHFPacket) {
@@ -86,7 +87,7 @@ func handleMsgSysOperateRegister(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint32(_new)
 	}
 	s.Server.raviente.Unlock()
-	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 
 	if config.GetConfig().GameplayOptions.LowLatencyRaviente {
 		s.notifyRavi()
@@ -108,7 +109,7 @@ func handleMsgSysLoadRegister(s *Session, p mhfpacket.MHFPacket) {
 			bf.WriteUint32(s.Server.raviente.register[i])
 		}
 	}
-	DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
 }
 
 func (s *Session) notifyRavi() {

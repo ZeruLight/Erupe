@@ -29,7 +29,7 @@ type APIServer struct {
 func NewAPIServer() *APIServer {
 
 	s := &APIServer{
-		logger:     logger.Get().Named("API"),
+		logger:     logger.Get().Named("api"),
 		httpServer: &http.Server{},
 	}
 	return s

@@ -57,9 +57,8 @@ type ChannelServer struct {
 	userBinaryParts     map[userBinaryPartID][]byte
 
 	// Semaphore
-	semaphoreLock  sync.RWMutex
-	semaphore      map[string]*Semaphore
-	semaphoreIndex uint32
+	semaphoreLock sync.RWMutex
+	semaphore     map[string]*Semaphore
 
 	// Discord chat integration
 	discordBot *discordbot.DiscordBot

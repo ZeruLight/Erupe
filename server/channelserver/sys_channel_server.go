@@ -96,7 +96,6 @@ func NewServer(config *Config) *ChannelServer {
 		stages:          stages,
 		userBinaryParts: make(map[userBinaryPartID][]byte),
 		semaphore:       make(map[string]*Semaphore),
-		semaphoreIndex:  7,
 		discordBot:      config.DiscordBot,
 		name:            config.Name,
 		raviente: &Raviente{

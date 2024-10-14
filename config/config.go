@@ -93,7 +93,7 @@ type Config struct {
 	DebugOptions    DebugOptions
 	GameplayOptions GameplayOptions
 	Discord         Discord
-	Commands        []Command
+	Commands        map[string]Command
 	Courses         []Course
 	Database        Database
 	Sign            Sign

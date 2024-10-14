@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"erupe-ce/config"
 	"erupe-ce/network"
+	"erupe-ce/network/binpacket"
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/utils/byteframe"
 	"erupe-ce/utils/db"
@@ -249,6 +250,25 @@ func (s *Session) logMessage(opcode uint16, data []byte, sender string, recipien
 	} else {
 		fmt.Printf("\n")
 	}
+}
+
+func (s *Session) sendMessage(message string) {
+	bf := byteframe.NewByteFrame()
+	bf.SetLE()
+	msgBinChat := &binpacket.MsgBinChat{
+		Unk0:       0,
+		Type:       5,
+		Flags:      0x80,
+		Message:    message,
+		SenderName: "Erupe",
+	}
+	msgBinChat.Build(bf)
+	castedBin := &mhfpacket.MsgSysCastedBinary{
+		CharID:         0,
+		MessageType:    BinaryMessageTypeChat,
+		RawDataPayload: bf.Data(),
+	}
+	s.QueueSendMHF(castedBin)
 }
 
 func (s *Session) SetObjectID() {

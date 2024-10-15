@@ -2,7 +2,6 @@ package channelserver
 
 import (
 	"erupe-ce/network/mhfpacket"
-	"erupe-ce/utils/broadcast"
 	"erupe-ce/utils/byteframe"
 )
 
@@ -13,7 +12,7 @@ func handleMsgMhfGetBreakSeibatuLevelReward(s *Session, p mhfpacket.MHFPacket) {
 	bf.WriteInt32(0)
 	bf.WriteInt32(0)
 	bf.WriteInt32(0)
-	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 }
 
 type WeeklySeibatuRankingReward struct {
@@ -41,7 +40,7 @@ func handleMsgMhfGetWeeklySeibatuRankingReward(s *Session, p mhfpacket.MHFPacket
 		bf.WriteInt32(reward.Unk5)
 		data = append(data, bf)
 	}
-	broadcast.DoAckEarthSucceed(s, pkt.AckHandle, data)
+	s.DoAckEarthSucceed(pkt.AckHandle, data)
 }
 
 func handleMsgMhfGetFixedSeibatuRankingTable(s *Session, p mhfpacket.MHFPacket) {
@@ -50,7 +49,7 @@ func handleMsgMhfGetFixedSeibatuRankingTable(s *Session, p mhfpacket.MHFPacket) 
 	bf.WriteInt32(0)
 	bf.WriteInt32(0)
 	bf.WriteBytes(make([]byte, 32))
-	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfReadBeatLevel(s *Session, p mhfpacket.MHFPacket) {
@@ -66,7 +65,7 @@ func handleMsgMhfReadBeatLevel(s *Session, p mhfpacket.MHFPacket) {
 		resp.WriteUint32(1)
 	}
 
-	broadcast.DoAckBufSucceed(s, pkt.AckHandle, resp.Data())
+	s.DoAckBufSucceed(pkt.AckHandle, resp.Data())
 }
 
 func handleMsgMhfReadLastWeekBeatRanking(s *Session, p mhfpacket.MHFPacket) {
@@ -76,13 +75,13 @@ func handleMsgMhfReadLastWeekBeatRanking(s *Session, p mhfpacket.MHFPacket) {
 	bf.WriteInt32(0)
 	bf.WriteInt32(0)
 	bf.WriteInt32(0)
-	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfUpdateBeatLevel(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfUpdateBeatLevel)
 
-	broadcast.DoAckBufSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+	s.DoAckBufSucceed(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
 func handleMsgMhfReadBeatLevelAllRanking(s *Session, p mhfpacket.MHFPacket) {
@@ -97,11 +96,11 @@ func handleMsgMhfReadBeatLevelAllRanking(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint32(0)
 		bf.WriteBytes(make([]byte, 32))
 	}
-	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfReadBeatLevelMyRanking(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfReadBeatLevelMyRanking)
 	bf := byteframe.NewByteFrame()
-	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 }

@@ -3,7 +3,6 @@ package channelserver
 import (
 	"erupe-ce/config"
 	"erupe-ce/network/mhfpacket"
-	"erupe-ce/utils/broadcast"
 	"erupe-ce/utils/byteframe"
 	ps "erupe-ce/utils/pascalstring"
 	"erupe-ce/utils/stringsupport"
@@ -130,7 +129,7 @@ func handleMsgMhfEnumerateCampaign(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint16(link.CategoryID)
 		bf.WriteUint32(link.CampaignID)
 	}
-	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfStateCampaign(s *Session, p mhfpacket.MHFPacket) {
@@ -138,14 +137,14 @@ func handleMsgMhfStateCampaign(s *Session, p mhfpacket.MHFPacket) {
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint16(1)
 	bf.WriteUint16(0)
-	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfApplyCampaign(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfApplyCampaign)
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint32(1)
-	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
+	s.DoAckSimpleSucceed(pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfEnumerateItem(s *Session, p mhfpacket.MHFPacket) {
@@ -168,10 +167,10 @@ func handleMsgMhfEnumerateItem(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint32(item.Unk4)
 		bf.WriteUint32(item.Unk5)
 	}
-	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfAcquireItem(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfAcquireItem)
-	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 }

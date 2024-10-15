@@ -3,7 +3,6 @@ package channelserver
 import (
 	"erupe-ce/config"
 	"erupe-ce/network/mhfpacket"
-	"erupe-ce/utils/broadcast"
 	"erupe-ce/utils/byteframe"
 	"erupe-ce/utils/stringsupport"
 	"erupe-ce/utils/token"
@@ -20,7 +19,7 @@ func handleMsgMhfGetBbsUserStatus(s *Session, p mhfpacket.MHFPacket) {
 	bf.WriteUint32(0)
 	bf.WriteUint32(0)
 	bf.WriteUint32(0)
-	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 }
 
 // Checks the status of Bultin Board Server to see if authenticated
@@ -31,7 +30,7 @@ func handleMsgMhfGetBbsSnsStatus(s *Session, p mhfpacket.MHFPacket) {
 	bf.WriteUint32(401) //unk http status?
 	bf.WriteUint32(401) //unk http status?
 	bf.WriteUint32(0)
-	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 }
 
 // Tells the game client what host port and gives the bultin board article a token
@@ -50,6 +49,6 @@ func handleMsgMhfApplyBbsArticle(s *Session, p mhfpacket.MHFPacket) {
 	if config.GetConfig().Screenshots.Enabled && config.GetConfig().Discord.Enabled {
 		s.Server.DiscordScreenShotSend(pkt.Name, pkt.Title, pkt.Description, articleToken)
 	}
-	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 
 }

@@ -2,7 +2,6 @@ package channelserver
 
 import (
 	"erupe-ce/network/mhfpacket"
-	"erupe-ce/utils/broadcast"
 	"erupe-ce/utils/byteframe"
 	"erupe-ce/utils/gametime"
 	ps "erupe-ce/utils/pascalstring"
@@ -104,12 +103,12 @@ func handleMsgMhfInfoTournament(s *Session, p mhfpacket.MHFPacket) {
 		}
 	}
 
-	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfEntryTournament(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEntryTournament)
-	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 }
 
 type TournamentReward struct {
@@ -128,5 +127,5 @@ func handleMsgMhfAcquireTournament(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint16(reward.Unk1)
 		bf.WriteUint16(reward.Unk2)
 	}
-	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 }

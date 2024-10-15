@@ -9,7 +9,6 @@ import (
 	"go.uber.org/zap"
 
 	"erupe-ce/network/mhfpacket"
-	"erupe-ce/utils/broadcast"
 	"erupe-ce/utils/byteframe"
 	"erupe-ce/utils/db"
 	"erupe-ce/utils/stringsupport"
@@ -118,7 +117,7 @@ func handleMsgMhfGetTowerInfo(s *Session, p mhfpacket.MHFPacket) {
 			data = append(data, bf)
 		}
 	}
-	broadcast.DoAckEarthSucceed(s, pkt.AckHandle, data)
+	s.DoAckEarthSucceed(pkt.AckHandle, data)
 }
 
 func handleMsgMhfPostTowerInfo(s *Session, p mhfpacket.MHFPacket) {
@@ -152,7 +151,7 @@ func handleMsgMhfPostTowerInfo(s *Session, p mhfpacket.MHFPacket) {
 		// This might give too much TSP? No idea what the rate is supposed to be
 		database.Exec(`UPDATE tower SET tr=$1, trp=COALESCE(trp, 0)+$2, tsp=COALESCE(tsp, 0)+$3, block1=COALESCE(block1, 0)+$4 WHERE char_id=$5`, pkt.TR, pkt.TRP, pkt.Cost, pkt.Block1, s.CharID)
 	}
-	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 }
 
 // Default missions
@@ -347,7 +346,7 @@ func handleMsgMhfGetTenrouirai(s *Session, p mhfpacket.MHFPacket) {
 		}
 	}
 
-	broadcast.DoAckEarthSucceed(s, pkt.AckHandle, data)
+	s.DoAckEarthSucceed(pkt.AckHandle, data)
 }
 
 func handleMsgMhfPostTenrouirai(s *Session, p mhfpacket.MHFPacket) {
@@ -397,9 +396,9 @@ func handleMsgMhfPostTenrouirai(s *Session, p mhfpacket.MHFPacket) {
 			bf.WriteUint32(0)
 		}
 
-		broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
+		s.DoAckSimpleSucceed(pkt.AckHandle, bf.Data())
 	} else {
-		broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+		s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 	}
 }
 
@@ -419,7 +418,7 @@ func handleMsgMhfPresentBox(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteInt32(0)
 		bf.WriteInt32(0)
 	*/
-	broadcast.DoAckEarthSucceed(s, pkt.AckHandle, data)
+	s.DoAckEarthSucceed(pkt.AckHandle, data)
 }
 
 type GemInfo struct {
@@ -467,7 +466,7 @@ func handleMsgMhfGetGemInfo(s *Session, p mhfpacket.MHFPacket) {
 			data = append(data, bf)
 		}
 	}
-	broadcast.DoAckEarthSucceed(s, pkt.AckHandle, data)
+	s.DoAckEarthSucceed(pkt.AckHandle, data)
 }
 
 func handleMsgMhfPostGemInfo(s *Session, p mhfpacket.MHFPacket) {
@@ -498,15 +497,15 @@ func handleMsgMhfPostGemInfo(s *Session, p mhfpacket.MHFPacket) {
 	case 2: // Transfer gem
 		// no way im doing this for now
 	}
-	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfGetNotice(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetNotice)
-	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfPostNotice(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfPostNotice)
-	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 }

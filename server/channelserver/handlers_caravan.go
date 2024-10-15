@@ -2,7 +2,6 @@ package channelserver
 
 import (
 	"erupe-ce/network/mhfpacket"
-	"erupe-ce/utils/broadcast"
 	"erupe-ce/utils/byteframe"
 	"erupe-ce/utils/stringsupport"
 	"time"
@@ -68,7 +67,7 @@ func handleMsgMhfGetRyoudama(s *Session, p mhfpacket.MHFPacket) {
 			data = append(data, bf)
 		}
 	}
-	broadcast.DoAckEarthSucceed(s, pkt.AckHandle, data)
+	s.DoAckEarthSucceed(pkt.AckHandle, data)
 }
 
 func handleMsgMhfPostRyoudama(s *Session, p mhfpacket.MHFPacket) {}
@@ -76,12 +75,12 @@ func handleMsgMhfPostRyoudama(s *Session, p mhfpacket.MHFPacket) {}
 func handleMsgMhfGetTinyBin(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetTinyBin)
 	// requested after conquest quests
-	broadcast.DoAckBufSucceed(s, pkt.AckHandle, []byte{})
+	s.DoAckBufSucceed(pkt.AckHandle, []byte{})
 }
 
 func handleMsgMhfPostTinyBin(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfPostTinyBin)
-	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfCaravanMyScore(s *Session, p mhfpacket.MHFPacket) {
@@ -93,7 +92,7 @@ func handleMsgMhfCaravanMyScore(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteInt32(0)
 		bf.WriteInt32(0)
 	*/
-	broadcast.DoAckEarthSucceed(s, pkt.AckHandle, data)
+	s.DoAckEarthSucceed(pkt.AckHandle, data)
 }
 
 func handleMsgMhfCaravanRanking(s *Session, p mhfpacket.MHFPacket) {
@@ -109,7 +108,7 @@ func handleMsgMhfCaravanRanking(s *Session, p mhfpacket.MHFPacket) {
 	bf.WriteInt32(1)
 	bf.WriteBytes(stringsupport.PaddedString("Test", 14, true))
 	*/
-	broadcast.DoAckEarthSucceed(s, pkt.AckHandle, data)
+	s.DoAckEarthSucceed(pkt.AckHandle, data)
 }
 
 func handleMsgMhfCaravanMyRank(s *Session, p mhfpacket.MHFPacket) {
@@ -120,5 +119,5 @@ func handleMsgMhfCaravanMyRank(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteInt32(0)
 		bf.WriteInt32(0)
 	*/
-	broadcast.DoAckEarthSucceed(s, pkt.AckHandle, data)
+	s.DoAckEarthSucceed(pkt.AckHandle, data)
 }

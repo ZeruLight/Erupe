@@ -317,3 +317,51 @@ func (s *Session) isOp() bool {
 	}
 	return false
 }
+
+func (s *Session) DoAckEarthSucceed(ackHandle uint32, data []*byteframe.ByteFrame) {
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint32(uint32(config.GetConfig().EarthID))
+	bf.WriteUint32(0)
+	bf.WriteUint32(0)
+	bf.WriteUint32(uint32(len(data)))
+	for i := range data {
+		bf.WriteBytes(data[i].Data())
+	}
+	s.DoAckBufSucceed(ackHandle, bf.Data())
+}
+
+func (s *Session) DoAckBufSucceed(ackHandle uint32, data []byte) {
+	s.QueueSendMHF(&mhfpacket.MsgSysAck{
+		AckHandle:        ackHandle,
+		IsBufferResponse: true,
+		ErrorCode:        0,
+		AckData:          data,
+	})
+}
+
+func (s *Session) DoAckBufFail(ackHandle uint32, data []byte) {
+	s.QueueSendMHF(&mhfpacket.MsgSysAck{
+		AckHandle:        ackHandle,
+		IsBufferResponse: true,
+		ErrorCode:        1,
+		AckData:          data,
+	})
+}
+
+func (s *Session) DoAckSimpleSucceed(ackHandle uint32, data []byte) {
+	s.QueueSendMHF(&mhfpacket.MsgSysAck{
+		AckHandle:        ackHandle,
+		IsBufferResponse: false,
+		ErrorCode:        0,
+		AckData:          data,
+	})
+}
+
+func (s *Session) DoAckSimpleFail(ackHandle uint32, data []byte) {
+	s.QueueSendMHF(&mhfpacket.MsgSysAck{
+		AckHandle:        ackHandle,
+		IsBufferResponse: false,
+		ErrorCode:        1,
+		AckData:          data,
+	})
+}

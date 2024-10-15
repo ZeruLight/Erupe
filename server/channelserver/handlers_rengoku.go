@@ -2,7 +2,6 @@ package channelserver
 
 import (
 	"erupe-ce/config"
-	"erupe-ce/utils/broadcast"
 	"erupe-ce/utils/db"
 	ps "erupe-ce/utils/pascalstring"
 	"fmt"
@@ -29,7 +28,7 @@ func handleMsgMhfSaveRengokuData(s *Session, p mhfpacket.MHFPacket) {
 	_, err = database.Exec("UPDATE characters SET rengokudata=$1 WHERE id=$2", pkt.RawDataPayload, s.CharID)
 	if err != nil {
 		s.Logger.Error("Failed to save rengokudata", zap.Error(err))
-		broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+		s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 		return
 	}
 	bf := byteframe.NewByteFrameFromBytes(pkt.RawDataPayload)
@@ -45,7 +44,7 @@ func handleMsgMhfSaveRengokuData(s *Session, p mhfpacket.MHFPacket) {
 		database.Exec("INSERT INTO rengoku_score (character_id) VALUES ($1)", s.CharID)
 	}
 	database.Exec("UPDATE rengoku_score SET max_stages_mp=$1, max_points_mp=$2, max_stages_sp=$3, max_points_sp=$4 WHERE character_id=$5", maxStageMp, maxScoreMp, maxStageSp, maxScoreSp, s.CharID)
-	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfLoadRengokuData(s *Session, p mhfpacket.MHFPacket) {
@@ -60,7 +59,7 @@ func handleMsgMhfLoadRengokuData(s *Session, p mhfpacket.MHFPacket) {
 		s.Logger.Error("Failed to load rengokudata", zap.Error(err))
 	}
 	if len(data) > 0 {
-		broadcast.DoAckBufSucceed(s, pkt.AckHandle, data)
+		s.DoAckBufSucceed(pkt.AckHandle, data)
 	} else {
 		resp := byteframe.NewByteFrame()
 		resp.WriteUint32(0)
@@ -98,7 +97,7 @@ func handleMsgMhfLoadRengokuData(s *Session, p mhfpacket.MHFPacket) {
 		resp.WriteUint32(0)
 		resp.WriteUint32(0)
 
-		broadcast.DoAckBufSucceed(s, pkt.AckHandle, resp.Data())
+		s.DoAckBufSucceed(pkt.AckHandle, resp.Data())
 	}
 }
 
@@ -109,7 +108,7 @@ func handleMsgMhfGetRengokuBinary(s *Session, p mhfpacket.MHFPacket) {
 	if err != nil {
 		panic(err)
 	}
-	broadcast.DoAckBufSucceed(s, pkt.AckHandle, data)
+	s.DoAckBufSucceed(pkt.AckHandle, data)
 }
 
 const rengokuScoreQuery = `, c.name FROM rengoku_score rs
@@ -132,7 +131,7 @@ func handleMsgMhfEnumerateRengokuRanking(s *Session, p mhfpacket.MHFPacket) {
 
 	if pkt.Leaderboard == 2 || pkt.Leaderboard == 3 || pkt.Leaderboard == 6 || pkt.Leaderboard == 7 {
 		if guild == nil {
-			broadcast.DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 11))
+			s.DoAckBufSucceed(pkt.AckHandle, make([]byte, 11))
 			return
 		}
 	}
@@ -191,7 +190,7 @@ func handleMsgMhfEnumerateRengokuRanking(s *Session, p mhfpacket.MHFPacket) {
 	}
 	bf.WriteUint8(uint8(i) - 1)
 	bf.WriteBytes(scoreData.Data())
-	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfGetRengokuRankingRank(s *Session, p mhfpacket.MHFPacket) {
@@ -200,5 +199,5 @@ func handleMsgMhfGetRengokuRankingRank(s *Session, p mhfpacket.MHFPacket) {
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint32(0) // Max stage overall MP rank
 	bf.WriteUint32(0) // Max RdP overall MP rank
-	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 }

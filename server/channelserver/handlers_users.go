@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"erupe-ce/network/mhfpacket"
-	"erupe-ce/utils/broadcast"
 	"erupe-ce/utils/db"
 )
 
@@ -52,12 +51,12 @@ func handleMsgSysGetUserBinary(s *Session, p mhfpacket.MHFPacket) {
 	if !ok {
 		err = database.QueryRow(fmt.Sprintf("SELECT type%d FROM user_binary WHERE id=$1", pkt.BinaryType), pkt.CharID).Scan(&data)
 		if err != nil {
-			broadcast.DoAckBufFail(s, pkt.AckHandle, make([]byte, 4))
+			s.DoAckBufFail(pkt.AckHandle, make([]byte, 4))
 		} else {
-			broadcast.DoAckBufSucceed(s, pkt.AckHandle, data)
+			s.DoAckBufSucceed(pkt.AckHandle, data)
 		}
 	} else {
-		broadcast.DoAckBufSucceed(s, pkt.AckHandle, data)
+		s.DoAckBufSucceed(pkt.AckHandle, data)
 	}
 }
 

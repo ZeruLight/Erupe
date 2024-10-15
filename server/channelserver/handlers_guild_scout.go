@@ -2,7 +2,6 @@ package channelserver
 
 import (
 	"erupe-ce/network/mhfpacket"
-	"erupe-ce/utils/broadcast"
 	"erupe-ce/utils/byteframe"
 	"erupe-ce/utils/db"
 	"erupe-ce/utils/gametime"
@@ -19,31 +18,31 @@ func HandleMsgMhfPostGuildScout(s *Session, p mhfpacket.MHFPacket) {
 	actorCharGuildData, err := GetCharacterGuildData(s, s.CharID)
 
 	if err != nil {
-		broadcast.DoAckBufFail(s, pkt.AckHandle, make([]byte, 4))
+		s.DoAckBufFail(pkt.AckHandle, make([]byte, 4))
 		panic(err)
 	}
 
 	if actorCharGuildData == nil || !actorCharGuildData.CanRecruit() {
-		broadcast.DoAckBufFail(s, pkt.AckHandle, make([]byte, 4))
+		s.DoAckBufFail(pkt.AckHandle, make([]byte, 4))
 		return
 	}
 
 	guildInfo, err := GetGuildInfoByID(s, actorCharGuildData.GuildID)
 
 	if err != nil {
-		broadcast.DoAckBufFail(s, pkt.AckHandle, make([]byte, 4))
+		s.DoAckBufFail(pkt.AckHandle, make([]byte, 4))
 		panic(err)
 	}
 
 	hasApplication, err := guildInfo.HasApplicationForCharID(s, pkt.CharID)
 
 	if err != nil {
-		broadcast.DoAckBufFail(s, pkt.AckHandle, make([]byte, 4))
+		s.DoAckBufFail(pkt.AckHandle, make([]byte, 4))
 		panic(err)
 	}
 
 	if hasApplication {
-		broadcast.DoAckBufSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x04})
+		s.DoAckBufSucceed(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x04})
 		return
 	}
 	database, err := db.GetDB()
@@ -60,7 +59,7 @@ func HandleMsgMhfPostGuildScout(s *Session, p mhfpacket.MHFPacket) {
 
 	if err != nil {
 		rollbackTransaction(s, transaction)
-		broadcast.DoAckBufFail(s, pkt.AckHandle, nil)
+		s.DoAckBufFail(pkt.AckHandle, nil)
 		panic(err)
 	}
 
@@ -79,18 +78,18 @@ func HandleMsgMhfPostGuildScout(s *Session, p mhfpacket.MHFPacket) {
 
 	if err != nil {
 		rollbackTransaction(s, transaction)
-		broadcast.DoAckBufFail(s, pkt.AckHandle, nil)
+		s.DoAckBufFail(pkt.AckHandle, nil)
 		return
 	}
 
 	err = transaction.Commit()
 
 	if err != nil {
-		broadcast.DoAckBufFail(s, pkt.AckHandle, nil)
+		s.DoAckBufFail(pkt.AckHandle, nil)
 		panic(err)
 	}
 
-	broadcast.DoAckBufSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+	s.DoAckBufSucceed(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
 func HandleMsgMhfCancelGuildScout(s *Session, p mhfpacket.MHFPacket) {
@@ -103,25 +102,25 @@ func HandleMsgMhfCancelGuildScout(s *Session, p mhfpacket.MHFPacket) {
 	}
 
 	if guildCharData == nil || !guildCharData.CanRecruit() {
-		broadcast.DoAckBufFail(s, pkt.AckHandle, make([]byte, 4))
+		s.DoAckBufFail(pkt.AckHandle, make([]byte, 4))
 		return
 	}
 
 	guild, err := GetGuildInfoByID(s, guildCharData.GuildID)
 
 	if err != nil {
-		broadcast.DoAckBufFail(s, pkt.AckHandle, make([]byte, 4))
+		s.DoAckBufFail(pkt.AckHandle, make([]byte, 4))
 		return
 	}
 
 	err = guild.CancelInvitation(s, pkt.InvitationID)
 
 	if err != nil {
-		broadcast.DoAckBufFail(s, pkt.AckHandle, make([]byte, 4))
+		s.DoAckBufFail(pkt.AckHandle, make([]byte, 4))
 		return
 	}
 
-	broadcast.DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
+	s.DoAckBufSucceed(pkt.AckHandle, make([]byte, 4))
 }
 
 func HandleMsgMhfAnswerGuildScout(s *Session, p mhfpacket.MHFPacket) {
@@ -144,7 +143,7 @@ func HandleMsgMhfAnswerGuildScout(s *Session, p mhfpacket.MHFPacket) {
 		)
 		bf.WriteUint32(7)
 		bf.WriteUint32(guild.ID)
-		broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+		s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 		return
 	}
 
@@ -183,11 +182,11 @@ func HandleMsgMhfAnswerGuildScout(s *Session, p mhfpacket.MHFPacket) {
 	if err != nil {
 		bf.WriteUint32(7)
 		bf.WriteUint32(guild.ID)
-		broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+		s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 	} else {
 		bf.WriteUint32(0)
 		bf.WriteUint32(guild.ID)
-		broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+		s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 		for _, m := range mail {
 			m.Send(s, nil)
 		}
@@ -200,12 +199,12 @@ func HandleMsgMhfGetGuildScoutList(s *Session, p mhfpacket.MHFPacket) {
 	guildInfo, err := GetGuildInfoByCharacterId(s, s.CharID)
 
 	if guildInfo == nil && s.prevGuildID == 0 {
-		broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+		s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 		return
 	} else {
 		guildInfo, err = GetGuildInfoByID(s, s.prevGuildID)
 		if guildInfo == nil || err != nil {
-			broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+			s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 			return
 		}
 	}
@@ -222,7 +221,7 @@ func HandleMsgMhfGetGuildScoutList(s *Session, p mhfpacket.MHFPacket) {
 
 	if err != nil {
 		s.Logger.Error("failed to retrieve scouted characters", zap.Error(err))
-		broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+		s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 		return
 	}
 
@@ -245,7 +244,7 @@ func HandleMsgMhfGetGuildScoutList(s *Session, p mhfpacket.MHFPacket) {
 		err = rows.Scan(&charID, &charName, &HR, &GR, &actorID)
 
 		if err != nil {
-			broadcast.DoAckSimpleFail(s, pkt.AckHandle, nil)
+			s.DoAckSimpleFail(pkt.AckHandle, nil)
 			continue
 		}
 
@@ -270,7 +269,7 @@ func HandleMsgMhfGetGuildScoutList(s *Session, p mhfpacket.MHFPacket) {
 
 	bf.WriteUint32(count)
 
-	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 }
 
 func HandleMsgMhfGetRejectGuildScout(s *Session, p mhfpacket.MHFPacket) {
@@ -291,7 +290,7 @@ func HandleMsgMhfGetRejectGuildScout(s *Session, p mhfpacket.MHFPacket) {
 			zap.Error(err),
 			zap.Uint32("charID", s.CharID),
 		)
-		broadcast.DoAckSimpleFail(s, pkt.AckHandle, nil)
+		s.DoAckSimpleFail(pkt.AckHandle, nil)
 		return
 	}
 
@@ -301,7 +300,7 @@ func HandleMsgMhfGetRejectGuildScout(s *Session, p mhfpacket.MHFPacket) {
 		response = 0x01
 	}
 
-	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, response})
+	s.DoAckSimpleSucceed(pkt.AckHandle, []byte{0x00, 0x00, 0x00, response})
 }
 
 func HandleMsgMhfSetRejectGuildScout(s *Session, p mhfpacket.MHFPacket) {
@@ -318,9 +317,9 @@ func HandleMsgMhfSetRejectGuildScout(s *Session, p mhfpacket.MHFPacket) {
 			zap.Error(err),
 			zap.Uint32("charID", s.CharID),
 		)
-		broadcast.DoAckSimpleFail(s, pkt.AckHandle, nil)
+		s.DoAckSimpleFail(pkt.AckHandle, nil)
 		return
 	}
 
-	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, nil)
+	s.DoAckSimpleSucceed(pkt.AckHandle, nil)
 }

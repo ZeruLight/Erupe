@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"erupe-ce/network/mhfpacket"
-	"erupe-ce/utils/broadcast"
 	"erupe-ce/utils/byteframe"
 	"erupe-ce/utils/db"
 	"erupe-ce/utils/gametime"
@@ -33,7 +32,7 @@ func HandleMsgMhfLoadGuildAdventure(s *Session, p mhfpacket.MHFPacket) {
 	data, err := database.Queryx("SELECT id, destination, charge, depart, return, collected_by FROM guild_adventures WHERE guild_id = $1", guild.ID)
 	if err != nil {
 		s.Logger.Error("Failed to get guild adventures from db", zap.Error(err))
-		broadcast.DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 1))
+		s.DoAckBufSucceed(pkt.AckHandle, make([]byte, 1))
 		return
 	}
 	temp := byteframe.NewByteFrame()
@@ -55,7 +54,7 @@ func HandleMsgMhfLoadGuildAdventure(s *Session, p mhfpacket.MHFPacket) {
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint8(uint8(count))
 	bf.WriteBytes(temp.Data())
-	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 }
 
 func HandleMsgMhfRegistGuildAdventure(s *Session, p mhfpacket.MHFPacket) {
@@ -69,7 +68,7 @@ func HandleMsgMhfRegistGuildAdventure(s *Session, p mhfpacket.MHFPacket) {
 	if err != nil {
 		s.Logger.Error("Failed to register guild adventure", zap.Error(err))
 	}
-	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 }
 
 func HandleMsgMhfAcquireGuildAdventure(s *Session, p mhfpacket.MHFPacket) {
@@ -89,7 +88,7 @@ func HandleMsgMhfAcquireGuildAdventure(s *Session, p mhfpacket.MHFPacket) {
 			s.Logger.Error("Failed to collect adventure in db", zap.Error(err))
 		}
 	}
-	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 }
 
 func HandleMsgMhfChargeGuildAdventure(s *Session, p mhfpacket.MHFPacket) {
@@ -102,7 +101,7 @@ func HandleMsgMhfChargeGuildAdventure(s *Session, p mhfpacket.MHFPacket) {
 	if err != nil {
 		s.Logger.Error("Failed to charge guild adventure", zap.Error(err))
 	}
-	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 }
 
 func HandleMsgMhfRegistGuildAdventureDiva(s *Session, p mhfpacket.MHFPacket) {
@@ -116,5 +115,5 @@ func HandleMsgMhfRegistGuildAdventureDiva(s *Session, p mhfpacket.MHFPacket) {
 	if err != nil {
 		s.Logger.Error("Failed to register guild adventure", zap.Error(err))
 	}
-	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 }

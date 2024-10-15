@@ -1,7 +1,6 @@
 package channelserver
 
 import (
-	"erupe-ce/utils/broadcast"
 	"erupe-ce/utils/byteframe"
 	"strconv"
 	"strings"
@@ -23,7 +22,7 @@ func removeSessionFromSemaphore(s *Session) {
 
 func handleMsgSysCreateSemaphore(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysCreateSemaphore)
-	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, []byte{0x00, 0x03, 0x00, 0x0d})
+	s.DoAckSimpleSucceed(pkt.AckHandle, []byte{0x00, 0x03, 0x00, 0x0d})
 }
 
 func destructEmptySemaphores(s *Session) {
@@ -108,7 +107,7 @@ func handleMsgSysCreateAcquireSemaphore(s *Session, p mhfpacket.MHFPacket) {
 	} else {
 		bf.WriteUint32(0)
 	}
-	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
+	s.DoAckSimpleSucceed(pkt.AckHandle, bf.Data())
 }
 
 func handleMsgSysAcquireSemaphore(s *Session, p mhfpacket.MHFPacket) {
@@ -117,9 +116,9 @@ func handleMsgSysAcquireSemaphore(s *Session, p mhfpacket.MHFPacket) {
 		sema.host = s
 		bf := byteframe.NewByteFrame()
 		bf.WriteUint32(sema.id)
-		broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, bf.Data())
+		s.DoAckSimpleSucceed(pkt.AckHandle, bf.Data())
 	} else {
-		broadcast.DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+		s.DoAckSimpleFail(pkt.AckHandle, make([]byte, 4))
 	}
 }
 
@@ -135,5 +134,5 @@ func handleMsgSysCheckSemaphore(s *Session, p mhfpacket.MHFPacket) {
 		resp = []byte{0x00, 0x00, 0x00, 0x01}
 	}
 	s.Server.semaphoreLock.Unlock()
-	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, resp)
+	s.DoAckSimpleSucceed(pkt.AckHandle, resp)
 }

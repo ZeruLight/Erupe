@@ -1,7 +1,6 @@
 package channelserver
 
 import (
-	"erupe-ce/utils/broadcast"
 	"erupe-ce/utils/byteframe"
 	"erupe-ce/utils/db"
 	ps "erupe-ce/utils/pascalstring"
@@ -122,7 +121,7 @@ func HandleMsgMhfCreateJoint(s *Session, p mhfpacket.MHFPacket) {
 	if err != nil {
 		s.Logger.Error("Failed to create guild alliance in db", zap.Error(err))
 	}
-	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, []byte{0x01, 0x01, 0x01, 0x01})
+	s.DoAckSimpleSucceed(pkt.AckHandle, []byte{0x01, 0x01, 0x01, 0x01})
 }
 
 func HandleMsgMhfOperateJoint(s *Session, p mhfpacket.MHFPacket) {
@@ -147,14 +146,14 @@ func HandleMsgMhfOperateJoint(s *Session, p mhfpacket.MHFPacket) {
 			if err != nil {
 				s.Logger.Error("Failed to disband alliance", zap.Error(err))
 			}
-			broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+			s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 		} else {
 			s.Logger.Warn(
 				"Non-owner of alliance attempted disband",
 				zap.Uint32("CharID", s.CharID),
 				zap.Uint32("AllyID", alliance.ID),
 			)
-			broadcast.DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+			s.DoAckSimpleFail(pkt.AckHandle, make([]byte, 4))
 		}
 	case mhfpacket.OPERATE_JOINT_LEAVE:
 		if guild.LeaderCharID == s.CharID {
@@ -166,13 +165,13 @@ func HandleMsgMhfOperateJoint(s *Session, p mhfpacket.MHFPacket) {
 				database.Exec(`UPDATE guild_alliances SET sub2_id = NULL WHERE id = $1`, alliance.ID)
 			}
 			// TODO: Handle deleting Alliance applications
-			broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+			s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 		} else {
 			s.Logger.Warn(
 				"Non-owner of guild attempted alliance leave",
 				zap.Uint32("CharID", s.CharID),
 			)
-			broadcast.DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+			s.DoAckSimpleFail(pkt.AckHandle, make([]byte, 4))
 		}
 	case mhfpacket.OPERATE_JOINT_KICK:
 		if alliance.ParentGuild.LeaderCharID == s.CharID {
@@ -184,17 +183,17 @@ func HandleMsgMhfOperateJoint(s *Session, p mhfpacket.MHFPacket) {
 			} else {
 				database.Exec(`UPDATE guild_alliances SET sub2_id = NULL WHERE id = $1`, alliance.ID)
 			}
-			broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+			s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 		} else {
 			s.Logger.Warn(
 				"Non-owner of alliance attempted kick",
 				zap.Uint32("CharID", s.CharID),
 				zap.Uint32("AllyID", alliance.ID),
 			)
-			broadcast.DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+			s.DoAckSimpleFail(pkt.AckHandle, make([]byte, 4))
 		}
 	default:
-		broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+		s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 		panic(fmt.Sprintf("Unhandled operate joint action '%d'", pkt.Action))
 	}
 }
@@ -204,7 +203,7 @@ func HandleMsgMhfInfoJoint(s *Session, p mhfpacket.MHFPacket) {
 	bf := byteframe.NewByteFrame()
 	alliance, err := GetAllianceData(s, pkt.AllianceID)
 	if err != nil {
-		broadcast.DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+		s.DoAckSimpleFail(pkt.AckHandle, make([]byte, 4))
 	} else {
 		bf.WriteUint32(alliance.ID)
 		bf.WriteUint32(uint32(alliance.CreatedAt.Unix()))
@@ -242,6 +241,6 @@ func HandleMsgMhfInfoJoint(s *Session, p mhfpacket.MHFPacket) {
 			ps.Uint16(bf, alliance.SubGuild2.Name, true)
 			ps.Uint16(bf, alliance.SubGuild2.LeaderName, true)
 		}
-		broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+		s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 	}
 }

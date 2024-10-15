@@ -2,21 +2,20 @@ package channelserver
 
 import (
 	"erupe-ce/network/mhfpacket"
-	"erupe-ce/utils/broadcast"
 )
 
 func handleMsgSysReserve188(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysReserve188)
 
 	// Left as raw bytes because I couldn't easily find the request or resp parser function in the binary.
-	broadcast.DoAckBufSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
+	s.DoAckBufSucceed(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
 func handleMsgSysReserve18B(s *Session, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysReserve18B)
 
 	// Left as raw bytes because I couldn't easily find the request or resp parser function in the binary.
-	broadcast.DoAckBufSucceed(s, pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x3C})
+	s.DoAckBufSucceed(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x3C})
 }
 
 func handleMsgSysReserve55(s *Session, p mhfpacket.MHFPacket) {}

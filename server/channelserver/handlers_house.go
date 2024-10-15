@@ -3,7 +3,6 @@ package channelserver
 import (
 	"erupe-ce/config"
 	"erupe-ce/network/mhfpacket"
-	"erupe-ce/utils/broadcast"
 	"erupe-ce/utils/byteframe"
 	"erupe-ce/utils/db"
 	"erupe-ce/utils/mhfitem"
@@ -49,7 +48,7 @@ func handleMsgMhfUpdateInterior(s *Session, p mhfpacket.MHFPacket) {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
 	database.Exec(`UPDATE user_binary SET house_furniture=$1 WHERE id=$2`, pkt.InteriorData, s.CharID)
-	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 }
 
 type HouseData struct {
@@ -139,7 +138,7 @@ func handleMsgMhfEnumerateHouse(s *Session, p mhfpacket.MHFPacket) {
 	}
 	bf.Seek(0, 0)
 	bf.WriteUint16(uint16(len(houses)))
-	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfUpdateHouse(s *Session, p mhfpacket.MHFPacket) {
@@ -154,7 +153,7 @@ func handleMsgMhfUpdateHouse(s *Session, p mhfpacket.MHFPacket) {
 	// 04 = open guild
 	// 05 = open friends+guild
 	database.Exec(`UPDATE user_binary SET house_state=$1, house_password=$2 WHERE id=$3`, pkt.State, pkt.Password, s.CharID)
-	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfLoadHouse(s *Session, p mhfpacket.MHFPacket) {
@@ -172,7 +171,7 @@ func handleMsgMhfLoadHouse(s *Session, p mhfpacket.MHFPacket) {
 
 	if pkt.Destination != 9 && len(pkt.Password) > 0 && pkt.CheckPass {
 		if pkt.Password != password {
-			broadcast.DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+			s.DoAckSimpleFail(pkt.AckHandle, make([]byte, 4))
 			return
 		}
 	}
@@ -208,7 +207,7 @@ func handleMsgMhfLoadHouse(s *Session, p mhfpacket.MHFPacket) {
 		}
 
 		if !allowed {
-			broadcast.DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+			s.DoAckSimpleFail(pkt.AckHandle, make([]byte, 4))
 			return
 		}
 	}
@@ -244,9 +243,9 @@ func handleMsgMhfLoadHouse(s *Session, p mhfpacket.MHFPacket) {
 		}
 	}
 	if len(bf.Data()) == 0 {
-		broadcast.DoAckSimpleFail(s, pkt.AckHandle, make([]byte, 4))
+		s.DoAckSimpleFail(pkt.AckHandle, make([]byte, 4))
 	} else {
-		broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+		s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 	}
 }
 
@@ -259,9 +258,9 @@ func handleMsgMhfGetMyhouseInfo(s *Session, p mhfpacket.MHFPacket) {
 	var data []byte
 	database.QueryRow(`SELECT mission FROM user_binary WHERE id=$1`, s.CharID).Scan(&data)
 	if len(data) > 0 {
-		broadcast.DoAckBufSucceed(s, pkt.AckHandle, data)
+		s.DoAckBufSucceed(pkt.AckHandle, data)
 	} else {
-		broadcast.DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 9))
+		s.DoAckBufSucceed(pkt.AckHandle, make([]byte, 9))
 	}
 }
 
@@ -272,7 +271,7 @@ func handleMsgMhfUpdateMyhouseInfo(s *Session, p mhfpacket.MHFPacket) {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
 	database.Exec("UPDATE user_binary SET mission=$1 WHERE id=$2", pkt.Data, s.CharID)
-	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfLoadDecoMyset(s *Session, p mhfpacket.MHFPacket) {
@@ -293,7 +292,7 @@ func handleMsgMhfLoadDecoMyset(s *Session, p mhfpacket.MHFPacket) {
 			data = []byte{0x00, 0x00}
 		}
 	}
-	broadcast.DoAckBufSucceed(s, pkt.AckHandle, data)
+	s.DoAckBufSucceed(pkt.AckHandle, data)
 }
 
 func handleMsgMhfSaveDecoMyset(s *Session, p mhfpacket.MHFPacket) {
@@ -306,7 +305,7 @@ func handleMsgMhfSaveDecoMyset(s *Session, p mhfpacket.MHFPacket) {
 	err = database.QueryRow("SELECT decomyset FROM characters WHERE id = $1", s.CharID).Scan(&temp)
 	if err != nil {
 		s.Logger.Error("Failed to load decomyset", zap.Error(err))
-		broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+		s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 		return
 	}
 
@@ -350,7 +349,7 @@ func handleMsgMhfSaveDecoMyset(s *Session, p mhfpacket.MHFPacket) {
 
 	dumpSaveData(s, bf.Data(), "decomyset")
 	database.Exec("UPDATE characters SET decomyset=$1 WHERE id=$2", bf.Data(), s.CharID)
-	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 }
 
 type Title struct {
@@ -371,7 +370,7 @@ func handleMsgMhfEnumerateTitle(s *Session, p mhfpacket.MHFPacket) {
 	bf.WriteUint16(0) // Unk
 	rows, err := database.Queryx("SELECT id, unlocked_at, updated_at FROM titles WHERE char_id=$1", s.CharID)
 	if err != nil {
-		broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+		s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 		return
 	}
 	for rows.Next() {
@@ -388,7 +387,7 @@ func handleMsgMhfEnumerateTitle(s *Session, p mhfpacket.MHFPacket) {
 	}
 	bf.Seek(0, io.SeekStart)
 	bf.WriteUint16(count)
-	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 }
 
 func handleMsgMhfAcquireTitle(s *Session, p mhfpacket.MHFPacket) {
@@ -406,7 +405,7 @@ func handleMsgMhfAcquireTitle(s *Session, p mhfpacket.MHFPacket) {
 			database.Exec(`UPDATE titles SET updated_at=now() WHERE id=$1 AND char_id=$2`, title, s.CharID)
 		}
 	}
-	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 }
 
 func handleMsgMhfResetTitle(s *Session, p mhfpacket.MHFPacket) {}
@@ -484,7 +483,7 @@ func handleMsgMhfOperateWarehouse(s *Session, p mhfpacket.MHFPacket) {
 	// 2 = Rename
 	// 3 = Get usage limit
 	// 4 = Get gift box names (doesn't do anything?)
-	broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 }
 
 func addWarehouseItem(s *Session, item mhfitem.MHFItemStack) {
@@ -560,9 +559,9 @@ func handleMsgMhfEnumerateWarehouse(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteBytes(mhfitem.SerializeWarehouseEquipment(equipment))
 	}
 	if bf.Index() > 0 {
-		broadcast.DoAckBufSucceed(s, pkt.AckHandle, bf.Data())
+		s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 	} else {
-		broadcast.DoAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
+		s.DoAckBufSucceed(pkt.AckHandle, make([]byte, 4))
 	}
 }
 
@@ -601,5 +600,5 @@ func handleMsgMhfUpdateWarehouse(s *Session, p mhfpacket.MHFPacket) {
 		}
 		database.Exec(fmt.Sprintf(`UPDATE warehouse SET equip%d=$1 WHERE character_id=$2`, pkt.BoxIndex), mhfitem.SerializeWarehouseEquipment(fEquip), s.CharID)
 	}
-	broadcast.DoAckSimpleSucceed(s, pkt.AckHandle, make([]byte, 4))
+	s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 }

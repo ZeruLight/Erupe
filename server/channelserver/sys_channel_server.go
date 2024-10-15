@@ -207,11 +207,11 @@ func (server *ChannelServer) FindSessionByCharID(charID uint32) *Session {
 func (server *ChannelServer) DisconnectUser(uid uint32) {
 	var cid uint32
 	var cids []uint32
-	database, err := db.GetDB()
+	db, err := db.GetDB()
 	if err != nil {
 		server.logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
-	rows, _ := database.Query(`SELECT id FROM characters WHERE user_id=$1`, uid)
+	rows, _ := db.Query(`SELECT id FROM characters WHERE user_id=$1`, uid)
 	for rows.Next() {
 		rows.Scan(&cid)
 		cids = append(cids, cid)

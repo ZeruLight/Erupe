@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )
 
@@ -29,16 +30,13 @@ type Distribution struct {
 	Selection       bool      `db:"selection"`
 }
 
-func handleMsgMhfEnumerateDistItem(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfEnumerateDistItem(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateDistItem)
 
 	var itemDists []Distribution
 	bf := byteframe.NewByteFrame()
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
-	rows, err := database.Queryx(`
+
+	rows, err := db.Queryx(`
 		SELECT d.id, event_name, description, COALESCE(rights, 0) AS rights, COALESCE(selection, false) AS selection, times_acceptable,
 		COALESCE(min_hr, -1) AS min_hr, COALESCE(max_hr, -1) AS max_hr,
 		COALESCE(min_sr, -1) AS min_sr, COALESCE(max_sr, -1) AS max_sr,
@@ -133,12 +131,12 @@ type DistributionItem struct {
 }
 
 func getDistributionItems(s *Session, i uint32) []DistributionItem {
-	database, err := db.GetDB()
+	db, err := db.GetDB()
 	if err != nil {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
 	var distItems []DistributionItem
-	rows, err := database.Queryx(`SELECT id, item_type, COALESCE(item_id, 0) AS item_id, COALESCE(quantity, 0) AS quantity FROM distribution_items WHERE distribution_id=$1`, i)
+	rows, err := db.Queryx(`SELECT id, item_type, COALESCE(item_id, 0) AS item_id, COALESCE(quantity, 0) AS quantity FROM distribution_items WHERE distribution_id=$1`, i)
 	if err == nil {
 		var distItem DistributionItem
 		for rows.Next() {
@@ -152,7 +150,7 @@ func getDistributionItems(s *Session, i uint32) []DistributionItem {
 	return distItems
 }
 
-func handleMsgMhfApplyDistItem(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfApplyDistItem(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfApplyDistItem)
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint32(pkt.DistributionID)
@@ -169,14 +167,11 @@ func handleMsgMhfApplyDistItem(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 }
 
-func handleMsgMhfAcquireDistItem(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfAcquireDistItem(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfAcquireDistItem)
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
+
 	if pkt.DistributionID > 0 {
-		_, err := database.Exec(`INSERT INTO public.distributions_accepted VALUES ($1, $2)`, pkt.DistributionID, s.CharID)
+		_, err := db.Exec(`INSERT INTO public.distributions_accepted VALUES ($1, $2)`, pkt.DistributionID, s.CharID)
 		if err == nil {
 			distItems := getDistributionItems(s, pkt.DistributionID)
 			for _, item := range distItems {
@@ -184,11 +179,11 @@ func handleMsgMhfAcquireDistItem(s *Session, p mhfpacket.MHFPacket) {
 				case 17:
 					_ = addPointNetcafe(s, int(item.Quantity))
 				case 19:
-					database.Exec("UPDATE users u SET gacha_premium=gacha_premium+$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)", item.Quantity, s.CharID)
+					db.Exec("UPDATE users u SET gacha_premium=gacha_premium+$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)", item.Quantity, s.CharID)
 				case 20:
-					database.Exec("UPDATE users u SET gacha_trial=gacha_trial+$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)", item.Quantity, s.CharID)
+					db.Exec("UPDATE users u SET gacha_trial=gacha_trial+$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)", item.Quantity, s.CharID)
 				case 21:
-					database.Exec("UPDATE users u SET frontier_points=frontier_points+$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)", item.Quantity, s.CharID)
+					db.Exec("UPDATE users u SET frontier_points=frontier_points+$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)", item.Quantity, s.CharID)
 				case 23:
 					saveData, err := GetCharacterSaveData(s, s.CharID)
 					if err == nil {
@@ -202,14 +197,11 @@ func handleMsgMhfAcquireDistItem(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 }
 
-func handleMsgMhfGetDistDescription(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfGetDistDescription(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetDistDescription)
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
+
 	var desc string
-	err = database.QueryRow("SELECT description FROM distribution WHERE id = $1", pkt.DistributionID).Scan(&desc)
+	err := db.QueryRow("SELECT description FROM distribution WHERE id = $1", pkt.DistributionID).Scan(&desc)
 	if err != nil {
 		s.Logger.Error("Error parsing item distribution description", zap.Error(err))
 		s.DoAckBufSucceed(pkt.AckHandle, make([]byte, 4))

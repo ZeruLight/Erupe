@@ -2,7 +2,6 @@ package channelserver
 
 import (
 	"erupe-ce/config"
-	"erupe-ce/utils/db"
 	ps "erupe-ce/utils/pascalstring"
 	"fmt"
 	"os"
@@ -16,16 +15,13 @@ import (
 	"go.uber.org/zap"
 )
 
-func handleMsgMhfSaveRengokuData(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfSaveRengokuData(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	// saved every floor on road, holds values such as floors progressed, points etc.
 	// can be safely handled by the client
 	pkt := p.(*mhfpacket.MsgMhfSaveRengokuData)
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
+
 	dumpSaveData(s, pkt.RawDataPayload, "rengoku")
-	_, err = database.Exec("UPDATE characters SET rengokudata=$1 WHERE id=$2", pkt.RawDataPayload, s.CharID)
+	_, err := db.Exec("UPDATE characters SET rengokudata=$1 WHERE id=$2", pkt.RawDataPayload, s.CharID)
 	if err != nil {
 		s.Logger.Error("Failed to save rengokudata", zap.Error(err))
 		s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
@@ -39,22 +35,19 @@ func handleMsgMhfSaveRengokuData(s *Session, p mhfpacket.MHFPacket) {
 	maxStageSp := bf.ReadUint32()
 	maxScoreSp := bf.ReadUint32()
 	var t int
-	err = database.QueryRow("SELECT character_id FROM rengoku_score WHERE character_id=$1", s.CharID).Scan(&t)
+	err = db.QueryRow("SELECT character_id FROM rengoku_score WHERE character_id=$1", s.CharID).Scan(&t)
 	if err != nil {
-		database.Exec("INSERT INTO rengoku_score (character_id) VALUES ($1)", s.CharID)
+		db.Exec("INSERT INTO rengoku_score (character_id) VALUES ($1)", s.CharID)
 	}
-	database.Exec("UPDATE rengoku_score SET max_stages_mp=$1, max_points_mp=$2, max_stages_sp=$3, max_points_sp=$4 WHERE character_id=$5", maxStageMp, maxScoreMp, maxStageSp, maxScoreSp, s.CharID)
+	db.Exec("UPDATE rengoku_score SET max_stages_mp=$1, max_points_mp=$2, max_stages_sp=$3, max_points_sp=$4 WHERE character_id=$5", maxStageMp, maxScoreMp, maxStageSp, maxScoreSp, s.CharID)
 	s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 }
 
-func handleMsgMhfLoadRengokuData(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfLoadRengokuData(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfLoadRengokuData)
 	var data []byte
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
-	err = database.QueryRow("SELECT rengokudata FROM characters WHERE id = $1", s.CharID).Scan(&data)
+
+	err := db.QueryRow("SELECT rengokudata FROM characters WHERE id = $1", s.CharID).Scan(&data)
 	if err != nil {
 		s.Logger.Error("Failed to load rengokudata", zap.Error(err))
 	}
@@ -101,7 +94,7 @@ func handleMsgMhfLoadRengokuData(s *Session, p mhfpacket.MHFPacket) {
 	}
 }
 
-func handleMsgMhfGetRengokuBinary(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfGetRengokuBinary(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetRengokuBinary)
 	// a (massively out of date) version resides in the game's /dat/ folder or up to date can be pulled from packets
 	data, err := os.ReadFile(filepath.Join(config.GetConfig().BinPath, "rengoku_data.bin"))
@@ -120,7 +113,7 @@ type RengokuScore struct {
 	Score uint32 `db:"score"`
 }
 
-func handleMsgMhfEnumerateRengokuRanking(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfEnumerateRengokuRanking(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateRengokuRanking)
 
 	guild, _ := GetGuildInfoByCharacterId(s, s.CharID)
@@ -141,28 +134,25 @@ func handleMsgMhfEnumerateRengokuRanking(s *Session, p mhfpacket.MHFPacket) {
 	i := uint32(1)
 	bf := byteframe.NewByteFrame()
 	scoreData := byteframe.NewByteFrame()
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
+
 	var rows *sqlx.Rows
 	switch pkt.Leaderboard {
 	case 0:
-		rows, _ = database.Queryx(fmt.Sprintf("SELECT max_stages_mp AS score %s ORDER BY max_stages_mp DESC", rengokuScoreQuery))
+		rows, _ = db.Queryx(fmt.Sprintf("SELECT max_stages_mp AS score %s ORDER BY max_stages_mp DESC", rengokuScoreQuery))
 	case 1:
-		rows, _ = database.Queryx(fmt.Sprintf("SELECT max_points_mp AS score %s ORDER BY max_points_mp DESC", rengokuScoreQuery))
+		rows, _ = db.Queryx(fmt.Sprintf("SELECT max_points_mp AS score %s ORDER BY max_points_mp DESC", rengokuScoreQuery))
 	case 2:
-		rows, _ = database.Queryx(fmt.Sprintf("SELECT max_stages_mp AS score %s WHERE guild_id=$1 ORDER BY max_stages_mp DESC", rengokuScoreQuery), guild.ID)
+		rows, _ = db.Queryx(fmt.Sprintf("SELECT max_stages_mp AS score %s WHERE guild_id=$1 ORDER BY max_stages_mp DESC", rengokuScoreQuery), guild.ID)
 	case 3:
-		rows, _ = database.Queryx(fmt.Sprintf("SELECT max_points_mp AS score %s WHERE guild_id=$1 ORDER BY max_points_mp DESC", rengokuScoreQuery), guild.ID)
+		rows, _ = db.Queryx(fmt.Sprintf("SELECT max_points_mp AS score %s WHERE guild_id=$1 ORDER BY max_points_mp DESC", rengokuScoreQuery), guild.ID)
 	case 4:
-		rows, _ = database.Queryx(fmt.Sprintf("SELECT max_stages_sp AS score %s ORDER BY max_stages_sp DESC", rengokuScoreQuery))
+		rows, _ = db.Queryx(fmt.Sprintf("SELECT max_stages_sp AS score %s ORDER BY max_stages_sp DESC", rengokuScoreQuery))
 	case 5:
-		rows, _ = database.Queryx(fmt.Sprintf("SELECT max_points_sp AS score %s ORDER BY max_points_sp DESC", rengokuScoreQuery))
+		rows, _ = db.Queryx(fmt.Sprintf("SELECT max_points_sp AS score %s ORDER BY max_points_sp DESC", rengokuScoreQuery))
 	case 6:
-		rows, _ = database.Queryx(fmt.Sprintf("SELECT max_stages_sp AS score %s WHERE guild_id=$1 ORDER BY max_stages_sp DESC", rengokuScoreQuery), guild.ID)
+		rows, _ = db.Queryx(fmt.Sprintf("SELECT max_stages_sp AS score %s WHERE guild_id=$1 ORDER BY max_stages_sp DESC", rengokuScoreQuery), guild.ID)
 	case 7:
-		rows, _ = database.Queryx(fmt.Sprintf("SELECT max_points_sp AS score %s WHERE guild_id=$1 ORDER BY max_points_sp DESC", rengokuScoreQuery), guild.ID)
+		rows, _ = db.Queryx(fmt.Sprintf("SELECT max_points_sp AS score %s WHERE guild_id=$1 ORDER BY max_points_sp DESC", rengokuScoreQuery), guild.ID)
 	}
 
 	for rows.Next() {
@@ -193,7 +183,7 @@ func handleMsgMhfEnumerateRengokuRanking(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 }
 
-func handleMsgMhfGetRengokuRankingRank(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfGetRengokuRankingRank(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetRengokuRankingRank)
 	// What is this for?
 	bf := byteframe.NewByteFrame()

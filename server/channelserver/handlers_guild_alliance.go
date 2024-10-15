@@ -46,11 +46,11 @@ type GuildAlliance struct {
 }
 
 func GetAllianceData(s *Session, AllianceID uint32) (*GuildAlliance, error) {
-	database, err := db.GetDB()
+	db, err := db.GetDB()
 	if err != nil {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
-	rows, err := database.Queryx(fmt.Sprintf(`
+	rows, err := db.Queryx(fmt.Sprintf(`
 		%s
 		WHERE ga.id = $1
 	`, allianceInfoSelectQuery), AllianceID)
@@ -111,25 +111,19 @@ func buildAllianceObjectFromDbResult(result *sqlx.Rows, err error, s *Session) (
 	return alliance, nil
 }
 
-func HandleMsgMhfCreateJoint(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfCreateJoint(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfCreateJoint)
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
-	_, err = database.Exec("INSERT INTO guild_alliances (name, parent_id) VALUES ($1, $2)", pkt.Name, pkt.GuildID)
+
+	_, err := db.Exec("INSERT INTO guild_alliances (name, parent_id) VALUES ($1, $2)", pkt.Name, pkt.GuildID)
 	if err != nil {
 		s.Logger.Error("Failed to create guild alliance in db", zap.Error(err))
 	}
 	s.DoAckSimpleSucceed(pkt.AckHandle, []byte{0x01, 0x01, 0x01, 0x01})
 }
 
-func HandleMsgMhfOperateJoint(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfOperateJoint(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfOperateJoint)
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
+
 	guild, err := GetGuildInfoByID(s, pkt.GuildID)
 	if err != nil {
 		s.Logger.Error("Failed to get guild info", zap.Error(err))
@@ -142,7 +136,7 @@ func HandleMsgMhfOperateJoint(s *Session, p mhfpacket.MHFPacket) {
 	switch pkt.Action {
 	case mhfpacket.OPERATE_JOINT_DISBAND:
 		if guild.LeaderCharID == s.CharID && alliance.ParentGuildID == guild.ID {
-			_, err = database.Exec("DELETE FROM guild_alliances WHERE id=$1", alliance.ID)
+			_, err = db.Exec("DELETE FROM guild_alliances WHERE id=$1", alliance.ID)
 			if err != nil {
 				s.Logger.Error("Failed to disband alliance", zap.Error(err))
 			}
@@ -158,11 +152,11 @@ func HandleMsgMhfOperateJoint(s *Session, p mhfpacket.MHFPacket) {
 	case mhfpacket.OPERATE_JOINT_LEAVE:
 		if guild.LeaderCharID == s.CharID {
 			if guild.ID == alliance.SubGuild1ID && alliance.SubGuild2ID > 0 {
-				database.Exec(`UPDATE guild_alliances SET sub1_id = sub2_id, sub2_id = NULL WHERE id = $1`, alliance.ID)
+				db.Exec(`UPDATE guild_alliances SET sub1_id = sub2_id, sub2_id = NULL WHERE id = $1`, alliance.ID)
 			} else if guild.ID == alliance.SubGuild1ID && alliance.SubGuild2ID == 0 {
-				database.Exec(`UPDATE guild_alliances SET sub1_id = NULL WHERE id = $1`, alliance.ID)
+				db.Exec(`UPDATE guild_alliances SET sub1_id = NULL WHERE id = $1`, alliance.ID)
 			} else {
-				database.Exec(`UPDATE guild_alliances SET sub2_id = NULL WHERE id = $1`, alliance.ID)
+				db.Exec(`UPDATE guild_alliances SET sub2_id = NULL WHERE id = $1`, alliance.ID)
 			}
 			// TODO: Handle deleting Alliance applications
 			s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
@@ -177,11 +171,11 @@ func HandleMsgMhfOperateJoint(s *Session, p mhfpacket.MHFPacket) {
 		if alliance.ParentGuild.LeaderCharID == s.CharID {
 			kickedGuildID := pkt.Data1.ReadUint32()
 			if kickedGuildID == alliance.SubGuild1ID && alliance.SubGuild2ID > 0 {
-				database.Exec(`UPDATE guild_alliances SET sub1_id = sub2_id, sub2_id = NULL WHERE id = $1`, alliance.ID)
+				db.Exec(`UPDATE guild_alliances SET sub1_id = sub2_id, sub2_id = NULL WHERE id = $1`, alliance.ID)
 			} else if kickedGuildID == alliance.SubGuild1ID && alliance.SubGuild2ID == 0 {
-				database.Exec(`UPDATE guild_alliances SET sub1_id = NULL WHERE id = $1`, alliance.ID)
+				db.Exec(`UPDATE guild_alliances SET sub1_id = NULL WHERE id = $1`, alliance.ID)
 			} else {
-				database.Exec(`UPDATE guild_alliances SET sub2_id = NULL WHERE id = $1`, alliance.ID)
+				db.Exec(`UPDATE guild_alliances SET sub2_id = NULL WHERE id = $1`, alliance.ID)
 			}
 			s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 		} else {
@@ -198,7 +192,7 @@ func HandleMsgMhfOperateJoint(s *Session, p mhfpacket.MHFPacket) {
 	}
 }
 
-func HandleMsgMhfInfoJoint(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfInfoJoint(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfInfoJoint)
 	bf := byteframe.NewByteFrame()
 	alliance, err := GetAllianceData(s, pkt.AllianceID)

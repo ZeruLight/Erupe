@@ -5,7 +5,6 @@ import (
 	"erupe-ce/network/binpacket"
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/utils/byteframe"
-	"erupe-ce/utils/db"
 	"erupe-ce/utils/logger"
 	"erupe-ce/utils/token"
 	"sync"
@@ -14,6 +13,7 @@ import (
 	"math"
 	"strings"
 
+	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )
 
@@ -79,17 +79,14 @@ func sendServerChatMessage(s *Session, message string) {
 	s.QueueSendMHF(castedBin)
 }
 
-func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgSysCastBinary(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysCastBinary)
 	tmp := byteframe.NewByteFrameFromBytes(pkt.RawDataPayload)
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
+
 	if pkt.BroadcastType == 0x03 && pkt.MessageType == 0x03 && len(pkt.RawDataPayload) == 0x10 {
 		if tmp.ReadUint16() == 0x0002 && tmp.ReadUint8() == 0x18 {
 			var timer bool
-			database.QueryRow(`SELECT COALESCE(timer, false) FROM users u WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$1)`, s.CharID).Scan(&timer)
+			db.QueryRow(`SELECT COALESCE(timer, false) FROM users u WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$1)`, s.CharID).Scan(&timer)
 			if timer {
 				_ = tmp.ReadBytes(9)
 				tmp.SetLE()
@@ -159,7 +156,7 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 			chatMessage := &binpacket.MsgBinChat{}
 			chatMessage.Parse(bf)
 			if strings.HasPrefix(chatMessage.Message, config.GetConfig().CommandPrefix) {
-				err = executeCommand(s, chatMessage.Message)
+				err := executeCommand(s, chatMessage.Message)
 				if err != nil {
 					s.Logger.Error(fmt.Sprintf("Failed to execute command: %s", err))
 				}
@@ -216,4 +213,4 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 	}
 }
 
-func handleMsgSysCastedBinary(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysCastedBinary(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}

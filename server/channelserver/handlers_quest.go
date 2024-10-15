@@ -4,7 +4,6 @@ import (
 	"database/sql"
 	"encoding/binary"
 	"erupe-ce/utils/byteframe"
-	"erupe-ce/utils/db"
 	"erupe-ce/utils/decryption"
 	"erupe-ce/utils/gametime"
 
@@ -17,6 +16,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )
 
@@ -91,7 +91,7 @@ func BackportQuest(data []byte) []byte {
 	return data
 }
 
-func handleMsgSysGetFile(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgSysGetFile(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysGetFile)
 
 	if pkt.IsScenario {
@@ -167,14 +167,11 @@ func seasonConversion(s *Session, questFile string) string {
 	}
 }
 
-func handleMsgMhfLoadFavoriteQuest(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfLoadFavoriteQuest(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfLoadFavoriteQuest)
 	var data []byte
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
-	err = database.QueryRow("SELECT savefavoritequest FROM characters WHERE id = $1", s.CharID).Scan(&data)
+
+	err := db.QueryRow("SELECT savefavoritequest FROM characters WHERE id = $1", s.CharID).Scan(&data)
 	if err == nil && len(data) > 0 {
 		s.DoAckBufSucceed(pkt.AckHandle, data)
 	} else {
@@ -182,14 +179,11 @@ func handleMsgMhfLoadFavoriteQuest(s *Session, p mhfpacket.MHFPacket) {
 	}
 }
 
-func handleMsgMhfSaveFavoriteQuest(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfSaveFavoriteQuest(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSaveFavoriteQuest)
 	dumpSaveData(s, pkt.Data, "favquest")
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
-	database.Exec("UPDATE characters SET savefavoritequest=$1 WHERE id=$2", pkt.Data, s.CharID)
+
+	db.Exec("UPDATE characters SET savefavoritequest=$1 WHERE id=$2", pkt.Data, s.CharID)
 	s.DoAckSimpleSucceed(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
@@ -330,19 +324,16 @@ func makeEventQuest(s *Session, rows *sql.Rows) ([]byte, error) {
 	return bf.Data(), nil
 }
 
-func handleMsgMhfEnumerateQuest(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfEnumerateQuest(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateQuest)
 	var totalCount, returnedCount uint16
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint16(0)
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
-	rows, err := database.Query("SELECT id, COALESCE(max_players, 4) AS max_players, quest_type, quest_id, COALESCE(mark, 0) AS mark, COALESCE(flags, -1), start_time, COALESCE(active_days, 0) AS active_days, COALESCE(inactive_days, 0) AS inactive_days FROM event_quests ORDER BY quest_id")
+
+	rows, err := db.Query("SELECT id, COALESCE(max_players, 4) AS max_players, quest_type, quest_id, COALESCE(mark, 0) AS mark, COALESCE(flags, -1), start_time, COALESCE(active_days, 0) AS active_days, COALESCE(inactive_days, 0) AS inactive_days FROM event_quests ORDER BY quest_id")
 	if err == nil {
 		currentTime := time.Now()
-		tx, _ := database.Begin()
+		tx, _ := db.Begin()
 
 		for rows.Next() {
 			var id, mark uint32
@@ -667,9 +658,9 @@ func getTuneValueRange(start uint16, value uint16) []tuneValue {
 	return tv
 }
 
-func handleMsgMhfEnterTournamentQuest(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfEnterTournamentQuest(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfGetUdBonusQuestInfo(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfGetUdBonusQuestInfo(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetUdBonusQuestInfo)
 
 	udBonusQuestInfos := []struct {

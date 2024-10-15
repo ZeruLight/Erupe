@@ -11,26 +11,22 @@ import (
 	"fmt"
 	"sort"
 	"time"
+
+	"github.com/jmoiron/sqlx"
 )
 
-func handleMsgMhfSaveMezfesData(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfSaveMezfesData(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSaveMezfesData)
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
-	database.Exec(`UPDATE characters SET mezfes=$1 WHERE id=$2`, pkt.RawDataPayload, s.CharID)
+
+	db.Exec(`UPDATE characters SET mezfes=$1 WHERE id=$2`, pkt.RawDataPayload, s.CharID)
 	s.DoAckSimpleSucceed(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
-func handleMsgMhfLoadMezfesData(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfLoadMezfesData(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfLoadMezfesData)
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
+
 	var data []byte
-	database.QueryRow(`SELECT mezfes FROM characters WHERE id=$1`, s.CharID).Scan(&data)
+	db.QueryRow(`SELECT mezfes FROM characters WHERE id=$1`, s.CharID).Scan(&data)
 	bf := byteframe.NewByteFrame()
 	if len(data) > 0 {
 		bf.WriteBytes(data)
@@ -44,7 +40,7 @@ func handleMsgMhfLoadMezfesData(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 }
 
-func handleMsgMhfEnumerateRanking(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfEnumerateRanking(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateRanking)
 	bf := byteframe.NewByteFrame()
 	state := config.GetConfig().DebugOptions.TournamentOverride
@@ -104,19 +100,19 @@ func handleMsgMhfEnumerateRanking(s *Session, p mhfpacket.MHFPacket) {
 }
 
 func cleanupFesta(s *Session) {
-	database, err := db.GetDB()
+	db, err := db.GetDB()
 	if err != nil {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
-	database.Exec("DELETE FROM events WHERE event_type='festa'")
-	database.Exec("DELETE FROM festa_registrations")
-	database.Exec("DELETE FROM festa_submissions")
-	database.Exec("DELETE FROM festa_prizes_accepted")
-	database.Exec("UPDATE guild_characters SET trial_vote=NULL")
+	db.Exec("DELETE FROM events WHERE event_type='festa'")
+	db.Exec("DELETE FROM festa_registrations")
+	db.Exec("DELETE FROM festa_submissions")
+	db.Exec("DELETE FROM festa_prizes_accepted")
+	db.Exec("UPDATE guild_characters SET trial_vote=NULL")
 }
 
 func generateFestaTimestamps(s *Session, start uint32, debug bool) []uint32 {
-	database, err := db.GetDB()
+	db, err := db.GetDB()
 	if err != nil {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
@@ -150,7 +146,7 @@ func generateFestaTimestamps(s *Session, start uint32, debug bool) []uint32 {
 		cleanupFesta(s)
 		// Generate a new festa, starting midnight tomorrow
 		start = uint32(midnight.Add(24 * time.Hour).Unix())
-		database.Exec("INSERT INTO events (event_type, start_time) VALUES ('festa', to_timestamp($1)::timestamp without time zone)", start)
+		db.Exec("INSERT INTO events (event_type, start_time) VALUES ('festa', to_timestamp($1)::timestamp without time zone)", start)
 	}
 	timestamps[0] = start
 	timestamps[1] = timestamps[0] + 604800
@@ -182,15 +178,12 @@ type FestaReward struct {
 	Unk7     uint8
 }
 
-func handleMsgMhfInfoFesta(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfInfoFesta(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfInfoFesta)
 	bf := byteframe.NewByteFrame()
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
+
 	id, start := uint32(0xDEADBEEF), uint32(0)
-	rows, _ := database.Queryx("SELECT id, (EXTRACT(epoch FROM start_time)::int) as start_time FROM events WHERE event_type='festa'")
+	rows, _ := db.Queryx("SELECT id, (EXTRACT(epoch FROM start_time)::int) as start_time FROM events WHERE event_type='festa'")
 	for rows.Next() {
 		rows.Scan(&id, &start)
 	}
@@ -212,8 +205,8 @@ func handleMsgMhfInfoFesta(s *Session, p mhfpacket.MHFPacket) {
 	}
 
 	var blueSouls, redSouls uint32
-	database.QueryRow(`SELECT COALESCE(SUM(fs.souls), 0) AS souls FROM festa_registrations fr LEFT JOIN festa_submissions fs ON fr.guild_id = fs.guild_id AND fr.team = 'blue'`).Scan(&blueSouls)
-	database.QueryRow(`SELECT COALESCE(SUM(fs.souls), 0) AS souls FROM festa_registrations fr LEFT JOIN festa_submissions fs ON fr.guild_id = fs.guild_id AND fr.team = 'red'`).Scan(&redSouls)
+	db.QueryRow(`SELECT COALESCE(SUM(fs.souls), 0) AS souls FROM festa_registrations fr LEFT JOIN festa_submissions fs ON fr.guild_id = fs.guild_id AND fr.team = 'blue'`).Scan(&blueSouls)
+	db.QueryRow(`SELECT COALESCE(SUM(fs.souls), 0) AS souls FROM festa_registrations fr LEFT JOIN festa_submissions fs ON fr.guild_id = fs.guild_id AND fr.team = 'red'`).Scan(&redSouls)
 
 	bf.WriteUint32(id)
 	for _, timestamp := range timestamps {
@@ -228,7 +221,7 @@ func handleMsgMhfInfoFesta(s *Session, p mhfpacket.MHFPacket) {
 
 	var trials []FestaTrial
 	var trial FestaTrial
-	rows, _ = database.Queryx(`SELECT ft.*,
+	rows, _ = db.Queryx(`SELECT ft.*,
 		COALESCE(CASE
 			WHEN COUNT(gc.id) FILTER (WHERE fr.team = 'blue' AND gc.trial_vote = ft.id) >
 				 COUNT(gc.id) FILTER (WHERE fr.team = 'red' AND gc.trial_vote = ft.id)
@@ -322,7 +315,7 @@ func handleMsgMhfInfoFesta(s *Session, p mhfpacket.MHFPacket) {
 		var guildID uint32
 		var guildName string
 		var guildTeam = FestivalColorNone
-		database.QueryRow(`
+		db.QueryRow(`
 				SELECT fs.guild_id, g.name, fr.team, SUM(fs.souls) as _
 				FROM festa_submissions fs
 				LEFT JOIN festa_registrations fr ON fs.guild_id = fr.guild_id
@@ -342,7 +335,7 @@ func handleMsgMhfInfoFesta(s *Session, p mhfpacket.MHFPacket) {
 		var guildName string
 		var guildTeam = FestivalColorNone
 		offset := 86400 * uint32(i)
-		database.QueryRow(`
+		db.QueryRow(`
 				SELECT fs.guild_id, g.name, fr.team, SUM(fs.souls) as _
 				FROM festa_submissions fs
 				LEFT JOIN festa_registrations fr ON fs.guild_id = fr.guild_id
@@ -376,12 +369,9 @@ func handleMsgMhfInfoFesta(s *Session, p mhfpacket.MHFPacket) {
 }
 
 // state festa (U)ser
-func handleMsgMhfStateFestaU(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfStateFestaU(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfStateFestaU)
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
+
 	guild, err := GetGuildInfoByCharacterId(s, s.CharID)
 	applicant := false
 	if guild != nil {
@@ -392,8 +382,8 @@ func handleMsgMhfStateFestaU(s *Session, p mhfpacket.MHFPacket) {
 		return
 	}
 	var souls, exists uint32
-	database.QueryRow(`SELECT COALESCE((SELECT SUM(souls) FROM festa_submissions WHERE character_id=$1), 0)`, s.CharID).Scan(&souls)
-	err = database.QueryRow("SELECT prize_id FROM festa_prizes_accepted WHERE prize_id=0 AND character_id=$1", s.CharID).Scan(&exists)
+	db.QueryRow(`SELECT COALESCE((SELECT SUM(souls) FROM festa_submissions WHERE character_id=$1), 0)`, s.CharID).Scan(&souls)
+	err = db.QueryRow("SELECT prize_id FROM festa_prizes_accepted WHERE prize_id=0 AND character_id=$1", s.CharID).Scan(&exists)
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint32(souls)
 	if err != nil {
@@ -407,7 +397,7 @@ func handleMsgMhfStateFestaU(s *Session, p mhfpacket.MHFPacket) {
 }
 
 // state festa (G)uild
-func handleMsgMhfStateFestaG(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfStateFestaG(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfStateFestaG)
 	guild, err := GetGuildInfoByCharacterId(s, s.CharID)
 	applicant := false
@@ -432,7 +422,7 @@ func handleMsgMhfStateFestaG(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckBufSucceed(pkt.AckHandle, resp.Data())
 }
 
-func handleMsgMhfEnumerateFestaMember(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfEnumerateFestaMember(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateFestaMember)
 	guild, err := GetGuildInfoByCharacterId(s, s.CharID)
 	if err != nil || guild == nil {
@@ -468,22 +458,16 @@ func handleMsgMhfEnumerateFestaMember(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 }
 
-func handleMsgMhfVoteFesta(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfVoteFesta(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfVoteFesta)
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
-	database.Exec(`UPDATE guild_characters SET trial_vote=$1 WHERE character_id=$2`, pkt.TrialID, s.CharID)
+
+	db.Exec(`UPDATE guild_characters SET trial_vote=$1 WHERE character_id=$2`, pkt.TrialID, s.CharID)
 	s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 }
 
-func handleMsgMhfEntryFesta(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfEntryFesta(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEntryFesta)
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
+
 	guild, err := GetGuildInfoByCharacterId(s, s.CharID)
 	if err != nil || guild == nil {
 		s.DoAckSimpleFail(pkt.AckHandle, make([]byte, 4))
@@ -492,22 +476,19 @@ func handleMsgMhfEntryFesta(s *Session, p mhfpacket.MHFPacket) {
 	team := uint32(token.RNG.Intn(2))
 	switch team {
 	case 0:
-		database.Exec("INSERT INTO festa_registrations VALUES ($1, 'blue')", guild.ID)
+		db.Exec("INSERT INTO festa_registrations VALUES ($1, 'blue')", guild.ID)
 	case 1:
-		database.Exec("INSERT INTO festa_registrations VALUES ($1, 'red')", guild.ID)
+		db.Exec("INSERT INTO festa_registrations VALUES ($1, 'red')", guild.ID)
 	}
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint32(team)
 	s.DoAckSimpleSucceed(pkt.AckHandle, bf.Data())
 }
 
-func handleMsgMhfChargeFesta(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfChargeFesta(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfChargeFesta)
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
-	tx, _ := database.Begin()
+
+	tx, _ := db.Begin()
 	for i := range pkt.Souls {
 		if pkt.Souls[i] == 0 {
 			continue
@@ -518,33 +499,24 @@ func handleMsgMhfChargeFesta(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 }
 
-func handleMsgMhfAcquireFesta(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfAcquireFesta(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfAcquireFesta)
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
-	database.Exec("INSERT INTO public.festa_prizes_accepted VALUES (0, $1)", s.CharID)
+
+	db.Exec("INSERT INTO public.festa_prizes_accepted VALUES (0, $1)", s.CharID)
 	s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 }
 
-func handleMsgMhfAcquireFestaPersonalPrize(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfAcquireFestaPersonalPrize(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfAcquireFestaPersonalPrize)
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
-	database.Exec("INSERT INTO public.festa_prizes_accepted VALUES ($1, $2)", pkt.PrizeID, s.CharID)
+
+	db.Exec("INSERT INTO public.festa_prizes_accepted VALUES ($1, $2)", pkt.PrizeID, s.CharID)
 	s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 }
 
-func handleMsgMhfAcquireFestaIntermediatePrize(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfAcquireFestaIntermediatePrize(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfAcquireFestaIntermediatePrize)
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
-	database.Exec("INSERT INTO public.festa_prizes_accepted VALUES ($1, $2)", pkt.PrizeID, s.CharID)
+
+	db.Exec("INSERT INTO public.festa_prizes_accepted VALUES ($1, $2)", pkt.PrizeID, s.CharID)
 	s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 }
 
@@ -557,13 +529,10 @@ type Prize struct {
 	Claimed  int    `db:"claimed"`
 }
 
-func handleMsgMhfEnumerateFestaPersonalPrize(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfEnumerateFestaPersonalPrize(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateFestaPersonalPrize)
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
-	rows, _ := database.Queryx(`SELECT id, tier, souls_req, item_id, num_item, (SELECT count(*) FROM festa_prizes_accepted fpa WHERE fp.id = fpa.prize_id AND fpa.character_id = $1) AS claimed FROM festa_prizes fp WHERE type='personal'`, s.CharID)
+
+	rows, _ := db.Queryx(`SELECT id, tier, souls_req, item_id, num_item, (SELECT count(*) FROM festa_prizes_accepted fpa WHERE fp.id = fpa.prize_id AND fpa.character_id = $1) AS claimed FROM festa_prizes fp WHERE type='personal'`, s.CharID)
 	var count uint32
 	prizeData := byteframe.NewByteFrame()
 	for rows.Next() {
@@ -587,13 +556,10 @@ func handleMsgMhfEnumerateFestaPersonalPrize(s *Session, p mhfpacket.MHFPacket) 
 	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 }
 
-func handleMsgMhfEnumerateFestaIntermediatePrize(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfEnumerateFestaIntermediatePrize(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateFestaIntermediatePrize)
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
-	rows, _ := database.Queryx(`SELECT id, tier, souls_req, item_id, num_item, (SELECT count(*) FROM festa_prizes_accepted fpa WHERE fp.id = fpa.prize_id AND fpa.character_id = $1) AS claimed FROM festa_prizes fp WHERE type='guild'`, s.CharID)
+
+	rows, _ := db.Queryx(`SELECT id, tier, souls_req, item_id, num_item, (SELECT count(*) FROM festa_prizes_accepted fpa WHERE fp.id = fpa.prize_id AND fpa.character_id = $1) AS claimed FROM festa_prizes fp WHERE type='guild'`, s.CharID)
 	var count uint32
 	prizeData := byteframe.NewByteFrame()
 	for rows.Next() {

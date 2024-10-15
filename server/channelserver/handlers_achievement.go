@@ -3,9 +3,10 @@ package channelserver
 import (
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/utils/byteframe"
-	"erupe-ce/utils/db"
 	"fmt"
 	"io"
+
+	"github.com/jmoiron/sqlx"
 )
 
 var achievementCurves = [][]int32{
@@ -85,21 +86,18 @@ func GetAchData(id uint8, score int32) Achievement {
 	return ach
 }
 
-func handleMsgMhfGetAchievement(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfGetAchievement(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetAchievement)
 
 	var exists int
-	database, err := db.GetDB()
+
+	err := db.QueryRow("SELECT id FROM achievements WHERE id=$1", pkt.CharID).Scan(&exists)
 	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
-	err = database.QueryRow("SELECT id FROM achievements WHERE id=$1", pkt.CharID).Scan(&exists)
-	if err != nil {
-		database.Exec("INSERT INTO achievements (id) VALUES ($1)", pkt.CharID)
+		db.Exec("INSERT INTO achievements (id) VALUES ($1)", pkt.CharID)
 	}
 
 	var scores [33]int32
-	err = database.QueryRow("SELECT * FROM achievements WHERE id=$1", pkt.CharID).Scan(&scores[0],
+	err = db.QueryRow("SELECT * FROM achievements WHERE id=$1", pkt.CharID).Scan(&scores[0],
 		&scores[0], &scores[1], &scores[2], &scores[3], &scores[4], &scores[5], &scores[6], &scores[7], &scores[8],
 		&scores[9], &scores[10], &scores[11], &scores[12], &scores[13], &scores[14], &scores[15], &scores[16],
 		&scores[17], &scores[18], &scores[19], &scores[20], &scores[21], &scores[22], &scores[23], &scores[24],
@@ -144,34 +142,31 @@ func handleMsgMhfGetAchievement(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckBufSucceed(pkt.AckHandle, resp.Data())
 }
 
-func handleMsgMhfSetCaAchievementHist(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfSetCaAchievementHist(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSetCaAchievementHist)
 	s.DoAckSimpleSucceed(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
-func handleMsgMhfResetAchievement(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfResetAchievement(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfAddAchievement(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfAddAchievement(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfAddAchievement)
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
+
 	var exists int
-	err = database.QueryRow("SELECT id FROM achievements WHERE id=$1", s.CharID).Scan(&exists)
+	err := db.QueryRow("SELECT id FROM achievements WHERE id=$1", s.CharID).Scan(&exists)
 	if err != nil {
-		database.Exec("INSERT INTO achievements (id) VALUES ($1)", s.CharID)
+		db.Exec("INSERT INTO achievements (id) VALUES ($1)", s.CharID)
 	}
 
-	database.Exec(fmt.Sprintf("UPDATE achievements SET ach%d=ach%d+1 WHERE id=$1", pkt.AchievementID, pkt.AchievementID), s.CharID)
+	db.Exec(fmt.Sprintf("UPDATE achievements SET ach%d=ach%d+1 WHERE id=$1", pkt.AchievementID, pkt.AchievementID), s.CharID)
 }
 
-func handleMsgMhfPaymentAchievement(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfPaymentAchievement(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfDisplayedAchievement(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfDisplayedAchievement(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	// This is how you would figure out if the rank-up notification needs to occur
 }
 
-func handleMsgMhfGetCaAchievementHist(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfGetCaAchievementHist(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfSetCaAchievement(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfSetCaAchievement(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}

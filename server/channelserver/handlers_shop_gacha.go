@@ -9,6 +9,8 @@ import (
 	ps "erupe-ce/utils/pascalstring"
 	"fmt"
 	"math/rand"
+
+	"github.com/jmoiron/sqlx"
 )
 
 type ShopItem struct {
@@ -92,13 +94,14 @@ func writeShopItems(bf *byteframe.ByteFrame, items []ShopItem) {
 }
 
 func getShopItems(s *Session, shopType uint8, shopID uint32) []ShopItem {
-	var items []ShopItem
-	var temp ShopItem
-	database, err := db.GetDB()
+	db, err := db.GetDB()
 	if err != nil {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
-	rows, err := database.Queryx(`SELECT id, item_id, cost, quantity, min_hr, min_sr, min_gr, store_level, max_quantity,
+	var items []ShopItem
+	var temp ShopItem
+
+	rows, err := db.Queryx(`SELECT id, item_id, cost, quantity, min_hr, min_sr, min_gr, store_level, max_quantity,
        		COALESCE((SELECT bought FROM shop_items_bought WHERE shop_item_id=si.id AND character_id=$3), 0) as used_quantity,
        		road_floors, road_fatalis FROM shop_items si WHERE shop_type=$1 AND shop_id=$2
        		`, shopType, shopID, s.CharID)
@@ -114,12 +117,9 @@ func getShopItems(s *Session, shopType uint8, shopID uint32) []ShopItem {
 	return items
 }
 
-func handleMsgMhfEnumerateShop(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfEnumerateShop(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateShop)
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
+
 	// Generic Shop IDs
 	// 0: basic item
 	// 1: gatherables
@@ -138,7 +138,7 @@ func handleMsgMhfEnumerateShop(s *Session, p mhfpacket.MHFPacket) {
 			return
 		}
 
-		rows, err := database.Queryx("SELECT id, min_gr, min_hr, name, url_banner, url_feature, url_thumbnail, wide, recommended, gacha_type, hidden FROM gacha_shop")
+		rows, err := db.Queryx("SELECT id, min_gr, min_hr, name, url_banner, url_feature, url_thumbnail, wide, recommended, gacha_type, hidden FROM gacha_shop")
 		if err != nil {
 			s.DoAckBufSucceed(pkt.AckHandle, make([]byte, 4))
 			return
@@ -185,14 +185,14 @@ func handleMsgMhfEnumerateShop(s *Session, p mhfpacket.MHFPacket) {
 		bf := byteframe.NewByteFrame()
 		bf.WriteUint32(pkt.ShopID)
 		var gachaType int
-		database.QueryRow(`SELECT gacha_type FROM gacha_shop WHERE id = $1`, pkt.ShopID).Scan(&gachaType)
-		rows, err := database.Queryx(`SELECT entry_type, id, item_type, item_number, item_quantity, weight, rarity, rolls, daily_limit, frontier_points, COALESCE(name, '') AS name FROM gacha_entries WHERE gacha_id = $1 ORDER BY weight DESC`, pkt.ShopID)
+		db.QueryRow(`SELECT gacha_type FROM gacha_shop WHERE id = $1`, pkt.ShopID).Scan(&gachaType)
+		rows, err := db.Queryx(`SELECT entry_type, id, item_type, item_number, item_quantity, weight, rarity, rolls, daily_limit, frontier_points, COALESCE(name, '') AS name FROM gacha_entries WHERE gacha_id = $1 ORDER BY weight DESC`, pkt.ShopID)
 		if err != nil {
 			s.DoAckBufSucceed(pkt.AckHandle, make([]byte, 4))
 			return
 		}
 		var divisor float64
-		database.QueryRow(`SELECT COALESCE(SUM(weight) / 100000.0, 0) AS chance FROM gacha_entries WHERE gacha_id = $1`, pkt.ShopID).Scan(&divisor)
+		db.QueryRow(`SELECT COALESCE(SUM(weight) / 100000.0, 0) AS chance FROM gacha_entries WHERE gacha_id = $1`, pkt.ShopID).Scan(&divisor)
 
 		var entry GachaEntry
 		var entries []GachaEntry
@@ -219,7 +219,7 @@ func handleMsgMhfEnumerateShop(s *Session, p mhfpacket.MHFPacket) {
 			bf.WriteUint8(ge.Rarity)
 			bf.WriteUint8(ge.Rolls)
 
-			rows, err = database.Queryx(`SELECT item_type, item_id, quantity FROM gacha_items WHERE entry_id=$1`, ge.ID)
+			rows, err = db.Queryx(`SELECT item_type, item_id, quantity FROM gacha_items WHERE entry_id=$1`, ge.ID)
 			if err != nil {
 				bf.WriteUint8(0)
 			} else {
@@ -271,21 +271,18 @@ func handleMsgMhfEnumerateShop(s *Session, p mhfpacket.MHFPacket) {
 	}
 }
 
-func handleMsgMhfAcquireExchangeShop(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfAcquireExchangeShop(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfAcquireExchangeShop)
 	bf := byteframe.NewByteFrameFromBytes(pkt.RawDataPayload)
 	exchanges := int(bf.ReadUint16())
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
+
 	for i := 0; i < exchanges; i++ {
 		itemHash := bf.ReadUint32()
 		if itemHash == 0 {
 			continue
 		}
 		buyCount := bf.ReadUint32()
-		database.Exec(`INSERT INTO shop_items_bought (character_id, shop_item_id, bought)
+		db.Exec(`INSERT INTO shop_items_bought (character_id, shop_item_id, bought)
 			VALUES ($1,$2,$3) ON CONFLICT (character_id, shop_item_id)
 			DO UPDATE SET bought = bought + $3
 			WHERE EXCLUDED.character_id=$1 AND EXCLUDED.shop_item_id=$2
@@ -294,21 +291,18 @@ func handleMsgMhfAcquireExchangeShop(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckSimpleSucceed(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
-func handleMsgMhfGetGachaPlayHistory(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfGetGachaPlayHistory(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetGachaPlayHistory)
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint8(1)
 	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 }
 
-func handleMsgMhfGetGachaPoint(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfGetGachaPoint(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetGachaPoint)
 	var fp, gp, gt uint32
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
-	database.QueryRow("SELECT COALESCE(frontier_points, 0), COALESCE(gacha_premium, 0), COALESCE(gacha_trial, 0) FROM users u WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$1)", s.CharID).Scan(&fp, &gp, &gt)
+
+	db.QueryRow("SELECT COALESCE(frontier_points, 0), COALESCE(gacha_premium, 0), COALESCE(gacha_trial, 0) FROM users u WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$1)", s.CharID).Scan(&fp, &gp, &gt)
 	resp := byteframe.NewByteFrame()
 	resp.WriteUint32(gp)
 	resp.WriteUint32(gt)
@@ -316,44 +310,44 @@ func handleMsgMhfGetGachaPoint(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckBufSucceed(pkt.AckHandle, resp.Data())
 }
 
-func handleMsgMhfUseGachaPoint(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfUseGachaPoint(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfUseGachaPoint)
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
+
 	if pkt.TrialCoins > 0 {
-		database.Exec(`UPDATE users u SET gacha_trial=gacha_trial-$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)`, pkt.TrialCoins, s.CharID)
+		db.Exec(`UPDATE users u SET gacha_trial=gacha_trial-$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)`, pkt.TrialCoins, s.CharID)
 	}
 	if pkt.PremiumCoins > 0 {
-		database.Exec(`UPDATE users u SET gacha_premium=gacha_premium-$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)`, pkt.PremiumCoins, s.CharID)
+		db.Exec(`UPDATE users u SET gacha_premium=gacha_premium-$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)`, pkt.PremiumCoins, s.CharID)
 	}
 	s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 }
 
 func spendGachaCoin(s *Session, quantity uint16) {
-	var gt uint16
-	database, err := db.GetDB()
+
+	db, err := db.GetDB()
 	if err != nil {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
-	database.QueryRow(`SELECT COALESCE(gacha_trial, 0) FROM users u WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$1)`, s.CharID).Scan(&gt)
+	var gt uint16
+
+	db.QueryRow(`SELECT COALESCE(gacha_trial, 0) FROM users u WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$1)`, s.CharID).Scan(&gt)
 	if quantity <= gt {
-		database.Exec(`UPDATE users u SET gacha_trial=gacha_trial-$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)`, quantity, s.CharID)
+		db.Exec(`UPDATE users u SET gacha_trial=gacha_trial-$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)`, quantity, s.CharID)
 	} else {
-		database.Exec(`UPDATE users u SET gacha_premium=gacha_premium-$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)`, quantity, s.CharID)
+		db.Exec(`UPDATE users u SET gacha_premium=gacha_premium-$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)`, quantity, s.CharID)
 	}
 }
 
 func transactGacha(s *Session, gachaID uint32, rollID uint8) (error, int) {
-	var itemType uint8
-	var itemNumber uint16
-	var rolls int
-	database, err := db.GetDB()
+	db, err := db.GetDB()
 	if err != nil {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
-	err = database.QueryRowx(`SELECT item_type, item_number, rolls FROM gacha_entries WHERE gacha_id = $1 AND entry_type = $2`, gachaID, rollID).Scan(&itemType, &itemNumber, &rolls)
+	var itemType uint8
+	var itemNumber uint16
+	var rolls int
+
+	err = db.QueryRowx(`SELECT item_type, item_number, rolls FROM gacha_entries WHERE gacha_id = $1 AND entry_type = $2`, gachaID, rollID).Scan(&itemType, &itemNumber, &rolls)
 	if err != nil {
 		return err, 0
 	}
@@ -374,19 +368,20 @@ func transactGacha(s *Session, gachaID uint32, rollID uint8) (error, int) {
 	case 20:
 		spendGachaCoin(s, itemNumber)
 	case 21:
-		database.Exec("UPDATE users u SET frontier_points=frontier_points-$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)", itemNumber, s.CharID)
+		db.Exec("UPDATE users u SET frontier_points=frontier_points-$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)", itemNumber, s.CharID)
 	}
 	return nil, rolls
 }
 
 func getGuaranteedItems(s *Session, gachaID uint32, rollID uint8) []GachaItem {
-	var rewards []GachaItem
-	var reward GachaItem
-	database, err := db.GetDB()
+	db, err := db.GetDB()
 	if err != nil {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
-	items, err := database.Queryx(`SELECT item_type, item_id, quantity FROM gacha_items WHERE entry_id = (SELECT id FROM gacha_entries WHERE entry_type = $1 AND gacha_id = $2)`, rollID, gachaID)
+	var rewards []GachaItem
+	var reward GachaItem
+
+	items, err := db.Queryx(`SELECT item_type, item_id, quantity FROM gacha_items WHERE entry_id = (SELECT id FROM gacha_entries WHERE entry_type = $1 AND gacha_id = $2)`, rollID, gachaID)
 	if err == nil {
 		for items.Next() {
 			items.StructScan(&reward)
@@ -397,12 +392,13 @@ func getGuaranteedItems(s *Session, gachaID uint32, rollID uint8) []GachaItem {
 }
 
 func addGachaItem(s *Session, items []GachaItem) {
-	var data []byte
-	database, err := db.GetDB()
+	db, err := db.GetDB()
 	if err != nil {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
-	database.QueryRow(`SELECT gacha_items FROM characters WHERE id = $1`, s.CharID).Scan(&data)
+	var data []byte
+
+	db.QueryRow(`SELECT gacha_items FROM characters WHERE id = $1`, s.CharID).Scan(&data)
 	if len(data) > 0 {
 		numItems := int(data[0])
 		data = data[1:]
@@ -422,7 +418,7 @@ func addGachaItem(s *Session, items []GachaItem) {
 		newItem.WriteUint16(items[i].ItemID)
 		newItem.WriteUint16(items[i].Quantity)
 	}
-	database.Exec(`UPDATE characters SET gacha_items = $1 WHERE id = $2`, newItem.Data(), s.CharID)
+	db.Exec(`UPDATE characters SET gacha_items = $1 WHERE id = $2`, newItem.Data(), s.CharID)
 }
 
 func getRandomEntries(entries []GachaEntry, rolls int, isBox bool) ([]GachaEntry, error) {
@@ -454,14 +450,11 @@ func getRandomEntries(entries []GachaEntry, rolls int, isBox bool) ([]GachaEntry
 	return chosen, nil
 }
 
-func handleMsgMhfReceiveGachaItem(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfReceiveGachaItem(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfReceiveGachaItem)
 	var data []byte
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
-	err = database.QueryRow("SELECT COALESCE(gacha_items, $2) FROM characters WHERE id = $1", s.CharID, []byte{0x00}).Scan(&data)
+
+	err := db.QueryRow("SELECT COALESCE(gacha_items, $2) FROM characters WHERE id = $1", s.CharID, []byte{0x00}).Scan(&data)
 	if err != nil {
 		data = []byte{0x00}
 	}
@@ -481,31 +474,28 @@ func handleMsgMhfReceiveGachaItem(s *Session, p mhfpacket.MHFPacket) {
 			update := byteframe.NewByteFrame()
 			update.WriteUint8(uint8(len(data[181:]) / 5))
 			update.WriteBytes(data[181:])
-			database.Exec("UPDATE characters SET gacha_items = $1 WHERE id = $2", update.Data(), s.CharID)
+			db.Exec("UPDATE characters SET gacha_items = $1 WHERE id = $2", update.Data(), s.CharID)
 		} else {
-			database.Exec("UPDATE characters SET gacha_items = null WHERE id = $1", s.CharID)
+			db.Exec("UPDATE characters SET gacha_items = null WHERE id = $1", s.CharID)
 		}
 	}
 }
 
-func handleMsgMhfPlayNormalGacha(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfPlayNormalGacha(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfPlayNormalGacha)
 	bf := byteframe.NewByteFrame()
 	var entries []GachaEntry
 	var entry GachaEntry
 	var rewards []GachaItem
 	var reward GachaItem
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
+
 	err, rolls := transactGacha(s, pkt.GachaID, pkt.RollType)
 	if err != nil {
 		s.DoAckBufSucceed(pkt.AckHandle, make([]byte, 1))
 		return
 	}
 
-	rows, err := database.Queryx(`SELECT id, weight, rarity FROM gacha_entries WHERE gacha_id = $1 AND entry_type = 100 ORDER BY weight DESC`, pkt.GachaID)
+	rows, err := db.Queryx(`SELECT id, weight, rarity FROM gacha_entries WHERE gacha_id = $1 AND entry_type = 100 ORDER BY weight DESC`, pkt.GachaID)
 	if err != nil {
 		s.DoAckBufSucceed(pkt.AckHandle, make([]byte, 1))
 		return
@@ -521,7 +511,7 @@ func handleMsgMhfPlayNormalGacha(s *Session, p mhfpacket.MHFPacket) {
 	rewardEntries, err := getRandomEntries(entries, rolls, false)
 	temp := byteframe.NewByteFrame()
 	for i := range rewardEntries {
-		rows, err = database.Queryx(`SELECT item_type, item_id, quantity FROM gacha_items WHERE entry_id = $1`, rewardEntries[i].ID)
+		rows, err = db.Queryx(`SELECT item_type, item_id, quantity FROM gacha_items WHERE entry_id = $1`, rewardEntries[i].ID)
 		if err != nil {
 			continue
 		}
@@ -544,7 +534,7 @@ func handleMsgMhfPlayNormalGacha(s *Session, p mhfpacket.MHFPacket) {
 	addGachaItem(s, rewards)
 }
 
-func handleMsgMhfPlayStepupGacha(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfPlayStepupGacha(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfPlayStepupGacha)
 	bf := byteframe.NewByteFrame()
 	var entries []GachaEntry
@@ -556,15 +546,12 @@ func handleMsgMhfPlayStepupGacha(s *Session, p mhfpacket.MHFPacket) {
 		s.DoAckBufSucceed(pkt.AckHandle, make([]byte, 1))
 		return
 	}
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
-	database.Exec("UPDATE users u SET frontier_points=frontier_points+(SELECT frontier_points FROM gacha_entries WHERE gacha_id = $1 AND entry_type = $2) WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$3)", pkt.GachaID, pkt.RollType, s.CharID)
-	database.Exec(`DELETE FROM gacha_stepup WHERE gacha_id = $1 AND character_id = $2`, pkt.GachaID, s.CharID)
-	database.Exec(`INSERT INTO gacha_stepup (gacha_id, step, character_id) VALUES ($1, $2, $3)`, pkt.GachaID, pkt.RollType+1, s.CharID)
 
-	rows, err := database.Queryx(`SELECT id, weight, rarity FROM gacha_entries WHERE gacha_id = $1 AND entry_type = 100 ORDER BY weight DESC`, pkt.GachaID)
+	db.Exec("UPDATE users u SET frontier_points=frontier_points+(SELECT frontier_points FROM gacha_entries WHERE gacha_id = $1 AND entry_type = $2) WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$3)", pkt.GachaID, pkt.RollType, s.CharID)
+	db.Exec(`DELETE FROM gacha_stepup WHERE gacha_id = $1 AND character_id = $2`, pkt.GachaID, s.CharID)
+	db.Exec(`INSERT INTO gacha_stepup (gacha_id, step, character_id) VALUES ($1, $2, $3)`, pkt.GachaID, pkt.RollType+1, s.CharID)
+
+	rows, err := db.Queryx(`SELECT id, weight, rarity FROM gacha_entries WHERE gacha_id = $1 AND entry_type = 100 ORDER BY weight DESC`, pkt.GachaID)
 	if err != nil {
 		s.DoAckBufSucceed(pkt.AckHandle, make([]byte, 1))
 		return
@@ -581,7 +568,7 @@ func handleMsgMhfPlayStepupGacha(s *Session, p mhfpacket.MHFPacket) {
 	rewardEntries, err := getRandomEntries(entries, rolls, false)
 	temp := byteframe.NewByteFrame()
 	for i := range rewardEntries {
-		rows, err = database.Queryx(`SELECT item_type, item_id, quantity FROM gacha_items WHERE entry_id = $1`, rewardEntries[i].ID)
+		rows, err = db.Queryx(`SELECT item_type, item_id, quantity FROM gacha_items WHERE entry_id = $1`, rewardEntries[i].ID)
 		if err != nil {
 			continue
 		}
@@ -612,19 +599,16 @@ func handleMsgMhfPlayStepupGacha(s *Session, p mhfpacket.MHFPacket) {
 	addGachaItem(s, guaranteedItems)
 }
 
-func handleMsgMhfGetStepupStatus(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfGetStepupStatus(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetStepupStatus)
 	// TODO: Reset daily (noon)
 	var step uint8
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
-	database.QueryRow(`SELECT step FROM gacha_stepup WHERE gacha_id = $1 AND character_id = $2`, pkt.GachaID, s.CharID).Scan(&step)
+
+	db.QueryRow(`SELECT step FROM gacha_stepup WHERE gacha_id = $1 AND character_id = $2`, pkt.GachaID, s.CharID).Scan(&step)
 	var stepCheck int
-	database.QueryRow(`SELECT COUNT(1) FROM gacha_entries WHERE gacha_id = $1 AND entry_type = $2`, pkt.GachaID, step).Scan(&stepCheck)
+	db.QueryRow(`SELECT COUNT(1) FROM gacha_entries WHERE gacha_id = $1 AND entry_type = $2`, pkt.GachaID, step).Scan(&stepCheck)
 	if stepCheck == 0 {
-		database.Exec(`DELETE FROM gacha_stepup WHERE gacha_id = $1 AND character_id = $2`, pkt.GachaID, s.CharID)
+		db.Exec(`DELETE FROM gacha_stepup WHERE gacha_id = $1 AND character_id = $2`, pkt.GachaID, s.CharID)
 		step = 0
 	}
 	bf := byteframe.NewByteFrame()
@@ -633,13 +617,10 @@ func handleMsgMhfGetStepupStatus(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 }
 
-func handleMsgMhfGetBoxGachaInfo(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfGetBoxGachaInfo(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetBoxGachaInfo)
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
-	entries, err := database.Queryx(`SELECT entry_id FROM gacha_box WHERE gacha_id = $1 AND character_id = $2`, pkt.GachaID, s.CharID)
+
+	entries, err := db.Queryx(`SELECT entry_id FROM gacha_box WHERE gacha_id = $1 AND character_id = $2`, pkt.GachaID, s.CharID)
 	if err != nil {
 		s.DoAckBufSucceed(pkt.AckHandle, make([]byte, 1))
 		return
@@ -659,7 +640,7 @@ func handleMsgMhfGetBoxGachaInfo(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 }
 
-func handleMsgMhfPlayBoxGacha(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfPlayBoxGacha(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfPlayBoxGacha)
 	bf := byteframe.NewByteFrame()
 	var entries []GachaEntry
@@ -671,11 +652,8 @@ func handleMsgMhfPlayBoxGacha(s *Session, p mhfpacket.MHFPacket) {
 		s.DoAckBufSucceed(pkt.AckHandle, make([]byte, 1))
 		return
 	}
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
-	rows, err := database.Queryx(`SELECT id, weight, rarity FROM gacha_entries WHERE gacha_id = $1 AND entry_type = 100 ORDER BY weight DESC`, pkt.GachaID)
+
+	rows, err := db.Queryx(`SELECT id, weight, rarity FROM gacha_entries WHERE gacha_id = $1 AND entry_type = 100 ORDER BY weight DESC`, pkt.GachaID)
 	if err != nil {
 		s.DoAckBufSucceed(pkt.AckHandle, make([]byte, 1))
 		return
@@ -688,11 +666,11 @@ func handleMsgMhfPlayBoxGacha(s *Session, p mhfpacket.MHFPacket) {
 	}
 	rewardEntries, err := getRandomEntries(entries, rolls, true)
 	for i := range rewardEntries {
-		items, err := database.Queryx(`SELECT item_type, item_id, quantity FROM gacha_items WHERE entry_id = $1`, rewardEntries[i].ID)
+		items, err := db.Queryx(`SELECT item_type, item_id, quantity FROM gacha_items WHERE entry_id = $1`, rewardEntries[i].ID)
 		if err != nil {
 			continue
 		}
-		database.Exec(`INSERT INTO gacha_box (gacha_id, entry_id, character_id) VALUES ($1, $2, $3)`, pkt.GachaID, rewardEntries[i].ID, s.CharID)
+		db.Exec(`INSERT INTO gacha_box (gacha_id, entry_id, character_id) VALUES ($1, $2, $3)`, pkt.GachaID, rewardEntries[i].ID, s.CharID)
 		for items.Next() {
 			err = items.StructScan(&reward)
 			if err == nil {
@@ -711,43 +689,34 @@ func handleMsgMhfPlayBoxGacha(s *Session, p mhfpacket.MHFPacket) {
 	addGachaItem(s, rewards)
 }
 
-func handleMsgMhfResetBoxGachaInfo(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfResetBoxGachaInfo(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfResetBoxGachaInfo)
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
-	database.Exec("DELETE FROM gacha_box WHERE gacha_id = $1 AND character_id = $2", pkt.GachaID, s.CharID)
+
+	db.Exec("DELETE FROM gacha_box WHERE gacha_id = $1 AND character_id = $2", pkt.GachaID, s.CharID)
 	s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 }
 
-func handleMsgMhfExchangeFpoint2Item(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfExchangeFpoint2Item(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfExchangeFpoint2Item)
 	var balance uint32
 	var itemValue, quantity int
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
-	database.QueryRow("SELECT quantity, fpoints FROM fpoint_items WHERE id=$1", pkt.TradeID).Scan(&quantity, &itemValue)
+
+	db.QueryRow("SELECT quantity, fpoints FROM fpoint_items WHERE id=$1", pkt.TradeID).Scan(&quantity, &itemValue)
 	cost := (int(pkt.Quantity) * quantity) * itemValue
-	database.QueryRow("UPDATE users u SET frontier_points=frontier_points::int - $1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2) RETURNING frontier_points", cost, s.CharID).Scan(&balance)
+	db.QueryRow("UPDATE users u SET frontier_points=frontier_points::int - $1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2) RETURNING frontier_points", cost, s.CharID).Scan(&balance)
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint32(balance)
 	s.DoAckSimpleSucceed(pkt.AckHandle, bf.Data())
 }
 
-func handleMsgMhfExchangeItem2Fpoint(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfExchangeItem2Fpoint(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfExchangeItem2Fpoint)
 	var balance uint32
 	var itemValue, quantity int
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
-	database.QueryRow("SELECT quantity, fpoints FROM fpoint_items WHERE id=$1", pkt.TradeID).Scan(&quantity, &itemValue)
+
+	db.QueryRow("SELECT quantity, fpoints FROM fpoint_items WHERE id=$1", pkt.TradeID).Scan(&quantity, &itemValue)
 	cost := (int(pkt.Quantity) / quantity) * itemValue
-	database.QueryRow("UPDATE users u SET frontier_points=COALESCE(frontier_points::int + $1, $1) WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2) RETURNING frontier_points", cost, s.CharID).Scan(&balance)
+	db.QueryRow("UPDATE users u SET frontier_points=COALESCE(frontier_points::int + $1, $1) WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2) RETURNING frontier_points", cost, s.CharID).Scan(&balance)
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint32(balance)
 	s.DoAckSimpleSucceed(pkt.AckHandle, bf.Data())
@@ -762,18 +731,15 @@ type FPointExchange struct {
 	Buyable  bool   `db:"buyable"`
 }
 
-func handleMsgMhfGetFpointExchangeList(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfGetFpointExchangeList(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetFpointExchangeList)
 
 	bf := byteframe.NewByteFrame()
 	var exchange FPointExchange
 	var exchanges []FPointExchange
 	var buyables uint16
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
-	rows, err := database.Queryx(`SELECT id, item_type, item_id, quantity, fpoints, buyable FROM fpoint_items ORDER BY buyable DESC`)
+
+	rows, err := db.Queryx(`SELECT id, item_type, item_id, quantity, fpoints, buyable FROM fpoint_items ORDER BY buyable DESC`)
 	if err == nil {
 		for rows.Next() {
 			err = rows.StructScan(&exchange)
@@ -807,7 +773,7 @@ func handleMsgMhfGetFpointExchangeList(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 }
 
-func handleMsgMhfPlayFreeGacha(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfPlayFreeGacha(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfPlayFreeGacha)
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint32(1)

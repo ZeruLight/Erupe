@@ -9,10 +9,11 @@ import (
 	"erupe-ce/utils/byteframe"
 	ps "erupe-ce/utils/pascalstring"
 
+	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )
 
-func handleMsgSysCreateStage(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgSysCreateStage(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysCreateStage)
 	s.Server.Lock()
 	defer s.Server.Unlock()
@@ -27,7 +28,7 @@ func handleMsgSysCreateStage(s *Session, p mhfpacket.MHFPacket) {
 	}
 }
 
-func handleMsgSysStageDestruct(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysStageDestruct(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}
 
 func doStageTransfer(s *Session, ackHandle uint32, stageID string) {
 	s.Server.Lock()
@@ -149,7 +150,7 @@ func isStageFull(s *Session, StageID string) bool {
 	return false
 }
 
-func handleMsgSysEnterStage(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgSysEnterStage(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysEnterStage)
 
 	if isStageFull(s, pkt.StageID) {
@@ -172,7 +173,7 @@ func handleMsgSysEnterStage(s *Session, p mhfpacket.MHFPacket) {
 	doStageTransfer(s, pkt.AckHandle, pkt.StageID)
 }
 
-func handleMsgSysBackStage(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgSysBackStage(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysBackStage)
 
 	// Transfer back to the saved stage ID before the previous move or enter.
@@ -198,7 +199,7 @@ func handleMsgSysBackStage(s *Session, p mhfpacket.MHFPacket) {
 	doStageTransfer(s, pkt.AckHandle, backStage)
 }
 
-func handleMsgSysMoveStage(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgSysMoveStage(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysMoveStage)
 
 	if isStageFull(s, pkt.StageID) {
@@ -209,9 +210,9 @@ func handleMsgSysMoveStage(s *Session, p mhfpacket.MHFPacket) {
 	doStageTransfer(s, pkt.AckHandle, pkt.StageID)
 }
 
-func handleMsgSysLeaveStage(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysLeaveStage(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}
 
-func handleMsgSysLockStage(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgSysLockStage(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysLockStage)
 	if stage, exists := s.Server.stages[pkt.StageID]; exists {
 		stage.Lock()
@@ -221,7 +222,7 @@ func handleMsgSysLockStage(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 }
 
-func handleMsgSysUnlockStage(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgSysUnlockStage(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	if s.reservationStage != nil {
 		s.reservationStage.RLock()
 		defer s.reservationStage.RUnlock()
@@ -239,7 +240,7 @@ func handleMsgSysUnlockStage(s *Session, p mhfpacket.MHFPacket) {
 	destructEmptyStages(s)
 }
 
-func handleMsgSysReserveStage(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgSysReserveStage(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysReserveStage)
 	if stage, exists := s.Server.stages[pkt.StageID]; exists {
 		stage.Lock()
@@ -278,7 +279,7 @@ func handleMsgSysReserveStage(s *Session, p mhfpacket.MHFPacket) {
 	}
 }
 
-func handleMsgSysUnreserveStage(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgSysUnreserveStage(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	s.Lock()
 	stage := s.reservationStage
 	s.reservationStage = nil
@@ -292,7 +293,7 @@ func handleMsgSysUnreserveStage(s *Session, p mhfpacket.MHFPacket) {
 	}
 }
 
-func handleMsgSysSetStagePass(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgSysSetStagePass(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysSetStagePass)
 	s.Lock()
 	stage := s.reservationStage
@@ -312,7 +313,7 @@ func handleMsgSysSetStagePass(s *Session, p mhfpacket.MHFPacket) {
 	}
 }
 
-func handleMsgSysSetStageBinary(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgSysSetStageBinary(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysSetStageBinary)
 	if stage, exists := s.Server.stages[pkt.StageID]; exists {
 		stage.Lock()
@@ -323,7 +324,7 @@ func handleMsgSysSetStageBinary(s *Session, p mhfpacket.MHFPacket) {
 	}
 }
 
-func handleMsgSysGetStageBinary(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgSysGetStageBinary(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysGetStageBinary)
 	if stage, exists := s.Server.stages[pkt.StageID]; exists {
 		stage.Lock()
@@ -345,7 +346,7 @@ func handleMsgSysGetStageBinary(s *Session, p mhfpacket.MHFPacket) {
 	s.Logger.Debug("MsgSysGetStageBinary Done!")
 }
 
-func handleMsgSysWaitStageBinary(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgSysWaitStageBinary(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysWaitStageBinary)
 	if stage, exists := s.Server.stages[pkt.StageID]; exists {
 		if pkt.BinaryType0 == 1 && pkt.BinaryType1 == 12 {
@@ -374,7 +375,7 @@ func handleMsgSysWaitStageBinary(s *Session, p mhfpacket.MHFPacket) {
 	s.Logger.Debug("MsgSysWaitStageBinary Done!")
 }
 
-func handleMsgSysEnumerateStage(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgSysEnumerateStage(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysEnumerateStage)
 
 	// Read-lock the server stage map.

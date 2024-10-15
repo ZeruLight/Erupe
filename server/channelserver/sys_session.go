@@ -193,8 +193,12 @@ func (s *Session) handlePacketGroup(pktGroup []byte) {
 		fmt.Printf("\n!!! [%s] %s NOT IMPLEMENTED !!! \n\n\n", s.Name, opcode)
 		return
 	}
+	database, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
 	// Handle the packet.
-	handlerTable[opcode](s, mhfPkt)
+	handlerTable[opcode](s, database, mhfPkt)
 	// If there is more data on the stream that the .Parse method didn't read, then read another packet off it.
 	remainingData := bf.DataFromCurrent()
 	if len(remainingData) >= 2 {
@@ -307,11 +311,11 @@ func (s *Session) GetSemaphoreID() uint32 {
 
 func (s *Session) isOp() bool {
 	var op bool
-	database, err := db.GetDB()
+	db, err := db.GetDB()
 	if err != nil {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
-	err = database.QueryRow(`SELECT op FROM users u WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$1)`, s.CharID).Scan(&op)
+	err = db.QueryRow(`SELECT op FROM users u WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$1)`, s.CharID).Scan(&op)
 	if err == nil && op {
 		return true
 	}

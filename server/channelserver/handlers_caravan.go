@@ -5,6 +5,8 @@ import (
 	"erupe-ce/utils/byteframe"
 	"erupe-ce/utils/stringsupport"
 	"time"
+
+	"github.com/jmoiron/sqlx"
 )
 
 type RyoudamaReward struct {
@@ -40,7 +42,7 @@ type Ryoudama struct {
 	Score     []int32
 }
 
-func handleMsgMhfGetRyoudama(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfGetRyoudama(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetRyoudama)
 	var data []*byteframe.ByteFrame
 	ryoudama := Ryoudama{Score: []int32{0}}
@@ -70,20 +72,20 @@ func handleMsgMhfGetRyoudama(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckEarthSucceed(pkt.AckHandle, data)
 }
 
-func handleMsgMhfPostRyoudama(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfPostRyoudama(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfGetTinyBin(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfGetTinyBin(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetTinyBin)
 	// requested after conquest quests
 	s.DoAckBufSucceed(pkt.AckHandle, []byte{})
 }
 
-func handleMsgMhfPostTinyBin(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfPostTinyBin(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfPostTinyBin)
 	s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 }
 
-func handleMsgMhfCaravanMyScore(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfCaravanMyScore(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfCaravanMyScore)
 	var data []*byteframe.ByteFrame
 	/*
@@ -95,7 +97,7 @@ func handleMsgMhfCaravanMyScore(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckEarthSucceed(pkt.AckHandle, data)
 }
 
-func handleMsgMhfCaravanRanking(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfCaravanRanking(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfCaravanRanking)
 	var data []*byteframe.ByteFrame
 	/* RYOUDAN
@@ -111,7 +113,7 @@ func handleMsgMhfCaravanRanking(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckEarthSucceed(pkt.AckHandle, data)
 }
 
-func handleMsgMhfCaravanMyRank(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfCaravanMyRank(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfCaravanMyRank)
 	var data []*byteframe.ByteFrame
 	/*

@@ -3,9 +3,11 @@ package channelserver
 import (
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/utils/byteframe"
+
+	"github.com/jmoiron/sqlx"
 )
 
-func handleMsgMhfGetBreakSeibatuLevelReward(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfGetBreakSeibatuLevelReward(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetBreakSeibatuLevelReward)
 	bf := byteframe.NewByteFrame()
 	bf.WriteInt32(0)
@@ -24,7 +26,7 @@ type WeeklySeibatuRankingReward struct {
 	Unk5 int32
 }
 
-func handleMsgMhfGetWeeklySeibatuRankingReward(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfGetWeeklySeibatuRankingReward(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetWeeklySeibatuRankingReward)
 	var data []*byteframe.ByteFrame
 	weeklySeibatuRankingRewards := []WeeklySeibatuRankingReward{
@@ -43,7 +45,7 @@ func handleMsgMhfGetWeeklySeibatuRankingReward(s *Session, p mhfpacket.MHFPacket
 	s.DoAckEarthSucceed(pkt.AckHandle, data)
 }
 
-func handleMsgMhfGetFixedSeibatuRankingTable(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfGetFixedSeibatuRankingTable(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetFixedSeibatuRankingTable)
 	bf := byteframe.NewByteFrame()
 	bf.WriteInt32(0)
@@ -52,7 +54,7 @@ func handleMsgMhfGetFixedSeibatuRankingTable(s *Session, p mhfpacket.MHFPacket) 
 	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 }
 
-func handleMsgMhfReadBeatLevel(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfReadBeatLevel(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfReadBeatLevel)
 
 	// This response is fixed and will never change on JP,
@@ -68,7 +70,7 @@ func handleMsgMhfReadBeatLevel(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckBufSucceed(pkt.AckHandle, resp.Data())
 }
 
-func handleMsgMhfReadLastWeekBeatRanking(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfReadLastWeekBeatRanking(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfReadLastWeekBeatRanking)
 	bf := byteframe.NewByteFrame()
 	bf.WriteInt32(0)
@@ -78,13 +80,13 @@ func handleMsgMhfReadLastWeekBeatRanking(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 }
 
-func handleMsgMhfUpdateBeatLevel(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfUpdateBeatLevel(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfUpdateBeatLevel)
 
 	s.DoAckBufSucceed(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
-func handleMsgMhfReadBeatLevelAllRanking(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfReadBeatLevelAllRanking(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfReadBeatLevelAllRanking)
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint32(0)
@@ -99,7 +101,7 @@ func handleMsgMhfReadBeatLevelAllRanking(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 }
 
-func handleMsgMhfReadBeatLevelMyRanking(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfReadBeatLevelMyRanking(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfReadBeatLevelMyRanking)
 	bf := byteframe.NewByteFrame()
 	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())

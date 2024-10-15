@@ -6,9 +6,11 @@ import (
 	"erupe-ce/config"
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/utils/byteframe"
+
+	"github.com/jmoiron/sqlx"
 )
 
-func handleMsgSysCreateObject(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgSysCreateObject(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysCreateObject)
 
 	s.stage.Lock()
@@ -39,9 +41,9 @@ func handleMsgSysCreateObject(s *Session, p mhfpacket.MHFPacket) {
 	s.stage.BroadcastMHF(dupObjUpdate, s)
 }
 
-func handleMsgSysDeleteObject(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysDeleteObject(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}
 
-func handleMsgSysPositionObject(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgSysPositionObject(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysPositionObject)
 	if config.GetConfig().DebugOptions.LogInboundMessages {
 		fmt.Printf("[%s] with objectID [%d] move to (%f,%f,%f)\n\n", s.Name, pkt.ObjID, pkt.X, pkt.Y, pkt.Z)
@@ -58,11 +60,11 @@ func handleMsgSysPositionObject(s *Session, p mhfpacket.MHFPacket) {
 	s.stage.BroadcastMHF(pkt, s)
 }
 
-func handleMsgSysRotateObject(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysRotateObject(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}
 
-func handleMsgSysDuplicateObject(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysDuplicateObject(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}
 
-func handleMsgSysSetObjectBinary(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgSysSetObjectBinary(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	_ = p.(*mhfpacket.MsgSysSetObjectBinary)
 	/* This causes issues with PS3 as this actually sends with endiness!
 	for _, session := range s.Server.sessions {
@@ -80,18 +82,18 @@ func handleMsgSysSetObjectBinary(s *Session, p mhfpacket.MHFPacket) {
 	*/
 }
 
-func handleMsgSysGetObjectBinary(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysGetObjectBinary(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}
 
-func handleMsgSysGetObjectOwner(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysGetObjectOwner(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}
 
-func handleMsgSysUpdateObjectBinary(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysUpdateObjectBinary(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}
 
-func handleMsgSysCleanupObject(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysCleanupObject(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}
 
-func handleMsgSysAddObject(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysAddObject(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}
 
-func handleMsgSysDelObject(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysDelObject(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}
 
-func handleMsgSysDispObject(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysDispObject(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}
 
-func handleMsgSysHideObject(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysHideObject(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}

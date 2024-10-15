@@ -13,17 +13,14 @@ import (
 	"io"
 	"time"
 
+	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )
 
-func handleMsgMhfAcquireCafeItem(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfAcquireCafeItem(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfAcquireCafeItem)
 	var netcafePoints uint32
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
-	err = database.QueryRow("UPDATE characters SET netcafe_points = netcafe_points - $1 WHERE id = $2 RETURNING netcafe_points", pkt.PointCost, s.CharID).Scan(&netcafePoints)
+	err := db.QueryRow("UPDATE characters SET netcafe_points = netcafe_points - $1 WHERE id = $2 RETURNING netcafe_points", pkt.PointCost, s.CharID).Scan(&netcafePoints)
 	if err != nil {
 		s.Logger.Error("Failed to get netcafe points from db", zap.Error(err))
 	}
@@ -32,14 +29,11 @@ func handleMsgMhfAcquireCafeItem(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckSimpleSucceed(pkt.AckHandle, resp.Data())
 }
 
-func handleMsgMhfUpdateCafepoint(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfUpdateCafepoint(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfUpdateCafepoint)
 	var netcafePoints uint32
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
-	err = database.QueryRow("SELECT COALESCE(netcafe_points, 0) FROM characters WHERE id = $1", s.CharID).Scan(&netcafePoints)
+
+	err := db.QueryRow("SELECT COALESCE(netcafe_points, 0) FROM characters WHERE id = $1", s.CharID).Scan(&netcafePoints)
 	if err != nil {
 		s.Logger.Error("Failed to get netcate points from db", zap.Error(err))
 	}
@@ -48,7 +42,7 @@ func handleMsgMhfUpdateCafepoint(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckSimpleSucceed(pkt.AckHandle, resp.Data())
 }
 
-func handleMsgMhfCheckDailyCafepoint(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfCheckDailyCafepoint(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfCheckDailyCafepoint)
 
 	midday := gametime.TimeMidnight().Add(12 * time.Hour)
@@ -58,11 +52,8 @@ func handleMsgMhfCheckDailyCafepoint(s *Session, p mhfpacket.MHFPacket) {
 
 	// get time after which daily claiming would be valid from db
 	var dailyTime time.Time
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
-	err = database.QueryRow("SELECT COALESCE(daily_time, $2) FROM characters WHERE id = $1", s.CharID, time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)).Scan(&dailyTime)
+
+	err := db.QueryRow("SELECT COALESCE(daily_time, $2) FROM characters WHERE id = $1", s.CharID, time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)).Scan(&dailyTime)
 	if err != nil {
 		s.Logger.Error("Failed to get daily_time savedata from db", zap.Error(err))
 	}
@@ -74,7 +65,7 @@ func handleMsgMhfCheckDailyCafepoint(s *Session, p mhfpacket.MHFPacket) {
 		bondBonus = 5 // Bond point bonus quests
 		bonusQuests = config.GetConfig().GameplayOptions.BonusQuestAllowance
 		dailyQuests = config.GetConfig().GameplayOptions.DailyQuestAllowance
-		database.Exec("UPDATE characters SET daily_time=$1, bonus_quests = $2, daily_quests = $3 WHERE id=$4", midday, bonusQuests, dailyQuests, s.CharID)
+		db.Exec("UPDATE characters SET daily_time=$1, bonus_quests = $2, daily_quests = $3 WHERE id=$4", midday, bonusQuests, dailyQuests, s.CharID)
 		bf.WriteBool(true) // Success?
 	} else {
 		bf.WriteBool(false)
@@ -85,27 +76,24 @@ func handleMsgMhfCheckDailyCafepoint(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 }
 
-func handleMsgMhfGetCafeDuration(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfGetCafeDuration(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetCafeDuration)
 	bf := byteframe.NewByteFrame()
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
+
 	var cafeReset time.Time
-	err = database.QueryRow(`SELECT cafe_reset FROM characters WHERE id=$1`, s.CharID).Scan(&cafeReset)
+	err := db.QueryRow(`SELECT cafe_reset FROM characters WHERE id=$1`, s.CharID).Scan(&cafeReset)
 	if err != nil {
 		cafeReset = gametime.TimeWeekNext()
-		database.Exec(`UPDATE characters SET cafe_reset=$1 WHERE id=$2`, cafeReset, s.CharID)
+		db.Exec(`UPDATE characters SET cafe_reset=$1 WHERE id=$2`, cafeReset, s.CharID)
 	}
 	if gametime.TimeAdjusted().After(cafeReset) {
 		cafeReset = gametime.TimeWeekNext()
-		database.Exec(`UPDATE characters SET cafe_time=0, cafe_reset=$1 WHERE id=$2`, cafeReset, s.CharID)
-		database.Exec(`DELETE FROM cafe_accepted WHERE character_id=$1`, s.CharID)
+		db.Exec(`UPDATE characters SET cafe_time=0, cafe_reset=$1 WHERE id=$2`, cafeReset, s.CharID)
+		db.Exec(`DELETE FROM cafe_accepted WHERE character_id=$1`, s.CharID)
 	}
 
 	var cafeTime uint32
-	err = database.QueryRow("SELECT cafe_time FROM characters WHERE id = $1", s.CharID).Scan(&cafeTime)
+	err = db.QueryRow("SELECT cafe_time FROM characters WHERE id = $1", s.CharID).Scan(&cafeTime)
 	if err != nil {
 		panic(err)
 	}
@@ -129,15 +117,12 @@ type CafeBonus struct {
 	Claimed  bool   `db:"claimed"`
 }
 
-func handleMsgMhfGetCafeDurationBonusInfo(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfGetCafeDurationBonusInfo(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetCafeDurationBonusInfo)
 	bf := byteframe.NewByteFrame()
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
+
 	var count uint32
-	rows, err := database.Queryx(`
+	rows, err := db.Queryx(`
 	SELECT cb.id, time_req, item_type, item_id, quantity,
 	(
 		SELECT count(*)
@@ -171,16 +156,13 @@ func handleMsgMhfGetCafeDurationBonusInfo(s *Session, p mhfpacket.MHFPacket) {
 	}
 }
 
-func handleMsgMhfReceiveCafeDurationBonus(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfReceiveCafeDurationBonus(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfReceiveCafeDurationBonus)
 	bf := byteframe.NewByteFrame()
 	var count uint32
 	bf.WriteUint32(0)
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
-	rows, err := database.Queryx(`
+
+	rows, err := db.Queryx(`
 	SELECT c.id, time_req, item_type, item_id, quantity
 	FROM cafebonus c
 	WHERE (
@@ -213,15 +195,12 @@ func handleMsgMhfReceiveCafeDurationBonus(s *Session, p mhfpacket.MHFPacket) {
 	}
 }
 
-func handleMsgMhfPostCafeDurationBonusReceived(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfPostCafeDurationBonusReceived(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfPostCafeDurationBonusReceived)
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
+
 	var cafeBonus CafeBonus
 	for _, cbID := range pkt.CafeBonusID {
-		err := database.QueryRow(`
+		err := db.QueryRow(`
 		SELECT cb.id, item_type, quantity FROM cafebonus cb WHERE cb.id=$1
 		`, cbID).Scan(&cafeBonus.ID, &cafeBonus.ItemType, &cafeBonus.Quantity)
 		if err == nil {
@@ -229,18 +208,19 @@ func handleMsgMhfPostCafeDurationBonusReceived(s *Session, p mhfpacket.MHFPacket
 				addPointNetcafe(s, int(cafeBonus.Quantity))
 			}
 		}
-		database.Exec("INSERT INTO public.cafe_accepted VALUES ($1, $2)", cbID, s.CharID)
+		db.Exec("INSERT INTO public.cafe_accepted VALUES ($1, $2)", cbID, s.CharID)
 	}
 	s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 }
 
 func addPointNetcafe(s *Session, p int) error {
-	var points int
-	database, err := db.GetDB()
+	db, err := db.GetDB()
 	if err != nil {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
-	err = database.QueryRow("SELECT netcafe_points FROM characters WHERE id = $1", s.CharID).Scan(&points)
+	var points int
+
+	err = db.QueryRow("SELECT netcafe_points FROM characters WHERE id = $1", s.CharID).Scan(&points)
 	if err != nil {
 		return err
 	}
@@ -249,42 +229,36 @@ func addPointNetcafe(s *Session, p int) error {
 	} else {
 		points += p
 	}
-	database.Exec("UPDATE characters SET netcafe_points=$1 WHERE id=$2", points, s.CharID)
+	db.Exec("UPDATE characters SET netcafe_points=$1 WHERE id=$2", points, s.CharID)
 	return nil
 }
 
-func handleMsgMhfStartBoostTime(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfStartBoostTime(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfStartBoostTime)
 	bf := byteframe.NewByteFrame()
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
+
 	boostLimit := gametime.TimeAdjusted().Add(time.Duration(config.GetConfig().GameplayOptions.BoostTimeDuration) * time.Second)
 	if config.GetConfig().GameplayOptions.DisableBoostTime {
 		bf.WriteUint32(0)
 		s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 		return
 	}
-	database.Exec("UPDATE characters SET boost_time=$1 WHERE id=$2", boostLimit, s.CharID)
+	db.Exec("UPDATE characters SET boost_time=$1 WHERE id=$2", boostLimit, s.CharID)
 	bf.WriteUint32(uint32(boostLimit.Unix()))
 	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 }
 
-func handleMsgMhfGetBoostTime(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfGetBoostTime(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetBoostTime)
 	s.DoAckBufSucceed(pkt.AckHandle, []byte{})
 }
 
-func handleMsgMhfGetBoostTimeLimit(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfGetBoostTimeLimit(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetBoostTimeLimit)
 	bf := byteframe.NewByteFrame()
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
+
 	var boostLimit time.Time
-	err = database.QueryRow("SELECT boost_time FROM characters WHERE id=$1", s.CharID).Scan(&boostLimit)
+	err := db.QueryRow("SELECT boost_time FROM characters WHERE id=$1", s.CharID).Scan(&boostLimit)
 	if err != nil {
 		bf.WriteUint32(0)
 	} else {
@@ -294,14 +268,11 @@ func handleMsgMhfGetBoostTimeLimit(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 }
 
-func handleMsgMhfGetBoostRight(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfGetBoostRight(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetBoostRight)
 	var boostLimit time.Time
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
-	err = database.QueryRow("SELECT boost_time FROM characters WHERE id=$1", s.CharID).Scan(&boostLimit)
+
+	err := db.QueryRow("SELECT boost_time FROM characters WHERE id=$1", s.CharID).Scan(&boostLimit)
 	if err != nil {
 		s.DoAckBufSucceed(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 		return
@@ -313,17 +284,17 @@ func handleMsgMhfGetBoostRight(s *Session, p mhfpacket.MHFPacket) {
 	}
 }
 
-func handleMsgMhfPostBoostTimeQuestReturn(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfPostBoostTimeQuestReturn(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfPostBoostTimeQuestReturn)
 	s.DoAckSimpleSucceed(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
-func handleMsgMhfPostBoostTime(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfPostBoostTime(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfPostBoostTime)
 	s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 }
 
-func handleMsgMhfPostBoostTimeLimit(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfPostBoostTimeLimit(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfPostBoostTimeLimit)
 	s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 }

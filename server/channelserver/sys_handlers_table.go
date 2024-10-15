@@ -3,9 +3,11 @@ package channelserver
 import (
 	"erupe-ce/network"
 	"erupe-ce/network/mhfpacket"
+
+	"github.com/jmoiron/sqlx"
 )
 
-type handlerFunc func(s *Session, p mhfpacket.MHFPacket)
+type handlerFunc func(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket)
 
 var handlerTable map[network.PacketID]handlerFunc
 

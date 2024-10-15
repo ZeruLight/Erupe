@@ -5,9 +5,11 @@ import (
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/utils/byteframe"
 	"strings"
+
+	"github.com/jmoiron/sqlx"
 )
 
-func handleMsgMhfRegisterEvent(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfRegisterEvent(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfRegisterEvent)
 	bf := byteframe.NewByteFrame()
 	// Some kind of check if there's already a session
@@ -21,7 +23,7 @@ func handleMsgMhfRegisterEvent(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckSimpleSucceed(pkt.AckHandle, bf.Data())
 }
 
-func handleMsgMhfReleaseEvent(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfReleaseEvent(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfReleaseEvent)
 
 	// Do this ack manually because it uses a non-(0|1) error code
@@ -56,7 +58,7 @@ type RaviUpdate struct {
 	Data uint32
 }
 
-func handleMsgSysOperateRegister(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgSysOperateRegister(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysOperateRegister)
 
 	var raviUpdates []RaviUpdate
@@ -93,7 +95,7 @@ func handleMsgSysOperateRegister(s *Session, p mhfpacket.MHFPacket) {
 	}
 }
 
-func handleMsgSysLoadRegister(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgSysLoadRegister(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysLoadRegister)
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint8(0)
@@ -142,4 +144,4 @@ func (server *ChannelServer) getRaviSemaphore() *Semaphore {
 	return nil
 }
 
-func handleMsgSysNotifyRegister(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysNotifyRegister(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}

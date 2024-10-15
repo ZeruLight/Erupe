@@ -7,6 +7,8 @@ import (
 	ps "erupe-ce/utils/pascalstring"
 	"erupe-ce/utils/stringsupport"
 	"time"
+
+	"github.com/jmoiron/sqlx"
 )
 
 type CampaignEvent struct {
@@ -47,7 +49,7 @@ type CampaignLink struct {
 	CampaignID uint32
 }
 
-func handleMsgMhfEnumerateCampaign(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfEnumerateCampaign(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateCampaign)
 	bf := byteframe.NewByteFrame()
 
@@ -132,7 +134,7 @@ func handleMsgMhfEnumerateCampaign(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 }
 
-func handleMsgMhfStateCampaign(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfStateCampaign(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfStateCampaign)
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint16(1)
@@ -140,14 +142,14 @@ func handleMsgMhfStateCampaign(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 }
 
-func handleMsgMhfApplyCampaign(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfApplyCampaign(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfApplyCampaign)
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint32(1)
 	s.DoAckSimpleSucceed(pkt.AckHandle, bf.Data())
 }
 
-func handleMsgMhfEnumerateItem(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfEnumerateItem(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateItem)
 	items := []struct {
 		Unk0 uint32
@@ -170,7 +172,7 @@ func handleMsgMhfEnumerateItem(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 }
 
-func handleMsgMhfAcquireItem(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfAcquireItem(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfAcquireItem)
 	s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 }

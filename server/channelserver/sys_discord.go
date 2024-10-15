@@ -71,14 +71,14 @@ func getCharacterList(server *ChannelServer) string {
 
 // onInteraction handles slash commands
 func (server *ChannelServer) onInteraction(ds *discordgo.Session, i *discordgo.InteractionCreate) {
-	database, err := db.GetDB()
+	db, err := db.GetDB()
 	if err != nil {
 		server.logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
 	switch i.Interaction.ApplicationCommandData().Name {
 	case "link":
 		var temp string
-		err := database.QueryRow(`UPDATE users SET discord_id = $1 WHERE discord_token = $2 RETURNING discord_id`, i.Member.User.ID, i.ApplicationCommandData().Options[0].StringValue()).Scan(&temp)
+		err := db.QueryRow(`UPDATE users SET discord_id = $1 WHERE discord_token = $2 RETURNING discord_id`, i.Member.User.ID, i.ApplicationCommandData().Options[0].StringValue()).Scan(&temp)
 		if err == nil {
 			ds.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,
@@ -98,7 +98,7 @@ func (server *ChannelServer) onInteraction(ds *discordgo.Session, i *discordgo.I
 		}
 	case "password":
 		password, _ := bcrypt.GenerateFromPassword([]byte(i.ApplicationCommandData().Options[0].StringValue()), 10)
-		_, err := database.Exec(`UPDATE users SET password = $1 WHERE discord_id = $2`, password, i.Member.User.ID)
+		_, err := db.Exec(`UPDATE users SET password = $1 WHERE discord_id = $2`, password, i.Member.User.ID)
 		if err == nil {
 			ds.InteractionRespond(i.Interaction, &discordgo.InteractionResponse{
 				Type: discordgo.InteractionResponseChannelMessageWithSource,

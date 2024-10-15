@@ -12,6 +12,7 @@ import (
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/server/channelserver/compression/nullcomp"
 
+	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )
 
@@ -121,11 +122,11 @@ func getPointers() map[SavePointer]int {
 }
 
 func GetCharacterSaveData(s *Session, charID uint32) (*CharacterSaveData, error) {
-	database, err := db.GetDB()
+	db, err := db.GetDB()
 	if err != nil {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
-	result, err := database.Query("SELECT id, savedata, is_new_character, name FROM characters WHERE id = $1", charID)
+	result, err := db.Query("SELECT id, savedata, is_new_character, name FROM characters WHERE id = $1", charID)
 	if err != nil {
 		s.Logger.Error("Failed to get savedata", zap.Error(err), zap.Uint32("charID", charID))
 		return nil, err
@@ -162,7 +163,7 @@ func GetCharacterSaveData(s *Session, charID uint32) (*CharacterSaveData, error)
 }
 
 func (save *CharacterSaveData) Save(s *Session) {
-	database, err := db.GetDB()
+	db, err := db.GetDB()
 	if err != nil {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
@@ -185,13 +186,13 @@ func (save *CharacterSaveData) Save(s *Session) {
 		save.compSave = save.decompSave
 	}
 
-	_, err = database.Exec(`UPDATE characters SET savedata=$1, is_new_character=false, hr=$2, gr=$3, is_female=$4, weapon_type=$5, weapon_id=$6 WHERE id=$7
+	_, err = db.Exec(`UPDATE characters SET savedata=$1, is_new_character=false, hr=$2, gr=$3, is_female=$4, weapon_type=$5, weapon_id=$6 WHERE id=$7
 	`, save.compSave, save.HR, save.GR, save.Gender, save.WeaponType, save.WeaponID, save.CharID)
 	if err != nil {
 		s.Logger.Error("Failed to update savedata", zap.Error(err), zap.Uint32("charID", save.CharID))
 	}
 
-	database.Exec(`UPDATE user_binary SET house_tier=$1, house_data=$2, bookshelf=$3, gallery=$4, tore=$5, garden=$6 WHERE id=$7
+	db.Exec(`UPDATE user_binary SET house_tier=$1, house_data=$2, bookshelf=$3, gallery=$4, tore=$5, garden=$6 WHERE id=$7
 	`, save.HouseTier, save.HouseData, save.BookshelfData, save.GalleryData, save.ToreData, save.GardenData, s.CharID)
 }
 
@@ -258,7 +259,7 @@ func (save *CharacterSaveData) updateStructWithSaveData() {
 	return
 }
 
-func handleMsgMhfSexChanger(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfSexChanger(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSexChanger)
 	s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 }

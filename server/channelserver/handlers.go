@@ -22,6 +22,7 @@ import (
 	"erupe-ce/utils/byteframe"
 	"math/bits"
 
+	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )
 
@@ -34,12 +35,14 @@ func stubEnumerateNoResults(s *Session, ackHandle uint32) {
 }
 
 func updateRights(s *Session) {
-	rightsInt := uint32(2)
-	database, err := db.GetDB()
+	db, err := db.GetDB()
 	if err != nil {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
-	database.QueryRow("SELECT rights FROM users u INNER JOIN characters c ON u.id = c.user_id WHERE c.id = $1", s.CharID).Scan(&rightsInt)
+
+	rightsInt := uint32(2)
+
+	db.QueryRow("SELECT rights FROM users u INNER JOIN characters c ON u.id = c.user_id WHERE c.id = $1", s.CharID).Scan(&rightsInt)
 	s.courses, rightsInt = mhfcourse.GetCourseStruct(rightsInt)
 	update := &mhfpacket.MsgSysUpdateRight{
 		ClientRespAckHandle: 0,
@@ -50,23 +53,23 @@ func updateRights(s *Session) {
 	s.QueueSendMHF(update)
 }
 
-func handleMsgHead(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgHead(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}
 
-func handleMsgSysExtendThreshold(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgSysExtendThreshold(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	// No data aside from header, no resp required.
 }
 
-func handleMsgSysEnd(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgSysEnd(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	// No data aside from header, no resp required.
 }
 
-func handleMsgSysNop(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgSysNop(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	// No data aside from header, no resp required.
 }
 
-func handleMsgSysAck(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysAck(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}
 
-func handleMsgSysTerminalLog(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgSysTerminalLog(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysTerminalLog)
 	for i := range pkt.Entries {
 		s.Server.logger.Info("SysTerminalLog",
@@ -84,15 +87,12 @@ func handleMsgSysTerminalLog(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckSimpleSucceed(pkt.AckHandle, resp.Data())
 }
 
-func handleMsgSysLogin(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgSysLogin(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysLogin)
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
+
 	if !config.GetConfig().DebugOptions.DisableTokenCheck {
 		var token string
-		err := database.QueryRow("SELECT token FROM sign_sessions ss INNER JOIN public.users u on ss.user_id = u.id WHERE token=$1 AND ss.id=$2 AND u.id=(SELECT c.user_id FROM characters c WHERE c.id=$3)", pkt.LoginTokenString, pkt.LoginTokenNumber, pkt.CharID0).Scan(&token)
+		err := db.QueryRow("SELECT token FROM sign_sessions ss INNER JOIN public.users u on ss.user_id = u.id WHERE token=$1 AND ss.id=$2 AND u.id=(SELECT c.user_id FROM characters c WHERE c.id=$3)", pkt.LoginTokenString, pkt.LoginTokenNumber, pkt.CharID0).Scan(&token)
 		if err != nil {
 			s.rawConn.Close()
 			s.Logger.Warn(fmt.Sprintf("Invalid login token, offending CID: (%d)", pkt.CharID0))
@@ -108,22 +108,22 @@ func handleMsgSysLogin(s *Session, p mhfpacket.MHFPacket) {
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint32(uint32(gametime.TimeAdjusted().Unix())) // Unix timestamp
 
-	_, err = database.Exec("UPDATE servers SET current_players=$1 WHERE server_id=$2", len(s.Server.sessions), s.Server.ID)
+	_, err := db.Exec("UPDATE servers SET current_players=$1 WHERE server_id=$2", len(s.Server.sessions), s.Server.ID)
 	if err != nil {
 		panic(err)
 	}
 
-	_, err = database.Exec("UPDATE sign_sessions SET server_id=$1, char_id=$2 WHERE token=$3", s.Server.ID, s.CharID, s.token)
+	_, err = db.Exec("UPDATE sign_sessions SET server_id=$1, char_id=$2 WHERE token=$3", s.Server.ID, s.CharID, s.token)
 	if err != nil {
 		panic(err)
 	}
 
-	_, err = database.Exec("UPDATE characters SET last_login=$1 WHERE id=$2", gametime.TimeAdjusted().Unix(), s.CharID)
+	_, err = db.Exec("UPDATE characters SET last_login=$1 WHERE id=$2", gametime.TimeAdjusted().Unix(), s.CharID)
 	if err != nil {
 		panic(err)
 	}
 
-	_, err = database.Exec("UPDATE users u SET last_character=$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$1)", s.CharID)
+	_, err = db.Exec("UPDATE users u SET last_character=$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$1)", s.CharID)
 	if err != nil {
 		panic(err)
 	}
@@ -135,12 +135,15 @@ func handleMsgSysLogin(s *Session, p mhfpacket.MHFPacket) {
 	s.Server.BroadcastMHF(&mhfpacket.MsgSysInsertUser{CharID: s.CharID}, s)
 }
 
-func handleMsgSysLogout(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgSysLogout(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	logoutPlayer(s)
 }
 
 func logoutPlayer(s *Session) {
-
+	db, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
 	s.Server.Lock()
 	if _, exists := s.Server.sessions[s.rawConn]; exists {
 		delete(s.Server.sessions, s.rawConn)
@@ -166,23 +169,20 @@ func logoutPlayer(s *Session) {
 			}
 		}
 	}
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
-	_, err = database.Exec("UPDATE sign_sessions SET server_id=NULL, char_id=NULL WHERE token=$1", s.token)
+
+	_, err = db.Exec("UPDATE sign_sessions SET server_id=NULL, char_id=NULL WHERE token=$1", s.token)
 	if err != nil {
 		panic(err)
 	}
 
-	_, err = database.Exec("UPDATE servers SET current_players=$1 WHERE server_id=$2", len(s.Server.sessions), s.Server.ID)
+	_, err = db.Exec("UPDATE servers SET current_players=$1 WHERE server_id=$2", len(s.Server.sessions), s.Server.ID)
 	if err != nil {
 		panic(err)
 	}
 
 	var timePlayed int
 	var sessionTime int
-	_ = database.QueryRow("SELECT time_played FROM characters WHERE id = $1", s.CharID).Scan(&timePlayed)
+	_ = db.QueryRow("SELECT time_played FROM characters WHERE id = $1", s.CharID).Scan(&timePlayed)
 	sessionTime = int(gametime.TimeAdjusted().Unix()) - int(s.sessionStart)
 	timePlayed += sessionTime
 
@@ -190,15 +190,15 @@ func logoutPlayer(s *Session) {
 	if mhfcourse.CourseExists(30, s.courses) {
 		rpGained = timePlayed / 900
 		timePlayed = timePlayed % 900
-		database.Exec("UPDATE characters SET cafe_time=cafe_time+$1 WHERE id=$2", sessionTime, s.CharID)
+		db.Exec("UPDATE characters SET cafe_time=cafe_time+$1 WHERE id=$2", sessionTime, s.CharID)
 	} else {
 		rpGained = timePlayed / 1800
 		timePlayed = timePlayed % 1800
 	}
 
-	database.Exec("UPDATE characters SET time_played = $1 WHERE id = $2", timePlayed, s.CharID)
+	db.Exec("UPDATE characters SET time_played = $1 WHERE id = $2", timePlayed, s.CharID)
 
-	database.Exec(`UPDATE guild_characters SET treasure_hunt=NULL WHERE character_id=$1`, s.CharID)
+	db.Exec(`UPDATE guild_characters SET treasure_hunt=NULL WHERE character_id=$1`, s.CharID)
 
 	if s.stage == nil {
 		return
@@ -231,14 +231,14 @@ func logoutPlayer(s *Session) {
 	saveData.Save(s)
 }
 
-func handleMsgSysSetStatus(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysSetStatus(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}
 
-func handleMsgSysPing(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgSysPing(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysPing)
 	s.DoAckSimpleSucceed(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
-func handleMsgSysTime(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgSysTime(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	resp := &mhfpacket.MsgSysTime{
 		GetRemoteTime: false,
 		Timestamp:     uint32(gametime.TimeAdjusted().Unix()), // JP timezone
@@ -247,7 +247,7 @@ func handleMsgSysTime(s *Session, p mhfpacket.MHFPacket) {
 	s.notifyRavi()
 }
 
-func handleMsgSysIssueLogkey(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgSysIssueLogkey(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysIssueLogkey)
 
 	// Make a random log key for this session.
@@ -269,12 +269,9 @@ func handleMsgSysIssueLogkey(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckBufSucceed(pkt.AckHandle, resp.Data())
 }
 
-func handleMsgSysRecordLog(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgSysRecordLog(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysRecordLog)
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
+
 	if config.GetConfig().ClientID == config.ZZ {
 		bf := byteframe.NewByteFrameFromBytes(pkt.Data)
 		bf.Seek(32, 0)
@@ -282,7 +279,7 @@ func handleMsgSysRecordLog(s *Session, p mhfpacket.MHFPacket) {
 		for i := 0; i < 176; i++ {
 			val = bf.ReadUint8()
 			if val > 0 && mhfmon.Monsters[i].Large {
-				database.Exec(`INSERT INTO kill_logs (character_id, monster, quantity, timestamp) VALUES ($1, $2, $3, $4)`, s.CharID, i, val, gametime.TimeAdjusted())
+				db.Exec(`INSERT INTO kill_logs (character_id, monster, quantity, timestamp) VALUES ($1, $2, $3, $4)`, s.CharID, i, val, gametime.TimeAdjusted())
 			}
 		}
 	}
@@ -291,9 +288,9 @@ func handleMsgSysRecordLog(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 }
 
-func handleMsgSysEcho(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysEcho(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}
 
-func handleMsgSysLockGlobalSema(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgSysLockGlobalSema(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysLockGlobalSema)
 	var sgid string
 	for _, channel := range s.Server.Channels {
@@ -316,24 +313,24 @@ func handleMsgSysLockGlobalSema(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 }
 
-func handleMsgSysUnlockGlobalSema(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgSysUnlockGlobalSema(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysUnlockGlobalSema)
 	s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 }
 
-func handleMsgSysUpdateRight(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysUpdateRight(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}
 
-func handleMsgSysAuthQuery(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysAuthQuery(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}
 
-func handleMsgSysAuthTerminal(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysAuthTerminal(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}
 
-func handleMsgSysRightsReload(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgSysRightsReload(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysRightsReload)
 	updateRights(s)
 	s.DoAckSimpleSucceed(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
-func handleMsgMhfTransitMessage(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfTransitMessage(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfTransitMessage)
 
 	local := false
@@ -582,40 +579,40 @@ func handleMsgMhfTransitMessage(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckBufSucceed(pkt.AckHandle, resp.Data())
 }
 
-func handleMsgCaExchangeItem(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgCaExchangeItem(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfServerCommand(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfServerCommand(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfAnnounce(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfAnnounce(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfAnnounce)
 	s.Server.BroadcastRaviente(pkt.IPAddress, pkt.Port, pkt.StageID, pkt.Data.ReadUint8())
 	s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 }
 
-func handleMsgMhfSetLoginwindow(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfSetLoginwindow(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}
 
-func handleMsgSysTransBinary(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysTransBinary(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}
 
-func handleMsgSysCollectBinary(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysCollectBinary(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}
 
-func handleMsgSysGetState(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysGetState(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}
 
-func handleMsgSysSerialize(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysSerialize(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}
 
-func handleMsgSysEnumlobby(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysEnumlobby(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}
 
-func handleMsgSysEnumuser(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysEnumuser(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}
 
-func handleMsgSysInfokyserver(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysInfokyserver(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfGetCaUniqueID(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfGetCaUniqueID(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfTransferItem(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfTransferItem(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfTransferItem)
 	s.DoAckSimpleSucceed(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
-func handleMsgMhfEnumeratePrice(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfEnumeratePrice(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumeratePrice)
 	bf := byteframe.NewByteFrame()
 	var lbPrices []struct {
@@ -780,21 +777,22 @@ func handleMsgMhfEnumeratePrice(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 }
 
-func handleMsgMhfEnumerateOrder(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfEnumerateOrder(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateOrder)
 	stubEnumerateNoResults(s, pkt.AckHandle)
 }
 
-func handleMsgMhfGetExtraInfo(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfGetExtraInfo(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}
 
 func userGetItems(s *Session) []mhfitem.MHFItemStack {
-	var data []byte
-	var items []mhfitem.MHFItemStack
-	database, err := db.GetDB()
+	db, err := db.GetDB()
 	if err != nil {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
-	database.QueryRow(`SELECT item_box FROM users u WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$1)`, s.CharID).Scan(&data)
+	var data []byte
+	var items []mhfitem.MHFItemStack
+
+	db.QueryRow(`SELECT item_box FROM users u WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$1)`, s.CharID).Scan(&data)
 	if len(data) > 0 {
 		box := byteframe.NewByteFrameFromBytes(data)
 		numStacks := box.ReadUint16()
@@ -806,7 +804,7 @@ func userGetItems(s *Session) []mhfitem.MHFItemStack {
 	return items
 }
 
-func handleMsgMhfEnumerateUnionItem(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfEnumerateUnionItem(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateUnionItem)
 	items := userGetItems(s)
 	bf := byteframe.NewByteFrame()
@@ -814,41 +812,35 @@ func handleMsgMhfEnumerateUnionItem(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 }
 
-func handleMsgMhfUpdateUnionItem(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfUpdateUnionItem(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfUpdateUnionItem)
 	newStacks := mhfitem.DiffItemStacks(userGetItems(s), pkt.UpdatedItems)
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
-	database.Exec(`UPDATE users u SET item_box=$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)`, mhfitem.SerializeWarehouseItems(newStacks), s.CharID)
+
+	db.Exec(`UPDATE users u SET item_box=$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)`, mhfitem.SerializeWarehouseItems(newStacks), s.CharID)
 	s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 }
 
-func handleMsgMhfGetCogInfo(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfGetCogInfo(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfCheckWeeklyStamp(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfCheckWeeklyStamp(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfCheckWeeklyStamp)
 	var total, redeemed, updated uint16
 	var lastCheck time.Time
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
-	err = database.QueryRow(fmt.Sprintf("SELECT %s_checked FROM stamps WHERE character_id=$1", pkt.StampType), s.CharID).Scan(&lastCheck)
+
+	err := db.QueryRow(fmt.Sprintf("SELECT %s_checked FROM stamps WHERE character_id=$1", pkt.StampType), s.CharID).Scan(&lastCheck)
 	if err != nil {
 		lastCheck = gametime.TimeAdjusted()
-		database.Exec("INSERT INTO stamps (character_id, hl_checked, ex_checked) VALUES ($1, $2, $2)", s.CharID, gametime.TimeAdjusted())
+		db.Exec("INSERT INTO stamps (character_id, hl_checked, ex_checked) VALUES ($1, $2, $2)", s.CharID, gametime.TimeAdjusted())
 	} else {
-		database.Exec(fmt.Sprintf(`UPDATE stamps SET %s_checked=$1 WHERE character_id=$2`, pkt.StampType), gametime.TimeAdjusted(), s.CharID)
+		db.Exec(fmt.Sprintf(`UPDATE stamps SET %s_checked=$1 WHERE character_id=$2`, pkt.StampType), gametime.TimeAdjusted(), s.CharID)
 	}
 
 	if lastCheck.Before(gametime.TimeWeekStart()) {
-		database.Exec(fmt.Sprintf("UPDATE stamps SET %s_total=%s_total+1 WHERE character_id=$1", pkt.StampType, pkt.StampType), s.CharID)
+		db.Exec(fmt.Sprintf("UPDATE stamps SET %s_total=%s_total+1 WHERE character_id=$1", pkt.StampType, pkt.StampType), s.CharID)
 		updated = 1
 	}
 
-	database.QueryRow(fmt.Sprintf("SELECT %s_total, %s_redeemed FROM stamps WHERE character_id=$1", pkt.StampType, pkt.StampType), s.CharID).Scan(&total, &redeemed)
+	db.QueryRow(fmt.Sprintf("SELECT %s_total, %s_redeemed FROM stamps WHERE character_id=$1", pkt.StampType, pkt.StampType), s.CharID).Scan(&total, &redeemed)
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint16(total)
 	bf.WriteUint16(redeemed)
@@ -859,19 +851,16 @@ func handleMsgMhfCheckWeeklyStamp(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 }
 
-func handleMsgMhfExchangeWeeklyStamp(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfExchangeWeeklyStamp(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfExchangeWeeklyStamp)
 	var total, redeemed uint16
 	var tktStack mhfitem.MHFItemStack
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
+
 	if pkt.Unk1 == 10 { // Yearly Sub Ex
-		database.QueryRow("UPDATE stamps SET hl_total=hl_total-48, hl_redeemed=hl_redeemed-48 WHERE character_id=$1 RETURNING hl_total, hl_redeemed", s.CharID).Scan(&total, &redeemed)
+		db.QueryRow("UPDATE stamps SET hl_total=hl_total-48, hl_redeemed=hl_redeemed-48 WHERE character_id=$1 RETURNING hl_total, hl_redeemed", s.CharID).Scan(&total, &redeemed)
 		tktStack = mhfitem.MHFItemStack{Item: mhfitem.MHFItem{ItemID: 2210}, Quantity: 1}
 	} else {
-		database.QueryRow(fmt.Sprintf("UPDATE stamps SET %s_redeemed=%s_redeemed+8 WHERE character_id=$1 RETURNING %s_total, %s_redeemed", pkt.StampType, pkt.StampType, pkt.StampType, pkt.StampType), s.CharID).Scan(&total, &redeemed)
+		db.QueryRow(fmt.Sprintf("UPDATE stamps SET %s_redeemed=%s_redeemed+8 WHERE character_id=$1 RETURNING %s_total, %s_redeemed", pkt.StampType, pkt.StampType, pkt.StampType, pkt.StampType), s.CharID).Scan(&total, &redeemed)
 		if pkt.StampType == "hl" {
 			tktStack = mhfitem.MHFItemStack{Item: mhfitem.MHFItem{ItemID: 1630}, Quantity: 5}
 		} else {
@@ -890,16 +879,17 @@ func handleMsgMhfExchangeWeeklyStamp(s *Session, p mhfpacket.MHFPacket) {
 }
 
 func getGoocooData(s *Session, cid uint32) [][]byte {
-	var goocoo []byte
-	var goocoos [][]byte
-	database, err := db.GetDB()
+	db, err := db.GetDB()
 	if err != nil {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
+	var goocoo []byte
+	var goocoos [][]byte
+
 	for i := 0; i < 5; i++ {
-		err := database.QueryRow(fmt.Sprintf("SELECT goocoo%d FROM goocoo WHERE id=$1", i), cid).Scan(&goocoo)
+		err = db.QueryRow(fmt.Sprintf("SELECT goocoo%d FROM goocoo WHERE id=$1", i), cid).Scan(&goocoo)
 		if err != nil {
-			database.Exec("INSERT INTO goocoo (id) VALUES ($1)", s.CharID)
+			db.Exec("INSERT INTO goocoo (id) VALUES ($1)", s.CharID)
 			return goocoos
 		}
 		if err == nil && goocoo != nil {
@@ -909,7 +899,7 @@ func getGoocooData(s *Session, cid uint32) [][]byte {
 	return goocoos
 }
 
-func handleMsgMhfEnumerateGuacot(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfEnumerateGuacot(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateGuacot)
 	bf := byteframe.NewByteFrame()
 	goocoos := getGoocooData(s, s.CharID)
@@ -921,15 +911,12 @@ func handleMsgMhfEnumerateGuacot(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 }
 
-func handleMsgMhfUpdateGuacot(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfUpdateGuacot(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfUpdateGuacot)
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
+
 	for _, goocoo := range pkt.Goocoos {
 		if goocoo.Data1[0] == 0 {
-			database.Exec(fmt.Sprintf("UPDATE goocoo SET goocoo%d=NULL WHERE id=$1", goocoo.Index), s.CharID)
+			db.Exec(fmt.Sprintf("UPDATE goocoo SET goocoo%d=NULL WHERE id=$1", goocoo.Index), s.CharID)
 		} else {
 			bf := byteframe.NewByteFrame()
 			bf.WriteUint32(goocoo.Index)
@@ -941,7 +928,7 @@ func handleMsgMhfUpdateGuacot(s *Session, p mhfpacket.MHFPacket) {
 			}
 			bf.WriteUint8(uint8(len(goocoo.Name)))
 			bf.WriteBytes(goocoo.Name)
-			database.Exec(fmt.Sprintf("UPDATE goocoo SET goocoo%d=$1 WHERE id=$2", goocoo.Index), bf.Data(), s.CharID)
+			db.Exec(fmt.Sprintf("UPDATE goocoo SET goocoo%d=$1 WHERE id=$2", goocoo.Index), bf.Data(), s.CharID)
 			dumpSaveData(s, bf.Data(), fmt.Sprintf("goocoo-%d", goocoo.Index))
 		}
 	}
@@ -958,15 +945,12 @@ type Scenario struct {
 	CategoryID uint8
 }
 
-func handleMsgMhfInfoScenarioCounter(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfInfoScenarioCounter(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfInfoScenarioCounter)
 	var scenarios []Scenario
 	var scenario Scenario
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
-	scenarioData, err := database.Queryx("SELECT scenario_id, category_id FROM scenario_counter")
+
+	scenarioData, err := db.Queryx("SELECT scenario_id, category_id FROM scenario_counter")
 	if err != nil {
 		scenarioData.Close()
 		s.Logger.Error("Failed to get scenario counter info from db", zap.Error(err))
@@ -1002,20 +986,17 @@ func handleMsgMhfInfoScenarioCounter(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 }
 
-func handleMsgMhfGetEtcPoints(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfGetEtcPoints(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetEtcPoints)
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
+
 	var dailyTime time.Time
-	_ = database.QueryRow("SELECT COALESCE(daily_time, $2) FROM characters WHERE id = $1", s.CharID, time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)).Scan(&dailyTime)
+	_ = db.QueryRow("SELECT COALESCE(daily_time, $2) FROM characters WHERE id = $1", s.CharID, time.Date(2000, 1, 1, 0, 0, 0, 0, time.UTC)).Scan(&dailyTime)
 	if gametime.TimeAdjusted().After(dailyTime) {
-		database.Exec("UPDATE characters SET bonus_quests = 0, daily_quests = 0 WHERE id=$1", s.CharID)
+		db.Exec("UPDATE characters SET bonus_quests = 0, daily_quests = 0 WHERE id=$1", s.CharID)
 	}
 
 	var bonusQuests, dailyQuests, promoPoints uint32
-	_ = database.QueryRow(`SELECT bonus_quests, daily_quests, promo_points FROM characters WHERE id = $1`, s.CharID).Scan(&bonusQuests, &dailyQuests, &promoPoints)
+	_ = db.QueryRow(`SELECT bonus_quests, daily_quests, promo_points FROM characters WHERE id = $1`, s.CharID).Scan(&bonusQuests, &dailyQuests, &promoPoints)
 	resp := byteframe.NewByteFrame()
 	resp.WriteUint8(3) // Maybe a count of uint32(s)?
 	resp.WriteUint32(bonusQuests)
@@ -1024,7 +1005,7 @@ func handleMsgMhfGetEtcPoints(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckBufSucceed(pkt.AckHandle, resp.Data())
 }
 
-func handleMsgMhfUpdateEtcPoint(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfUpdateEtcPoint(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfUpdateEtcPoint)
 
 	var column string
@@ -1036,23 +1017,20 @@ func handleMsgMhfUpdateEtcPoint(s *Session, p mhfpacket.MHFPacket) {
 	case 2:
 		column = "promo_points"
 	}
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
+
 	var value int16
-	err = database.QueryRow(fmt.Sprintf(`SELECT %s FROM characters WHERE id = $1`, column), s.CharID).Scan(&value)
+	err := db.QueryRow(fmt.Sprintf(`SELECT %s FROM characters WHERE id = $1`, column), s.CharID).Scan(&value)
 	if err == nil {
 		if value+pkt.Delta < 0 {
-			database.Exec(fmt.Sprintf(`UPDATE characters SET %s = 0 WHERE id = $1`, column), s.CharID)
+			db.Exec(fmt.Sprintf(`UPDATE characters SET %s = 0 WHERE id = $1`, column), s.CharID)
 		} else {
-			database.Exec(fmt.Sprintf(`UPDATE characters SET %s = %s + $1 WHERE id = $2`, column, column), pkt.Delta, s.CharID)
+			db.Exec(fmt.Sprintf(`UPDATE characters SET %s = %s + $1 WHERE id = $2`, column, column), pkt.Delta, s.CharID)
 		}
 	}
 	s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 }
 
-func handleMsgMhfStampcardStamp(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfStampcardStamp(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfStampcardStamp)
 
 	rewards := []struct {
@@ -1086,11 +1064,8 @@ func handleMsgMhfStampcardStamp(s *Session, p mhfpacket.MHFPacket) {
 	}
 	var stamps, rewardTier, rewardUnk uint16
 	reward := mhfitem.MHFItemStack{Item: mhfitem.MHFItem{}}
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
-	database.QueryRow(`UPDATE characters SET stampcard = stampcard + $1 WHERE id = $2 RETURNING stampcard`, pkt.Stamps, s.CharID).Scan(&stamps)
+
+	db.QueryRow(`UPDATE characters SET stampcard = stampcard + $1 WHERE id = $2 RETURNING stampcard`, pkt.Stamps, s.CharID).Scan(&stamps)
 	bf.WriteUint16(stamps - pkt.Stamps)
 	bf.WriteUint16(stamps)
 
@@ -1113,16 +1088,16 @@ func handleMsgMhfStampcardStamp(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 }
 
-func handleMsgMhfStampcardPrize(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfStampcardPrize(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfUnreserveSrg(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfUnreserveSrg(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfUnreserveSrg)
 	s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 }
 
-func handleMsgMhfKickExportForce(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfKickExportForce(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfGetEarthStatus(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfGetEarthStatus(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetEarthStatus)
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint32(uint32(gametime.TimeWeekStart().Unix())) // Start
@@ -1143,9 +1118,9 @@ func handleMsgMhfGetEarthStatus(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 }
 
-func handleMsgMhfRegistSpabiTime(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfRegistSpabiTime(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfGetEarthValue(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfGetEarthValue(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetEarthValue)
 	type EarthValues struct {
 		Value []uint32
@@ -1182,9 +1157,9 @@ func handleMsgMhfGetEarthValue(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckEarthSucceed(pkt.AckHandle, data)
 }
 
-func handleMsgMhfDebugPostValue(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfDebugPostValue(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfGetRandFromTable(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfGetRandFromTable(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetRandFromTable)
 	bf := byteframe.NewByteFrame()
 	for i := uint16(0); i < pkt.Results; i++ {
@@ -1193,7 +1168,7 @@ func handleMsgMhfGetRandFromTable(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 }
 
-func handleMsgMhfGetSenyuDailyCount(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfGetSenyuDailyCount(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetSenyuDailyCount)
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint16(0)
@@ -1251,7 +1226,7 @@ type Seibattle struct {
 	CurResult        []SeibattleCurResult
 }
 
-func handleMsgMhfGetSeibattle(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfGetSeibattle(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetSeibattle)
 	var data []*byteframe.ByteFrame
 	seibattle := Seibattle{
@@ -1339,16 +1314,16 @@ func handleMsgMhfGetSeibattle(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckEarthSucceed(pkt.AckHandle, data)
 }
 
-func handleMsgMhfPostSeibattle(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfPostSeibattle(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfPostSeibattle)
 	s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 }
 
-func handleMsgMhfGetDailyMissionMaster(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfGetDailyMissionMaster(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfGetDailyMissionPersonal(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfGetDailyMissionPersonal(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfSetDailyMissionPersonal(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfSetDailyMissionPersonal(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}
 
 func equipSkinHistSize() int {
 	size := 3200
@@ -1361,15 +1336,12 @@ func equipSkinHistSize() int {
 	return size
 }
 
-func handleMsgMhfGetEquipSkinHist(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfGetEquipSkinHist(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetEquipSkinHist)
 	size := equipSkinHistSize()
 	var data []byte
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
-	err = database.QueryRow("SELECT COALESCE(skin_hist::bytea, $2::bytea) FROM characters WHERE id = $1", s.CharID, make([]byte, size)).Scan(&data)
+
+	err := db.QueryRow("SELECT COALESCE(skin_hist::bytea, $2::bytea) FROM characters WHERE id = $1", s.CharID, make([]byte, size)).Scan(&data)
 	if err != nil {
 		s.Logger.Error("Failed to load skin_hist", zap.Error(err))
 		data = make([]byte, size)
@@ -1377,15 +1349,12 @@ func handleMsgMhfGetEquipSkinHist(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckBufSucceed(pkt.AckHandle, data)
 }
 
-func handleMsgMhfUpdateEquipSkinHist(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfUpdateEquipSkinHist(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfUpdateEquipSkinHist)
 	size := equipSkinHistSize()
 	var data []byte
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
-	err = database.QueryRow("SELECT COALESCE(skin_hist, $2) FROM characters WHERE id = $1", s.CharID, make([]byte, size)).Scan(&data)
+
+	err := db.QueryRow("SELECT COALESCE(skin_hist, $2) FROM characters WHERE id = $1", s.CharID, make([]byte, size)).Scan(&data)
 	if err != nil {
 		s.Logger.Error("Failed to get skin_hist", zap.Error(err))
 		s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
@@ -1399,28 +1368,25 @@ func handleMsgMhfUpdateEquipSkinHist(s *Session, p mhfpacket.MHFPacket) {
 	bitInByte := bit % 8
 	data[startByte+byteInd] |= bits.Reverse8(1 << uint(bitInByte))
 	dumpSaveData(s, data, "skinhist")
-	database.Exec("UPDATE characters SET skin_hist=$1 WHERE id=$2", data, s.CharID)
+	db.Exec("UPDATE characters SET skin_hist=$1 WHERE id=$2", data, s.CharID)
 	s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 }
 
-func handleMsgMhfGetUdShopCoin(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfGetUdShopCoin(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetUdShopCoin)
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint32(0)
 	s.DoAckSimpleSucceed(pkt.AckHandle, bf.Data())
 }
 
-func handleMsgMhfUseUdShopCoin(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfUseUdShopCoin(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfGetEnhancedMinidata(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfGetEnhancedMinidata(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetEnhancedMinidata)
 	// this looks to be the detailed chunk of information you can pull up on players in town
 	var data []byte
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
-	err = database.QueryRow("SELECT minidata FROM characters WHERE id = $1", pkt.CharID).Scan(&data)
+
+	err := db.QueryRow("SELECT minidata FROM characters WHERE id = $1", pkt.CharID).Scan(&data)
 	if err != nil {
 		s.Logger.Error("Failed to load minidata")
 		data = make([]byte, 1)
@@ -1428,21 +1394,18 @@ func handleMsgMhfGetEnhancedMinidata(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckBufSucceed(pkt.AckHandle, data)
 }
 
-func handleMsgMhfSetEnhancedMinidata(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfSetEnhancedMinidata(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSetEnhancedMinidata)
 	dumpSaveData(s, pkt.RawDataPayload, "minidata")
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
-	_, err = database.Exec("UPDATE characters SET minidata=$1 WHERE id=$2", pkt.RawDataPayload, s.CharID)
+
+	_, err := db.Exec("UPDATE characters SET minidata=$1 WHERE id=$2", pkt.RawDataPayload, s.CharID)
 	if err != nil {
 		s.Logger.Error("Failed to save minidata", zap.Error(err))
 	}
 	s.DoAckSimpleSucceed(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
-func handleMsgMhfGetLobbyCrowd(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfGetLobbyCrowd(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	// this requests a specific server's population but seems to have been
 	// broken at some point on live as every example response across multiple
 	// servers sends back the exact same information?
@@ -1457,15 +1420,12 @@ type TrendWeapon struct {
 	WeaponID   uint16
 }
 
-func handleMsgMhfGetTrendWeapon(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfGetTrendWeapon(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetTrendWeapon)
 	trendWeapons := [14][3]TrendWeapon{}
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
+
 	for i := uint8(0); i < 14; i++ {
-		rows, err := database.Query(`SELECT weapon_id FROM trend_weapons WHERE weapon_type=$1 ORDER BY count DESC LIMIT 3`, i)
+		rows, err := db.Query(`SELECT weapon_id FROM trend_weapons WHERE weapon_type=$1 ORDER BY count DESC LIMIT 3`, i)
 		if err != nil {
 			continue
 		}
@@ -1492,13 +1452,10 @@ func handleMsgMhfGetTrendWeapon(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 }
 
-func handleMsgMhfUpdateUseTrendWeaponLog(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfUpdateUseTrendWeaponLog(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfUpdateUseTrendWeaponLog)
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
-	database.Exec(`INSERT INTO trend_weapons (weapon_id, weapon_type, count) VALUES ($1, $2, 1) ON CONFLICT (weapon_id) DO
+
+	db.Exec(`INSERT INTO trend_weapons (weapon_id, weapon_type, count) VALUES ($1, $2, 1) ON CONFLICT (weapon_id) DO
 		UPDATE SET count = trend_weapons.count+1`, pkt.WeaponID, pkt.WeaponType)
 	s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 }

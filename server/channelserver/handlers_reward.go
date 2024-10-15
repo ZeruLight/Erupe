@@ -5,9 +5,11 @@ import (
 
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/utils/byteframe"
+
+	"github.com/jmoiron/sqlx"
 )
 
-func handleMsgMhfGetAdditionalBeatReward(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfGetAdditionalBeatReward(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetAdditionalBeatReward)
 	// Actual response in packet captures are all just giant batches of null bytes
 	// I'm assuming this is because it used to be tied to an actual event and
@@ -15,25 +17,25 @@ func handleMsgMhfGetAdditionalBeatReward(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckBufSucceed(pkt.AckHandle, make([]byte, 0x104))
 }
 
-func handleMsgMhfGetUdRankingRewardList(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfGetUdRankingRewardList(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetUdRankingRewardList)
 	// Temporary canned response
 	data, _ := hex.DecodeString("0100001600000A5397DF00000000000000000000000000000000")
 	s.DoAckBufSucceed(pkt.AckHandle, data)
 }
 
-func handleMsgMhfGetRewardSong(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfGetRewardSong(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetRewardSong)
 	// Temporary canned response
 	data, _ := hex.DecodeString("0100001600000A5397DF00000000000000000000000000000000")
 	s.DoAckBufSucceed(pkt.AckHandle, data)
 }
 
-func handleMsgMhfUseRewardSong(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfUseRewardSong(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfAddRewardSongCount(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfAddRewardSongCount(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfAcquireMonthlyReward(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfAcquireMonthlyReward(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfAcquireMonthlyReward)
 
 	resp := byteframe.NewByteFrame()
@@ -42,4 +44,4 @@ func handleMsgMhfAcquireMonthlyReward(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckBufSucceed(pkt.AckHandle, resp.Data())
 }
 
-func handleMsgMhfAcceptReadReward(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfAcceptReadReward(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}

@@ -2,7 +2,6 @@ package channelserver
 
 import (
 	"erupe-ce/config"
-	"erupe-ce/utils/db"
 	"erupe-ce/utils/gametime"
 	"erupe-ce/utils/mhfmon"
 	"erupe-ce/utils/stringsupport"
@@ -17,15 +16,13 @@ import (
 	"erupe-ce/server/channelserver/compression/nullcomp"
 	"erupe-ce/utils/byteframe"
 
+	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )
 
-func handleMsgMhfSavedata(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfSavedata(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSavedata)
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
+
 	characterSaveData, err := GetCharacterSaveData(s, s.CharID)
 	if err != nil {
 		s.Logger.Error("failed to retrieve character save data from db", zap.Error(err), zap.Uint32("charID", s.CharID))
@@ -73,11 +70,11 @@ func handleMsgMhfSavedata(s *Session, p mhfpacket.MHFPacket) {
 		s.rawConn.Close()
 		s.Logger.Warn("Save cancelled due to corruption.")
 		if config.GetConfig().DeleteOnSaveCorruption {
-			database.Exec("UPDATE characters SET deleted=true WHERE id=$1", s.CharID)
+			db.Exec("UPDATE characters SET deleted=true WHERE id=$1", s.CharID)
 		}
 		return
 	}
-	_, err = database.Exec("UPDATE characters SET name=$1 WHERE id=$2", characterSaveData.Name, s.CharID)
+	_, err = db.Exec("UPDATE characters SET name=$1 WHERE id=$2", characterSaveData.Name, s.CharID)
 	if err != nil {
 		s.Logger.Error("Failed to update character name in db", zap.Error(err))
 	}
@@ -145,12 +142,9 @@ func dumpSaveData(s *Session, data []byte, suffix string) {
 	}
 }
 
-func handleMsgMhfLoaddata(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfLoaddata(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfLoaddata)
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
+
 	if _, err := os.Stat(filepath.Join(config.GetConfig().BinPath, "save_override.bin")); err == nil {
 		data, _ := os.ReadFile(filepath.Join(config.GetConfig().BinPath, "save_override.bin"))
 		s.DoAckBufSucceed(pkt.AckHandle, data)
@@ -158,7 +152,7 @@ func handleMsgMhfLoaddata(s *Session, p mhfpacket.MHFPacket) {
 	}
 
 	var data []byte
-	err = database.QueryRow("SELECT savedata FROM characters WHERE id = $1", s.CharID).Scan(&data)
+	err := db.QueryRow("SELECT savedata FROM characters WHERE id = $1", s.CharID).Scan(&data)
 	if err != nil || len(data) == 0 {
 		s.Logger.Warn(fmt.Sprintf("Failed to load savedata (CID: %d)", s.CharID), zap.Error(err))
 		s.rawConn.Close() // Terminate the connection
@@ -179,29 +173,23 @@ func handleMsgMhfLoaddata(s *Session, p mhfpacket.MHFPacket) {
 	s.Name = stringsupport.SJISToUTF8(name)
 }
 
-func handleMsgMhfSaveScenarioData(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfSaveScenarioData(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSaveScenarioData)
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
+
 	dumpSaveData(s, pkt.RawDataPayload, "scenario")
-	_, err = database.Exec("UPDATE characters SET scenariodata = $1 WHERE id = $2", pkt.RawDataPayload, s.CharID)
+	_, err := db.Exec("UPDATE characters SET scenariodata = $1 WHERE id = $2", pkt.RawDataPayload, s.CharID)
 	if err != nil {
 		s.Logger.Error("Failed to update scenario data in db", zap.Error(err))
 	}
 	s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 }
 
-func handleMsgMhfLoadScenarioData(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfLoadScenarioData(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfLoadScenarioData)
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
+
 	var scenarioData []byte
 	bf := byteframe.NewByteFrame()
-	err = database.QueryRow("SELECT scenariodata FROM characters WHERE id = $1", s.CharID).Scan(&scenarioData)
+	err := db.QueryRow("SELECT scenariodata FROM characters WHERE id = $1", s.CharID).Scan(&scenarioData)
 	if err != nil || len(scenarioData) < 10 {
 		s.Logger.Error("Failed to load scenariodata", zap.Error(err))
 		bf.WriteBytes(make([]byte, 10))
@@ -1012,7 +1000,7 @@ type PaperGift struct {
 	Unk3 uint16
 }
 
-func handleMsgMhfGetPaperData(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfGetPaperData(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetPaperData)
 	var data []*byteframe.ByteFrame
 
@@ -1580,4 +1568,4 @@ func handleMsgMhfGetPaperData(s *Session, p mhfpacket.MHFPacket) {
 	}
 }
 
-func handleMsgSysAuthData(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysAuthData(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}

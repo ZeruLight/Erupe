@@ -4,9 +4,11 @@ import (
 	"encoding/hex"
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/utils/byteframe"
+
+	"github.com/jmoiron/sqlx"
 )
 
-func handleMsgMhfGetUdTacticsPoint(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfGetUdTacticsPoint(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	// Diva defense interception points
 	pkt := p.(*mhfpacket.MsgMhfGetUdTacticsPoint)
 	// Temporary canned response
@@ -14,12 +16,12 @@ func handleMsgMhfGetUdTacticsPoint(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckBufSucceed(pkt.AckHandle, data)
 }
 
-func handleMsgMhfAddUdTacticsPoint(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfAddUdTacticsPoint(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfAddUdTacticsPoint)
 	stubEnumerateNoResults(s, pkt.AckHandle)
 }
 
-func handleMsgMhfGetUdTacticsRewardList(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfGetUdTacticsRewardList(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	// Diva defense interception
 	pkt := p.(*mhfpacket.MsgMhfGetUdTacticsRewardList)
 	// Temporary canned response
@@ -27,39 +29,39 @@ func handleMsgMhfGetUdTacticsRewardList(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckBufSucceed(pkt.AckHandle, data)
 }
 
-func handleMsgMhfGetUdTacticsFollower(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfGetUdTacticsFollower(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetUdTacticsFollower)
 	s.DoAckBufSucceed(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00})
 }
 
-func handleMsgMhfGetUdTacticsBonusQuest(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfGetUdTacticsBonusQuest(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetUdTacticsBonusQuest)
 	// Temporary canned response
 	data, _ := hex.DecodeString("14E2F55DCBFE505DCC1A7003E8E2C55DCC6ED05DCC8AF00258E2CE5DCCDF505DCCFB700279E3075DCD4FD05DCD6BF0041AE2F15DCDC0505DCDDC700258E2C45DCE30D05DCE4CF00258E2F55DCEA1505DCEBD7003E8E2C25DCF11D05DCF2DF00258E2CE5DCF82505DCF9E700279E3075DCFF2D05DD00EF0041AE2CE5DD063505DD07F700279E2F35DD0D3D05DD0EFF0028AE2C35DD144505DD160700258E2F05DD1B4D05DD1D0F00258E2CE5DD225505DD241700279E2F55DD295D05DD2B1F003E8E2F25DD306505DD3227002EEE2CA5DD376D05DD392F00258E3075DD3E7505DD40370041AE2F55DD457D05DD473F003E82027313220686F757273273A3A696E74657276616C29202B2027313220686F757273273A3A696E74657276616C2047524F5550204259206D6170204F52444552204259206D61703B2000C7312B000032")
 	s.DoAckBufSucceed(pkt.AckHandle, data)
 }
 
-func handleMsgMhfGetUdTacticsFirstQuestBonus(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfGetUdTacticsFirstQuestBonus(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetUdTacticsFirstQuestBonus)
 	// Temporary canned response
 	data, _ := hex.DecodeString("0500000005DC01000007D002000009C40300000BB80400001194")
 	s.DoAckBufSucceed(pkt.AckHandle, data)
 }
 
-func handleMsgMhfGetUdTacticsRemainingPoint(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfGetUdTacticsRemainingPoint(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetUdTacticsRemainingPoint)
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint32(0) // Points until Special Guild Hall earned
 	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 }
 
-func handleMsgMhfGetUdTacticsRanking(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfGetUdTacticsRanking(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetUdTacticsRanking)
 	// Temporary canned response
 	data, _ := hex.DecodeString("00000515000005150000CEB4000003CE000003CE0000CEB44D49444E494748542D414E47454C0000000000000000000000")
 	s.DoAckBufSucceed(pkt.AckHandle, data)
 }
 
-func handleMsgMhfSetUdTacticsFollower(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfSetUdTacticsFollower(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}
 
-func handleMsgMhfGetUdTacticsLog(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgMhfGetUdTacticsLog(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}

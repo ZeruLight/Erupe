@@ -47,11 +47,11 @@ func (gm *GuildMember) IsSubLeader() bool {
 }
 
 func (gm *GuildMember) Save(s *Session) error {
-	database, err := db.GetDB()
+	db, err := db.GetDB()
 	if err != nil {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
-	_, err = database.Exec("UPDATE guild_characters SET avoid_leadership=$1, order_index=$2 WHERE character_id=$3", gm.AvoidLeadership, gm.OrderIndex, gm.CharID)
+	_, err = db.Exec("UPDATE guild_characters SET avoid_leadership=$1, order_index=$2 WHERE character_id=$3", gm.AvoidLeadership, gm.OrderIndex, gm.CharID)
 
 	if err != nil {
 		s.Logger.Error(
@@ -92,11 +92,11 @@ SELECT * FROM (
 `
 
 func GetGuildMembers(s *Session, guildID uint32, applicants bool) ([]*GuildMember, error) {
-	database, err := db.GetDB()
+	db, err := db.GetDB()
 	if err != nil {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
-	rows, err := database.Queryx(fmt.Sprintf(`
+	rows, err := db.Queryx(fmt.Sprintf(`
 			%s
 			WHERE guild_id = $1 AND is_applicant = $2
 	`, guildMembersSelectSQL), guildID, applicants)
@@ -124,12 +124,11 @@ func GetGuildMembers(s *Session, guildID uint32, applicants bool) ([]*GuildMembe
 }
 
 func GetCharacterGuildData(s *Session, charID uint32) (*GuildMember, error) {
-
-	database, err := db.GetDB()
+	db, err := db.GetDB()
 	if err != nil {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
-	rows, err := database.Queryx(fmt.Sprintf("%s	WHERE character_id=$1", guildMembersSelectSQL), charID)
+	rows, err := db.Queryx(fmt.Sprintf("%s	WHERE character_id=$1", guildMembersSelectSQL), charID)
 
 	if err != nil {
 		s.Logger.Error(fmt.Sprintf("failed to retrieve membership data for character '%d'", charID))

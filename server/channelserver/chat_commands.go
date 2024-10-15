@@ -51,14 +51,14 @@ func executeCommand(s *Session, input string) error {
 }
 
 func ban(s *Session, args []string) error {
+	db, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
+
 	if !s.isOp() {
 		s.sendMessage(t("commands.no_op", v{}))
 		return nil
-	}
-
-	database, err := db.GetDB()
-	if err != nil {
-		return err
 	}
 
 	if len(args) < 1 {
@@ -83,14 +83,14 @@ func ban(s *Session, args []string) error {
 
 	var uid uint32
 	var uname string
-	err = database.QueryRow(`SELECT id, username FROM users u WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$1)`, cid).Scan(&uid, &uname)
+	err = db.QueryRow(`SELECT id, username FROM users u WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$1)`, cid).Scan(&uid, &uname)
 	if err == nil {
 		if expiry.IsZero() {
-			database.Exec(`INSERT INTO bans VALUES ($1)
+			db.Exec(`INSERT INTO bans VALUES ($1)
                  				ON CONFLICT (user_id) DO UPDATE SET expires=NULL`, uid)
 			s.sendMessage(t("commands.ban.success.permanent", v{"username": uname}))
 		} else {
-			database.Exec(`INSERT INTO bans VALUES ($1, $2)
+			db.Exec(`INSERT INTO bans VALUES ($1, $2)
                  				ON CONFLICT (user_id) DO UPDATE SET expires=$2`, uid, expiry)
 			s.sendMessage(t("commands.ban.success.temporary", v{"username": uname, "expiry": expiry.Format(time.DateTime)}))
 		}
@@ -102,14 +102,13 @@ func ban(s *Session, args []string) error {
 }
 
 func timer(s *Session, _ []string) error {
-	database, err := db.GetDB()
+	db, err := db.GetDB()
 	if err != nil {
-		return err
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
-
 	var state bool
-	database.QueryRow(`SELECT COALESCE(timer, false) FROM users u WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$1)`, s.CharID).Scan(&state)
-	database.Exec(`UPDATE users u SET timer=$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)`, !state, s.CharID)
+	db.QueryRow(`SELECT COALESCE(timer, false) FROM users u WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$1)`, s.CharID).Scan(&state)
+	db.Exec(`UPDATE users u SET timer=$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)`, !state, s.CharID)
 	if state {
 		s.sendMessage(t("commands.timer.disabled", v{}))
 	} else {
@@ -119,20 +118,19 @@ func timer(s *Session, _ []string) error {
 }
 
 func psn(s *Session, args []string) error {
-	database, err := db.GetDB()
+	db, err := db.GetDB()
 	if err != nil {
-		return err
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
-
 	if len(args) < 1 {
 		s.sendMessage(t("commands.psn.error.syntax", v{"prefix": config.GetConfig().CommandPrefix}))
 		return nil
 	}
 
 	var exists int
-	database.QueryRow(`SELECT count(*) FROM users WHERE psn_id = $1`, args[1]).Scan(&exists)
+	db.QueryRow(`SELECT count(*) FROM users WHERE psn_id = $1`, args[1]).Scan(&exists)
 	if exists == 0 {
-		_, err = database.Exec(`UPDATE users u SET psn_id=$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)`, args[1], s.CharID)
+		_, err := db.Exec(`UPDATE users u SET psn_id=$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)`, args[1], s.CharID)
 		if err == nil {
 			s.sendMessage(t("commands.psn.success", v{"psn": args[1]}))
 		} else {
@@ -220,18 +218,17 @@ func kqf(s *Session, args []string) error {
 }
 
 func rights(s *Session, args []string) error {
+	db, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
 	if len(args) < 1 {
 		s.sendMessage(t("commands.rights.error.syntax", v{"prefix": config.GetConfig().CommandPrefix}))
 		return nil
 	}
 
-	database, err := db.GetDB()
-	if err != nil {
-		return err
-	}
-
 	r, _ := strconv.Atoi(args[0])
-	_, err = database.Exec("UPDATE users u SET rights=$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)", r, s.CharID)
+	_, err = db.Exec("UPDATE users u SET rights=$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)", r, s.CharID)
 	if err != nil {
 		return err
 	}
@@ -241,14 +238,13 @@ func rights(s *Session, args []string) error {
 }
 
 func course(s *Session, args []string) error {
+	db, err := db.GetDB()
+	if err != nil {
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+	}
 	if len(args) < 1 {
 		s.sendMessage(t("commands.course.error.syntax", v{"prefix": config.GetConfig().CommandPrefix}))
 		return nil
-	}
-
-	database, err := db.GetDB()
-	if err != nil {
-		return err
 	}
 
 	for _, course := range mhfcourse.Courses() {
@@ -273,11 +269,11 @@ func course(s *Session, args []string) error {
 						delta = uint32(math.Pow(2, float64(course.ID)))
 						s.sendMessage(t("commands.course.enabled", v{"course": course.Aliases()[0]}))
 					}
-					err = database.QueryRow("SELECT rights FROM users u INNER JOIN characters c ON u.id = c.user_id WHERE c.id = $1", s.CharID).Scan(&rightsInt)
+					err := db.QueryRow("SELECT rights FROM users u INNER JOIN characters c ON u.id = c.user_id WHERE c.id = $1", s.CharID).Scan(&rightsInt)
 					if err != nil {
 						return err
 					} else {
-						_, err = database.Exec("UPDATE users u SET rights=$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)", rightsInt+delta, s.CharID)
+						_, err = db.Exec("UPDATE users u SET rights=$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)", rightsInt+delta, s.CharID)
 						if err != nil {
 							return err
 						}
@@ -369,13 +365,12 @@ func teleport(s *Session, args []string) error {
 }
 
 func discord(s *Session, _ []string) error {
-	database, err := db.GetDB()
+	db, err := db.GetDB()
 	if err != nil {
-		return err
+		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
-
 	var _token string
-	err = database.QueryRow(`SELECT discord_token FROM users u WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$1)`, s.CharID).Scan(&_token)
+	err = db.QueryRow(`SELECT discord_token FROM users u WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$1)`, s.CharID).Scan(&_token)
 	if err != nil {
 		randToken := make([]byte, 4)
 		_, err = rand.Read(randToken)
@@ -383,7 +378,7 @@ func discord(s *Session, _ []string) error {
 			return err
 		}
 		_token = fmt.Sprintf("%x-%x", randToken[:2], randToken[2:])
-		_, err = database.Exec(`UPDATE users u SET discord_token = $1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)`, _token, s.CharID)
+		_, err = db.Exec(`UPDATE users u SET discord_token = $1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)`, _token, s.CharID)
 		if err != nil {
 			return err
 		}

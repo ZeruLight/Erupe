@@ -1,13 +1,17 @@
 package channelserver
 
-import "erupe-ce/network/mhfpacket"
+import (
+	"erupe-ce/network/mhfpacket"
 
-func handleMsgSysCreateMutex(s *Session, p mhfpacket.MHFPacket) {}
+	"github.com/jmoiron/sqlx"
+)
 
-func handleMsgSysCreateOpenMutex(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysCreateMutex(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}
 
-func handleMsgSysDeleteMutex(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysCreateOpenMutex(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}
 
-func handleMsgSysOpenMutex(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysDeleteMutex(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}
 
-func handleMsgSysCloseMutex(s *Session, p mhfpacket.MHFPacket) {}
+func handleMsgSysOpenMutex(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}
+
+func handleMsgSysCloseMutex(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}

@@ -6,12 +6,14 @@ import (
 	"erupe-ce/utils/byteframe"
 	"erupe-ce/utils/stringsupport"
 	"erupe-ce/utils/token"
+
+	"github.com/jmoiron/sqlx"
 )
 
 // Handler BBS handles all the interactions with the for the screenshot sending to bulitin board functionality. For it to work it requires the API to be hosted somehwere. This implementation supports discord.
 
 // Checks the status of the user to see if they can use Bulitin Board yet
-func handleMsgMhfGetBbsUserStatus(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfGetBbsUserStatus(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	//Post Screenshot pauses till this succeedes
 	pkt := p.(*mhfpacket.MsgMhfGetBbsUserStatus)
 	bf := byteframe.NewByteFrame()
@@ -23,7 +25,7 @@ func handleMsgMhfGetBbsUserStatus(s *Session, p mhfpacket.MHFPacket) {
 }
 
 // Checks the status of Bultin Board Server to see if authenticated
-func handleMsgMhfGetBbsSnsStatus(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfGetBbsSnsStatus(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetBbsSnsStatus)
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint32(200) //200 Success //4XX Authentication has expired Please re-authenticate //5XX
@@ -34,7 +36,7 @@ func handleMsgMhfGetBbsSnsStatus(s *Session, p mhfpacket.MHFPacket) {
 }
 
 // Tells the game client what host port and gives the bultin board article a token
-func handleMsgMhfApplyBbsArticle(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfApplyBbsArticle(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfApplyBbsArticle)
 	bf := byteframe.NewByteFrame()
 	articleToken := token.Generate(40)

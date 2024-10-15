@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 
 	"erupe-ce/network/mhfpacket"
@@ -20,7 +21,7 @@ func removeSessionFromSemaphore(s *Session) {
 	s.Server.semaphoreLock.Unlock()
 }
 
-func handleMsgSysCreateSemaphore(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgSysCreateSemaphore(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysCreateSemaphore)
 	s.DoAckSimpleSucceed(pkt.AckHandle, []byte{0x00, 0x03, 0x00, 0x0d})
 }
@@ -39,7 +40,7 @@ func destructEmptySemaphores(s *Session) {
 	s.Server.semaphoreLock.Unlock()
 }
 
-func handleMsgSysDeleteSemaphore(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgSysDeleteSemaphore(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysDeleteSemaphore)
 	destructEmptySemaphores(s)
 	s.Server.semaphoreLock.Lock()
@@ -62,7 +63,7 @@ func handleMsgSysDeleteSemaphore(s *Session, p mhfpacket.MHFPacket) {
 	s.Server.semaphoreLock.Unlock()
 }
 
-func handleMsgSysCreateAcquireSemaphore(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgSysCreateAcquireSemaphore(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysCreateAcquireSemaphore)
 	SemaphoreID := pkt.SemaphoreID
 
@@ -110,7 +111,7 @@ func handleMsgSysCreateAcquireSemaphore(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckSimpleSucceed(pkt.AckHandle, bf.Data())
 }
 
-func handleMsgSysAcquireSemaphore(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgSysAcquireSemaphore(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysAcquireSemaphore)
 	if sema, exists := s.Server.semaphore[pkt.SemaphoreID]; exists {
 		sema.host = s
@@ -122,11 +123,11 @@ func handleMsgSysAcquireSemaphore(s *Session, p mhfpacket.MHFPacket) {
 	}
 }
 
-func handleMsgSysReleaseSemaphore(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgSysReleaseSemaphore(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	//pkt := p.(*mhfpacket.MsgSysReleaseSemaphore)
 }
 
-func handleMsgSysCheckSemaphore(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgSysCheckSemaphore(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysCheckSemaphore)
 	resp := []byte{0x00, 0x00, 0x00, 0x00}
 	s.Server.semaphoreLock.Lock()

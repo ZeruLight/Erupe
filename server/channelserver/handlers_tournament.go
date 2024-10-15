@@ -6,6 +6,8 @@ import (
 	"erupe-ce/utils/gametime"
 	ps "erupe-ce/utils/pascalstring"
 	"time"
+
+	"github.com/jmoiron/sqlx"
 )
 
 type TournamentInfo0 struct {
@@ -44,7 +46,7 @@ type TournamentInfo22 struct {
 	Unk4 string
 }
 
-func handleMsgMhfInfoTournament(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfInfoTournament(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfInfoTournament)
 	bf := byteframe.NewByteFrame()
 
@@ -106,7 +108,7 @@ func handleMsgMhfInfoTournament(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 }
 
-func handleMsgMhfEntryTournament(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfEntryTournament(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEntryTournament)
 	s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 }
@@ -117,7 +119,7 @@ type TournamentReward struct {
 	Unk2 uint16
 }
 
-func handleMsgMhfAcquireTournament(s *Session, p mhfpacket.MHFPacket) {
+func handleMsgMhfAcquireTournament(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfAcquireTournament)
 	rewards := []TournamentReward{}
 	bf := byteframe.NewByteFrame()

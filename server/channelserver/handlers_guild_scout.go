@@ -3,16 +3,16 @@ package channelserver
 import (
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/utils/byteframe"
-	"erupe-ce/utils/db"
 	"erupe-ce/utils/gametime"
 	"erupe-ce/utils/stringsupport"
 	"fmt"
 	"io"
 
+	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )
 
-func HandleMsgMhfPostGuildScout(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfPostGuildScout(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfPostGuildScout)
 
 	actorCharGuildData, err := GetCharacterGuildData(s, s.CharID)
@@ -45,11 +45,8 @@ func HandleMsgMhfPostGuildScout(s *Session, p mhfpacket.MHFPacket) {
 		s.DoAckBufSucceed(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x04})
 		return
 	}
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
-	transaction, err := database.Begin()
+
+	transaction, err := db.Begin()
 
 	if err != nil {
 		panic(err)
@@ -92,7 +89,7 @@ func HandleMsgMhfPostGuildScout(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckBufSucceed(pkt.AckHandle, []byte{0x00, 0x00, 0x00, 0x00})
 }
 
-func HandleMsgMhfCancelGuildScout(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfCancelGuildScout(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfCancelGuildScout)
 
 	guildCharData, err := GetCharacterGuildData(s, s.CharID)
@@ -123,7 +120,7 @@ func HandleMsgMhfCancelGuildScout(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckBufSucceed(pkt.AckHandle, make([]byte, 4))
 }
 
-func HandleMsgMhfAnswerGuildScout(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfAnswerGuildScout(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfAnswerGuildScout)
 	bf := byteframe.NewByteFrame()
 	guild, err := GetGuildInfoByCharacterId(s, pkt.LeaderID)
@@ -193,7 +190,7 @@ func HandleMsgMhfAnswerGuildScout(s *Session, p mhfpacket.MHFPacket) {
 	}
 }
 
-func HandleMsgMhfGetGuildScoutList(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfGetGuildScoutList(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetGuildScoutList)
 
 	guildInfo, err := GetGuildInfoByCharacterId(s, s.CharID)
@@ -208,11 +205,8 @@ func HandleMsgMhfGetGuildScoutList(s *Session, p mhfpacket.MHFPacket) {
 			return
 		}
 	}
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
-	rows, err := database.Queryx(`
+
+	rows, err := db.Queryx(`
 		SELECT c.id, c.name, c.hr, c.gr, ga.actor_id
 			FROM guild_applications ga 
 			JOIN characters c ON c.id = ga.character_id
@@ -272,17 +266,14 @@ func HandleMsgMhfGetGuildScoutList(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 }
 
-func HandleMsgMhfGetRejectGuildScout(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfGetRejectGuildScout(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetRejectGuildScout)
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
-	row := database.QueryRow("SELECT restrict_guild_scout FROM characters WHERE id=$1", s.CharID)
+
+	row := db.QueryRow("SELECT restrict_guild_scout FROM characters WHERE id=$1", s.CharID)
 
 	var currentStatus bool
 
-	err = row.Scan(&currentStatus)
+	err := row.Scan(&currentStatus)
 
 	if err != nil {
 		s.Logger.Error(
@@ -303,13 +294,10 @@ func HandleMsgMhfGetRejectGuildScout(s *Session, p mhfpacket.MHFPacket) {
 	s.DoAckSimpleSucceed(pkt.AckHandle, []byte{0x00, 0x00, 0x00, response})
 }
 
-func HandleMsgMhfSetRejectGuildScout(s *Session, p mhfpacket.MHFPacket) {
+func HandleMsgMhfSetRejectGuildScout(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSetRejectGuildScout)
-	database, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
-	_, err = database.Exec("UPDATE characters SET restrict_guild_scout=$1 WHERE id=$2", pkt.Reject, s.CharID)
+
+	_, err := db.Exec("UPDATE characters SET restrict_guild_scout=$1 WHERE id=$2", pkt.Reject, s.CharID)
 
 	if err != nil {
 		s.Logger.Error(

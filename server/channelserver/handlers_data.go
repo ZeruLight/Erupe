@@ -12,6 +12,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"erupe-ce/internal/service"
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/server/channelserver/compression/deltacomp"
 	"erupe-ce/server/channelserver/compression/nullcomp"
@@ -24,7 +25,7 @@ import (
 func handleMsgMhfSavedata(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfSavedata)
 
-	characterSaveData, err := GetCharacterSaveData(s, s.CharID)
+	characterSaveData, err := service.GetCharacterSaveData(s.GetCharID())
 	if err != nil {
 		s.Logger.Error("failed to retrieve character save data from db", zap.Error(err), zap.Uint32("charID", s.CharID))
 		return
@@ -41,7 +42,7 @@ func handleMsgMhfSavedata(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 		}
 		// Perform diff.
 		s.Logger.Info("Diffing...")
-		characterSaveData.decompSave = deltacomp.ApplyDataDiff(diff, characterSaveData.decompSave)
+		characterSaveData.SetDecompSave(deltacomp.ApplyDataDiff(diff, characterSaveData.GetDecompSave()))
 	} else {
 		dumpSaveData(s, pkt.RawDataPayload, "savedata")
 		// Regular blob update.
@@ -55,9 +56,9 @@ func handleMsgMhfSavedata(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 			dumpSaveData(s, saveData, "raw-savedata")
 		}
 		s.Logger.Info("Updating save with blob")
-		characterSaveData.decompSave = saveData
+		characterSaveData.SetDecompSave(saveData)
 	}
-	characterSaveData.updateStructWithSaveData()
+	characterSaveData.UpdateStructWithSaveData()
 
 	// Bypass name-checker if new
 	if characterSaveData.IsNewCharacter == true {
@@ -81,40 +82,9 @@ func handleMsgMhfSavedata(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	}
 	s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 }
-
-func grpToGR(n int) uint16 {
-	var gr int
-	a := []int{208750, 593400, 993400, 1400900, 2315900, 3340900, 4505900, 5850900, 7415900, 9230900, 11345900, 100000000}
-	b := []int{7850, 8000, 8150, 9150, 10250, 11650, 13450, 15650, 18150, 21150, 23950}
-	c := []int{51, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900}
-
-	for i := 0; i < len(a); i++ {
-		if n < a[i] {
-			if i == 0 {
-				for {
-					n -= 500
-					if n <= 500 {
-						if n < 0 {
-							i--
-						}
-						break
-					} else {
-						i++
-						for j := 0; j < i; j++ {
-							n -= 150
-						}
-					}
-				}
-				gr = i + 2
-			} else {
-				n -= a[i-1]
-				gr = c[i-1]
-				gr += n / b[i-1]
-			}
-			break
-		}
-	}
-	return uint16(gr)
+func handleMsgMhfSexChanger(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
+	pkt := p.(*mhfpacket.MsgMhfSexChanger)
+	s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 }
 
 func dumpSaveData(s *Session, data []byte, suffix string) {

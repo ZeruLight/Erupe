@@ -1,18 +1,16 @@
-package channelserver
+package service
 
 import (
 	"encoding/binary"
 	"errors"
 	"erupe-ce/config"
+	"erupe-ce/server/channelserver/compression/nullcomp"
 	"erupe-ce/utils/bfutil"
 	"erupe-ce/utils/db"
+	"erupe-ce/utils/logger"
 	"erupe-ce/utils/stringsupport"
 	"fmt"
 
-	"erupe-ce/network/mhfpacket"
-	"erupe-ce/server/channelserver/compression/nullcomp"
-
-	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )
 
@@ -121,20 +119,21 @@ func getPointers() map[SavePointer]int {
 	return pointers
 }
 
-func GetCharacterSaveData(s *Session, charID uint32) (*CharacterSaveData, error) {
+func GetCharacterSaveData(charID uint32) (*CharacterSaveData, error) {
 	db, err := db.GetDB()
+	logger := logger.Get()
 	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+		logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
 	result, err := db.Query("SELECT id, savedata, is_new_character, name FROM characters WHERE id = $1", charID)
 	if err != nil {
-		s.Logger.Error("Failed to get savedata", zap.Error(err), zap.Uint32("charID", charID))
+		logger.Error("Failed to get savedata", zap.Error(err), zap.Uint32("charID", charID))
 		return nil, err
 	}
 	defer result.Close()
 	if !result.Next() {
 		err = errors.New("no savedata found")
-		s.Logger.Error("No savedata found", zap.Uint32("charID", charID))
+		logger.Error("No savedata found", zap.Uint32("charID", charID))
 		return nil, err
 	}
 
@@ -143,7 +142,7 @@ func GetCharacterSaveData(s *Session, charID uint32) (*CharacterSaveData, error)
 	}
 	err = result.Scan(&saveData.CharID, &saveData.compSave, &saveData.IsNewCharacter, &saveData.Name)
 	if err != nil {
-		s.Logger.Error("Failed to scan savedata", zap.Error(err), zap.Uint32("charID", charID))
+		logger.Error("Failed to scan savedata", zap.Error(err), zap.Uint32("charID", charID))
 		return nil, err
 	}
 
@@ -153,24 +152,33 @@ func GetCharacterSaveData(s *Session, charID uint32) (*CharacterSaveData, error)
 
 	err = saveData.Decompress()
 	if err != nil {
-		s.Logger.Error("Failed to decompress savedata", zap.Error(err))
+		logger.Error("Failed to decompress savedata", zap.Error(err))
 		return nil, err
 	}
 
-	saveData.updateStructWithSaveData()
+	saveData.UpdateStructWithSaveData()
 
 	return saveData, nil
 }
 
-func (save *CharacterSaveData) Save(s *Session) {
+type SessionCharacter interface {
+	Setkqf(data []byte)
+	Getkqf() []byte
+	GetkqfOverride() bool
+	GetCharID() uint32
+}
+
+func (save *CharacterSaveData) Save(s SessionCharacter) {
 	db, err := db.GetDB()
+	logger := logger.Get()
+
 	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
+		logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
-	if !s.kqfOverride {
-		s.kqf = save.KQF
+	if !s.GetkqfOverride() {
+		s.Setkqf(save.KQF)
 	} else {
-		save.KQF = s.kqf
+		save.KQF = s.Getkqf()
 	}
 
 	save.updateSaveDataWithStruct()
@@ -178,7 +186,7 @@ func (save *CharacterSaveData) Save(s *Session) {
 	if config.GetConfig().ClientID >= config.G1 {
 		err := save.Compress()
 		if err != nil {
-			s.Logger.Error("Failed to compress savedata", zap.Error(err))
+			logger.Error("Failed to compress savedata", zap.Error(err))
 			return
 		}
 	} else {
@@ -189,11 +197,11 @@ func (save *CharacterSaveData) Save(s *Session) {
 	_, err = db.Exec(`UPDATE characters SET savedata=$1, is_new_character=false, hr=$2, gr=$3, is_female=$4, weapon_type=$5, weapon_id=$6 WHERE id=$7
 	`, save.compSave, save.HR, save.GR, save.Gender, save.WeaponType, save.WeaponID, save.CharID)
 	if err != nil {
-		s.Logger.Error("Failed to update savedata", zap.Error(err), zap.Uint32("charID", save.CharID))
+		logger.Error("Failed to update savedata", zap.Error(err), zap.Uint32("charID", save.CharID))
 	}
 
 	db.Exec(`UPDATE user_binary SET house_tier=$1, house_data=$2, bookshelf=$3, gallery=$4, tore=$5, garden=$6 WHERE id=$7
-	`, save.HouseTier, save.HouseData, save.BookshelfData, save.GalleryData, save.ToreData, save.GardenData, s.CharID)
+	`, save.HouseTier, save.HouseData, save.BookshelfData, save.GalleryData, save.ToreData, save.GardenData, s.GetCharID())
 }
 
 func (save *CharacterSaveData) Compress() error {
@@ -227,7 +235,7 @@ func (save *CharacterSaveData) updateSaveDataWithStruct() {
 }
 
 // This will update the save struct with the values stored in the character save
-func (save *CharacterSaveData) updateStructWithSaveData() {
+func (save *CharacterSaveData) UpdateStructWithSaveData() {
 	save.Name = stringsupport.SJISToUTF8(bfutil.UpToNull(save.decompSave[88:100]))
 	if save.decompSave[save.Pointers[pGender]] == 1 {
 		save.Gender = true
@@ -258,8 +266,45 @@ func (save *CharacterSaveData) updateStructWithSaveData() {
 	}
 	return
 }
+func grpToGR(n int) uint16 {
+	var gr int
+	a := []int{208750, 593400, 993400, 1400900, 2315900, 3340900, 4505900, 5850900, 7415900, 9230900, 11345900, 100000000}
+	b := []int{7850, 8000, 8150, 9150, 10250, 11650, 13450, 15650, 18150, 21150, 23950}
+	c := []int{51, 100, 150, 200, 300, 400, 500, 600, 700, 800, 900}
 
-func handleMsgMhfSexChanger(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
-	pkt := p.(*mhfpacket.MsgMhfSexChanger)
-	s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
+	for i := 0; i < len(a); i++ {
+		if n < a[i] {
+			if i == 0 {
+				for {
+					n -= 500
+					if n <= 500 {
+						if n < 0 {
+							i--
+						}
+						break
+					} else {
+						i++
+						for j := 0; j < i; j++ {
+							n -= 150
+						}
+					}
+				}
+				gr = i + 2
+			} else {
+				n -= a[i-1]
+				gr = c[i-1]
+				gr += n / b[i-1]
+			}
+			break
+		}
+	}
+	return uint16(gr)
+}
+
+func (save *CharacterSaveData) GetDecompSave() []byte {
+	return save.decompSave
+}
+
+func (save *CharacterSaveData) SetDecompSave(decompSave []byte) {
+	save.decompSave = decompSave
 }

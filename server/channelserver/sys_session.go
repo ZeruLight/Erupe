@@ -373,8 +373,20 @@ func (s *Session) DoAckSimpleFail(ackHandle uint32, data []byte) {
 	})
 }
 func (s *Session) GetCharID() uint32 {
-	return s.CharID // Assuming `Session` has a field `CharID`
+	return s.CharID
 }
 func (s *Session) GetName() string {
-	return s.Name // Assuming `Session` has a field `CharID`
+	return s.Name
+}
+
+func (s *Session) Getkqf() []byte {
+	return s.kqf
+}
+
+func (s *Session) GetkqfOverride() bool {
+	return s.kqfOverride
+}
+
+func (s *Session) Setkqf(kqf []byte) {
+	s.kqf = kqf
 }

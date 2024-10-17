@@ -215,7 +215,7 @@ func handleDonateRP(s *Session, amount uint16, guild *service.Guild, _type int) 
 	}
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint32(0)
-	saveData, err := GetCharacterSaveData(s, s.CharID)
+	saveData, err := service.GetCharacterSaveData(s.CharID)
 	if err != nil {
 		return bf.Data()
 	}

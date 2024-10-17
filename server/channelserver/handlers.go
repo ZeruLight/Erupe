@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"erupe-ce/config"
 	"erupe-ce/internal/model"
+	"erupe-ce/internal/service"
 	"erupe-ce/internal/system"
 	"erupe-ce/utils/db"
 	"erupe-ce/utils/gametime"
@@ -221,7 +222,7 @@ func logoutPlayer(s *Session) {
 	removeSessionFromSemaphore(s)
 	removeSessionFromStage(s)
 
-	saveData, err := GetCharacterSaveData(s, s.CharID)
+	saveData, err := service.GetCharacterSaveData(s.CharID)
 	if err != nil || saveData == nil {
 		s.Logger.Error("Failed to get savedata")
 		return

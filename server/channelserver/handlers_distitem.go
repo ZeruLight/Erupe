@@ -3,6 +3,7 @@ package channelserver
 import (
 	"erupe-ce/config"
 	"erupe-ce/internal/model"
+	"erupe-ce/internal/service"
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/utils/byteframe"
 	"erupe-ce/utils/db"
@@ -161,7 +162,7 @@ func handleMsgMhfAcquireDistItem(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket)
 				case 21:
 					db.Exec("UPDATE users u SET frontier_points=frontier_points+$1 WHERE u.id=(SELECT c.user_id FROM characters c WHERE c.id=$2)", item.Quantity, s.CharID)
 				case 23:
-					saveData, err := GetCharacterSaveData(s, s.CharID)
+					saveData, err := service.GetCharacterSaveData(s.CharID)
 					if err == nil {
 						saveData.RP += uint16(item.Quantity)
 						saveData.Save(s)

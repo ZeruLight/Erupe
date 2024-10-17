@@ -3,6 +3,7 @@ package channelserver
 import (
 	"erupe-ce/config"
 	"erupe-ce/internal/model"
+	"erupe-ce/internal/service"
 	"fmt"
 	"strings"
 
@@ -284,7 +285,7 @@ func handleMsgMhfPostTenrouirai(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) 
 
 		bf := byteframe.NewByteFrame()
 
-		sd, err := GetCharacterSaveData(s, s.CharID)
+		sd, err := service.GetCharacterSaveData(s.CharID)
 		if err == nil && sd != nil {
 			sd.RP -= pkt.DonatedRP
 			sd.Save(s)

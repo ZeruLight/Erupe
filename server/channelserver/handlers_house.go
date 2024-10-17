@@ -3,6 +3,7 @@ package channelserver
 import (
 	"erupe-ce/config"
 	"erupe-ce/internal/model"
+	"erupe-ce/internal/service"
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/utils/byteframe"
 	"erupe-ce/utils/db"
@@ -71,7 +72,7 @@ func handleMsgMhfEnumerateHouse(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) 
 			}
 		}
 	case 2:
-		guild, err := GetGuildInfoByCharacterId(s, s.CharID)
+		guild, err := service.GetGuildInfoByCharacterId(s.CharID)
 		if err != nil || guild == nil {
 			break
 		}
@@ -174,10 +175,10 @@ func handleMsgMhfLoadHouse(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 
 		// Guild verification
 		if state > 3 {
-			ownGuild, err := GetGuildInfoByCharacterId(s, s.CharID)
-			isApplicant, _ := ownGuild.HasApplicationForCharID(s, s.CharID)
+			ownGuild, err := service.GetGuildInfoByCharacterId(s.CharID)
+			isApplicant, _ := ownGuild.HasApplicationForCharID(s.CharID)
 			if err == nil && ownGuild != nil {
-				othersGuild, err := GetGuildInfoByCharacterId(s, pkt.CharID)
+				othersGuild, err := service.GetGuildInfoByCharacterId(pkt.CharID)
 				if err == nil && othersGuild != nil {
 					if othersGuild.ID == ownGuild.ID && !isApplicant {
 						allowed = true

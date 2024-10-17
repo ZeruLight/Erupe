@@ -3,6 +3,7 @@ package channelserver
 import (
 	"erupe-ce/config"
 	"erupe-ce/internal/model"
+	"erupe-ce/internal/service"
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/utils/byteframe"
 	"erupe-ce/utils/gametime"
@@ -14,7 +15,7 @@ import (
 
 func HandleMsgMhfEnumerateGuildTresure(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateGuildTresure)
-	guild, err := GetGuildInfoByCharacterId(s, s.CharID)
+	guild, err := service.GetGuildInfoByCharacterId(s.CharID)
 	if err != nil || guild == nil {
 		s.DoAckBufSucceed(pkt.AckHandle, make([]byte, 4))
 		return
@@ -75,7 +76,7 @@ func HandleMsgMhfRegistGuildTresure(s *Session, db *sqlx.DB, p mhfpacket.MHFPack
 	pkt := p.(*mhfpacket.MsgMhfRegistGuildTresure)
 	bf := byteframe.NewByteFrameFromBytes(pkt.Data)
 	huntData := byteframe.NewByteFrame()
-	guild, err := GetGuildInfoByCharacterId(s, s.CharID)
+	guild, err := service.GetGuildInfoByCharacterId(s.CharID)
 	if err != nil || guild == nil {
 		s.DoAckSimpleFail(pkt.AckHandle, make([]byte, 4))
 		return

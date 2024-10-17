@@ -1,115 +1,16 @@
 package channelserver
 
 import (
+	"erupe-ce/internal/service"
 	"erupe-ce/utils/byteframe"
-	"erupe-ce/utils/db"
 	ps "erupe-ce/utils/pascalstring"
 	"fmt"
-	"time"
 
 	"erupe-ce/network/mhfpacket"
 
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )
-
-const allianceInfoSelectQuery = `
-SELECT
-ga.id,
-ga.name,
-created_at,
-parent_id,
-CASE
-	WHEN sub1_id IS NULL THEN 0
-	ELSE sub1_id
-END,
-CASE
-	WHEN sub2_id IS NULL THEN 0
-	ELSE sub2_id
-END
-FROM guild_alliances ga
-`
-
-type GuildAlliance struct {
-	ID           uint32    `db:"id"`
-	Name         string    `db:"name"`
-	CreatedAt    time.Time `db:"created_at"`
-	TotalMembers uint16
-
-	ParentGuildID uint32 `db:"parent_id"`
-	SubGuild1ID   uint32 `db:"sub1_id"`
-	SubGuild2ID   uint32 `db:"sub2_id"`
-
-	ParentGuild Guild
-	SubGuild1   Guild
-	SubGuild2   Guild
-}
-
-func GetAllianceData(s *Session, AllianceID uint32) (*GuildAlliance, error) {
-	db, err := db.GetDB()
-	if err != nil {
-		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
-	}
-	rows, err := db.Queryx(fmt.Sprintf(`
-		%s
-		WHERE ga.id = $1
-	`, allianceInfoSelectQuery), AllianceID)
-	if err != nil {
-		s.Logger.Error("Failed to retrieve alliance data from database", zap.Error(err))
-		return nil, err
-	}
-	defer rows.Close()
-	hasRow := rows.Next()
-	if !hasRow {
-		return nil, nil
-	}
-
-	return buildAllianceObjectFromDbResult(rows, err, s)
-}
-
-func buildAllianceObjectFromDbResult(result *sqlx.Rows, err error, s *Session) (*GuildAlliance, error) {
-	alliance := &GuildAlliance{}
-
-	err = result.StructScan(alliance)
-
-	if err != nil {
-		s.Logger.Error("failed to retrieve alliance from database", zap.Error(err))
-		return nil, err
-	}
-
-	parentGuild, err := GetGuildInfoByID(s, alliance.ParentGuildID)
-	if err != nil {
-		s.Logger.Error("Failed to get parent guild info", zap.Error(err))
-		return nil, err
-	} else {
-		alliance.ParentGuild = *parentGuild
-		alliance.TotalMembers += parentGuild.MemberCount
-	}
-
-	if alliance.SubGuild1ID > 0 {
-		subGuild1, err := GetGuildInfoByID(s, alliance.SubGuild1ID)
-		if err != nil {
-			s.Logger.Error("Failed to get sub guild 1 info", zap.Error(err))
-			return nil, err
-		} else {
-			alliance.SubGuild1 = *subGuild1
-			alliance.TotalMembers += subGuild1.MemberCount
-		}
-	}
-
-	if alliance.SubGuild2ID > 0 {
-		subGuild2, err := GetGuildInfoByID(s, alliance.SubGuild2ID)
-		if err != nil {
-			s.Logger.Error("Failed to get sub guild 2 info", zap.Error(err))
-			return nil, err
-		} else {
-			alliance.SubGuild2 = *subGuild2
-			alliance.TotalMembers += subGuild2.MemberCount
-		}
-	}
-
-	return alliance, nil
-}
 
 func HandleMsgMhfCreateJoint(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfCreateJoint)
@@ -124,11 +25,11 @@ func HandleMsgMhfCreateJoint(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 func HandleMsgMhfOperateJoint(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfOperateJoint)
 
-	guild, err := GetGuildInfoByID(s, pkt.GuildID)
+	guild, err := service.GetGuildInfoByID(pkt.GuildID)
 	if err != nil {
 		s.Logger.Error("Failed to get guild info", zap.Error(err))
 	}
-	alliance, err := GetAllianceData(s, pkt.AllianceID)
+	alliance, err := service.GetAllianceData(pkt.AllianceID)
 	if err != nil {
 		s.Logger.Error("Failed to get alliance info", zap.Error(err))
 	}
@@ -195,7 +96,7 @@ func HandleMsgMhfOperateJoint(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 func HandleMsgMhfInfoJoint(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfInfoJoint)
 	bf := byteframe.NewByteFrame()
-	alliance, err := GetAllianceData(s, pkt.AllianceID)
+	alliance, err := service.GetAllianceData(pkt.AllianceID)
 	if err != nil {
 		s.DoAckSimpleFail(pkt.AckHandle, make([]byte, 4))
 	} else {

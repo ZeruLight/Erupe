@@ -3,6 +3,7 @@ package channelserver
 import (
 	config "erupe-ce/config"
 	"erupe-ce/internal/model"
+	"erupe-ce/internal/service"
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/server/channelserver/compression/deltacomp"
 	"erupe-ce/server/channelserver/compression/nullcomp"
@@ -337,7 +338,7 @@ func getGuildAirouList(s *Session) []model.Airou {
 	}
 	var guildCats []model.Airou
 	bannedCats := make(map[uint32]int)
-	guild, err := GetGuildInfoByCharacterId(s, s.CharID)
+	guild, err := service.GetGuildInfoByCharacterId(s.CharID)
 	if err != nil {
 		return guildCats
 	}

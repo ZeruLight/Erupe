@@ -4,6 +4,7 @@ import (
 	"time"
 
 	"erupe-ce/internal/model"
+	"erupe-ce/internal/service"
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/utils/byteframe"
 	"erupe-ce/utils/gametime"
@@ -16,7 +17,7 @@ import (
 func HandleMsgMhfLoadGuildAdventure(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfLoadGuildAdventure)
 
-	guild, _ := GetGuildInfoByCharacterId(s, s.CharID)
+	guild, _ := service.GetGuildInfoByCharacterId(s.CharID)
 	data, err := db.Queryx("SELECT id, destination, charge, depart, return, collected_by FROM guild_adventures WHERE guild_id = $1", guild.ID)
 	if err != nil {
 		s.Logger.Error("Failed to get guild adventures from db", zap.Error(err))
@@ -48,7 +49,7 @@ func HandleMsgMhfLoadGuildAdventure(s *Session, db *sqlx.DB, p mhfpacket.MHFPack
 func HandleMsgMhfRegistGuildAdventure(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfRegistGuildAdventure)
 
-	guild, _ := GetGuildInfoByCharacterId(s, s.CharID)
+	guild, _ := service.GetGuildInfoByCharacterId(s.CharID)
 	_, err := db.Exec("INSERT INTO guild_adventures (guild_id, destination, depart, return) VALUES ($1, $2, $3, $4)", guild.ID, pkt.Destination, gametime.TimeAdjusted().Unix(), gametime.TimeAdjusted().Add(6*time.Hour).Unix())
 	if err != nil {
 		s.Logger.Error("Failed to register guild adventure", zap.Error(err))
@@ -86,7 +87,7 @@ func HandleMsgMhfChargeGuildAdventure(s *Session, db *sqlx.DB, p mhfpacket.MHFPa
 func HandleMsgMhfRegistGuildAdventureDiva(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfRegistGuildAdventureDiva)
 
-	guild, _ := GetGuildInfoByCharacterId(s, s.CharID)
+	guild, _ := service.GetGuildInfoByCharacterId(s.CharID)
 	_, err := db.Exec("INSERT INTO guild_adventures (guild_id, destination, charge, depart, return) VALUES ($1, $2, $3, $4, $5)", guild.ID, pkt.Destination, pkt.Charge, gametime.TimeAdjusted().Unix(), gametime.TimeAdjusted().Add(1*time.Hour).Unix())
 	if err != nil {
 		s.Logger.Error("Failed to register guild adventure", zap.Error(err))

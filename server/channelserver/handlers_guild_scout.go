@@ -30,14 +30,14 @@ func HandleMsgMhfPostGuildScout(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) 
 		return
 	}
 
-	guildInfo, err := GetGuildInfoByID(s, actorCharGuildData.GuildID)
+	guildInfo, err := service.GetGuildInfoByID(actorCharGuildData.GuildID)
 
 	if err != nil {
 		s.DoAckBufFail(pkt.AckHandle, make([]byte, 4))
 		panic(err)
 	}
 
-	hasApplication, err := guildInfo.HasApplicationForCharID(s, pkt.CharID)
+	hasApplication, err := guildInfo.HasApplicationForCharID(pkt.CharID)
 
 	if err != nil {
 		s.DoAckBufFail(pkt.AckHandle, make([]byte, 4))
@@ -55,10 +55,10 @@ func HandleMsgMhfPostGuildScout(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) 
 		panic(err)
 	}
 
-	err = guildInfo.CreateApplication(s, pkt.CharID, constant.GuildApplicationTypeInvited, transaction)
+	err = guildInfo.CreateApplication(pkt.CharID, constant.GuildApplicationTypeInvited, transaction, s.CharID)
 
 	if err != nil {
-		rollbackTransaction(s, transaction)
+		service.RollbackTransaction(transaction)
 		s.DoAckBufFail(pkt.AckHandle, nil)
 		panic(err)
 	}
@@ -77,7 +77,7 @@ func HandleMsgMhfPostGuildScout(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) 
 	err = mail.Send(transaction)
 
 	if err != nil {
-		rollbackTransaction(s, transaction)
+		service.RollbackTransaction(transaction)
 		s.DoAckBufFail(pkt.AckHandle, nil)
 		return
 	}
@@ -106,14 +106,14 @@ func HandleMsgMhfCancelGuildScout(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket
 		return
 	}
 
-	guild, err := GetGuildInfoByID(s, guildCharData.GuildID)
+	guild, err := service.GetGuildInfoByID(guildCharData.GuildID)
 
 	if err != nil {
 		s.DoAckBufFail(pkt.AckHandle, make([]byte, 4))
 		return
 	}
 
-	err = guild.CancelInvitation(s, pkt.InvitationID)
+	err = guild.CancelInvitation(pkt.InvitationID)
 
 	if err != nil {
 		s.DoAckBufFail(pkt.AckHandle, make([]byte, 4))
@@ -126,13 +126,13 @@ func HandleMsgMhfCancelGuildScout(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket
 func HandleMsgMhfAnswerGuildScout(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfAnswerGuildScout)
 	bf := byteframe.NewByteFrame()
-	guild, err := GetGuildInfoByCharacterId(s, pkt.LeaderID)
+	guild, err := service.GetGuildInfoByCharacterId(pkt.LeaderID)
 
 	if err != nil {
 		panic(err)
 	}
 
-	app, err := guild.GetApplicationForCharID(s, s.CharID, constant.GuildApplicationTypeInvited)
+	app, err := guild.GetApplicationForCharID(s.CharID, constant.GuildApplicationTypeInvited)
 
 	if app == nil || err != nil {
 		s.Logger.Warn(
@@ -149,7 +149,7 @@ func HandleMsgMhfAnswerGuildScout(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket
 
 	var mail []service.Mail
 	if pkt.Answer {
-		err = guild.AcceptApplication(s, s.CharID)
+		err = guild.AcceptApplication(s.CharID)
 		mail = append(mail, service.Mail{
 			RecipientID:     s.CharID,
 			Subject:         s.Server.i18n.guild.invite.success.title,
@@ -164,7 +164,7 @@ func HandleMsgMhfAnswerGuildScout(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket
 			IsSystemMessage: true,
 		})
 	} else {
-		err = guild.RejectApplication(s, s.CharID)
+		err = guild.RejectApplication(s.CharID)
 		mail = append(mail, service.Mail{
 			RecipientID:     s.CharID,
 			Subject:         s.Server.i18n.guild.invite.rejected.title,
@@ -196,13 +196,13 @@ func HandleMsgMhfAnswerGuildScout(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket
 func HandleMsgMhfGetGuildScoutList(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetGuildScoutList)
 
-	guildInfo, err := GetGuildInfoByCharacterId(s, s.CharID)
+	guildInfo, err := service.GetGuildInfoByCharacterId(s.CharID)
 
 	if guildInfo == nil && s.prevGuildID == 0 {
 		s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 		return
 	} else {
-		guildInfo, err = GetGuildInfoByID(s, s.prevGuildID)
+		guildInfo, err = service.GetGuildInfoByID(s.prevGuildID)
 		if guildInfo == nil || err != nil {
 			s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 			return

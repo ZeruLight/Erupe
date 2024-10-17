@@ -2,6 +2,7 @@ package channelserver
 
 import (
 	"erupe-ce/config"
+	"erupe-ce/internal/service"
 	ps "erupe-ce/utils/pascalstring"
 	"fmt"
 	"os"
@@ -116,8 +117,8 @@ type RengokuScore struct {
 func handleMsgMhfEnumerateRengokuRanking(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateRengokuRanking)
 
-	guild, _ := GetGuildInfoByCharacterId(s, s.CharID)
-	isApplicant, _ := guild.HasApplicationForCharID(s, s.CharID)
+	guild, _ := service.GetGuildInfoByCharacterId(s.CharID)
+	isApplicant, _ := guild.HasApplicationForCharID(s.CharID)
 	if isApplicant {
 		guild = nil
 	}

@@ -4,6 +4,7 @@ import (
 	"erupe-ce/config"
 	"erupe-ce/internal/constant"
 	"erupe-ce/internal/model"
+	"erupe-ce/internal/service"
 
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/utils/byteframe"
@@ -354,10 +355,10 @@ func handleMsgMhfInfoFesta(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 func handleMsgMhfStateFestaU(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfStateFestaU)
 
-	guild, err := GetGuildInfoByCharacterId(s, s.CharID)
+	guild, err := service.GetGuildInfoByCharacterId(s.CharID)
 	applicant := false
 	if guild != nil {
-		applicant, _ = guild.HasApplicationForCharID(s, s.CharID)
+		applicant, _ = guild.HasApplicationForCharID(s.CharID)
 	}
 	if err != nil || guild == nil || applicant {
 		s.DoAckSimpleFail(pkt.AckHandle, make([]byte, 4))
@@ -381,10 +382,10 @@ func handleMsgMhfStateFestaU(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 // state festa (G)uild
 func handleMsgMhfStateFestaG(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfStateFestaG)
-	guild, err := GetGuildInfoByCharacterId(s, s.CharID)
+	guild, err := service.GetGuildInfoByCharacterId(s.CharID)
 	applicant := false
 	if guild != nil {
-		applicant, _ = guild.HasApplicationForCharID(s, s.CharID)
+		applicant, _ = guild.HasApplicationForCharID(s.CharID)
 	}
 	resp := byteframe.NewByteFrame()
 	if err != nil || guild == nil || applicant {
@@ -406,7 +407,7 @@ func handleMsgMhfStateFestaG(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 
 func handleMsgMhfEnumerateFestaMember(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateFestaMember)
-	guild, err := GetGuildInfoByCharacterId(s, s.CharID)
+	guild, err := service.GetGuildInfoByCharacterId(s.CharID)
 	if err != nil || guild == nil {
 		s.DoAckSimpleFail(pkt.AckHandle, make([]byte, 4))
 		return
@@ -450,7 +451,7 @@ func handleMsgMhfVoteFesta(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 func handleMsgMhfEntryFesta(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEntryFesta)
 
-	guild, err := GetGuildInfoByCharacterId(s, s.CharID)
+	guild, err := service.GetGuildInfoByCharacterId(s.CharID)
 	if err != nil || guild == nil {
 		s.DoAckSimpleFail(pkt.AckHandle, make([]byte, 4))
 		return

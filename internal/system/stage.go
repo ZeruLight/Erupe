@@ -1,4 +1,4 @@
-package channelserver
+package system
 
 import (
 	"sync"
@@ -6,18 +6,24 @@ import (
 	"erupe-ce/network/mhfpacket"
 )
 
+type SessionStage interface {
+	QueueSendMHF(packet mhfpacket.MHFPacket)
+	GetCharID() uint32
+	GetName() string
+}
+
 // Object holds infomation about a specific object.
 type Object struct {
 	sync.RWMutex
-	id          uint32
-	ownerCharID uint32
-	x, y, z     float32
+	Id          uint32
+	OwnerCharID uint32
+	X, Y, Z     float32
 }
 
 // stageBinaryKey is a struct used as a map key for identifying a stage binary part.
-type stageBinaryKey struct {
-	id0 uint8
-	id1 uint8
+type StageBinaryKey struct {
+	Id0 uint8
+	Id1 uint8
 }
 
 // Stage holds stage-specific information
@@ -25,49 +31,49 @@ type Stage struct {
 	sync.RWMutex
 
 	// Stage ID string
-	id string
+	Id string
 
 	// Objects
-	objects     map[uint32]*Object
+	Objects     map[uint32]*Object
 	objectIndex uint8
 
 	// Map of session -> charID.
 	// These are clients that are CURRENTLY in the stage
-	clients map[*Session]uint32
+	Clients map[SessionStage]uint32
 
 	// Map of charID -> bool, key represents whether they are ready
 	// These are clients that aren't in the stage, but have reserved a slot (for quests, etc).
-	reservedClientSlots map[uint32]bool
+	ReservedClientSlots map[uint32]bool
 
 	// These are raw binary blobs that the stage owner sets,
 	// other clients expect the server to echo them back in the exact same format.
-	rawBinaryData map[stageBinaryKey][]byte
+	RawBinaryData map[StageBinaryKey][]byte
 
-	host       *Session
-	maxPlayers uint16
-	password   string
-	locked     bool
+	Host       SessionStage
+	MaxPlayers uint16
+	Password   string
+	Locked     bool
 }
 
 // NewStage creates a new stage with intialized values.
 func NewStage(ID string) *Stage {
 	s := &Stage{
-		id:                  ID,
-		clients:             make(map[*Session]uint32),
-		reservedClientSlots: make(map[uint32]bool),
-		objects:             make(map[uint32]*Object),
+		Id:                  ID,
+		Clients:             make(map[SessionStage]uint32),
+		ReservedClientSlots: make(map[uint32]bool),
+		Objects:             make(map[uint32]*Object),
 		objectIndex:         0,
-		rawBinaryData:       make(map[stageBinaryKey][]byte),
-		maxPlayers:          127,
+		RawBinaryData:       make(map[StageBinaryKey][]byte),
+		MaxPlayers:          127,
 	}
 	return s
 }
 
 // BroadcastMHF queues a MHFPacket to be sent to all sessions in the stage.
-func (s *Stage) BroadcastMHF(pkt mhfpacket.MHFPacket, ignoredSession *Session) {
+func (s *Stage) BroadcastMHF(pkt mhfpacket.MHFPacket, ignoredSession SessionStage) {
 	s.Lock()
 	defer s.Unlock()
-	for session := range s.clients {
+	for session := range s.Clients {
 		if session == ignoredSession {
 			continue
 		}
@@ -76,13 +82,13 @@ func (s *Stage) BroadcastMHF(pkt mhfpacket.MHFPacket, ignoredSession *Session) {
 }
 
 func (s *Stage) isCharInQuestByID(charID uint32) bool {
-	if _, exists := s.reservedClientSlots[charID]; exists {
+	if _, exists := s.ReservedClientSlots[charID]; exists {
 		return exists
 	}
 
 	return false
 }
 
-func (s *Stage) isQuest() bool {
-	return len(s.reservedClientSlots) > 0
+func (s *Stage) IsQuest() bool {
+	return len(s.ReservedClientSlots) > 0
 }

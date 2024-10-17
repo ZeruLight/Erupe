@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"erupe-ce/config"
 	"erupe-ce/internal/model"
+	"erupe-ce/internal/system"
 	"erupe-ce/utils/db"
 	"erupe-ce/utils/gametime"
 	"erupe-ce/utils/mhfcourse"
@@ -155,18 +156,18 @@ func logoutPlayer(s *Session) {
 
 	for _, stage := range s.Server.stages {
 		// Tell sessions registered to disconnecting players quest to unregister
-		if stage.host != nil && stage.host.CharID == s.CharID {
+		if stage.Host != nil && stage.Host.GetCharID() == s.CharID {
 			for _, sess := range s.Server.sessions {
-				for rSlot := range stage.reservedClientSlots {
-					if sess.CharID == rSlot && sess.stage != nil && sess.stage.id[3:5] != "Qs" {
+				for rSlot := range stage.ReservedClientSlots {
+					if sess.CharID == rSlot && sess.stage != nil && sess.stage.Id[3:5] != "Qs" {
 						sess.QueueSendMHF(&mhfpacket.MsgSysStageDestruct{})
 					}
 				}
 			}
 		}
-		for session := range stage.clients {
-			if session.CharID == s.CharID {
-				delete(stage.clients, session)
+		for session := range stage.Clients {
+			if session.GetCharID() == s.CharID {
+				delete(stage.Clients, session)
 			}
 		}
 	}
@@ -211,8 +212,8 @@ func logoutPlayer(s *Session) {
 
 	s.Server.Lock()
 	for _, stage := range s.Server.stages {
-		if _, exists := stage.reservedClientSlots[s.CharID]; exists {
-			delete(stage.reservedClientSlots, s.CharID)
+		if _, exists := stage.ReservedClientSlots[s.CharID]; exists {
+			delete(stage.ReservedClientSlots, s.CharID)
 		}
 	}
 	s.Server.Unlock()
@@ -285,7 +286,7 @@ func handleMsgSysRecordLog(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 		}
 	}
 	// remove a client returning to town from reserved slots to make sure the stage is hidden from board
-	delete(s.stage.reservedClientSlots, s.CharID)
+	delete(s.stage.ReservedClientSlots, s.CharID)
 	s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 }
 
@@ -377,12 +378,12 @@ func handleMsgMhfTransitMessage(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) 
 				if pkt.SearchType == 2 && !strings.Contains(session.Name, term) {
 					continue
 				}
-				if pkt.SearchType == 3 && session.Server.IP != ip && session.Server.Port != port && session.stage.id != term {
+				if pkt.SearchType == 3 && session.Server.IP != ip && session.Server.Port != port && session.stage.Id != term {
 					continue
 				}
 				count++
 				sessionName := stringsupport.UTF8ToSJIS(session.Name)
-				sessionStage := stringsupport.UTF8ToSJIS(session.stage.id)
+				sessionStage := stringsupport.UTF8ToSJIS(session.stage.Id)
 				if !local {
 					resp.WriteUint32(binary.LittleEndian.Uint32(net.ParseIP(c.IP).To4()))
 				} else {
@@ -497,8 +498,8 @@ func handleMsgMhfTransitMessage(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) 
 				if count == maxResults {
 					break
 				}
-				if strings.HasPrefix(stage.id, findPartyParams.StagePrefix) {
-					sb3 := byteframe.NewByteFrameFromBytes(stage.rawBinaryData[stageBinaryKey{1, 3}])
+				if strings.HasPrefix(stage.Id, findPartyParams.StagePrefix) {
+					sb3 := byteframe.NewByteFrameFromBytes(stage.RawBinaryData[system.StageBinaryKey{1, 3}])
 					sb3.Seek(4, 0)
 
 					stageDataParams := 7
@@ -546,17 +547,17 @@ func handleMsgMhfTransitMessage(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) 
 
 					resp.WriteUint16(0) // Static?
 					resp.WriteUint16(0) // Unk, [0 1 2]
-					resp.WriteUint16(uint16(len(stage.clients) + len(stage.reservedClientSlots)))
-					resp.WriteUint16(stage.maxPlayers)
+					resp.WriteUint16(uint16(len(stage.Clients) + len(stage.ReservedClientSlots)))
+					resp.WriteUint16(stage.MaxPlayers)
 					// TODO: Retail returned the number of clients in quests, not workshop/my series
-					resp.WriteUint16(uint16(len(stage.reservedClientSlots)))
+					resp.WriteUint16(uint16(len(stage.ReservedClientSlots)))
 
 					resp.WriteUint8(0) // Static?
-					resp.WriteUint8(uint8(stage.maxPlayers))
+					resp.WriteUint8(uint8(stage.MaxPlayers))
 					resp.WriteUint8(1) // Static?
-					resp.WriteUint8(uint8(len(stage.id) + 1))
-					resp.WriteUint8(uint8(len(stage.rawBinaryData[stageBinaryKey{1, 0}])))
-					resp.WriteUint8(uint8(len(stage.rawBinaryData[stageBinaryKey{1, 1}])))
+					resp.WriteUint8(uint8(len(stage.Id) + 1))
+					resp.WriteUint8(uint8(len(stage.RawBinaryData[system.StageBinaryKey{1, 0}])))
+					resp.WriteUint8(uint8(len(stage.RawBinaryData[system.StageBinaryKey{1, 1}])))
 
 					for i := range stageData {
 						if config.GetConfig().ClientID >= config.Z1 {
@@ -568,9 +569,9 @@ func handleMsgMhfTransitMessage(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) 
 					resp.WriteUint8(0) // Unk
 					resp.WriteUint8(0) // Unk
 
-					resp.WriteNullTerminatedBytes([]byte(stage.id))
-					resp.WriteBytes(stage.rawBinaryData[stageBinaryKey{1, 0}])
-					resp.WriteBytes(stage.rawBinaryData[stageBinaryKey{1, 1}])
+					resp.WriteNullTerminatedBytes([]byte(stage.Id))
+					resp.WriteBytes(stage.RawBinaryData[system.StageBinaryKey{1, 0}])
+					resp.WriteBytes(stage.RawBinaryData[system.StageBinaryKey{1, 1}])
 				}
 			}
 		}

@@ -147,7 +147,7 @@ func handleMsgSysCastBinary(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 				}
 				return
 			}
-			if (pkt.BroadcastType == constant.BroadcastTypeStage && s.stage.id == "sl1Ns200p0a0u0") || pkt.BroadcastType == constant.BroadcastTypeWorld {
+			if (pkt.BroadcastType == constant.BroadcastTypeStage && s.stage.Id == "sl1Ns200p0a0u0") || pkt.BroadcastType == constant.BroadcastTypeWorld {
 				s.Server.DiscordChannelSend(chatMessage.SenderName, chatMessage.Message)
 			}
 		}

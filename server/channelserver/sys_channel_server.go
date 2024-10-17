@@ -7,8 +7,10 @@ import (
 	"time"
 
 	"erupe-ce/config"
+	"erupe-ce/internal/system"
 	"erupe-ce/server/discordbot"
 	"erupe-ce/utils/db"
+
 	"erupe-ce/utils/gametime"
 	"erupe-ce/utils/logger"
 
@@ -47,7 +49,7 @@ type ChannelServer struct {
 	isShuttingDown bool
 
 	stagesLock sync.RWMutex
-	stages     map[string]*Stage
+	stages     map[string]*system.Stage
 
 	// Used to map different languages
 	i18n i18n
@@ -82,9 +84,9 @@ func NewServer(config *Config) *ChannelServer {
 		"sl2Ns379p0a0u0", // Diva fountain
 		"sl1Ns462p0a0u0", // MezFes
 	}
-	stages := make(map[string]*Stage)
+	stages := make(map[string]*system.Stage)
 	for _, name := range stageNames {
-		stages[name] = NewStage(name)
+		stages[name] = system.NewStage(name)
 	}
 	server := &ChannelServer{
 		ID:              config.ID,
@@ -228,14 +230,14 @@ func (server *ChannelServer) DisconnectUser(uid uint32) {
 	}
 }
 
-func (server *ChannelServer) FindObjectByChar(charID uint32) *Object {
+func (server *ChannelServer) FindObjectByChar(charID uint32) *system.Object {
 	server.stagesLock.RLock()
 	defer server.stagesLock.RUnlock()
 	for _, stage := range server.stages {
 		stage.RLock()
-		for objId := range stage.objects {
-			obj := stage.objects[objId]
-			if obj.ownerCharID == charID {
+		for objId := range stage.Objects {
+			obj := stage.Objects[objId]
+			if obj.OwnerCharID == charID {
 				stage.RUnlock()
 				return obj
 			}

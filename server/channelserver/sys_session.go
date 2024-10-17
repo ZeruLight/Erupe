@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"erupe-ce/config"
 	"erupe-ce/internal/constant"
+	"erupe-ce/internal/system"
 	"erupe-ce/network"
 	"erupe-ce/network/binpacket"
 	"erupe-ce/network/mhfpacket"
@@ -36,10 +37,10 @@ type Session struct {
 
 	objectIndex      uint16
 	userEnteredStage bool // If the user has entered a stage before
-	stage            *Stage
-	reservationStage *Stage // Required for the stateful MsgSysUnreserveStage packet.
-	stagePass        string // Temporary storage
-	prevGuildID      uint32 // Stores the last GuildID used in InfoGuild
+	stage            *system.Stage
+	reservationStage *system.Stage // Required for the stateful MsgSysUnreserveStage packet.
+	stagePass        string        // Temporary storage
+	prevGuildID      uint32        // Stores the last GuildID used in InfoGuild
 	CharID           uint32
 	logKey           []byte
 	sessionStart     int64
@@ -370,4 +371,10 @@ func (s *Session) DoAckSimpleFail(ackHandle uint32, data []byte) {
 		ErrorCode:        1,
 		AckData:          data,
 	})
+}
+func (s *Session) GetCharID() uint32 {
+	return s.CharID // Assuming `Session` has a field `CharID`
+}
+func (s *Session) GetName() string {
+	return s.Name // Assuming `Session` has a field `CharID`
 }

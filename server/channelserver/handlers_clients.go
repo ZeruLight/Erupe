@@ -28,20 +28,20 @@ func handleMsgSysEnumerateClient(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket)
 	var clients []uint32
 	switch pkt.Get {
 	case 0: // All
-		for _, cid := range stage.clients {
+		for _, cid := range stage.Clients {
 			clients = append(clients, cid)
 		}
-		for cid := range stage.reservedClientSlots {
+		for cid := range stage.ReservedClientSlots {
 			clients = append(clients, cid)
 		}
 	case 1: // Not ready
-		for cid, ready := range stage.reservedClientSlots {
+		for cid, ready := range stage.ReservedClientSlots {
 			if !ready {
 				clients = append(clients, cid)
 			}
 		}
 	case 2: // Ready
-		for cid, ready := range stage.reservedClientSlots {
+		for cid, ready := range stage.ReservedClientSlots {
 			if ready {
 				clients = append(clients, cid)
 			}

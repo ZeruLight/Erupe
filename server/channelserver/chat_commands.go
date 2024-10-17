@@ -146,11 +146,11 @@ func psn(s *Session, args []string) error {
 func reload(s *Session, _ []string) error {
 	s.sendMessage(t("commands.reload", v{}))
 	var temp mhfpacket.MHFPacket
-	for _, object := range s.stage.objects {
-		if object.ownerCharID == s.CharID {
+	for _, object := range s.stage.Objects {
+		if object.OwnerCharID == s.CharID {
 			continue
 		}
-		temp = &mhfpacket.MsgSysDeleteObject{ObjID: object.id}
+		temp = &mhfpacket.MsgSysDeleteObject{ObjID: object.Id}
 		s.QueueSendMHF(temp)
 	}
 	for _, session := range s.Server.sessions {
@@ -175,17 +175,17 @@ func reload(s *Session, _ []string) error {
 			s.QueueSendMHF(temp)
 		}
 	}
-	for _, obj := range s.stage.objects {
-		if obj.ownerCharID == s.CharID {
+	for _, obj := range s.stage.Objects {
+		if obj.OwnerCharID == s.CharID {
 			continue
 		}
 		temp = &mhfpacket.MsgSysDuplicateObject{
-			ObjID:       obj.id,
-			X:           obj.x,
-			Y:           obj.y,
-			Z:           obj.z,
+			ObjID:       obj.Id,
+			X:           obj.X,
+			Y:           obj.Y,
+			Z:           obj.Z,
 			Unk0:        0,
-			OwnerCharID: obj.ownerCharID,
+			OwnerCharID: obj.OwnerCharID,
 		}
 		s.QueueSendMHF(temp)
 	}

@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"erupe-ce/config"
+	"erupe-ce/internal/system"
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/utils/byteframe"
 
@@ -14,30 +15,30 @@ func handleMsgSysCreateObject(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgSysCreateObject)
 
 	s.stage.Lock()
-	newObj := &Object{
-		id:          s.NextObjectID(),
-		ownerCharID: s.CharID,
-		x:           pkt.X,
-		y:           pkt.Y,
-		z:           pkt.Z,
+	newObj := &system.Object{
+		Id:          s.NextObjectID(),
+		OwnerCharID: s.CharID,
+		X:           pkt.X,
+		Y:           pkt.Y,
+		Z:           pkt.Z,
 	}
-	s.stage.objects[s.CharID] = newObj
+	s.stage.Objects[s.CharID] = newObj
 	s.stage.Unlock()
 
 	// Response to our requesting client.
 	resp := byteframe.NewByteFrame()
-	resp.WriteUint32(newObj.id) // New local obj handle.
+	resp.WriteUint32(newObj.Id) // New local obj handle.
 	s.DoAckSimpleSucceed(pkt.AckHandle, resp.Data())
 	// Duplicate the object creation to all sessions in the same stage.
 	dupObjUpdate := &mhfpacket.MsgSysDuplicateObject{
-		ObjID:       newObj.id,
-		X:           newObj.x,
-		Y:           newObj.y,
-		Z:           newObj.z,
-		OwnerCharID: newObj.ownerCharID,
+		ObjID:       newObj.Id,
+		X:           newObj.X,
+		Y:           newObj.Y,
+		Z:           newObj.Z,
+		OwnerCharID: newObj.OwnerCharID,
 	}
 
-	s.Logger.Info(fmt.Sprintf("Broadcasting new object: %s (%d)", s.Name, newObj.id))
+	s.Logger.Info(fmt.Sprintf("Broadcasting new object: %s (%d)", s.Name, newObj.Id))
 	s.stage.BroadcastMHF(dupObjUpdate, s)
 }
 
@@ -49,11 +50,11 @@ func handleMsgSysPositionObject(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) 
 		fmt.Printf("[%s] with objectID [%d] move to (%f,%f,%f)\n\n", s.Name, pkt.ObjID, pkt.X, pkt.Y, pkt.Z)
 	}
 	s.stage.Lock()
-	object, ok := s.stage.objects[s.CharID]
+	object, ok := s.stage.Objects[s.CharID]
 	if ok {
-		object.x = pkt.X
-		object.y = pkt.Y
-		object.z = pkt.Z
+		object.X = pkt.X
+		object.Y = pkt.Y
+		object.Z = pkt.Z
 	}
 	s.stage.Unlock()
 	// One of the few packets we can just re-broadcast directly.

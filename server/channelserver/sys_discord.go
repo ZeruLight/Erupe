@@ -22,17 +22,17 @@ func getPlayerSlice(server *ChannelServer) []Player {
 
 	for _, channel := range server.Channels {
 		for _, stage := range channel.stages {
-			if len(stage.clients) == 0 {
+			if len(stage.Clients) == 0 {
 				continue
 			}
 			questID := 0
-			if stage.isQuest() {
+			if stage.IsQuest() {
 				questIndex++
 				questID = questIndex
 			}
-			for client := range stage.clients {
+			for client := range stage.Clients {
 				p = append(p, Player{
-					CharName: client.Name,
+					CharName: client.GetName(),
 					QuestID:  questID,
 				})
 			}

@@ -2,38 +2,21 @@ package channelserver
 
 import (
 	"erupe-ce/config"
+	"erupe-ce/internal/model"
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/utils/byteframe"
 	"erupe-ce/utils/db"
 	ps "erupe-ce/utils/pascalstring"
 	"fmt"
-	"time"
 
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )
 
-type Distribution struct {
-	ID              uint32    `db:"id"`
-	Deadline        time.Time `db:"deadline"`
-	Rights          uint32    `db:"rights"`
-	TimesAcceptable uint16    `db:"times_acceptable"`
-	TimesAccepted   uint16    `db:"times_accepted"`
-	MinHR           int16     `db:"min_hr"`
-	MaxHR           int16     `db:"max_hr"`
-	MinSR           int16     `db:"min_sr"`
-	MaxSR           int16     `db:"max_sr"`
-	MinGR           int16     `db:"min_gr"`
-	MaxGR           int16     `db:"max_gr"`
-	EventName       string    `db:"event_name"`
-	Description     string    `db:"description"`
-	Selection       bool      `db:"selection"`
-}
-
 func handleMsgMhfEnumerateDistItem(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateDistItem)
 
-	var itemDists []Distribution
+	var itemDists []model.Distribution
 	bf := byteframe.NewByteFrame()
 
 	rows, err := db.Queryx(`
@@ -51,7 +34,7 @@ func handleMsgMhfEnumerateDistItem(s *Session, db *sqlx.DB, p mhfpacket.MHFPacke
 	`, s.CharID, pkt.DistType)
 
 	if err == nil {
-		var itemDist Distribution
+		var itemDist model.Distribution
 		for rows.Next() {
 			err = rows.StructScan(&itemDist)
 			if err != nil {
@@ -123,22 +106,15 @@ func handleMsgMhfEnumerateDistItem(s *Session, db *sqlx.DB, p mhfpacket.MHFPacke
 	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 }
 
-type DistributionItem struct {
-	ItemType uint8  `db:"item_type"`
-	ID       uint32 `db:"id"`
-	ItemID   uint32 `db:"item_id"`
-	Quantity uint32 `db:"quantity"`
-}
-
-func getDistributionItems(s *Session, i uint32) []DistributionItem {
+func getDistributionItems(s *Session, i uint32) []model.DistributionItem {
 	db, err := db.GetDB()
 	if err != nil {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
-	var distItems []DistributionItem
+	var distItems []model.DistributionItem
 	rows, err := db.Queryx(`SELECT id, item_type, COALESCE(item_id, 0) AS item_id, COALESCE(quantity, 0) AS quantity FROM distribution_items WHERE distribution_id=$1`, i)
 	if err == nil {
-		var distItem DistributionItem
+		var distItem model.DistributionItem
 		for rows.Next() {
 			err = rows.StructScan(&distItem)
 			if err != nil {

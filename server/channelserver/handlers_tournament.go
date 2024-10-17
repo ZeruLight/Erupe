@@ -1,58 +1,22 @@
 package channelserver
 
 import (
+	"erupe-ce/internal/model"
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/utils/byteframe"
 	"erupe-ce/utils/gametime"
 	ps "erupe-ce/utils/pascalstring"
-	"time"
 
 	"github.com/jmoiron/sqlx"
 )
-
-type TournamentInfo0 struct {
-	ID             uint32
-	MaxPlayers     uint32
-	CurrentPlayers uint32
-	Unk1           uint16
-	TextColor      uint16
-	Unk2           uint32
-	Time1          time.Time
-	Time2          time.Time
-	Time3          time.Time
-	Time4          time.Time
-	Time5          time.Time
-	Time6          time.Time
-	Unk3           uint8
-	Unk4           uint8
-	MinHR          uint32
-	MaxHR          uint32
-	Unk5           string
-	Unk6           string
-}
-
-type TournamentInfo21 struct {
-	Unk0 uint32
-	Unk1 uint32
-	Unk2 uint32
-	Unk3 uint8
-}
-
-type TournamentInfo22 struct {
-	Unk0 uint32
-	Unk1 uint32
-	Unk2 uint32
-	Unk3 uint8
-	Unk4 string
-}
 
 func handleMsgMhfInfoTournament(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfInfoTournament)
 	bf := byteframe.NewByteFrame()
 
-	tournamentInfo0 := []TournamentInfo0{}
-	tournamentInfo21 := []TournamentInfo21{}
-	tournamentInfo22 := []TournamentInfo22{}
+	tournamentInfo0 := []model.TournamentInfo0{}
+	tournamentInfo21 := []model.TournamentInfo21{}
+	tournamentInfo22 := []model.TournamentInfo22{}
 
 	switch pkt.Unk0 {
 	case 0:
@@ -113,15 +77,9 @@ func handleMsgMhfEntryTournament(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket)
 	s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 }
 
-type TournamentReward struct {
-	Unk0 uint16
-	Unk1 uint16
-	Unk2 uint16
-}
-
 func handleMsgMhfAcquireTournament(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfAcquireTournament)
-	rewards := []TournamentReward{}
+	rewards := []model.TournamentReward{}
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint8(uint8(len(rewards)))
 	for _, reward := range rewards {

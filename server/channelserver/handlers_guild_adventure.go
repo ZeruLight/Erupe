@@ -3,6 +3,7 @@ package channelserver
 import (
 	"time"
 
+	"erupe-ce/internal/model"
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/utils/byteframe"
 	"erupe-ce/utils/gametime"
@@ -11,15 +12,6 @@ import (
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )
-
-type GuildAdventure struct {
-	ID          uint32 `db:"id"`
-	Destination uint32 `db:"destination"`
-	Charge      uint32 `db:"charge"`
-	Depart      uint32 `db:"depart"`
-	Return      uint32 `db:"return"`
-	CollectedBy string `db:"collected_by"`
-}
 
 func HandleMsgMhfLoadGuildAdventure(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfLoadGuildAdventure)
@@ -35,7 +27,7 @@ func HandleMsgMhfLoadGuildAdventure(s *Session, db *sqlx.DB, p mhfpacket.MHFPack
 	count := 0
 	for data.Next() {
 		count++
-		adventureData := &GuildAdventure{}
+		adventureData := &model.GuildAdventure{}
 		err = data.StructScan(&adventureData)
 		if err != nil {
 			continue

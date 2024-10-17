@@ -2,6 +2,7 @@ package channelserver
 
 import (
 	config "erupe-ce/config"
+	"erupe-ce/internal/model"
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/server/channelserver/compression/deltacomp"
 	"erupe-ce/server/channelserver/compression/nullcomp"
@@ -329,23 +330,12 @@ func handleMsgMhfEnumerateAiroulist(s *Session, db *sqlx.DB, p mhfpacket.MHFPack
 	s.DoAckBufSucceed(pkt.AckHandle, resp.Data())
 }
 
-type Airou struct {
-	ID          uint32
-	Name        []byte
-	Task        uint8
-	Personality uint8
-	Class       uint8
-	Experience  uint32
-	WeaponType  uint8
-	WeaponID    uint16
-}
-
-func getGuildAirouList(s *Session) []Airou {
+func getGuildAirouList(s *Session) []model.Airou {
 	db, err := db.GetDB()
 	if err != nil {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
-	var guildCats []Airou
+	var guildCats []model.Airou
 	bannedCats := make(map[uint32]int)
 	guild, err := GetGuildInfoByCharacterId(s, s.CharID)
 	if err != nil {
@@ -408,11 +398,11 @@ func getGuildAirouList(s *Session) []Airou {
 	return guildCats
 }
 
-func GetAirouDetails(bf *byteframe.ByteFrame) []Airou {
+func GetAirouDetails(bf *byteframe.ByteFrame) []model.Airou {
 	catCount := bf.ReadUint8()
-	cats := make([]Airou, catCount)
+	cats := make([]model.Airou, catCount)
 	for x := 0; x < int(catCount); x++ {
-		var catDef Airou
+		var catDef model.Airou
 		// cat sometimes has additional bytes for whatever reason, gift items? timestamp?
 		// until actual variance is known we can just seek to end based on start
 		catDefLen := bf.ReadUint32()

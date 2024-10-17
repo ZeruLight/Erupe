@@ -2,6 +2,7 @@ package channelserver
 
 import (
 	"erupe-ce/config"
+	"erupe-ce/internal/model"
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/utils/byteframe"
 	"erupe-ce/utils/gametime"
@@ -11,19 +12,6 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-type TreasureHunt struct {
-	HuntID      uint32    `db:"id"`
-	HostID      uint32    `db:"host_id"`
-	Destination uint32    `db:"destination"`
-	Level       uint32    `db:"level"`
-	Start       time.Time `db:"start"`
-	Acquired    bool      `db:"acquired"`
-	Collected   bool      `db:"collected"`
-	HuntData    []byte    `db:"hunt_data"`
-	Hunters     uint32    `db:"hunters"`
-	Claimed     bool      `db:"claimed"`
-}
-
 func HandleMsgMhfEnumerateGuildTresure(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateGuildTresure)
 	guild, err := GetGuildInfoByCharacterId(s, s.CharID)
@@ -31,8 +19,8 @@ func HandleMsgMhfEnumerateGuildTresure(s *Session, db *sqlx.DB, p mhfpacket.MHFP
 		s.DoAckBufSucceed(pkt.AckHandle, make([]byte, 4))
 		return
 	}
-	var hunts []TreasureHunt
-	var hunt TreasureHunt
+	var hunts []model.GuildTreasureHunt
+	var hunt model.GuildTreasureHunt
 
 	switch pkt.MaxHunts {
 	case 1:
@@ -140,16 +128,11 @@ func HandleMsgMhfOperateGuildTresureReport(s *Session, db *sqlx.DB, p mhfpacket.
 	s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 }
 
-type TreasureSouvenir struct {
-	Destination uint32
-	Quantity    uint32
-}
-
 func HandleMsgMhfGetGuildTresureSouvenir(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetGuildTresureSouvenir)
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint32(0)
-	souvenirs := []TreasureSouvenir{}
+	souvenirs := []model.GuildTreasureSouvenir{}
 	bf.WriteUint16(uint16(len(souvenirs)))
 	for _, souvenir := range souvenirs {
 		bf.WriteUint32(souvenir.Destination)

@@ -2,6 +2,7 @@ package channelserver
 
 import (
 	"erupe-ce/config"
+	"erupe-ce/internal/model"
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/utils/byteframe"
 	"erupe-ce/utils/db"
@@ -13,56 +14,7 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-type ShopItem struct {
-	ID           uint32 `db:"id"`
-	ItemID       uint32 `db:"item_id"`
-	Cost         uint32 `db:"cost"`
-	Quantity     uint16 `db:"quantity"`
-	MinHR        uint16 `db:"min_hr"`
-	MinSR        uint16 `db:"min_sr"`
-	MinGR        uint16 `db:"min_gr"`
-	StoreLevel   uint8  `db:"store_level"`
-	MaxQuantity  uint16 `db:"max_quantity"`
-	UsedQuantity uint16 `db:"used_quantity"`
-	RoadFloors   uint16 `db:"road_floors"`
-	RoadFatalis  uint16 `db:"road_fatalis"`
-}
-
-type Gacha struct {
-	ID           uint32 `db:"id"`
-	MinGR        uint32 `db:"min_gr"`
-	MinHR        uint32 `db:"min_hr"`
-	Name         string `db:"name"`
-	URLBanner    string `db:"url_banner"`
-	URLFeature   string `db:"url_feature"`
-	URLThumbnail string `db:"url_thumbnail"`
-	Wide         bool   `db:"wide"`
-	Recommended  bool   `db:"recommended"`
-	GachaType    uint8  `db:"gacha_type"`
-	Hidden       bool   `db:"hidden"`
-}
-
-type GachaEntry struct {
-	EntryType      uint8   `db:"entry_type"`
-	ID             uint32  `db:"id"`
-	ItemType       uint8   `db:"item_type"`
-	ItemNumber     uint32  `db:"item_number"`
-	ItemQuantity   uint16  `db:"item_quantity"`
-	Weight         float64 `db:"weight"`
-	Rarity         uint8   `db:"rarity"`
-	Rolls          uint8   `db:"rolls"`
-	FrontierPoints uint16  `db:"frontier_points"`
-	DailyLimit     uint8   `db:"daily_limit"`
-	Name           string  `db:"name"`
-}
-
-type GachaItem struct {
-	ItemType uint8  `db:"item_type"`
-	ItemID   uint16 `db:"item_id"`
-	Quantity uint16 `db:"quantity"`
-}
-
-func writeShopItems(bf *byteframe.ByteFrame, items []ShopItem) {
+func writeShopItems(bf *byteframe.ByteFrame, items []model.ShopItem) {
 	bf.WriteUint16(uint16(len(items)))
 	bf.WriteUint16(uint16(len(items)))
 	for _, item := range items {
@@ -93,13 +45,13 @@ func writeShopItems(bf *byteframe.ByteFrame, items []ShopItem) {
 	}
 }
 
-func getShopItems(s *Session, shopType uint8, shopID uint32) []ShopItem {
+func getShopItems(s *Session, shopType uint8, shopID uint32) []model.ShopItem {
 	db, err := db.GetDB()
 	if err != nil {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
-	var items []ShopItem
-	var temp ShopItem
+	var items []model.ShopItem
+	var temp model.ShopItem
 
 	rows, err := db.Queryx(`SELECT id, item_id, cost, quantity, min_hr, min_sr, min_gr, store_level, max_quantity,
        		COALESCE((SELECT bought FROM shop_items_bought WHERE shop_item_id=si.id AND character_id=$3), 0) as used_quantity,
@@ -144,8 +96,8 @@ func handleMsgMhfEnumerateShop(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 			return
 		}
 		bf := byteframe.NewByteFrame()
-		var gacha Gacha
-		var gachas []Gacha
+		var gacha model.Gacha
+		var gachas []model.Gacha
 		for rows.Next() {
 			err = rows.StructScan(&gacha)
 			if err == nil {
@@ -194,9 +146,9 @@ func handleMsgMhfEnumerateShop(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 		var divisor float64
 		db.QueryRow(`SELECT COALESCE(SUM(weight) / 100000.0, 0) AS chance FROM gacha_entries WHERE gacha_id = $1`, pkt.ShopID).Scan(&divisor)
 
-		var entry GachaEntry
-		var entries []GachaEntry
-		var item GachaItem
+		var entry model.GachaEntry
+		var entries []model.GachaEntry
+		var item model.GachaItem
 		for rows.Next() {
 			err = rows.StructScan(&entry)
 			if err == nil {
@@ -205,7 +157,7 @@ func handleMsgMhfEnumerateShop(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 		}
 		bf.WriteUint16(uint16(len(entries)))
 		for _, ge := range entries {
-			var items []GachaItem
+			var items []model.GachaItem
 			bf.WriteUint8(ge.EntryType)
 			bf.WriteUint32(ge.ID)
 			bf.WriteUint8(ge.ItemType)
@@ -373,13 +325,13 @@ func transactGacha(s *Session, gachaID uint32, rollID uint8) (error, int) {
 	return nil, rolls
 }
 
-func getGuaranteedItems(s *Session, gachaID uint32, rollID uint8) []GachaItem {
+func getGuaranteedItems(s *Session, gachaID uint32, rollID uint8) []model.GachaItem {
 	db, err := db.GetDB()
 	if err != nil {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
-	var rewards []GachaItem
-	var reward GachaItem
+	var rewards []model.GachaItem
+	var reward model.GachaItem
 
 	items, err := db.Queryx(`SELECT item_type, item_id, quantity FROM gacha_items WHERE entry_id = (SELECT id FROM gacha_entries WHERE entry_type = $1 AND gacha_id = $2)`, rollID, gachaID)
 	if err == nil {
@@ -391,7 +343,7 @@ func getGuaranteedItems(s *Session, gachaID uint32, rollID uint8) []GachaItem {
 	return rewards
 }
 
-func addGachaItem(s *Session, items []GachaItem) {
+func addGachaItem(s *Session, items []model.GachaItem) {
 	db, err := db.GetDB()
 	if err != nil {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
@@ -404,7 +356,7 @@ func addGachaItem(s *Session, items []GachaItem) {
 		data = data[1:]
 		oldItem := byteframe.NewByteFrameFromBytes(data)
 		for i := 0; i < numItems; i++ {
-			items = append(items, GachaItem{
+			items = append(items, model.GachaItem{
 				ItemType: oldItem.ReadUint8(),
 				ItemID:   oldItem.ReadUint16(),
 				Quantity: oldItem.ReadUint16(),
@@ -421,8 +373,8 @@ func addGachaItem(s *Session, items []GachaItem) {
 	db.Exec(`UPDATE characters SET gacha_items = $1 WHERE id = $2`, newItem.Data(), s.CharID)
 }
 
-func getRandomEntries(entries []GachaEntry, rolls int, isBox bool) ([]GachaEntry, error) {
-	var chosen []GachaEntry
+func getRandomEntries(entries []model.GachaEntry, rolls int, isBox bool) ([]model.GachaEntry, error) {
+	var chosen []model.GachaEntry
 	var totalWeight float64
 	for i := range entries {
 		totalWeight += entries[i].Weight
@@ -484,10 +436,10 @@ func handleMsgMhfReceiveGachaItem(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket
 func handleMsgMhfPlayNormalGacha(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfPlayNormalGacha)
 	bf := byteframe.NewByteFrame()
-	var entries []GachaEntry
-	var entry GachaEntry
-	var rewards []GachaItem
-	var reward GachaItem
+	var entries []model.GachaEntry
+	var entry model.GachaEntry
+	var rewards []model.GachaItem
+	var reward model.GachaItem
 
 	err, rolls := transactGacha(s, pkt.GachaID, pkt.RollType)
 	if err != nil {
@@ -537,10 +489,10 @@ func handleMsgMhfPlayNormalGacha(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket)
 func handleMsgMhfPlayStepupGacha(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfPlayStepupGacha)
 	bf := byteframe.NewByteFrame()
-	var entries []GachaEntry
-	var entry GachaEntry
-	var rewards []GachaItem
-	var reward GachaItem
+	var entries []model.GachaEntry
+	var entry model.GachaEntry
+	var rewards []model.GachaItem
+	var reward model.GachaItem
 	err, rolls := transactGacha(s, pkt.GachaID, pkt.RollType)
 	if err != nil {
 		s.DoAckBufSucceed(pkt.AckHandle, make([]byte, 1))
@@ -643,10 +595,10 @@ func handleMsgMhfGetBoxGachaInfo(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket)
 func handleMsgMhfPlayBoxGacha(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfPlayBoxGacha)
 	bf := byteframe.NewByteFrame()
-	var entries []GachaEntry
-	var entry GachaEntry
-	var rewards []GachaItem
-	var reward GachaItem
+	var entries []model.GachaEntry
+	var entry model.GachaEntry
+	var rewards []model.GachaItem
+	var reward model.GachaItem
 	err, rolls := transactGacha(s, pkt.GachaID, pkt.RollType)
 	if err != nil {
 		s.DoAckBufSucceed(pkt.AckHandle, make([]byte, 1))
@@ -722,21 +674,12 @@ func handleMsgMhfExchangeItem2Fpoint(s *Session, db *sqlx.DB, p mhfpacket.MHFPac
 	s.DoAckSimpleSucceed(pkt.AckHandle, bf.Data())
 }
 
-type FPointExchange struct {
-	ID       uint32 `db:"id"`
-	ItemType uint8  `db:"item_type"`
-	ItemID   uint16 `db:"item_id"`
-	Quantity uint16 `db:"quantity"`
-	FPoints  uint16 `db:"fpoints"`
-	Buyable  bool   `db:"buyable"`
-}
-
 func handleMsgMhfGetFpointExchangeList(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetFpointExchangeList)
 
 	bf := byteframe.NewByteFrame()
-	var exchange FPointExchange
-	var exchanges []FPointExchange
+	var exchange model.FPointExchange
+	var exchanges []model.FPointExchange
 	var buyables uint16
 
 	rows, err := db.Queryx(`SELECT id, item_type, item_id, quantity, fpoints, buyable FROM fpoint_items ORDER BY buyable DESC`)

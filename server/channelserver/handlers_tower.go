@@ -2,9 +2,9 @@ package channelserver
 
 import (
 	"erupe-ce/config"
+	"erupe-ce/internal/model"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
@@ -13,28 +13,6 @@ import (
 	"erupe-ce/utils/byteframe"
 	"erupe-ce/utils/stringsupport"
 )
-
-type TowerInfoTRP struct {
-	TR  int32
-	TRP int32
-}
-
-type TowerInfoSkill struct {
-	TSP    int32
-	Skills []int16 // 64
-}
-
-type TowerInfoHistory struct {
-	Unk0 []int16 // 5
-	Unk1 []int16 // 5
-}
-
-type TowerInfoLevel struct {
-	Floors int32
-	Unk1   int32
-	Unk2   int32
-	Unk3   int32
-}
 
 func EmptyTowerCSV(len int) string {
 	temp := make([]string, len)
@@ -47,18 +25,12 @@ func EmptyTowerCSV(len int) string {
 func handleMsgMhfGetTowerInfo(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetTowerInfo)
 	var data []*byteframe.ByteFrame
-	type TowerInfo struct {
-		TRP     []TowerInfoTRP
-		Skill   []TowerInfoSkill
-		History []TowerInfoHistory
-		Level   []TowerInfoLevel
-	}
 
-	towerInfo := TowerInfo{
-		TRP:     []TowerInfoTRP{{0, 0}},
-		Skill:   []TowerInfoSkill{{0, make([]int16, 64)}},
-		History: []TowerInfoHistory{{make([]int16, 5), make([]int16, 5)}},
-		Level:   []TowerInfoLevel{{0, 0, 0, 0}, {0, 0, 0, 0}},
+	towerInfo := model.TowerInfo{
+		TRP:     []model.TowerInfoTRP{{0, 0}},
+		Skill:   []model.TowerInfoSkill{{0, make([]int16, 64)}},
+		History: []model.TowerInfoHistory{{make([]int16, 5), make([]int16, 5)}},
+		Level:   []model.TowerInfoLevel{{0, 0, 0, 0}, {0, 0, 0, 0}},
 	}
 
 	var tempSkills string
@@ -149,7 +121,7 @@ func handleMsgMhfPostTowerInfo(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 }
 
 // Default missions
-var tenrouiraiData = []TenrouiraiData{
+var tenrouiraiData = []model.TenrouiraiData{
 	{1, 1, 80, 0, 2, 2, 1, 1, 2, 2},
 	{1, 4, 16, 0, 2, 2, 1, 1, 2, 2},
 	{1, 6, 50, 0, 2, 2, 1, 0, 2, 2},
@@ -185,71 +157,14 @@ var tenrouiraiData = []TenrouiraiData{
 	{2, 6, 40, 0, 3, 1, 0, 0, 1, 1},
 }
 
-type TenrouiraiProgress struct {
-	Page     uint8
-	Mission1 uint16
-	Mission2 uint16
-	Mission3 uint16
-}
-
-type TenrouiraiReward struct {
-	Index    uint8
-	Item     []uint16 // 5
-	Quantity []uint8  // 5
-}
-
-type TenrouiraiKeyScore struct {
-	Unk0 uint8
-	Unk1 int32
-}
-
-type TenrouiraiData struct {
-	Block   uint8
-	Mission uint8
-	// 1 = Floors climbed
-	// 2 = Collect antiques
-	// 3 = Open chests
-	// 4 = Cats saved
-	// 5 = TRP acquisition
-	// 6 = Monster slays
-	Goal   uint16
-	Cost   uint16
-	Skill1 uint8 // 80
-	Skill2 uint8 // 40
-	Skill3 uint8 // 40
-	Skill4 uint8 // 20
-	Skill5 uint8 // 40
-	Skill6 uint8 // 50
-}
-
-type TenrouiraiCharScore struct {
-	Score int32
-	Name  string
-}
-
-type TenrouiraiTicket struct {
-	Unk0 uint8
-	RP   uint32
-	Unk2 uint32
-}
-
-type Tenrouirai struct {
-	Progress  []TenrouiraiProgress
-	Reward    []TenrouiraiReward
-	KeyScore  []TenrouiraiKeyScore
-	Data      []TenrouiraiData
-	CharScore []TenrouiraiCharScore
-	Ticket    []TenrouiraiTicket
-}
-
 func handleMsgMhfGetTenrouirai(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetTenrouirai)
 	var data []*byteframe.ByteFrame
 
-	tenrouirai := Tenrouirai{
-		Progress: []TenrouiraiProgress{{1, 0, 0, 0}},
+	tenrouirai := model.Tenrouirai{
+		Progress: []model.TenrouiraiProgress{{1, 0, 0, 0}},
 		Data:     tenrouiraiData,
-		Ticket:   []TenrouiraiTicket{{0, 0, 0}},
+		Ticket:   []model.TenrouiraiTicket{{0, 0, 0}},
 	}
 
 	switch pkt.Unk1 {
@@ -316,7 +231,7 @@ func handleMsgMhfGetTenrouirai(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 		}
 		rows, _ := db.Query(fmt.Sprintf(`SELECT name, tower_mission_%d FROM guild_characters gc INNER JOIN characters c ON gc.character_id = c.id WHERE guild_id=$1 AND tower_mission_%d IS NOT NULL ORDER BY tower_mission_%d DESC`, pkt.Unk3, pkt.Unk3, pkt.Unk3), pkt.GuildID)
 		for rows.Next() {
-			temp := TenrouiraiCharScore{}
+			temp := model.TenrouiraiCharScore{}
 			rows.Scan(&temp.Name, &temp.Score)
 			tenrouirai.CharScore = append(tenrouirai.CharScore, temp)
 		}
@@ -409,28 +324,16 @@ func handleMsgMhfPresentBox(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	s.DoAckEarthSucceed(pkt.AckHandle, data)
 }
 
-type GemInfo struct {
-	Gem      uint16
-	Quantity uint16
-}
-
-type GemHistory struct {
-	Gem       uint16
-	Message   uint16
-	Timestamp time.Time
-	Sender    string
-}
-
 func handleMsgMhfGetGemInfo(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetGemInfo)
 	var data []*byteframe.ByteFrame
-	gemInfo := []GemInfo{}
-	gemHistory := []GemHistory{}
+	gemInfo := []model.GemInfo{}
+	gemHistory := []model.GemHistory{}
 
 	var tempGems string
 	db.QueryRow(`SELECT COALESCE(gems, $1) FROM tower WHERE char_id=$2`, EmptyTowerCSV(30), s.CharID).Scan(&tempGems)
 	for i, v := range stringsupport.CSVElems(tempGems) {
-		gemInfo = append(gemInfo, GemInfo{uint16((i / 5 << 8) + (i%5 + 1)), uint16(v)})
+		gemInfo = append(gemInfo, model.GemInfo{uint16((i / 5 << 8) + (i%5 + 1)), uint16(v)})
 	}
 
 	switch pkt.Unk0 {

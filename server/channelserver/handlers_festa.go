@@ -2,9 +2,11 @@ package channelserver
 
 import (
 	"erupe-ce/config"
+	"erupe-ce/internal/model"
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/utils/byteframe"
 	"erupe-ce/utils/db"
+
 	"erupe-ce/utils/gametime"
 	ps "erupe-ce/utils/pascalstring"
 	"erupe-ce/utils/token"
@@ -156,28 +158,6 @@ func generateFestaTimestamps(s *Session, start uint32, debug bool) []uint32 {
 	return timestamps
 }
 
-type FestaTrial struct {
-	ID        uint32        `db:"id"`
-	Objective uint16        `db:"objective"`
-	GoalID    uint32        `db:"goal_id"`
-	TimesReq  uint16        `db:"times_req"`
-	Locale    uint16        `db:"locale_req"`
-	Reward    uint16        `db:"reward"`
-	Monopoly  FestivalColor `db:"monopoly"`
-	Unk       uint16
-}
-
-type FestaReward struct {
-	Unk0     uint8
-	Unk1     uint8
-	ItemType uint16
-	Quantity uint16
-	ItemID   uint16
-	Unk5     uint16
-	Unk6     uint16
-	Unk7     uint8
-}
-
 func handleMsgMhfInfoFesta(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfInfoFesta)
 	bf := byteframe.NewByteFrame()
@@ -219,8 +199,8 @@ func handleMsgMhfInfoFesta(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	bf.WriteUint32(blueSouls)
 	bf.WriteUint32(redSouls)
 
-	var trials []FestaTrial
-	var trial FestaTrial
+	var trials []model.FestaTrial
+	var trial model.FestaTrial
 	rows, _ = db.Queryx(`SELECT ft.*,
 		COALESCE(CASE
 			WHEN COUNT(gc.id) FILTER (WHERE fr.team = 'blue' AND gc.trial_vote = ft.id) >
@@ -257,7 +237,7 @@ func handleMsgMhfInfoFesta(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 
 	// The Winner and Loser Armor IDs are missing
 	// Item 7011 may not exist in older versions, remove to prevent crashes
-	rewards := []FestaReward{
+	rewards := []model.FestaReward{
 		{1, 0, 7, 350, 1520, 0, 0, 0},
 		{1, 0, 7, 1000, 7011, 0, 0, 1},
 		{1, 0, 12, 1000, 0, 0, 0, 0},
@@ -520,15 +500,6 @@ func handleMsgMhfAcquireFestaIntermediatePrize(s *Session, db *sqlx.DB, p mhfpac
 	s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 }
 
-type Prize struct {
-	ID       uint32 `db:"id"`
-	Tier     uint32 `db:"tier"`
-	SoulsReq uint32 `db:"souls_req"`
-	ItemID   uint32 `db:"item_id"`
-	NumItem  uint32 `db:"num_item"`
-	Claimed  int    `db:"claimed"`
-}
-
 func handleMsgMhfEnumerateFestaPersonalPrize(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateFestaPersonalPrize)
 
@@ -536,7 +507,7 @@ func handleMsgMhfEnumerateFestaPersonalPrize(s *Session, db *sqlx.DB, p mhfpacke
 	var count uint32
 	prizeData := byteframe.NewByteFrame()
 	for rows.Next() {
-		prize := &Prize{}
+		prize := &model.FestaPrize{}
 		err := rows.StructScan(&prize)
 		if err != nil {
 			continue
@@ -563,7 +534,7 @@ func handleMsgMhfEnumerateFestaIntermediatePrize(s *Session, db *sqlx.DB, p mhfp
 	var count uint32
 	prizeData := byteframe.NewByteFrame()
 	for rows.Next() {
-		prize := &Prize{}
+		prize := &model.FestaPrize{}
 		err := rows.StructScan(&prize)
 		if err != nil {
 			continue

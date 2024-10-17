@@ -2,6 +2,7 @@ package channelserver
 
 import (
 	"erupe-ce/config"
+	"erupe-ce/internal/model"
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/utils/byteframe"
 	"erupe-ce/utils/db"
@@ -11,7 +12,6 @@ import (
 	"erupe-ce/utils/token"
 	"fmt"
 	"io"
-	"time"
 
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
@@ -49,21 +49,12 @@ func handleMsgMhfUpdateInterior(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) 
 	s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 }
 
-type HouseData struct {
-	CharID        uint32 `db:"id"`
-	HR            uint16 `db:"hr"`
-	GR            uint16 `db:"gr"`
-	Name          string `db:"name"`
-	HouseState    uint8  `db:"house_state"`
-	HousePassword string `db:"house_password"`
-}
-
 func handleMsgMhfEnumerateHouse(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateHouse)
 
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint16(0)
-	var houses []HouseData
+	var houses []model.HouseData
 	houseQuery := `SELECT c.id, hr, gr, name, COALESCE(ub.house_state, 2) as house_state, COALESCE(ub.house_password, '') as house_password
 		FROM characters c LEFT JOIN user_binary ub ON ub.id = c.id WHERE c.id=$1`
 	switch pkt.Method {
@@ -72,7 +63,7 @@ func handleMsgMhfEnumerateHouse(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) 
 		db.QueryRow("SELECT friends FROM characters WHERE id=$1", s.CharID).Scan(&friendsList)
 		cids := stringsupport.CSVElems(friendsList)
 		for _, cid := range cids {
-			house := HouseData{}
+			house := model.HouseData{}
 			row := db.QueryRowx(houseQuery, cid)
 			err := row.StructScan(&house)
 			if err == nil {
@@ -89,7 +80,7 @@ func handleMsgMhfEnumerateHouse(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) 
 			break
 		}
 		for _, member := range guildMembers {
-			house := HouseData{}
+			house := model.HouseData{}
 			row := db.QueryRowx(houseQuery, member.CharID)
 			err = row.StructScan(&house)
 			if err == nil {
@@ -99,7 +90,7 @@ func handleMsgMhfEnumerateHouse(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) 
 	case 3:
 		houseQuery = `SELECT c.id, hr, gr, name, COALESCE(ub.house_state, 2) as house_state, COALESCE(ub.house_password, '') as house_password
 			FROM characters c LEFT JOIN user_binary ub ON ub.id = c.id WHERE name ILIKE $1`
-		house := HouseData{}
+		house := model.HouseData{}
 		rows, _ := db.Queryx(houseQuery, fmt.Sprintf(`%%%s%%`, pkt.Name))
 		for rows.Next() {
 			err := rows.StructScan(&house)
@@ -108,7 +99,7 @@ func handleMsgMhfEnumerateHouse(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) 
 			}
 		}
 	case 4:
-		house := HouseData{}
+		house := model.HouseData{}
 		row := db.QueryRowx(houseQuery, pkt.CharID)
 		err := row.StructScan(&house)
 		if err == nil {
@@ -328,12 +319,6 @@ func handleMsgMhfSaveDecoMyset(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 }
 
-type Title struct {
-	ID       uint16    `db:"id"`
-	Acquired time.Time `db:"unlocked_at"`
-	Updated  time.Time `db:"updated_at"`
-}
-
 func handleMsgMhfEnumerateTitle(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateTitle)
 
@@ -347,7 +332,7 @@ func handleMsgMhfEnumerateTitle(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) 
 		return
 	}
 	for rows.Next() {
-		title := &Title{}
+		title := &model.Title{}
 		err = rows.StructScan(&title)
 		if err != nil {
 			continue

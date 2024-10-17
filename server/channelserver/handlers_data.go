@@ -2,6 +2,7 @@ package channelserver
 
 import (
 	"erupe-ce/config"
+	"erupe-ce/internal/model"
 	"erupe-ce/utils/gametime"
 	"erupe-ce/utils/mhfmon"
 	"erupe-ce/utils/stringsupport"
@@ -199,7 +200,7 @@ func handleMsgMhfLoadScenarioData(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket
 	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 }
 
-var paperGiftData = map[uint32][]PaperGift{
+var paperGiftData = map[uint32][]model.PaperGift{
 	6001: {
 		{11159, 1, 1, 5000},
 		{11160, 1, 1, 3350},
@@ -963,59 +964,22 @@ var paperGiftData = map[uint32][]PaperGift{
 	},
 }
 
-type PaperMissionTimetable struct {
-	Start time.Time
-	End   time.Time
-}
-
-type PaperMissionData struct {
-	Unk0            uint8
-	Unk1            uint8
-	Unk2            int16
-	Reward1ID       uint16
-	Reward1Quantity uint8
-	Reward2ID       uint16
-	Reward2Quantity uint8
-}
-
-type PaperMission struct {
-	Timetables []PaperMissionTimetable
-	Data       []PaperMissionData
-}
-
-type PaperData struct {
-	Unk0 uint16
-	Unk1 int16
-	Unk2 int16
-	Unk3 int16
-	Unk4 int16
-	Unk5 int16
-	Unk6 int16
-}
-
-type PaperGift struct {
-	Unk0 uint16
-	Unk1 uint8
-	Unk2 uint8
-	Unk3 uint16
-}
-
 func handleMsgMhfGetPaperData(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetPaperData)
 	var data []*byteframe.ByteFrame
 
-	var paperData []PaperData
-	var paperMissions PaperMission
-	var paperGift []PaperGift
+	var paperData []model.PaperData
+	var paperMissions model.PaperMission
+	var paperGift []model.PaperGift
 
 	switch pkt.Unk2 {
 	case 0:
-		paperMissions = PaperMission{
-			[]PaperMissionTimetable{{gametime.TimeMidnight(), gametime.TimeMidnight().Add(24 * time.Hour)}},
-			[]PaperMissionData{},
+		paperMissions = model.PaperMission{
+			[]model.PaperMissionTimetable{{gametime.TimeMidnight(), gametime.TimeMidnight().Add(24 * time.Hour)}},
+			[]model.PaperMissionData{},
 		}
 	case 5:
-		paperData = []PaperData{
+		paperData = []model.PaperData{
 			// getTowerQuestTowerLevel
 			{1001, 1, 0, 0, 0, 0, 0},
 			{1001, 2, 0, 0, 0, 0, 0},
@@ -1080,7 +1044,7 @@ func handleMsgMhfGetPaperData(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 			{2001, 2, mhfmon.Dyuragaua, 60, 0, 16, 1000},
 		}
 	case 6:
-		paperData = []PaperData{
+		paperData = []model.PaperData{
 			// updateClearTowerFloor
 			{1002, 100, 0, 0, 0, 0, 0},
 			// give_gem_func

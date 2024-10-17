@@ -1,6 +1,7 @@
 package channelserver
 
 import (
+	"erupe-ce/internal/model"
 	"erupe-ce/utils/byteframe"
 	"erupe-ce/utils/db"
 	"erupe-ce/utils/gametime"
@@ -108,15 +109,6 @@ func handleMsgMhfGetCafeDuration(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket)
 	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 }
 
-type CafeBonus struct {
-	ID       uint32 `db:"id"`
-	TimeReq  uint32 `db:"time_req"`
-	ItemType uint32 `db:"item_type"`
-	ItemID   uint32 `db:"item_id"`
-	Quantity uint32 `db:"quantity"`
-	Claimed  bool   `db:"claimed"`
-}
-
 func handleMsgMhfGetCafeDurationBonusInfo(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetCafeDurationBonusInfo)
 	bf := byteframe.NewByteFrame()
@@ -136,7 +128,7 @@ func handleMsgMhfGetCafeDurationBonusInfo(s *Session, db *sqlx.DB, p mhfpacket.M
 	} else {
 		for rows.Next() {
 			count++
-			cafeBonus := &CafeBonus{}
+			cafeBonus := &model.CafeBonus{}
 			err = rows.StructScan(&cafeBonus)
 			if err != nil {
 				s.Logger.Error("Error scanning cafebonus", zap.Error(err))
@@ -178,7 +170,7 @@ func handleMsgMhfReceiveCafeDurationBonus(s *Session, db *sqlx.DB, p mhfpacket.M
 		s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 	} else {
 		for rows.Next() {
-			cafeBonus := &CafeBonus{}
+			cafeBonus := &model.CafeBonus{}
 			err = rows.StructScan(cafeBonus)
 			if err != nil {
 				continue
@@ -198,7 +190,7 @@ func handleMsgMhfReceiveCafeDurationBonus(s *Session, db *sqlx.DB, p mhfpacket.M
 func handleMsgMhfPostCafeDurationBonusReceived(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfPostCafeDurationBonusReceived)
 
-	var cafeBonus CafeBonus
+	var cafeBonus model.CafeBonus
 	for _, cbID := range pkt.CafeBonusID {
 		err := db.QueryRow(`
 		SELECT cb.id, item_type, quantity FROM cafebonus cb WHERE cb.id=$1

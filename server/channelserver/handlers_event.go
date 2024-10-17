@@ -2,6 +2,7 @@ package channelserver
 
 import (
 	"erupe-ce/config"
+	"erupe-ce/internal/model"
 	"erupe-ce/utils/gametime"
 	"erupe-ce/utils/token"
 	"math"
@@ -13,22 +14,11 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-type Event struct {
-	EventType    uint16
-	Unk1         uint16
-	Unk2         uint16
-	Unk3         uint16
-	Unk4         uint16
-	Unk5         uint32
-	Unk6         uint32
-	QuestFileIDs []uint16
-}
-
 func handleMsgMhfEnumerateEvent(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateEvent)
 	bf := byteframe.NewByteFrame()
 
-	events := []Event{}
+	events := []model.Event{}
 
 	bf.WriteUint8(uint8(len(events)))
 	for _, event := range events {
@@ -50,15 +40,10 @@ func handleMsgMhfEnumerateEvent(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) 
 	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 }
 
-type activeFeature struct {
-	StartTime      time.Time `db:"start_time"`
-	ActiveFeatures uint32    `db:"featured"`
-}
-
 func handleMsgMhfGetWeeklySchedule(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetWeeklySchedule)
 
-	var features []activeFeature
+	var features []model.ActiveFeature
 	times := []time.Time{
 		gametime.TimeMidnight().Add(-24 * time.Hour),
 		gametime.TimeMidnight(),
@@ -66,7 +51,7 @@ func handleMsgMhfGetWeeklySchedule(s *Session, db *sqlx.DB, p mhfpacket.MHFPacke
 	}
 
 	for _, t := range times {
-		var temp activeFeature
+		var temp model.ActiveFeature
 		err := db.QueryRowx(`SELECT start_time, featured FROM feature_weapon WHERE start_time=$1`, t).StructScan(&temp)
 		if err != nil || temp.StartTime.IsZero() {
 			weapons := token.RNG.Intn(config.GetConfig().GameplayOptions.MaxFeatureWeapons-config.GetConfig().GameplayOptions.MinFeatureWeapons+1) + config.GetConfig().GameplayOptions.MinFeatureWeapons
@@ -88,7 +73,7 @@ func handleMsgMhfGetWeeklySchedule(s *Session, db *sqlx.DB, p mhfpacket.MHFPacke
 	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 }
 
-func generateFeatureWeapons(count int) activeFeature {
+func generateFeatureWeapons(count int) model.ActiveFeature {
 	_max := 14
 	if config.GetConfig().ClientID < config.ZZ {
 		_max = 13
@@ -120,15 +105,7 @@ func generateFeatureWeapons(count int) activeFeature {
 	for _, num := range nums {
 		result += int(math.Pow(2, float64(num)))
 	}
-	return activeFeature{ActiveFeatures: uint32(result)}
-}
-
-type loginBoost struct {
-	WeekReq    uint8 `db:"week_req"`
-	WeekCount  uint8
-	Active     bool
-	Expiration time.Time `db:"expiration"`
-	Reset      time.Time `db:"reset"`
+	return model.ActiveFeature{ActiveFeatures: uint32(result)}
 }
 
 func handleMsgMhfGetKeepLoginBoostStatus(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
@@ -136,7 +113,7 @@ func handleMsgMhfGetKeepLoginBoostStatus(s *Session, db *sqlx.DB, p mhfpacket.MH
 
 	bf := byteframe.NewByteFrame()
 
-	var loginBoosts []loginBoost
+	var loginBoosts []model.LoginBoost
 	rows, err := db.Queryx("SELECT week_req, expiration, reset FROM login_boost WHERE char_id=$1 ORDER BY week_req", s.CharID)
 	if err != nil || config.GetConfig().GameplayOptions.DisableLoginBoost {
 		rows.Close()
@@ -144,13 +121,13 @@ func handleMsgMhfGetKeepLoginBoostStatus(s *Session, db *sqlx.DB, p mhfpacket.MH
 		return
 	}
 	for rows.Next() {
-		var temp loginBoost
+		var temp model.LoginBoost
 		rows.StructScan(&temp)
 		loginBoosts = append(loginBoosts, temp)
 	}
 	if len(loginBoosts) == 0 {
 		temp := gametime.TimeWeekStart()
-		loginBoosts = []loginBoost{
+		loginBoosts = []model.LoginBoost{
 			{WeekReq: 1, Expiration: temp},
 			{WeekReq: 2, Expiration: temp},
 			{WeekReq: 3, Expiration: temp},

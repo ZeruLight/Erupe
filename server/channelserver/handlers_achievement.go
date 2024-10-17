@@ -1,6 +1,7 @@
 package channelserver
 
 import (
+	"erupe-ce/internal/model"
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/utils/byteframe"
 	"fmt"
@@ -32,19 +33,9 @@ var achievementCurveMap = map[uint8][]int32{
 	32: achievementCurves[3],
 }
 
-type Achievement struct {
-	Level     uint8
-	Value     uint32
-	NextValue uint16
-	Required  uint32
-	Updated   bool
-	Progress  uint32
-	Trophy    uint8
-}
-
-func GetAchData(id uint8, score int32) Achievement {
+func GetAchData(id uint8, score int32) model.Achievement {
 	curve := achievementCurveMap[id]
-	var ach Achievement
+	var ach model.Achievement
 	for i, v := range curve {
 		temp := score - v
 		if temp < 0 {

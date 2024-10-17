@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"erupe-ce/config"
+	"erupe-ce/internal/model"
 	"erupe-ce/utils/db"
 	"erupe-ce/utils/gametime"
 	"erupe-ce/utils/mhfitem"
@@ -25,85 +26,54 @@ import (
 	"go.uber.org/zap"
 )
 
-type FestivalColor string
+type Guild struct {
+	ID            uint32              `db:"id"`
+	Name          string              `db:"name"`
+	MainMotto     uint8               `db:"main_motto"`
+	SubMotto      uint8               `db:"sub_motto"`
+	CreatedAt     time.Time           `db:"created_at"`
+	MemberCount   uint16              `db:"member_count"`
+	RankRP        uint32              `db:"rank_rp"`
+	EventRP       uint32              `db:"event_rp"`
+	RoomRP        uint16              `db:"room_rp"`
+	RoomExpiry    time.Time           `db:"room_expiry"`
+	Comment       string              `db:"comment"`
+	PugiName1     string              `db:"pugi_name_1"`
+	PugiName2     string              `db:"pugi_name_2"`
+	PugiName3     string              `db:"pugi_name_3"`
+	PugiOutfit1   uint8               `db:"pugi_outfit_1"`
+	PugiOutfit2   uint8               `db:"pugi_outfit_2"`
+	PugiOutfit3   uint8               `db:"pugi_outfit_3"`
+	PugiOutfits   uint32              `db:"pugi_outfits"`
+	Recruiting    bool                `db:"recruiting"`
+	FestivalColor model.FestivalColor `db:"festival_color"`
+	Souls         uint32              `db:"souls"`
+	AllianceID    uint32              `db:"alliance_id"`
+	Icon          *GuildIcon          `db:"icon"`
+
+	model.GuildLeader
+}
+
+type GuildIcon struct {
+	Parts []model.GuildIconPart
+}
 
 const (
-	FestivalColorNone FestivalColor = "none"
-	FestivalColorBlue FestivalColor = "blue"
-	FestivalColorRed  FestivalColor = "red"
+	FestivalColorNone model.FestivalColor = "none"
+	FestivalColorBlue model.FestivalColor = "blue"
+	FestivalColorRed  model.FestivalColor = "red"
 )
 
-var FestivalColorCodes = map[FestivalColor]int16{
+var FestivalColorCodes = map[model.FestivalColor]int16{
 	FestivalColorNone: -1,
 	FestivalColorBlue: 0,
 	FestivalColorRed:  1,
 }
 
-type GuildApplicationType string
-
 const (
-	GuildApplicationTypeApplied GuildApplicationType = "applied"
-	GuildApplicationTypeInvited GuildApplicationType = "invited"
+	GuildApplicationTypeApplied model.GuildApplicationType = "applied"
+	GuildApplicationTypeInvited model.GuildApplicationType = "invited"
 )
-
-type Guild struct {
-	ID            uint32        `db:"id"`
-	Name          string        `db:"name"`
-	MainMotto     uint8         `db:"main_motto"`
-	SubMotto      uint8         `db:"sub_motto"`
-	CreatedAt     time.Time     `db:"created_at"`
-	MemberCount   uint16        `db:"member_count"`
-	RankRP        uint32        `db:"rank_rp"`
-	EventRP       uint32        `db:"event_rp"`
-	RoomRP        uint16        `db:"room_rp"`
-	RoomExpiry    time.Time     `db:"room_expiry"`
-	Comment       string        `db:"comment"`
-	PugiName1     string        `db:"pugi_name_1"`
-	PugiName2     string        `db:"pugi_name_2"`
-	PugiName3     string        `db:"pugi_name_3"`
-	PugiOutfit1   uint8         `db:"pugi_outfit_1"`
-	PugiOutfit2   uint8         `db:"pugi_outfit_2"`
-	PugiOutfit3   uint8         `db:"pugi_outfit_3"`
-	PugiOutfits   uint32        `db:"pugi_outfits"`
-	Recruiting    bool          `db:"recruiting"`
-	FestivalColor FestivalColor `db:"festival_color"`
-	Souls         uint32        `db:"souls"`
-	AllianceID    uint32        `db:"alliance_id"`
-	Icon          *GuildIcon    `db:"icon"`
-
-	GuildLeader
-}
-
-type GuildLeader struct {
-	LeaderCharID uint32 `db:"leader_id"`
-	LeaderName   string `db:"leader_name"`
-}
-
-type GuildIconPart struct {
-	Index    uint16
-	ID       uint16
-	Page     uint8
-	Size     uint8
-	Rotation uint8
-	Red      uint8
-	Green    uint8
-	Blue     uint8
-	PosX     uint16
-	PosY     uint16
-}
-
-type GuildApplication struct {
-	ID              int                  `db:"id"`
-	GuildID         uint32               `db:"guild_id"`
-	CharID          uint32               `db:"character_id"`
-	ActorID         uint32               `db:"actor_id"`
-	ApplicationType GuildApplicationType `db:"application_type"`
-	CreatedAt       time.Time            `db:"created_at"`
-}
-
-type GuildIcon struct {
-	Parts []GuildIconPart
-}
 
 func (gi *GuildIcon) Scan(val interface{}) (err error) {
 	switch v := val.(type) {
@@ -209,7 +179,7 @@ func (guild *Guild) Save(s *Session) error {
 	return nil
 }
 
-func (guild *Guild) CreateApplication(s *Session, charID uint32, applicationType GuildApplicationType, transaction *sql.Tx) error {
+func (guild *Guild) CreateApplication(s *Session, charID uint32, applicationType model.GuildApplicationType, transaction *sql.Tx) error {
 	db, err := db.GetDB()
 	if err != nil {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
@@ -454,7 +424,7 @@ func (guild *Guild) ArrangeCharacters(s *Session, charIDs []uint32) error {
 	return nil
 }
 
-func (guild *Guild) GetApplicationForCharID(s *Session, charID uint32, applicationType GuildApplicationType) (*GuildApplication, error) {
+func (guild *Guild) GetApplicationForCharID(s *Session, charID uint32, applicationType model.GuildApplicationType) (*model.GuildApplication, error) {
 	db, err := db.GetDB()
 	if err != nil {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
@@ -463,7 +433,7 @@ func (guild *Guild) GetApplicationForCharID(s *Session, charID uint32, applicati
 		SELECT * from guild_applications WHERE character_id = $1 AND guild_id = $2 AND application_type = $3
 	`, charID, guild.ID, applicationType)
 
-	application := &GuildApplication{}
+	application := &model.GuildApplication{}
 
 	err = row.StructScan(application)
 
@@ -1161,12 +1131,7 @@ func HandleMsgMhfInfoGuild(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 			}
 		}
 
-		type UnkGuildInfo struct {
-			Unk0 uint8
-			Unk1 uint8
-			Unk2 uint8
-		}
-		unkGuildInfo := []UnkGuildInfo{}
+		unkGuildInfo := []model.UnkGuildInfo{}
 		bf.WriteUint8(uint8(len(unkGuildInfo)))
 		for _, info := range unkGuildInfo {
 			bf.WriteUint8(info.Unk0)
@@ -1174,16 +1139,7 @@ func HandleMsgMhfInfoGuild(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 			bf.WriteUint8(info.Unk2)
 		}
 
-		type AllianceInvite struct {
-			GuildID    uint32
-			LeaderID   uint32
-			Unk0       uint16
-			Unk1       uint16
-			Members    uint16
-			GuildName  string
-			LeaderName string
-		}
-		allianceInvites := []AllianceInvite{}
+		allianceInvites := []model.GuildAllianceInvite{}
 		bf.WriteUint8(uint8(len(allianceInvites)))
 		for _, invite := range allianceInvites {
 			bf.WriteUint32(invite.GuildID)
@@ -1697,10 +1653,10 @@ func HandleMsgMhfUpdateGuildIcon(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket)
 
 	icon := &GuildIcon{}
 
-	icon.Parts = make([]GuildIconPart, len(pkt.IconParts))
+	icon.Parts = make([]model.GuildIconPart, len(pkt.IconParts))
 
 	for i, p := range pkt.IconParts {
-		icon.Parts[i] = GuildIconPart{
+		icon.Parts[i] = model.GuildIconPart{
 			Index:    p.Index,
 			ID:       p.ID,
 			Page:     p.Page,
@@ -1742,22 +1698,10 @@ func HandleMsgMhfReadGuildcard(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	s.DoAckBufSucceed(pkt.AckHandle, resp.Data())
 }
 
-type GuildMission struct {
-	ID          uint32
-	Unk         uint32
-	Type        uint16
-	Goal        uint16
-	Quantity    uint16
-	SkipTickets uint16
-	GR          bool
-	RewardType  uint16
-	RewardLevel uint16
-}
-
 func HandleMsgMhfGetGuildMissionList(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetGuildMissionList)
 	bf := byteframe.NewByteFrame()
-	missions := []GuildMission{
+	missions := []model.GuildMission{
 		{431201, 574, 1, 4761, 35, 1, false, 2, 1},
 		{431202, 755, 0, 95, 12, 2, false, 3, 2},
 		{431203, 746, 0, 95, 6, 1, false, 1, 1},
@@ -1811,13 +1755,6 @@ func HandleMsgMhfCancelGuildMissionTarget(s *Session, db *sqlx.DB, p mhfpacket.M
 	s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 }
 
-type GuildMeal struct {
-	ID        uint32    `db:"id"`
-	MealID    uint32    `db:"meal_id"`
-	Level     uint32    `db:"level"`
-	CreatedAt time.Time `db:"created_at"`
-}
-
 func HandleMsgMhfLoadGuildCooking(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfLoadGuildCooking)
 
@@ -1828,8 +1765,8 @@ func HandleMsgMhfLoadGuildCooking(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket
 		s.DoAckBufSucceed(pkt.AckHandle, make([]byte, 2))
 		return
 	}
-	var meals []GuildMeal
-	var temp GuildMeal
+	var meals []model.GuildMeal
+	var temp model.GuildMeal
 	for data.Next() {
 		err = data.StructScan(&temp)
 		if err != nil {
@@ -1939,16 +1876,6 @@ func HandleMsgMhfGuildHuntdata(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 }
 
-type MessageBoardPost struct {
-	ID        uint32    `db:"id"`
-	StampID   uint32    `db:"stamp_id"`
-	Title     string    `db:"title"`
-	Body      string    `db:"body"`
-	AuthorID  uint32    `db:"author_id"`
-	Timestamp time.Time `db:"created_at"`
-	LikedBy   string    `db:"liked_by"`
-}
-
 func HandleMsgMhfEnumerateGuildMessageBoard(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfEnumerateGuildMessageBoard)
 
@@ -1966,7 +1893,7 @@ func HandleMsgMhfEnumerateGuildMessageBoard(s *Session, db *sqlx.DB, p mhfpacket
 	bf := byteframe.NewByteFrame()
 	var postCount uint32
 	for msgs.Next() {
-		postData := &MessageBoardPost{}
+		postData := &model.MessageBoardPost{}
 		err = msgs.StructScan(&postData)
 		if err != nil {
 			continue

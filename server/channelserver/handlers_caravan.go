@@ -1,51 +1,18 @@
 package channelserver
 
 import (
+	"erupe-ce/internal/model"
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/utils/byteframe"
 	"erupe-ce/utils/stringsupport"
-	"time"
 
 	"github.com/jmoiron/sqlx"
 )
 
-type RyoudamaReward struct {
-	Unk0 uint8
-	Unk1 uint8
-	Unk2 uint16
-	Unk3 uint16
-	Unk4 uint16
-	Unk5 uint16
-}
-
-type RyoudamaKeyScore struct {
-	Unk0 uint8
-	Unk1 int32
-}
-
-type RyoudamaCharInfo struct {
-	CID  uint32
-	Unk0 int32
-	Name string
-}
-
-type RyoudamaBoostInfo struct {
-	Start time.Time
-	End   time.Time
-}
-
-type Ryoudama struct {
-	Reward    []RyoudamaReward
-	KeyScore  []RyoudamaKeyScore
-	CharInfo  []RyoudamaCharInfo
-	BoostInfo []RyoudamaBoostInfo
-	Score     []int32
-}
-
 func handleMsgMhfGetRyoudama(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetRyoudama)
 	var data []*byteframe.ByteFrame
-	ryoudama := Ryoudama{Score: []int32{0}}
+	ryoudama := model.Ryoudama{Score: []int32{0}}
 	switch pkt.Request2 {
 	case 4:
 		for _, score := range ryoudama.Score {

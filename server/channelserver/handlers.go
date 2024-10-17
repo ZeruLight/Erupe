@@ -3,6 +3,7 @@ package channelserver
 import (
 	"encoding/binary"
 	"erupe-ce/config"
+	"erupe-ce/internal/model"
 	"erupe-ce/utils/db"
 	"erupe-ce/utils/gametime"
 	"erupe-ce/utils/mhfcourse"
@@ -1176,81 +1177,31 @@ func handleMsgMhfGetSenyuDailyCount(s *Session, db *sqlx.DB, p mhfpacket.MHFPack
 	s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 }
 
-type SeibattleTimetable struct {
-	Start time.Time
-	End   time.Time
-}
-
-type SeibattleKeyScore struct {
-	Unk0 uint8
-	Unk1 int32
-}
-
-type SeibattleCareer struct {
-	Unk0 uint16
-	Unk1 uint16
-	Unk2 uint16
-}
-
-type SeibattleOpponent struct {
-	Unk0 int32
-	Unk1 int8
-}
-
-type SeibattleConventionResult struct {
-	Unk0 uint32
-	Unk1 uint16
-	Unk2 uint16
-	Unk3 uint16
-	Unk4 uint16
-}
-
-type SeibattleCharScore struct {
-	Unk0 uint32
-}
-
-type SeibattleCurResult struct {
-	Unk0 uint32
-	Unk1 uint16
-	Unk2 uint16
-	Unk3 uint16
-}
-
-type Seibattle struct {
-	Timetable        []SeibattleTimetable
-	KeyScore         []SeibattleKeyScore
-	Career           []SeibattleCareer
-	Opponent         []SeibattleOpponent
-	ConventionResult []SeibattleConventionResult
-	CharScore        []SeibattleCharScore
-	CurResult        []SeibattleCurResult
-}
-
 func handleMsgMhfGetSeibattle(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetSeibattle)
 	var data []*byteframe.ByteFrame
-	seibattle := Seibattle{
-		Timetable: []SeibattleTimetable{
+	seibattle := model.Seibattle{
+		Timetable: []model.SeibattleTimetable{
 			{gametime.TimeMidnight(), gametime.TimeMidnight().Add(time.Hour * 8)},
 			{gametime.TimeMidnight().Add(time.Hour * 8), gametime.TimeMidnight().Add(time.Hour * 16)},
 			{gametime.TimeMidnight().Add(time.Hour * 16), gametime.TimeMidnight().Add(time.Hour * 24)},
 		},
-		KeyScore: []SeibattleKeyScore{
+		KeyScore: []model.SeibattleKeyScore{
 			{0, 0},
 		},
-		Career: []SeibattleCareer{
+		Career: []model.SeibattleCareer{
 			{0, 0, 0},
 		},
-		Opponent: []SeibattleOpponent{
+		Opponent: []model.SeibattleOpponent{
 			{1, 1},
 		},
-		ConventionResult: []SeibattleConventionResult{
+		ConventionResult: []model.SeibattleConventionResult{
 			{0, 0, 0, 0, 0},
 		},
-		CharScore: []SeibattleCharScore{
+		CharScore: []model.SeibattleCharScore{
 			{0},
 		},
-		CurResult: []SeibattleCurResult{
+		CurResult: []model.SeibattleCurResult{
 			{0, 0, 0, 0},
 		},
 	}
@@ -1415,14 +1366,9 @@ func handleMsgMhfGetLobbyCrowd(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	s.DoAckBufSucceed(pkt.AckHandle, make([]byte, 0x320))
 }
 
-type TrendWeapon struct {
-	WeaponType uint8
-	WeaponID   uint16
-}
-
 func handleMsgMhfGetTrendWeapon(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfGetTrendWeapon)
-	trendWeapons := [14][3]TrendWeapon{}
+	trendWeapons := [14][3]model.TrendWeapon{}
 
 	for i := uint8(0); i < 14; i++ {
 		rows, err := db.Query(`SELECT weapon_id FROM trend_weapons WHERE weapon_type=$1 ORDER BY count DESC LIMIT 3`, i)

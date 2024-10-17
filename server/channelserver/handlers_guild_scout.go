@@ -18,7 +18,7 @@ import (
 func HandleMsgMhfPostGuildScout(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfPostGuildScout)
 
-	actorCharGuildData, err := GetCharacterGuildData(s, s.CharID)
+	actorCharGuildData, err := service.GetCharacterGuildData(s.CharID)
 
 	if err != nil {
 		s.DoAckBufFail(pkt.AckHandle, make([]byte, 4))
@@ -95,7 +95,7 @@ func HandleMsgMhfPostGuildScout(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) 
 func HandleMsgMhfCancelGuildScout(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfCancelGuildScout)
 
-	guildCharData, err := GetCharacterGuildData(s, s.CharID)
+	guildCharData, err := service.GetCharacterGuildData(s.CharID)
 
 	if err != nil {
 		panic(err)

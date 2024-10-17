@@ -76,7 +76,7 @@ func handleMsgMhfEnumerateHouse(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) 
 		if err != nil || guild == nil {
 			break
 		}
-		guildMembers, err := GetGuildMembers(s, guild.ID, false)
+		guildMembers, err := service.GetGuildMembers(guild.ID, false)
 		if err != nil {
 			break
 		}

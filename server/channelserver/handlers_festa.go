@@ -412,7 +412,7 @@ func handleMsgMhfEnumerateFestaMember(s *Session, db *sqlx.DB, p mhfpacket.MHFPa
 		s.DoAckSimpleFail(pkt.AckHandle, make([]byte, 4))
 		return
 	}
-	members, err := GetGuildMembers(s, guild.ID, false)
+	members, err := service.GetGuildMembers(guild.ID, false)
 	if err != nil {
 		s.DoAckSimpleFail(pkt.AckHandle, make([]byte, 4))
 		return
@@ -420,7 +420,7 @@ func handleMsgMhfEnumerateFestaMember(s *Session, db *sqlx.DB, p mhfpacket.MHFPa
 	sort.Slice(members, func(i, j int) bool {
 		return members[i].Souls > members[j].Souls
 	})
-	var validMembers []*GuildMember
+	var validMembers []*service.GuildMember
 	for _, member := range members {
 		if member.Souls > 0 {
 			validMembers = append(validMembers, member)

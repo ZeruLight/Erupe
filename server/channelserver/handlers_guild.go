@@ -52,7 +52,7 @@ func HandleMsgMhfOperateGuild(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	pkt := p.(*mhfpacket.MsgMhfOperateGuild)
 
 	guild, err := service.GetGuildInfoByID(pkt.GuildID)
-	characterGuildInfo, err := GetCharacterGuildData(s, s.CharID)
+	characterGuildInfo, err := service.GetCharacterGuildData(s.CharID)
 	if err != nil {
 		s.DoAckSimpleFail(pkt.AckHandle, make([]byte, 4))
 		return
@@ -74,7 +74,7 @@ func HandleMsgMhfOperateGuild(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 		}
 		bf.WriteUint32(uint32(response))
 	case mhfpacket.OperateGuildResign:
-		guildMembers, err := GetGuildMembers(s, guild.ID, false)
+		guildMembers, err := service.GetGuildMembers(guild.ID, false)
 		if err == nil {
 			sort.Slice(guildMembers[:], func(i, j int) bool {
 				return guildMembers[i].OrderIndex < guildMembers[j].OrderIndex
@@ -84,8 +84,8 @@ func HandleMsgMhfOperateGuild(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 					guild.LeaderCharID = guildMembers[i].CharID
 					guildMembers[0].OrderIndex = guildMembers[i].OrderIndex
 					guildMembers[i].OrderIndex = 1
-					guildMembers[0].Save(s)
-					guildMembers[i].Save(s)
+					guildMembers[0].Save()
+					guildMembers[i].Save()
 					bf.WriteUint32(guildMembers[i].CharID)
 					break
 				}
@@ -250,7 +250,7 @@ func handleDonateRP(s *Session, amount uint16, guild *service.Guild, _type int) 
 }
 
 func handleAvoidLeadershipUpdate(s *Session, pkt *mhfpacket.MsgMhfOperateGuild, avoidLeadership bool) {
-	characterGuildData, err := GetCharacterGuildData(s, s.CharID)
+	characterGuildData, err := service.GetCharacterGuildData(s.CharID)
 
 	if err != nil {
 		s.DoAckSimpleFail(pkt.AckHandle, make([]byte, 4))
@@ -259,7 +259,7 @@ func handleAvoidLeadershipUpdate(s *Session, pkt *mhfpacket.MsgMhfOperateGuild, 
 
 	characterGuildData.AvoidLeadership = avoidLeadership
 
-	err = characterGuildData.Save(s)
+	err = characterGuildData.Save()
 
 	if err != nil {
 		s.DoAckSimpleFail(pkt.AckHandle, make([]byte, 4))
@@ -279,7 +279,7 @@ func HandleMsgMhfOperateGuildMember(s *Session, db *sqlx.DB, p mhfpacket.MHFPack
 		return
 	}
 
-	actorCharacter, err := GetCharacterGuildData(s, s.CharID)
+	actorCharacter, err := service.GetCharacterGuildData(s.CharID)
 
 	if err != nil || (!actorCharacter.IsSubLeader() && guild.LeaderCharID != s.CharID) {
 		s.DoAckSimpleFail(pkt.AckHandle, make([]byte, 4))
@@ -351,7 +351,7 @@ func HandleMsgMhfInfoGuild(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 		guildComment := stringsupport.UTF8ToSJIS(guild.Comment)
 		guildLeaderName := stringsupport.UTF8ToSJIS(guild.LeaderName)
 
-		characterGuildData, err := GetCharacterGuildData(s, s.CharID)
+		characterGuildData, err := service.GetCharacterGuildData(s.CharID)
 		characterJoinedAt := uint32(0xFFFFFFFF)
 
 		if characterGuildData != nil && characterGuildData.JoinedAt != nil {
@@ -503,7 +503,7 @@ func HandleMsgMhfInfoGuild(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 			bf.WriteUint32(0) // No alliance
 		}
 
-		applicants, err := GetGuildMembers(s, guild.ID, true)
+		applicants, err := service.GetGuildMembers(guild.ID, true)
 		if err != nil || (characterGuildData != nil && !characterGuildData.CanRecruit()) {
 			bf.WriteUint16(0)
 		} else {
@@ -834,7 +834,7 @@ func HandleMsgMhfEnumerateGuildMember(s *Session, db *sqlx.DB, p mhfpacket.MHFPa
 		return
 	}
 
-	guildMembers, err := GetGuildMembers(s, guild.ID, false)
+	guildMembers, err := service.GetGuildMembers(guild.ID, false)
 
 	if err != nil {
 		s.Logger.Error("failed to retrieve guild")
@@ -884,7 +884,7 @@ func HandleMsgMhfEnumerateGuildMember(s *Session, db *sqlx.DB, p mhfpacket.MHFPa
 	if guild.AllianceID > 0 {
 		bf.WriteUint16(alliance.TotalMembers - uint16(len(guildMembers)))
 		if guild.ID != alliance.ParentGuildID {
-			mems, err := GetGuildMembers(s, alliance.ParentGuildID, false)
+			mems, err := service.GetGuildMembers(alliance.ParentGuildID, false)
 			if err != nil {
 				panic(err)
 			}
@@ -893,7 +893,7 @@ func HandleMsgMhfEnumerateGuildMember(s *Session, db *sqlx.DB, p mhfpacket.MHFPa
 			}
 		}
 		if guild.ID != alliance.SubGuild1ID {
-			mems, err := GetGuildMembers(s, alliance.SubGuild1ID, false)
+			mems, err := service.GetGuildMembers(alliance.SubGuild1ID, false)
 			if err != nil {
 				panic(err)
 			}
@@ -902,7 +902,7 @@ func HandleMsgMhfEnumerateGuildMember(s *Session, db *sqlx.DB, p mhfpacket.MHFPa
 			}
 		}
 		if guild.ID != alliance.SubGuild2ID {
-			mems, err := GetGuildMembers(s, alliance.SubGuild2ID, false)
+			mems, err := service.GetGuildMembers(alliance.SubGuild2ID, false)
 			if err != nil {
 				panic(err)
 			}
@@ -937,7 +937,7 @@ func HandleMsgMhfGetGuildManageRight(s *Session, db *sqlx.DB, p mhfpacket.MHFPac
 
 	bf := byteframe.NewByteFrame()
 	bf.WriteUint32(uint32(guild.MemberCount))
-	members, _ := GetGuildMembers(s, guild.ID, false)
+	members, _ := service.GetGuildMembers(guild.ID, false)
 	for _, member := range members {
 		bf.WriteUint32(member.CharID)
 		bf.WriteBool(member.Recruiter)
@@ -1021,7 +1021,7 @@ func HandleMsgMhfUpdateGuildIcon(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket)
 		panic(err)
 	}
 
-	characterInfo, err := GetCharacterGuildData(s, s.CharID)
+	characterInfo, err := service.GetCharacterGuildData(s.CharID)
 
 	if err != nil {
 		panic(err)

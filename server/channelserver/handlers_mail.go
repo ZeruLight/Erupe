@@ -132,13 +132,13 @@ func handleMsgMhfSendMail(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	`
 
 	if pkt.RecipientID == 0 { // Guild mail
-		g, err := GetGuildInfoByCharacterId(s, s.CharID)
+		g, err := service.GetGuildInfoByCharacterId(s.CharID)
 		if err != nil {
 			s.Logger.Error("Failed to get guild info for mail")
 			s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))
 			return
 		}
-		gm, err := GetGuildMembers(s, g.ID, false)
+		gm, err := service.GetGuildMembers(g.ID, false)
 		if err != nil {
 			s.Logger.Error("Failed to get guild members for mail")
 			s.DoAckSimpleSucceed(pkt.AckHandle, make([]byte, 4))

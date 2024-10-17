@@ -2,7 +2,9 @@ package channelserver
 
 import (
 	"erupe-ce/config"
+	"erupe-ce/internal/constant"
 	"erupe-ce/internal/model"
+
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/utils/byteframe"
 	"erupe-ce/utils/db"
@@ -229,7 +231,7 @@ func handleMsgMhfInfoFesta(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 		bf.WriteUint16(trial.TimesReq)
 		bf.WriteUint16(trial.Locale)
 		bf.WriteUint16(trial.Reward)
-		bf.WriteInt16(FestivalColorCodes[trial.Monopoly])
+		bf.WriteInt16(constant.FestivalColorCodes[trial.Monopoly])
 		if config.GetConfig().ClientID >= config.F4 { // Not in S6.0
 			bf.WriteUint16(trial.Unk)
 		}
@@ -294,7 +296,7 @@ func handleMsgMhfInfoFesta(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	for i := uint16(0); i < 4; i++ {
 		var guildID uint32
 		var guildName string
-		var guildTeam = FestivalColorNone
+		var guildTeam = constant.FestivalColorNone
 		db.QueryRow(`
 				SELECT fs.guild_id, g.name, fr.team, SUM(fs.souls) as _
 				FROM festa_submissions fs
@@ -306,14 +308,14 @@ func handleMsgMhfInfoFesta(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 			`, i+1).Scan(&guildID, &guildName, &guildTeam, &temp)
 		bf.WriteUint32(guildID)
 		bf.WriteUint16(i + 1)
-		bf.WriteInt16(FestivalColorCodes[guildTeam])
+		bf.WriteInt16(constant.FestivalColorCodes[guildTeam])
 		ps.Uint8(bf, guildName, true)
 	}
 	bf.WriteUint16(7)
 	for i := uint16(0); i < 7; i++ {
 		var guildID uint32
 		var guildName string
-		var guildTeam = FestivalColorNone
+		var guildTeam = constant.FestivalColorNone
 		offset := 86400 * uint32(i)
 		db.QueryRow(`
 				SELECT fs.guild_id, g.name, fr.team, SUM(fs.souls) as _
@@ -326,7 +328,7 @@ func handleMsgMhfInfoFesta(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 			`, timestamps[1]+offset, timestamps[1]+offset+86400).Scan(&guildID, &guildName, &guildTeam, &temp)
 		bf.WriteUint32(guildID)
 		bf.WriteUint16(i + 1)
-		bf.WriteInt16(FestivalColorCodes[guildTeam])
+		bf.WriteInt16(constant.FestivalColorCodes[guildTeam])
 		ps.Uint8(bf, guildName, true)
 	}
 

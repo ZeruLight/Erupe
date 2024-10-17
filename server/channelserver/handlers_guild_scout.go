@@ -1,7 +1,9 @@
 package channelserver
 
 import (
+	"erupe-ce/internal/constant"
 	"erupe-ce/internal/service"
+
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/utils/byteframe"
 	"erupe-ce/utils/gametime"
@@ -53,7 +55,7 @@ func HandleMsgMhfPostGuildScout(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) 
 		panic(err)
 	}
 
-	err = guildInfo.CreateApplication(s, pkt.CharID, GuildApplicationTypeInvited, transaction)
+	err = guildInfo.CreateApplication(s, pkt.CharID, constant.GuildApplicationTypeInvited, transaction)
 
 	if err != nil {
 		rollbackTransaction(s, transaction)
@@ -130,7 +132,7 @@ func HandleMsgMhfAnswerGuildScout(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket
 		panic(err)
 	}
 
-	app, err := guild.GetApplicationForCharID(s, s.CharID, GuildApplicationTypeInvited)
+	app, err := guild.GetApplicationForCharID(s, s.CharID, constant.GuildApplicationTypeInvited)
 
 	if app == nil || err != nil {
 		s.Logger.Warn(

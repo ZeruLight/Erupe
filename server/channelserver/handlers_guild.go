@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"errors"
 	"erupe-ce/config"
+	"erupe-ce/internal/constant"
 	"erupe-ce/internal/model"
 	"erupe-ce/internal/service"
 
@@ -59,23 +60,6 @@ type Guild struct {
 type GuildIcon struct {
 	Parts []model.GuildIconPart
 }
-
-const (
-	FestivalColorNone model.FestivalColor = "none"
-	FestivalColorBlue model.FestivalColor = "blue"
-	FestivalColorRed  model.FestivalColor = "red"
-)
-
-var FestivalColorCodes = map[model.FestivalColor]int16{
-	FestivalColorNone: -1,
-	FestivalColorBlue: 0,
-	FestivalColorRed:  1,
-}
-
-const (
-	GuildApplicationTypeApplied model.GuildApplicationType = "applied"
-	GuildApplicationTypeInvited model.GuildApplicationType = "invited"
-)
 
 func (gi *GuildIcon) Scan(val interface{}) (err error) {
 	switch v := val.(type) {
@@ -709,7 +693,7 @@ func HandleMsgMhfOperateGuild(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 			guild.Save(s)
 		}
 	case mhfpacket.OperateGuildApply:
-		err = guild.CreateApplication(s, s.CharID, GuildApplicationTypeApplied, nil)
+		err = guild.CreateApplication(s, s.CharID, constant.GuildApplicationTypeApplied, nil)
 		if err == nil {
 			bf.WriteUint32(guild.LeaderCharID)
 		} else {
@@ -1019,7 +1003,7 @@ func HandleMsgMhfInfoGuild(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 		bf.WriteUint8(uint8(len(guildLeaderName)))
 		bf.WriteBytes(guildName)
 		bf.WriteBytes(guildComment)
-		bf.WriteInt8(int8(FestivalColorCodes[guild.FestivalColor]))
+		bf.WriteInt8(int8(constant.FestivalColorCodes[guild.FestivalColor]))
 		bf.WriteUint32(guild.RankRP)
 		bf.WriteBytes(guildLeaderName)
 		bf.WriteUint32(0)   // Unk

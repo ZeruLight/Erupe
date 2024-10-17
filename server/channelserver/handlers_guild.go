@@ -7,6 +7,8 @@ import (
 	"errors"
 	"erupe-ce/config"
 	"erupe-ce/internal/model"
+	"erupe-ce/internal/service"
+
 	"erupe-ce/utils/db"
 	"erupe-ce/utils/gametime"
 	"erupe-ce/utils/mhfitem"
@@ -723,13 +725,13 @@ func HandleMsgMhfOperateGuild(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 		if err != nil {
 			response = 0
 		} else {
-			mail := Mail{
+			mail := service.Mail{
 				RecipientID:     s.CharID,
 				Subject:         "Withdrawal",
 				Body:            fmt.Sprintf("You have withdrawn from 「%s」.", guild.Name),
 				IsSystemMessage: true,
 			}
-			mail.Send(s, nil)
+			mail.Send(nil)
 		}
 		bf.WriteUint32(uint32(response))
 	case mhfpacket.OperateGuildDonateRank:
@@ -900,11 +902,11 @@ func HandleMsgMhfOperateGuildMember(s *Session, db *sqlx.DB, p mhfpacket.MHFPack
 		return
 	}
 
-	var mail Mail
+	var mail service.Mail
 	switch pkt.Action {
 	case mhfpacket.OPERATE_GUILD_MEMBER_ACTION_ACCEPT:
 		err = guild.AcceptApplication(s, pkt.CharID)
-		mail = Mail{
+		mail = service.Mail{
 			RecipientID:     pkt.CharID,
 			Subject:         "Accepted!",
 			Body:            fmt.Sprintf("Your application to join 「%s」 was accepted.", guild.Name),
@@ -912,7 +914,7 @@ func HandleMsgMhfOperateGuildMember(s *Session, db *sqlx.DB, p mhfpacket.MHFPack
 		}
 	case mhfpacket.OPERATE_GUILD_MEMBER_ACTION_REJECT:
 		err = guild.RejectApplication(s, pkt.CharID)
-		mail = Mail{
+		mail = service.Mail{
 			RecipientID:     pkt.CharID,
 			Subject:         "Rejected",
 			Body:            fmt.Sprintf("Your application to join 「%s」 was rejected.", guild.Name),
@@ -920,7 +922,7 @@ func HandleMsgMhfOperateGuildMember(s *Session, db *sqlx.DB, p mhfpacket.MHFPack
 		}
 	case mhfpacket.OPERATE_GUILD_MEMBER_ACTION_KICK:
 		err = guild.RemoveCharacter(s, pkt.CharID)
-		mail = Mail{
+		mail = service.Mail{
 			RecipientID:     pkt.CharID,
 			Subject:         "Kicked",
 			Body:            fmt.Sprintf("You were kicked from 「%s」.", guild.Name),
@@ -934,11 +936,11 @@ func HandleMsgMhfOperateGuildMember(s *Session, db *sqlx.DB, p mhfpacket.MHFPack
 	if err != nil {
 		s.DoAckSimpleFail(pkt.AckHandle, make([]byte, 4))
 	} else {
-		mail.Send(s, nil)
+		mail.Send(nil)
 		for _, channel := range s.Server.Channels {
 			for _, session := range channel.sessions {
 				if session.CharID == pkt.CharID {
-					SendMailNotification(s, &mail, session)
+					service.SendMailNotification(s, &mail, session)
 				}
 			}
 		}

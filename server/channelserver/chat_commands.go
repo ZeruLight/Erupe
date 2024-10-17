@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/hex"
 	"erupe-ce/config"
+	"erupe-ce/internal/constant"
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/utils/byteframe"
 	"erupe-ce/utils/db"
@@ -357,7 +358,7 @@ func teleport(s *Session, args []string) error {
 	payload.WriteInt16(int16(y))
 	s.QueueSendMHF(&mhfpacket.MsgSysCastedBinary{
 		CharID:         s.CharID,
-		MessageType:    BinaryMessageTypeState,
+		MessageType:    constant.BinaryMessageTypeState,
 		RawDataPayload: payload.Data(),
 	})
 	s.sendMessage(t("commands.teleport.success", v{"x": fmt.Sprintf("%d", x), "y": fmt.Sprintf("%d", y)}))

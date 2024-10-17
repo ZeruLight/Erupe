@@ -4,6 +4,7 @@ import (
 	"encoding/binary"
 	"encoding/hex"
 	"erupe-ce/config"
+	"erupe-ce/internal/constant"
 	"erupe-ce/network"
 	"erupe-ce/network/binpacket"
 	"erupe-ce/network/mhfpacket"
@@ -15,6 +16,7 @@ import (
 	"erupe-ce/utils/stringstack"
 	"fmt"
 	"io"
+
 	"net"
 	"sync"
 	"time"
@@ -269,7 +271,7 @@ func (s *Session) sendMessage(message string) {
 	msgBinChat.Build(bf)
 	castedBin := &mhfpacket.MsgSysCastedBinary{
 		CharID:         0,
-		MessageType:    BinaryMessageTypeChat,
+		MessageType:    constant.BinaryMessageTypeChat,
 		RawDataPayload: bf.Data(),
 	}
 	s.QueueSendMHF(castedBin)

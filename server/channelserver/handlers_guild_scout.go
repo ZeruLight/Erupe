@@ -1,6 +1,7 @@
 package channelserver
 
 import (
+	"erupe-ce/internal/service"
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/utils/byteframe"
 	"erupe-ce/utils/gametime"
@@ -60,7 +61,7 @@ func HandleMsgMhfPostGuildScout(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) 
 		panic(err)
 	}
 
-	mail := &Mail{
+	mail := &service.Mail{
 		SenderID:    s.CharID,
 		RecipientID: pkt.CharID,
 		Subject:     s.Server.i18n.guild.invite.title,
@@ -71,7 +72,7 @@ func HandleMsgMhfPostGuildScout(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) 
 		IsGuildInvite: true,
 	}
 
-	err = mail.Send(s, transaction)
+	err = mail.Send(transaction)
 
 	if err != nil {
 		rollbackTransaction(s, transaction)
@@ -144,16 +145,16 @@ func HandleMsgMhfAnswerGuildScout(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket
 		return
 	}
 
-	var mail []Mail
+	var mail []service.Mail
 	if pkt.Answer {
 		err = guild.AcceptApplication(s, s.CharID)
-		mail = append(mail, Mail{
+		mail = append(mail, service.Mail{
 			RecipientID:     s.CharID,
 			Subject:         s.Server.i18n.guild.invite.success.title,
 			Body:            fmt.Sprintf(s.Server.i18n.guild.invite.success.body, guild.Name),
 			IsSystemMessage: true,
 		})
-		mail = append(mail, Mail{
+		mail = append(mail, service.Mail{
 			SenderID:        s.CharID,
 			RecipientID:     pkt.LeaderID,
 			Subject:         s.Server.i18n.guild.invite.accepted.title,
@@ -162,13 +163,13 @@ func HandleMsgMhfAnswerGuildScout(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket
 		})
 	} else {
 		err = guild.RejectApplication(s, s.CharID)
-		mail = append(mail, Mail{
+		mail = append(mail, service.Mail{
 			RecipientID:     s.CharID,
 			Subject:         s.Server.i18n.guild.invite.rejected.title,
 			Body:            fmt.Sprintf(s.Server.i18n.guild.invite.rejected.body, guild.Name),
 			IsSystemMessage: true,
 		})
-		mail = append(mail, Mail{
+		mail = append(mail, service.Mail{
 			SenderID:        s.CharID,
 			RecipientID:     pkt.LeaderID,
 			Subject:         s.Server.i18n.guild.invite.declined.title,
@@ -185,7 +186,7 @@ func HandleMsgMhfAnswerGuildScout(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket
 		bf.WriteUint32(guild.ID)
 		s.DoAckBufSucceed(pkt.AckHandle, bf.Data())
 		for _, m := range mail {
-			m.Send(s, nil)
+			m.Send(nil)
 		}
 	}
 }

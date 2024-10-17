@@ -1,6 +1,7 @@
 package channelserver
 
 import (
+	"erupe-ce/internal/constant"
 	"erupe-ce/network/binpacket"
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/utils/byteframe"
@@ -45,7 +46,7 @@ func (server *ChannelServer) BroadcastChatMessage(message string) {
 	msgBinChat.Build(bf)
 
 	server.BroadcastMHF(&mhfpacket.MsgSysCastedBinary{
-		MessageType:    BinaryMessageTypeChat,
+		MessageType:    constant.BinaryMessageTypeChat,
 		RawDataPayload: bf.Data(),
 	}, nil)
 }
@@ -76,8 +77,8 @@ func (server *ChannelServer) BroadcastRaviente(ip uint32, port uint16, stage []b
 	bf.WriteUint16(0)    // Unk
 	bf.WriteBytes(stage)
 	server.WorldcastMHF(&mhfpacket.MsgSysCastedBinary{
-		BroadcastType:  BroadcastTypeServer,
-		MessageType:    BinaryMessageTypeChat,
+		BroadcastType:  constant.BroadcastTypeServer,
+		MessageType:    constant.BinaryMessageTypeChat,
 		RawDataPayload: bf.Data(),
 	}, nil, server)
 }

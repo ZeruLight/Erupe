@@ -2,6 +2,7 @@ package channelserver
 
 import (
 	"erupe-ce/config"
+	"erupe-ce/internal/constant"
 	"erupe-ce/network/binpacket"
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/utils/byteframe"
@@ -18,22 +19,6 @@ import (
 )
 
 // MSG_SYS_CAST[ED]_BINARY types enum
-const (
-	BinaryMessageTypeState      = 0
-	BinaryMessageTypeChat       = 1
-	BinaryMessageTypeQuest      = 2
-	BinaryMessageTypeData       = 3
-	BinaryMessageTypeMailNotify = 4
-	BinaryMessageTypeEmote      = 6
-)
-
-// MSG_SYS_CAST[ED]_BINARY broadcast types enum
-const (
-	BroadcastTypeTargeted = 0x01
-	BroadcastTypeStage    = 0x03
-	BroadcastTypeServer   = 0x06
-	BroadcastTypeWorld    = 0x0a
-)
 
 var (
 	commands   map[string]config.Command
@@ -72,7 +57,7 @@ func sendServerChatMessage(s *Session, message string) {
 
 	castedBin := &mhfpacket.MsgSysCastedBinary{
 		CharID:         0,
-		MessageType:    BinaryMessageTypeChat,
+		MessageType:    constant.BinaryMessageTypeChat,
 		RawDataPayload: bf.Data(),
 	}
 
@@ -118,7 +103,7 @@ func handleMsgSysCastBinary(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 	var msgBinTargeted *binpacket.MsgBinTargeted
 	var message, author string
 	var returnToSender bool
-	if pkt.MessageType == BinaryMessageTypeChat {
+	if pkt.MessageType == constant.BinaryMessageTypeChat {
 		tmp.SetLE()
 		tmp.Seek(8, 0)
 		message = string(tmp.ReadNullTerminatedBytes())
@@ -127,7 +112,7 @@ func handleMsgSysCastBinary(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 
 	// Customise payload
 	realPayload := pkt.RawDataPayload
-	if pkt.BroadcastType == BroadcastTypeTargeted {
+	if pkt.BroadcastType == constant.BroadcastTypeTargeted {
 		tmp.SetBE()
 		tmp.Seek(0, 0)
 		msgBinTargeted = &binpacket.MsgBinTargeted{}
@@ -137,11 +122,11 @@ func handleMsgSysCastBinary(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 			return
 		}
 		realPayload = msgBinTargeted.RawDataPayload
-	} else if pkt.MessageType == BinaryMessageTypeChat {
+	} else if pkt.MessageType == constant.BinaryMessageTypeChat {
 		if message == "@dice" {
 			returnToSender = true
 			m := binpacket.MsgBinChat{
-				Type:       BinaryMessageTypeChat,
+				Type:       constant.BinaryMessageTypeChat,
 				Flags:      4,
 				Message:    fmt.Sprintf(`%d`, token.RNG.Intn(100)+1),
 				SenderName: author,
@@ -162,7 +147,7 @@ func handleMsgSysCastBinary(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 				}
 				return
 			}
-			if (pkt.BroadcastType == BroadcastTypeStage && s.stage.id == "sl1Ns200p0a0u0") || pkt.BroadcastType == BroadcastTypeWorld {
+			if (pkt.BroadcastType == constant.BroadcastTypeStage && s.stage.id == "sl1Ns200p0a0u0") || pkt.BroadcastType == constant.BroadcastTypeWorld {
 				s.Server.DiscordChannelSend(chatMessage.SenderName, chatMessage.Message)
 			}
 		}
@@ -178,15 +163,15 @@ func handleMsgSysCastBinary(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 
 	// Send to the proper recipients.
 	switch pkt.BroadcastType {
-	case BroadcastTypeWorld:
+	case constant.BroadcastTypeWorld:
 		s.Server.WorldcastMHF(resp, s, nil)
-	case BroadcastTypeStage:
+	case constant.BroadcastTypeStage:
 		if returnToSender {
 			s.stage.BroadcastMHF(resp, nil)
 		} else {
 			s.stage.BroadcastMHF(resp, s)
 		}
-	case BroadcastTypeServer:
+	case constant.BroadcastTypeServer:
 		if pkt.MessageType == 1 {
 			raviSema := s.Server.getRaviSemaphore()
 			if raviSema != nil {
@@ -195,7 +180,7 @@ func handleMsgSysCastBinary(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 		} else {
 			s.Server.BroadcastMHF(resp, s)
 		}
-	case BroadcastTypeTargeted:
+	case constant.BroadcastTypeTargeted:
 		for _, targetID := range (*msgBinTargeted).TargetCharIDs {
 			char := s.Server.FindSessionByCharID(targetID)
 

@@ -324,7 +324,7 @@ func HandleMsgMhfOperateGuildMember(s *Session, db *sqlx.DB, p mhfpacket.MHFPack
 		for _, channel := range s.Server.Channels {
 			for _, session := range channel.sessions {
 				if session.CharID == pkt.CharID {
-					service.SendMailNotification(s, &mail, session)
+					service.SendMailNotification(&mail, session)
 				}
 			}
 		}

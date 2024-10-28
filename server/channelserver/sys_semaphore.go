@@ -43,6 +43,6 @@ func (s *Semaphore) BroadcastMHF(pkt mhfpacket.MHFPacket, ignoredSession *Sessio
 		if session == ignoredSession {
 			continue
 		}
-		session.QueueSendMHF(pkt)
+		session.QueueSendMHFLazy(pkt)
 	}
 }

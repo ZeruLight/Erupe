@@ -32,7 +32,7 @@ type Session struct {
 	Server      *ChannelServer
 	rawConn     net.Conn
 	cryptConn   *network.CryptConn
-	sendPackets chan mhfpacket.MHFPacket
+	sendPackets chan queuedMHFPacket
 	lastPacket  time.Time
 
 	objectIndex      uint16
@@ -69,6 +69,11 @@ type Session struct {
 	ackStart map[uint32]time.Time
 }
 
+type queuedMHFPacket struct {
+	Packet mhfpacket.MHFPacket
+	Lazy   bool
+}
+
 // NewSession creates a new Session type.
 func NewSession(server *ChannelServer, conn net.Conn) *Session {
 	s := &Session{
@@ -76,7 +81,7 @@ func NewSession(server *ChannelServer, conn net.Conn) *Session {
 		Server:         server,
 		rawConn:        conn,
 		cryptConn:      network.NewCryptConn(conn),
-		sendPackets:    make(chan mhfpacket.MHFPacket, 20),
+		sendPackets:    make(chan queuedMHFPacket, 20),
 		lastPacket:     time.Now(),
 		sessionStart:   gametime.TimeAdjusted().Unix(),
 		stageMoveStack: stringstack.New(),
@@ -99,28 +104,43 @@ func (s *Session) Start() {
 // QueueSendMHF queues a MHFPacket to be sent.
 func (s *Session) QueueSendMHF(pkt mhfpacket.MHFPacket) {
 	select {
-	case s.sendPackets <- pkt:
+	case s.sendPackets <- queuedMHFPacket{Packet: pkt}:
+	default:
+		s.Logger.Warn("Packet queue too full, dropping!")
+	}
+}
+
+func (s *Session) QueueSendMHFLazy(pkt mhfpacket.MHFPacket) {
+	qp := queuedMHFPacket{Packet: pkt, Lazy: true}
+	select {
+	case s.sendPackets <- qp:
 	default:
 		s.Logger.Warn("Packet queue too full, dropping!")
 	}
 }
 
 func (s *Session) sendLoop() {
-	var pkt mhfpacket.MHFPacket
+	var qp queuedMHFPacket
 	var buffer []byte
+	var lazybuffer []byte
 	end := &mhfpacket.MsgSysEnd{}
 	for {
 		if s.closed {
 			return
 		}
 		for len(s.sendPackets) > 0 {
-			pkt = <-s.sendPackets
+			qp = <-s.sendPackets
 			bf := byteframe.NewByteFrame()
-			bf.WriteUint16(uint16(pkt.Opcode()))
-			pkt.Build(bf)
-			s.logMessage(uint16(pkt.Opcode()), bf.Data()[2:], "Server", s.Name)
-			buffer = append(buffer, bf.Data()...)
+			bf.WriteUint16(uint16(qp.Packet.Opcode()))
+			qp.Packet.Build(bf)
+			s.logMessage(uint16(qp.Packet.Opcode()), bf.Data()[2:], "Server", s.Name)
+			if qp.Lazy {
+				lazybuffer = append(lazybuffer, bf.Data()...)
+			} else {
+				buffer = append(buffer, bf.Data()...)
+			}
 		}
+		buffer = append(buffer, lazybuffer...)
 		bf := byteframe.NewByteFrame()
 		bf.WriteUint16(uint16(end.Opcode()))
 		buffer = append(buffer, bf.Data()...)
@@ -130,6 +150,7 @@ func (s *Session) sendLoop() {
 				s.Logger.Warn("Failed to send packet")
 			}
 			buffer = buffer[:0]
+			lazybuffer = lazybuffer[:0]
 		}
 		time.Sleep(time.Duration(config.GetConfig().LoopDelay) * time.Millisecond)
 	}
@@ -275,7 +296,7 @@ func (s *Session) sendMessage(message string) {
 		MessageType:    constant.BinaryMessageTypeChat,
 		RawDataPayload: bf.Data(),
 	}
-	s.QueueSendMHF(castedBin)
+	s.QueueSendMHFLazy(castedBin)
 }
 
 func (s *Session) SetObjectID() {

@@ -19,7 +19,7 @@ func (server *ChannelServer) BroadcastMHF(pkt mhfpacket.MHFPacket, ignoredSessio
 		if session == ignoredSession {
 			continue
 		}
-		session.QueueSendMHF(pkt)
+		session.QueueSendMHFLazy(pkt)
 	}
 }
 

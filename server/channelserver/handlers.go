@@ -53,7 +53,7 @@ func updateRights(s *Session) {
 		Rights:              s.courses,
 		UnkSize:             0,
 	}
-	s.QueueSendMHF(update)
+	s.QueueSendMHFLazy(update)
 }
 
 func handleMsgHead(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}
@@ -161,7 +161,7 @@ func logoutPlayer(s *Session) {
 			for _, sess := range s.Server.sessions {
 				for rSlot := range stage.ReservedClientSlots {
 					if sess.CharID == rSlot && sess.stage != nil && sess.stage.Id[3:5] != "Qs" {
-						sess.QueueSendMHF(&mhfpacket.MsgSysStageDestruct{})
+						sess.QueueSendMHFLazy(&mhfpacket.MsgSysStageDestruct{})
 					}
 				}
 			}
@@ -246,7 +246,7 @@ func handleMsgSysTime(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 		GetRemoteTime: false,
 		Timestamp:     uint32(gametime.TimeAdjusted().Unix()), // JP timezone
 	}
-	s.QueueSendMHF(resp)
+	s.QueueSendMHFLazy(resp)
 	s.notifyRavi()
 }
 

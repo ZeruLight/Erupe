@@ -63,7 +63,7 @@ func doStageTransfer(s *Session, ackHandle uint32, stageID string) {
 	s.Unlock()
 
 	// Tell the client to cleanup its current stage objects.
-	s.QueueSendMHF(&mhfpacket.MsgSysCleanupObject{})
+	s.QueueSendMHFLazy(&mhfpacket.MsgSysCleanupObject{})
 
 	// Confirm the stage entry.
 	s.DoAckSimpleSucceed(ackHandle, []byte{0x00, 0x00, 0x00, 0x00})
@@ -79,13 +79,13 @@ func doStageTransfer(s *Session, ackHandle uint32, stageID string) {
 				continue
 			}
 			temp = &mhfpacket.MsgSysInsertUser{CharID: session.CharID}
-			s.QueueSendMHF(temp)
+			s.QueueSendMHFLazy(temp)
 			for i := 0; i < 3; i++ {
 				temp = &mhfpacket.MsgSysNotifyUserBinary{
 					CharID:     session.CharID,
 					BinaryType: uint8(i + 1),
 				}
-				s.QueueSendMHF(temp)
+				s.QueueSendMHFLazy(temp)
 			}
 		}
 	}
@@ -106,7 +106,7 @@ func doStageTransfer(s *Session, ackHandle uint32, stageID string) {
 				Unk0:        0,
 				OwnerCharID: obj.OwnerCharID,
 			}
-			s.QueueSendMHF(temp)
+			s.QueueSendMHFLazy(temp)
 		}
 		s.stage.RUnlock()
 	}
@@ -232,7 +232,7 @@ func handleMsgSysUnlockStage(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 		for charID := range s.reservationStage.ReservedClientSlots {
 			session := s.Server.FindSessionByCharID(charID)
 			if session != nil {
-				session.QueueSendMHF(&mhfpacket.MsgSysStageDestruct{})
+				session.QueueSendMHFLazy(&mhfpacket.MsgSysStageDestruct{})
 			}
 		}
 

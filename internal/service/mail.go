@@ -192,10 +192,10 @@ func GetMailByID(ID int) (*Mail, error) {
 }
 
 type SessionMail interface {
-	QueueSendMHF(packet mhfpacket.MHFPacket)
+	QueueSendMHFLazy(packet mhfpacket.MHFPacket)
 }
 
-func SendMailNotification(s SessionMail, m *Mail, recipient SessionMail) {
+func SendMailNotification(m *Mail, recipient SessionMail) {
 	bf := byteframe.NewByteFrame()
 
 	notification := &binpacket.MsgBinMailNotify{
@@ -213,7 +213,7 @@ func SendMailNotification(s SessionMail, m *Mail, recipient SessionMail) {
 
 	castedBinary.Build(bf)
 
-	recipient.QueueSendMHF(castedBinary)
+	recipient.QueueSendMHFLazy(castedBinary)
 }
 
 func getCharacterName(charID uint32) string {

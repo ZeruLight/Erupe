@@ -151,14 +151,14 @@ func reload(s *Session, _ []string) error {
 			continue
 		}
 		temp = &mhfpacket.MsgSysDeleteObject{ObjID: object.Id}
-		s.QueueSendMHF(temp)
+		s.QueueSendMHFLazy(temp)
 	}
 	for _, session := range s.Server.sessions {
 		if s == session {
 			continue
 		}
 		temp = &mhfpacket.MsgSysDeleteUser{CharID: session.CharID}
-		s.QueueSendMHF(temp)
+		s.QueueSendMHFLazy(temp)
 	}
 	time.Sleep(500 * time.Millisecond)
 	for _, session := range s.Server.sessions {
@@ -166,13 +166,13 @@ func reload(s *Session, _ []string) error {
 			continue
 		}
 		temp = &mhfpacket.MsgSysInsertUser{CharID: session.CharID}
-		s.QueueSendMHF(temp)
+		s.QueueSendMHFLazy(temp)
 		for i := 0; i < 3; i++ {
 			temp = &mhfpacket.MsgSysNotifyUserBinary{
 				CharID:     session.CharID,
 				BinaryType: uint8(i + 1),
 			}
-			s.QueueSendMHF(temp)
+			s.QueueSendMHFLazy(temp)
 		}
 	}
 	for _, obj := range s.stage.Objects {
@@ -187,7 +187,7 @@ func reload(s *Session, _ []string) error {
 			Unk0:        0,
 			OwnerCharID: obj.OwnerCharID,
 		}
-		s.QueueSendMHF(temp)
+		s.QueueSendMHFLazy(temp)
 	}
 	return nil
 }
@@ -356,7 +356,7 @@ func teleport(s *Session, args []string) error {
 	payload.WriteUint8(2) // SetState type(position == 2)
 	payload.WriteInt16(int16(x))
 	payload.WriteInt16(int16(y))
-	s.QueueSendMHF(&mhfpacket.MsgSysCastedBinary{
+	s.QueueSendMHFLazy(&mhfpacket.MsgSysCastedBinary{
 		CharID:         s.CharID,
 		MessageType:    constant.BinaryMessageTypeState,
 		RawDataPayload: payload.Data(),

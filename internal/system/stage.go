@@ -7,7 +7,7 @@ import (
 )
 
 type SessionStage interface {
-	QueueSendMHF(packet mhfpacket.MHFPacket)
+	QueueSendMHFLazy(packet mhfpacket.MHFPacket)
 	GetCharID() uint32
 	GetName() string
 }
@@ -77,7 +77,7 @@ func (s *Stage) BroadcastMHF(pkt mhfpacket.MHFPacket, ignoredSession SessionStag
 		if session == ignoredSession {
 			continue
 		}
-		session.QueueSendMHF(pkt)
+		session.QueueSendMHFLazy(pkt)
 	}
 }
 

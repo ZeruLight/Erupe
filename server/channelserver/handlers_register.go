@@ -123,12 +123,12 @@ func (s *Session) notifyRavi() {
 		temp = &mhfpacket.MsgSysLoadRegister{RegisterID: uint32(0x40000 + i*0x10000)}
 		if config.GetConfig().GameplayOptions.LowLatencyRaviente {
 			for session := range sema.clients {
-				session.QueueSendMHF(temp)
+				session.QueueSendMHFLazy(temp)
 			}
 		} else {
 			for session := range sema.clients {
 				if session.CharID == s.CharID {
-					session.QueueSendMHF(temp)
+					session.QueueSendMHFLazy(temp)
 				}
 			}
 		}

@@ -61,7 +61,7 @@ func sendServerChatMessage(s *Session, message string) {
 		RawDataPayload: bf.Data(),
 	}
 
-	s.QueueSendMHF(castedBin)
+	s.QueueSendMHFLazy(castedBin)
 }
 
 func handleMsgSysCastBinary(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
@@ -185,7 +185,7 @@ func handleMsgSysCastBinary(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 			char := s.Server.FindSessionByCharID(targetID)
 
 			if char != nil {
-				char.QueueSendMHF(resp)
+				char.QueueSendMHFLazy(resp)
 			}
 		}
 	default:

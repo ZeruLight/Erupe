@@ -1,6 +1,7 @@
 package channelserver
 
 import (
+	"erupe-ce/config"
 	"erupe-ce/utils/database"
 	"fmt"
 	"sort"
@@ -154,15 +155,15 @@ func (server *ChannelServer) onDiscordMessage(ds *discordgo.Session, m *discordg
 	}
 }
 func (server *ChannelServer) DiscordChannelSend(charName string, content string) {
-	if server.erupeConfig.Discord.Enabled && server.discordBot != nil {
+	if config.GetConfig().Discord.Enabled && server.discordBot != nil {
 		message := fmt.Sprintf("**%s**: %s", charName, content)
 		server.discordBot.RealtimeChannelSend(message)
 	}
 }
 
 func (server *ChannelServer) DiscordScreenShotSend(charName string, title string, description string, articleToken string) {
-	if server.erupeConfig.Discord.Enabled && server.discordBot != nil {
-		imageUrl := fmt.Sprintf("%s:%d/api/ss/bbs/%s", server.erupeConfig.Screenshots.Host, server.erupeConfig.Screenshots.Port, articleToken)
+	if config.GetConfig().Discord.Enabled && server.discordBot != nil {
+		imageUrl := fmt.Sprintf("%s:%d/api/ss/bbs/%s", config.GetConfig().Screenshots.Host, config.GetConfig().Screenshots.Port, articleToken)
 		message := fmt.Sprintf("**%s**: %s - %s %s", charName, title, description, imageUrl)
 		server.discordBot.RealtimeChannelSend(message)
 	}

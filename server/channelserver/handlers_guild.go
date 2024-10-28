@@ -6,7 +6,7 @@ import (
 	"erupe-ce/internal/model"
 	"erupe-ce/internal/service"
 
-	"erupe-ce/utils/db"
+	"erupe-ce/utils/database"
 	"erupe-ce/utils/gametime"
 	"erupe-ce/utils/mhfitem"
 
@@ -209,7 +209,7 @@ func handleChangePugi(s *Session, outfit uint8, guild *service.Guild, num int) {
 }
 
 func handleDonateRP(s *Session, amount uint16, guild *service.Guild, _type int) []byte {
-	db, err := db.GetDB()
+	db, err := database.GetDB()
 	if err != nil {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
@@ -977,7 +977,7 @@ func HandleMsgMhfGetGuildTargetMemberNum(s *Session, db *sqlx.DB, p mhfpacket.MH
 }
 
 func guildGetItems(s *Session, guildID uint32) []mhfitem.MHFItemStack {
-	db, err := db.GetDB()
+	db, err := database.GetDB()
 	if err != nil {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}

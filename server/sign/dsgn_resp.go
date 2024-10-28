@@ -2,7 +2,7 @@ package sign
 
 import (
 	"erupe-ce/utils/byteframe"
-	"erupe-ce/utils/db"
+	"erupe-ce/utils/database"
 	"erupe-ce/utils/gametime"
 	ps "erupe-ce/utils/pascalstring"
 	"erupe-ce/utils/stringsupport"
@@ -333,7 +333,7 @@ func (s *Session) makeSignResponse(uid uint32) []byte {
 
 	bf.WriteUint16(uint16(len(filters.Data())))
 	bf.WriteBytes(filters.Data())
-	database, err := db.GetDB() // Capture both return values
+	database, err := database.GetDB() // Capture both return values
 	if err != nil {
 		s.logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}

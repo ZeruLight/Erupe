@@ -3,7 +3,7 @@ package api
 import (
 	"context"
 	"database/sql"
-	"erupe-ce/utils/db"
+	"erupe-ce/utils/database"
 	"erupe-ce/utils/token"
 	"fmt"
 	"time"
@@ -22,7 +22,7 @@ func (s *APIServer) createNewUser(ctx context.Context, username string, password
 		id     uint32
 		rights uint32
 	)
-	database, err := db.GetDB()
+	database, err := database.GetDB()
 	if err != nil {
 		s.logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
@@ -40,7 +40,7 @@ func (s *APIServer) createNewUser(ctx context.Context, username string, password
 func (s *APIServer) createLoginToken(ctx context.Context, uid uint32) (uint32, string, error) {
 	loginToken := token.Generate(16)
 	var tid uint32
-	database, err := db.GetDB()
+	database, err := database.GetDB()
 	if err != nil {
 		s.logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
@@ -53,7 +53,7 @@ func (s *APIServer) createLoginToken(ctx context.Context, uid uint32) (uint32, s
 
 func (s *APIServer) userIDFromToken(ctx context.Context, token string) (uint32, error) {
 	var userID uint32
-	database, err := db.GetDB()
+	database, err := database.GetDB()
 	if err != nil {
 		s.logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
@@ -68,7 +68,7 @@ func (s *APIServer) userIDFromToken(ctx context.Context, token string) (uint32, 
 
 func (s *APIServer) createCharacter(ctx context.Context, userID uint32) (Character, error) {
 	var character Character
-	database, err := db.GetDB()
+	database, err := database.GetDB()
 	if err != nil {
 		s.logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
@@ -97,7 +97,7 @@ func (s *APIServer) createCharacter(ctx context.Context, userID uint32) (Charact
 
 func (s *APIServer) deleteCharacter(ctx context.Context, userID uint32, charID uint32) error {
 	var isNew bool
-	database, err := db.GetDB()
+	database, err := database.GetDB()
 	if err != nil {
 		s.logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
@@ -115,7 +115,7 @@ func (s *APIServer) deleteCharacter(ctx context.Context, userID uint32, charID u
 
 func (s *APIServer) getCharactersForUser(ctx context.Context, uid uint32) ([]Character, error) {
 	var characters []Character
-	database, err := db.GetDB()
+	database, err := database.GetDB()
 	if err != nil {
 		s.logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
@@ -134,7 +134,7 @@ func (s *APIServer) getCharactersForUser(ctx context.Context, uid uint32) ([]Cha
 
 func (s *APIServer) getReturnExpiry(uid uint32) time.Time {
 	var returnExpiry, lastLogin time.Time
-	database, err := db.GetDB()
+	database, err := database.GetDB()
 	if err != nil {
 		s.logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
@@ -154,7 +154,7 @@ func (s *APIServer) getReturnExpiry(uid uint32) time.Time {
 }
 
 func (s *APIServer) exportSave(ctx context.Context, uid uint32, cid uint32) (map[string]interface{}, error) {
-	database, err := db.GetDB()
+	database, err := database.GetDB()
 	if err != nil {
 		s.logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}

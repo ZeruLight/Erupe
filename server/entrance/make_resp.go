@@ -6,7 +6,7 @@ import (
 	"erupe-ce/config"
 	"erupe-ce/network/crypto/bin8"
 	"erupe-ce/utils/byteframe"
-	"erupe-ce/utils/db"
+	"erupe-ce/utils/database"
 	"erupe-ce/utils/gametime"
 
 	"erupe-ce/utils/stringsupport"
@@ -73,7 +73,7 @@ func encodeServerInfo(server *EntranceServer, local bool) []byte {
 			bf.WriteUint16(uint16(channelIdx | 16))
 			bf.WriteUint16(ci.MaxPlayers)
 			var currentPlayers uint16
-			database, err := db.GetDB() // Capture both return values
+			database, err := database.GetDB() // Capture both return values
 			if err != nil {
 				server.logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 			}
@@ -156,7 +156,7 @@ func makeUsrResp(pkt []byte, server *EntranceServer) []byte {
 	_ = bf.ReadUint8()  // 0x00
 	userEntries := bf.ReadUint16()
 	resp := byteframe.NewByteFrame()
-	database, err := db.GetDB()
+	database, err := database.GetDB()
 	if err != nil {
 		server.logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}

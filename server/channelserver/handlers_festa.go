@@ -8,7 +8,7 @@ import (
 
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/utils/byteframe"
-	"erupe-ce/utils/db"
+	"erupe-ce/utils/database"
 
 	"erupe-ce/utils/gametime"
 	ps "erupe-ce/utils/pascalstring"
@@ -105,7 +105,7 @@ func handleMsgMhfEnumerateRanking(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket
 }
 
 func cleanupFesta(s *Session) {
-	db, err := db.GetDB()
+	db, err := database.GetDB()
 	if err != nil {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
@@ -117,7 +117,7 @@ func cleanupFesta(s *Session) {
 }
 
 func generateFestaTimestamps(s *Session, start uint32, debug bool) []uint32 {
-	db, err := db.GetDB()
+	db, err := database.GetDB()
 	if err != nil {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}

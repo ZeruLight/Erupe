@@ -6,7 +6,7 @@ import (
 	"encoding/xml"
 	"errors"
 	"erupe-ce/config"
-	"erupe-ce/utils/db"
+	"erupe-ce/utils/database"
 	"erupe-ce/utils/gametime"
 	"fmt"
 	"image"
@@ -138,7 +138,7 @@ func (s *APIServer) Login(w http.ResponseWriter, r *http.Request) {
 		userRights uint32
 		password   string
 	)
-	database, err := db.GetDB()
+	database, err := database.GetDB()
 	if err != nil {
 		s.logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}

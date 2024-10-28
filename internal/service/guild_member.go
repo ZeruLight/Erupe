@@ -1,7 +1,7 @@
 package service
 
 import (
-	"erupe-ce/utils/db"
+	"erupe-ce/utils/database"
 	"erupe-ce/utils/logger"
 	"fmt"
 	"time"
@@ -48,7 +48,7 @@ func (gm *GuildMember) IsSubLeader() bool {
 }
 
 func (gm *GuildMember) Save() error {
-	db, err := db.GetDB()
+	db, err := database.GetDB()
 	logger := logger.Get()
 
 	if err != nil {
@@ -95,7 +95,7 @@ SELECT * FROM (
 `
 
 func GetGuildMembers(guildID uint32, applicants bool) ([]*GuildMember, error) {
-	db, err := db.GetDB()
+	db, err := database.GetDB()
 	logger := logger.Get()
 
 	if err != nil {
@@ -129,7 +129,7 @@ func GetGuildMembers(guildID uint32, applicants bool) ([]*GuildMember, error) {
 }
 
 func GetCharacterGuildData(charID uint32) (*GuildMember, error) {
-	db, err := db.GetDB()
+	db, err := database.GetDB()
 	logger := logger.Get()
 
 	if err != nil {

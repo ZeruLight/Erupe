@@ -6,7 +6,7 @@ import (
 	"erupe-ce/network/binpacket"
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/utils/byteframe"
-	"erupe-ce/utils/db"
+	"erupe-ce/utils/database"
 
 	"erupe-ce/utils/logger"
 	"fmt"
@@ -34,7 +34,7 @@ type Mail struct {
 }
 
 func (m *Mail) Send(transaction *sql.Tx) error {
-	db, err := db.GetDB()
+	db, err := database.GetDB()
 	logger := logger.Get()
 
 	if err != nil {
@@ -71,7 +71,7 @@ func (m *Mail) Send(transaction *sql.Tx) error {
 }
 
 func (m *Mail) MarkRead() error {
-	db, err := db.GetDB()
+	db, err := database.GetDB()
 	logger := logger.Get()
 	if err != nil {
 		logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
@@ -93,7 +93,7 @@ func (m *Mail) MarkRead() error {
 }
 
 func GetMailListForCharacter(charID uint32) ([]Mail, error) {
-	db, err := db.GetDB()
+	db, err := database.GetDB()
 	logger := logger.Get()
 	if err != nil {
 		logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
@@ -146,7 +146,7 @@ func GetMailListForCharacter(charID uint32) ([]Mail, error) {
 }
 
 func GetMailByID(ID int) (*Mail, error) {
-	db, err := db.GetDB()
+	db, err := database.GetDB()
 	logger := logger.Get()
 
 	if err != nil {
@@ -217,7 +217,7 @@ func SendMailNotification(s SessionMail, m *Mail, recipient SessionMail) {
 }
 
 func getCharacterName(charID uint32) string {
-	db, err := db.GetDB()
+	db, err := database.GetDB()
 	logger := logger.Get()
 
 	if err != nil {

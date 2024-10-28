@@ -10,7 +10,7 @@ import (
 	"erupe-ce/network/binpacket"
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/utils/byteframe"
-	"erupe-ce/utils/db"
+	"erupe-ce/utils/database"
 	"erupe-ce/utils/gametime"
 	"erupe-ce/utils/logger"
 	"erupe-ce/utils/mhfcourse"
@@ -196,7 +196,7 @@ func (s *Session) handlePacketGroup(pktGroup []byte) {
 		fmt.Printf("\n!!! [%s] %s NOT IMPLEMENTED !!! \n\n\n", s.Name, opcode)
 		return
 	}
-	database, err := db.GetDB()
+	database, err := database.GetDB()
 	if err != nil {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
@@ -314,7 +314,7 @@ func (s *Session) GetSemaphoreID() uint32 {
 
 func (s *Session) isOp() bool {
 	var op bool
-	db, err := db.GetDB()
+	db, err := database.GetDB()
 	if err != nil {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}

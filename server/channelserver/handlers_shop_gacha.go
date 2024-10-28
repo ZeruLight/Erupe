@@ -5,7 +5,7 @@ import (
 	"erupe-ce/internal/model"
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/utils/byteframe"
-	"erupe-ce/utils/db"
+	"erupe-ce/utils/database"
 	"erupe-ce/utils/gametime"
 	ps "erupe-ce/utils/pascalstring"
 	"fmt"
@@ -46,7 +46,7 @@ func writeShopItems(bf *byteframe.ByteFrame, items []model.ShopItem) {
 }
 
 func getShopItems(s *Session, shopType uint8, shopID uint32) []model.ShopItem {
-	db, err := db.GetDB()
+	db, err := database.GetDB()
 	if err != nil {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
@@ -276,7 +276,7 @@ func handleMsgMhfUseGachaPoint(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 
 func spendGachaCoin(s *Session, quantity uint16) {
 
-	db, err := db.GetDB()
+	db, err := database.GetDB()
 	if err != nil {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
@@ -291,7 +291,7 @@ func spendGachaCoin(s *Session, quantity uint16) {
 }
 
 func transactGacha(s *Session, gachaID uint32, rollID uint8) (error, int) {
-	db, err := db.GetDB()
+	db, err := database.GetDB()
 	if err != nil {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
@@ -326,7 +326,7 @@ func transactGacha(s *Session, gachaID uint32, rollID uint8) (error, int) {
 }
 
 func getGuaranteedItems(s *Session, gachaID uint32, rollID uint8) []model.GachaItem {
-	db, err := db.GetDB()
+	db, err := database.GetDB()
 	if err != nil {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
@@ -344,7 +344,7 @@ func getGuaranteedItems(s *Session, gachaID uint32, rollID uint8) []model.GachaI
 }
 
 func addGachaItem(s *Session, items []model.GachaItem) {
-	db, err := db.GetDB()
+	db, err := database.GetDB()
 	if err != nil {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}

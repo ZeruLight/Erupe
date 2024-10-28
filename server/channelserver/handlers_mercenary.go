@@ -10,7 +10,7 @@ import (
 	"fmt"
 
 	"erupe-ce/utils/byteframe"
-	"erupe-ce/utils/db"
+	"erupe-ce/utils/database"
 	"erupe-ce/utils/gametime"
 	"erupe-ce/utils/stringsupport"
 	"io"
@@ -332,7 +332,7 @@ func handleMsgMhfEnumerateAiroulist(s *Session, db *sqlx.DB, p mhfpacket.MHFPack
 }
 
 func getGuildAirouList(s *Session) []model.Airou {
-	db, err := db.GetDB()
+	db, err := database.GetDB()
 	if err != nil {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}

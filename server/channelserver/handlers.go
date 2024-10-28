@@ -6,7 +6,7 @@ import (
 	"erupe-ce/internal/model"
 	"erupe-ce/internal/service"
 	"erupe-ce/internal/system"
-	"erupe-ce/utils/db"
+	"erupe-ce/utils/database"
 	"erupe-ce/utils/gametime"
 	"erupe-ce/utils/mhfcourse"
 	"erupe-ce/utils/mhfitem"
@@ -38,7 +38,7 @@ func stubEnumerateNoResults(s *Session, ackHandle uint32) {
 }
 
 func updateRights(s *Session) {
-	db, err := db.GetDB()
+	db, err := database.GetDB()
 	if err != nil {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
@@ -143,7 +143,7 @@ func handleMsgSysLogout(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 }
 
 func logoutPlayer(s *Session) {
-	db, err := db.GetDB()
+	db, err := database.GetDB()
 	if err != nil {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
@@ -788,7 +788,7 @@ func handleMsgMhfEnumerateOrder(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) 
 func handleMsgMhfGetExtraInfo(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}
 
 func userGetItems(s *Session) []mhfitem.MHFItemStack {
-	db, err := db.GetDB()
+	db, err := database.GetDB()
 	if err != nil {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
@@ -882,7 +882,7 @@ func handleMsgMhfExchangeWeeklyStamp(s *Session, db *sqlx.DB, p mhfpacket.MHFPac
 }
 
 func getGoocooData(s *Session, cid uint32) [][]byte {
-	db, err := db.GetDB()
+	db, err := database.GetDB()
 	if err != nil {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}

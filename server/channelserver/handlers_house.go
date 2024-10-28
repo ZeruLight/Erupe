@@ -6,7 +6,7 @@ import (
 	"erupe-ce/internal/service"
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/utils/byteframe"
-	"erupe-ce/utils/db"
+	"erupe-ce/utils/database"
 	"erupe-ce/utils/mhfitem"
 	ps "erupe-ce/utils/pascalstring"
 	"erupe-ce/utils/stringsupport"
@@ -367,7 +367,7 @@ func handleMsgMhfAcquireTitle(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {
 func handleMsgMhfResetTitle(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket) {}
 
 func initializeWarehouse(s *Session) {
-	db, err := db.GetDB()
+	db, err := database.GetDB()
 	if err != nil {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
@@ -440,7 +440,7 @@ func handleMsgMhfOperateWarehouse(s *Session, db *sqlx.DB, p mhfpacket.MHFPacket
 }
 
 func addWarehouseItem(s *Session, item mhfitem.MHFItemStack) {
-	db, err := db.GetDB()
+	db, err := database.GetDB()
 	if err != nil {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
@@ -451,7 +451,7 @@ func addWarehouseItem(s *Session, item mhfitem.MHFItemStack) {
 }
 
 func addWarehouseEquipment(s *Session, equipment mhfitem.MHFEquipment) {
-	db, err := db.GetDB()
+	db, err := database.GetDB()
 	if err != nil {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
@@ -462,7 +462,7 @@ func addWarehouseEquipment(s *Session, equipment mhfitem.MHFEquipment) {
 }
 
 func warehouseGetItems(s *Session, index uint8) []mhfitem.MHFItemStack {
-	db, err := db.GetDB()
+	db, err := database.GetDB()
 	if err != nil {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
@@ -482,7 +482,7 @@ func warehouseGetItems(s *Session, index uint8) []mhfitem.MHFItemStack {
 }
 
 func warehouseGetEquipment(s *Session, index uint8) []mhfitem.MHFEquipment {
-	db, err := db.GetDB()
+	db, err := database.GetDB()
 	if err != nil {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}

@@ -7,7 +7,7 @@ import (
 	"errors"
 	"erupe-ce/config"
 	"erupe-ce/internal/model"
-	"erupe-ce/utils/db"
+	"erupe-ce/utils/database"
 	"erupe-ce/utils/logger"
 	"fmt"
 	"time"
@@ -106,7 +106,7 @@ func (g *Guild) Rank() uint16 {
 }
 
 func (guild *Guild) Save() error {
-	db, err := db.GetDB()
+	db, err := database.GetDB()
 	logger := logger.Get()
 
 	if err != nil {
@@ -127,7 +127,7 @@ func (guild *Guild) Save() error {
 }
 
 func (guild *Guild) CreateApplication(charID uint32, applicationType model.GuildApplicationType, transaction *sql.Tx, actorId uint32) error {
-	db, err := db.GetDB()
+	db, err := database.GetDB()
 	logger := logger.Get()
 
 	if err != nil {
@@ -158,7 +158,7 @@ func (guild *Guild) CreateApplication(charID uint32, applicationType model.Guild
 }
 
 func (guild *Guild) Disband(charID uint32) error {
-	db, err := db.GetDB()
+	db, err := database.GetDB()
 	logger := logger.Get()
 
 	if err != nil {
@@ -224,7 +224,7 @@ func (guild *Guild) Disband(charID uint32) error {
 }
 
 func (guild *Guild) RemoveCharacter(charID uint32) error {
-	db, err := db.GetDB()
+	db, err := database.GetDB()
 	logger := logger.Get()
 
 	if err != nil {
@@ -247,7 +247,7 @@ func (guild *Guild) RemoveCharacter(charID uint32) error {
 }
 
 func (guild *Guild) AcceptApplication(charID uint32) error {
-	db, err := db.GetDB()
+	db, err := database.GetDB()
 	logger := logger.Get()
 
 	if err != nil {
@@ -298,7 +298,7 @@ func (guild *Guild) AcceptApplication(charID uint32) error {
 // This is relying on the fact that invitation ID is also character ID right now
 // if invitation ID changes, this will break.
 func (guild *Guild) CancelInvitation(charID uint32) error {
-	db, err := db.GetDB()
+	db, err := database.GetDB()
 	logger := logger.Get()
 
 	if err != nil {
@@ -323,7 +323,7 @@ func (guild *Guild) CancelInvitation(charID uint32) error {
 }
 
 func (guild *Guild) RejectApplication(charID uint32) error {
-	db, err := db.GetDB()
+	db, err := database.GetDB()
 	logger := logger.Get()
 
 	if err != nil {
@@ -348,7 +348,7 @@ func (guild *Guild) RejectApplication(charID uint32) error {
 }
 
 func (guild *Guild) ArrangeCharacters(charIDs []uint32) error {
-	db, err := db.GetDB()
+	db, err := database.GetDB()
 	logger := logger.Get()
 
 	if err != nil {
@@ -386,7 +386,7 @@ func (guild *Guild) ArrangeCharacters(charIDs []uint32) error {
 }
 
 func (guild *Guild) GetApplicationForCharID(charID uint32, applicationType model.GuildApplicationType) (*model.GuildApplication, error) {
-	db, err := db.GetDB()
+	db, err := database.GetDB()
 	logger := logger.Get()
 
 	if err != nil {
@@ -418,7 +418,7 @@ func (guild *Guild) GetApplicationForCharID(charID uint32, applicationType model
 }
 
 func (guild *Guild) HasApplicationForCharID(charID uint32) (bool, error) {
-	db, err := db.GetDB()
+	db, err := database.GetDB()
 	logger := logger.Get()
 
 	if err != nil {
@@ -487,7 +487,7 @@ SELECT
 `
 
 func CreateGuild(guildName string, charID uint32) (int32, error) {
-	db, err := db.GetDB()
+	db, err := database.GetDB()
 	logger := logger.Get()
 
 	if err != nil {
@@ -557,7 +557,7 @@ func CreateGuild(guildName string, charID uint32) (int32, error) {
 }
 
 func GetGuildInfoByID(guildID uint32) (*Guild, error) {
-	db, err := db.GetDB()
+	db, err := database.GetDB()
 	logger := logger.Get()
 
 	if err != nil {
@@ -586,7 +586,7 @@ func GetGuildInfoByID(guildID uint32) (*Guild, error) {
 }
 
 func GetGuildInfoByCharacterId(charID uint32) (*Guild, error) {
-	db, err := db.GetDB()
+	db, err := database.GetDB()
 	logger := logger.Get()
 
 	if err != nil {

@@ -7,7 +7,7 @@ import (
 	"erupe-ce/internal/constant"
 	"erupe-ce/network/mhfpacket"
 	"erupe-ce/utils/byteframe"
-	"erupe-ce/utils/db"
+	"erupe-ce/utils/database"
 	"erupe-ce/utils/mhfcid"
 	"erupe-ce/utils/mhfcourse"
 	"fmt"
@@ -52,7 +52,7 @@ func executeCommand(s *Session, input string) error {
 }
 
 func ban(s *Session, args []string) error {
-	db, err := db.GetDB()
+	db, err := database.GetDB()
 	if err != nil {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
@@ -103,7 +103,7 @@ func ban(s *Session, args []string) error {
 }
 
 func timer(s *Session, _ []string) error {
-	db, err := db.GetDB()
+	db, err := database.GetDB()
 	if err != nil {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
@@ -119,7 +119,7 @@ func timer(s *Session, _ []string) error {
 }
 
 func psn(s *Session, args []string) error {
-	db, err := db.GetDB()
+	db, err := database.GetDB()
 	if err != nil {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
@@ -219,7 +219,7 @@ func kqf(s *Session, args []string) error {
 }
 
 func rights(s *Session, args []string) error {
-	db, err := db.GetDB()
+	db, err := database.GetDB()
 	if err != nil {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
@@ -239,7 +239,7 @@ func rights(s *Session, args []string) error {
 }
 
 func course(s *Session, args []string) error {
-	db, err := db.GetDB()
+	db, err := database.GetDB()
 	if err != nil {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
@@ -366,7 +366,7 @@ func teleport(s *Session, args []string) error {
 }
 
 func discord(s *Session, _ []string) error {
-	db, err := db.GetDB()
+	db, err := database.GetDB()
 	if err != nil {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}

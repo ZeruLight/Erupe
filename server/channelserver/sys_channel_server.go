@@ -9,7 +9,7 @@ import (
 	"erupe-ce/config"
 	"erupe-ce/internal/system"
 	"erupe-ce/server/discordbot"
-	"erupe-ce/utils/db"
+	"erupe-ce/utils/database"
 
 	"erupe-ce/utils/gametime"
 	"erupe-ce/utils/logger"
@@ -209,7 +209,7 @@ func (server *ChannelServer) FindSessionByCharID(charID uint32) *Session {
 func (server *ChannelServer) DisconnectUser(uid uint32) {
 	var cid uint32
 	var cids []uint32
-	db, err := db.GetDB()
+	db, err := database.GetDB()
 	if err != nil {
 		server.logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}

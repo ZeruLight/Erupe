@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"errors"
 	"erupe-ce/config"
-	"erupe-ce/utils/db"
+	"erupe-ce/utils/database"
 	"erupe-ce/utils/mhfcourse"
 	"erupe-ce/utils/token"
 	"fmt"
@@ -17,7 +17,7 @@ import (
 
 func (server *SignServer) newUserChara(uid uint32) error {
 	var numNewChars int
-	database, err := db.GetDB() // Capture both return values
+	database, err := database.GetDB() // Capture both return values
 	if err != nil {
 		server.logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
@@ -49,7 +49,7 @@ func (server *SignServer) newUserChara(uid uint32) error {
 func (server *SignServer) registerDBAccount(username string, password string) (uint32, error) {
 	var uid uint32
 	server.logger.Info("Creating user", zap.String("User", username))
-	database, err := db.GetDB() // Capture both return values
+	database, err := database.GetDB() // Capture both return values
 	if err != nil {
 		server.logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
@@ -80,7 +80,7 @@ type character struct {
 }
 
 func (server *SignServer) getCharactersForUser(uid uint32) ([]character, error) {
-	database, err := db.GetDB() // Capture both return values
+	database, err := database.GetDB() // Capture both return values
 	if err != nil {
 		server.logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
@@ -93,7 +93,7 @@ func (server *SignServer) getCharactersForUser(uid uint32) ([]character, error) 
 }
 
 func (server *SignServer) getReturnExpiry(uid uint32) time.Time {
-	database, err := db.GetDB() // Capture both return values
+	database, err := database.GetDB() // Capture both return values
 	if err != nil {
 		server.logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
@@ -114,7 +114,7 @@ func (server *SignServer) getReturnExpiry(uid uint32) time.Time {
 }
 
 func (server *SignServer) getLastCID(uid uint32) uint32 {
-	database, err := db.GetDB() // Capture both return values
+	database, err := database.GetDB() // Capture both return values
 	if err != nil {
 		server.logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
@@ -124,7 +124,7 @@ func (server *SignServer) getLastCID(uid uint32) uint32 {
 }
 
 func (server *SignServer) getUserRights(uid uint32) uint32 {
-	database, err := db.GetDB() // Capture both return values
+	database, err := database.GetDB() // Capture both return values
 	if err != nil {
 		server.logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
@@ -143,7 +143,7 @@ type members struct {
 }
 
 func (server *SignServer) getFriendsForCharacters(chars []character) []members {
-	database, err := db.GetDB() // Capture both return values
+	database, err := database.GetDB() // Capture both return values
 	if err != nil {
 		server.logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
@@ -173,7 +173,7 @@ func (server *SignServer) getFriendsForCharacters(chars []character) []members {
 }
 
 func (server *SignServer) getGuildmatesForCharacters(chars []character) []members {
-	database, err := db.GetDB() // Capture both return values
+	database, err := database.GetDB() // Capture both return values
 	if err != nil {
 		server.logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
@@ -202,7 +202,7 @@ func (server *SignServer) getGuildmatesForCharacters(chars []character) []member
 }
 
 func (server *SignServer) deleteCharacter(cid int, token string, tokenID uint32) error {
-	database, err := db.GetDB() // Capture both return values
+	database, err := database.GetDB() // Capture both return values
 	if err != nil {
 		server.logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
@@ -224,7 +224,7 @@ func (server *SignServer) deleteCharacter(cid int, token string, tokenID uint32)
 
 // Unused
 func (server *SignServer) checkToken(uid uint32) (bool, error) {
-	database, err := db.GetDB() // Capture both return values
+	database, err := database.GetDB() // Capture both return values
 	if err != nil {
 		server.logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
@@ -240,7 +240,7 @@ func (server *SignServer) checkToken(uid uint32) (bool, error) {
 }
 
 func (server *SignServer) registerUidToken(uid uint32) (uint32, string, error) {
-	database, err := db.GetDB() // Capture both return values
+	database, err := database.GetDB() // Capture both return values
 	if err != nil {
 		server.logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
@@ -251,7 +251,7 @@ func (server *SignServer) registerUidToken(uid uint32) (uint32, string, error) {
 }
 
 func (server *SignServer) registerPsnToken(psn string) (uint32, string, error) {
-	database, err := db.GetDB() // Capture both return values
+	database, err := database.GetDB() // Capture both return values
 	if err != nil {
 		server.logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
@@ -262,7 +262,7 @@ func (server *SignServer) registerPsnToken(psn string) (uint32, string, error) {
 }
 
 func (server *SignServer) validateToken(token string, tokenID uint32) bool {
-	database, err := db.GetDB() // Capture both return values
+	database, err := database.GetDB() // Capture both return values
 	if err != nil {
 		server.logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
@@ -279,7 +279,7 @@ func (server *SignServer) validateToken(token string, tokenID uint32) bool {
 }
 
 func (server *SignServer) validateLogin(user string, pass string) (uint32, RespID) {
-	database, err := db.GetDB() // Capture both return values
+	database, err := database.GetDB() // Capture both return values
 	if err != nil {
 		server.logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}

@@ -1,7 +1,7 @@
 package service
 
 import (
-	"erupe-ce/utils/db"
+	"erupe-ce/utils/database"
 	"erupe-ce/utils/logger"
 	"fmt"
 	"time"
@@ -43,7 +43,7 @@ FROM guild_alliances ga
 `
 
 func GetAllianceData(AllianceID uint32) (*GuildAlliance, error) {
-	db, err := db.GetDB()
+	db, err := database.GetDB()
 	logger := logger.Get()
 
 	if err != nil {

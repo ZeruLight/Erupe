@@ -15,7 +15,7 @@ import (
 	"erupe-ce/server/discordbot"
 	"erupe-ce/server/entrance"
 	"erupe-ce/server/sign"
-	"erupe-ce/utils/db"
+	"erupe-ce/utils/database"
 	"erupe-ce/utils/logger"
 
 	"erupe-ce/utils/gametime"
@@ -61,7 +61,7 @@ func main() {
 
 	discordBot := initializeDiscordBot()
 
-	database, err := db.InitDB(config)
+	database, err := database.InitDB(config)
 	if err != nil {
 		mainLogger.Fatal(fmt.Sprintf("Database initialization failed: %s", err))
 	}

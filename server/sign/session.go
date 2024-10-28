@@ -4,7 +4,7 @@ import (
 	"database/sql"
 	"encoding/hex"
 	"erupe-ce/config"
-	"erupe-ce/utils/db"
+	"erupe-ce/utils/database"
 	"erupe-ce/utils/logger"
 
 	"erupe-ce/utils/stringsupport"
@@ -121,7 +121,7 @@ func (s *Session) handleWIIUSGN(bf *byteframe.ByteFrame) {
 	_ = bf.ReadBytes(1)
 	wiiuKey := string(bf.ReadBytes(64))
 	var uid uint32
-	database, err := db.GetDB() // Capture both return values
+	database, err := database.GetDB() // Capture both return values
 	if err != nil {
 		s.logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
@@ -152,7 +152,7 @@ func (s *Session) handlePSSGN(bf *byteframe.ByteFrame) {
 	}
 	s.psn = string(bf.ReadNullTerminatedBytes())
 	var uid uint32
-	database, err := db.GetDB() // Capture both return values
+	database, err := database.GetDB() // Capture both return values
 	if err != nil {
 		s.logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
@@ -173,7 +173,7 @@ func (s *Session) handlePSNLink(bf *byteframe.ByteFrame) {
 	credentials := strings.Split(stringsupport.SJISToUTF8(bf.ReadNullTerminatedBytes()), "\n")
 	token := string(bf.ReadNullTerminatedBytes())
 	uid, resp := s.server.validateLogin(credentials[0], credentials[1])
-	database, err := db.GetDB() // Capture both return values
+	database, err := database.GetDB() // Capture both return values
 	if err != nil {
 		s.logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}

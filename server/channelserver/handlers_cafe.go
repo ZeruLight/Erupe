@@ -3,7 +3,7 @@ package channelserver
 import (
 	"erupe-ce/internal/model"
 	"erupe-ce/utils/byteframe"
-	"erupe-ce/utils/db"
+	"erupe-ce/utils/database"
 	"erupe-ce/utils/gametime"
 	"erupe-ce/utils/mhfcourse"
 
@@ -206,7 +206,7 @@ func handleMsgMhfPostCafeDurationBonusReceived(s *Session, db *sqlx.DB, p mhfpac
 }
 
 func addPointNetcafe(s *Session, p int) error {
-	db, err := db.GetDB()
+	db, err := database.GetDB()
 	if err != nil {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}

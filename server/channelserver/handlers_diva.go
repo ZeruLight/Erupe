@@ -3,7 +3,7 @@ package channelserver
 import (
 	"encoding/hex"
 	config "erupe-ce/config"
-	"erupe-ce/utils/db"
+	"erupe-ce/utils/database"
 	"erupe-ce/utils/gametime"
 	"erupe-ce/utils/stringsupport"
 	"fmt"
@@ -16,7 +16,7 @@ import (
 )
 
 func cleanupDiva(s *Session) {
-	db, err := db.GetDB()
+	db, err := database.GetDB()
 	if err != nil {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}
@@ -24,7 +24,7 @@ func cleanupDiva(s *Session) {
 }
 
 func generateDivaTimestamps(s *Session, start uint32, debug bool) []uint32 {
-	db, err := db.GetDB()
+	db, err := database.GetDB()
 	if err != nil {
 		s.Logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}

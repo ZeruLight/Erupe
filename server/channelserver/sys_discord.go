@@ -1,7 +1,7 @@
 package channelserver
 
 import (
-	"erupe-ce/utils/db"
+	"erupe-ce/utils/database"
 	"fmt"
 	"sort"
 	"strings"
@@ -71,7 +71,7 @@ func getCharacterList(server *ChannelServer) string {
 
 // onInteraction handles slash commands
 func (server *ChannelServer) onInteraction(ds *discordgo.Session, i *discordgo.InteractionCreate) {
-	db, err := db.GetDB()
+	db, err := database.GetDB()
 	if err != nil {
 		server.logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
 	}

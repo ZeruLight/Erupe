@@ -6,7 +6,7 @@ import (
 	"erupe-ce/config"
 	"erupe-ce/server/channelserver/compression/nullcomp"
 	"erupe-ce/utils/bfutil"
-	"erupe-ce/utils/db"
+	"erupe-ce/utils/database"
 	"erupe-ce/utils/logger"
 	"erupe-ce/utils/stringsupport"
 	"fmt"
@@ -120,7 +120,7 @@ func getPointers() map[SavePointer]int {
 }
 
 func GetCharacterSaveData(charID uint32) (*CharacterSaveData, error) {
-	db, err := db.GetDB()
+	db, err := database.GetDB()
 	logger := logger.Get()
 	if err != nil {
 		logger.Fatal(fmt.Sprintf("Failed to get database instance: %s", err))
@@ -169,7 +169,7 @@ type SessionCharacter interface {
 }
 
 func (save *CharacterSaveData) Save(s SessionCharacter) {
-	db, err := db.GetDB()
+	db, err := database.GetDB()
 	logger := logger.Get()
 
 	if err != nil {

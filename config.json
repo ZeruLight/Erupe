@@ -170,6 +170,11 @@
       "Enabled": true,
       "Description": "Toggle the Quest timer",
       "Prefix": "timer"
+    }, {
+      "Name": "Playtime",
+      "Enabled": true,
+      "Description": "Show your playtime",
+      "Prefix": "playtime"
     }
   ],
   "Courses": [

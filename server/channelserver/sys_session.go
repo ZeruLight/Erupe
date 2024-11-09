@@ -50,6 +50,9 @@ type Session struct {
 	kqf              []byte
 	kqfOverride      bool
 
+	playtime     uint32
+	playtimeTime time.Time
+
 	semaphore     *Semaphore // Required for the stateful MsgSysUnreserveStage packet.
 	semaphoreMode bool
 	semaphoreID   []uint16

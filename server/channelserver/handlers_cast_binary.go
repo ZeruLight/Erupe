@@ -407,6 +407,13 @@ func parseChatCommand(s *Session, command string) {
 		} else {
 			sendDisabledCommandMessage(s, commands["Discord"])
 		}
+	case commands["Playtime"].Prefix:
+		if commands["Playtime"].Enabled || s.isOp() {
+			playtime := s.playtime + uint32(time.Now().Sub(s.playtimeTime).Seconds())
+			sendServerChatMessage(s, fmt.Sprintf(s.server.i18n.commands.playtime, playtime/60/60, playtime/60%60, playtime%60))
+		} else {
+			sendDisabledCommandMessage(s, commands["Playtime"])
+		}
 	case commands["Help"].Prefix:
 		if commands["Help"].Enabled || s.isOp() {
 			for _, command := range commands {

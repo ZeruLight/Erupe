@@ -158,9 +158,12 @@ func (s *Session) sendLoop() {
 		if s.closed {
 			return
 		}
-		err := s.cryptConn.SendPacket(append(pkt.data, []byte{0x00, 0x10}...))
-		if err != nil {
-			s.logger.Warn("Failed to send packet")
+		for len(s.sendPackets) > 0 {
+			pkt = <-s.sendPackets
+			err := s.cryptConn.SendPacket(append(pkt.data, []byte{0x00, 0x10}...))
+			if err != nil {
+				s.logger.Warn("Failed to send packet")
+			}
 		}
 		time.Sleep(time.Duration(_config.ErupeConfig.LoopDelay) * time.Millisecond)
 	}

@@ -166,7 +166,7 @@ func handleMsgMhfReceiveCafeDurationBonus(s *Session, p mhfpacket.MHFPacket) {
 		FROM characters ch
 		WHERE ch.id = $1 
 	) >= time_req`, s.charID, TimeAdjusted().Unix()-s.sessionStart)
-	if err != nil {
+	if err != nil || !mhfcourse.CourseExists(30, s.courses) {
 		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 	} else {
 		for rows.Next() {

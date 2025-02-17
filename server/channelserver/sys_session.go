@@ -104,22 +104,9 @@ func (s *Session) Start() {
 // QueueSend queues a packet (raw []byte) to be sent.
 func (s *Session) QueueSend(data []byte) {
 	s.logMessage(binary.BigEndian.Uint16(data[0:2]), data, "Server", s.Name)
-	select {
-	case s.sendPackets <- packet{data, false}:
-		// Enqueued data
-	default:
-		s.logger.Warn("Packet queue too full, flushing!")
-		var tempPackets []packet
-		for len(s.sendPackets) > 0 {
-			tempPacket := <-s.sendPackets
-			if !tempPacket.nonBlocking {
-				tempPackets = append(tempPackets, tempPacket)
-			}
-		}
-		for _, tempPacket := range tempPackets {
-			s.sendPackets <- tempPacket
-		}
-		s.sendPackets <- packet{data, false}
+	err := s.cryptConn.SendPacket(append(data, []byte{0x00, 0x10}...))
+	if err != nil {
+		s.logger.Warn("Failed to send packet")
 	}
 }
 
@@ -146,6 +133,19 @@ func (s *Session) QueueSendMHF(pkt mhfpacket.MHFPacket) {
 	s.QueueSend(bf.Data())
 }
 
+// QueueSendMHFNonBlocking queues a MHFPacket to be sent, dropping the packet entirely if the queue is full.
+func (s *Session) QueueSendMHFNonBlocking(pkt mhfpacket.MHFPacket) {
+	// Make the header
+	bf := byteframe.NewByteFrame()
+	bf.WriteUint16(uint16(pkt.Opcode()))
+
+	// Build the packet onto the byteframe.
+	pkt.Build(bf, s.clientContext)
+
+	// Queue it.
+	s.QueueSendNonBlocking(bf.Data())
+}
+
 // QueueAck is a helper function to queue an MSG_SYS_ACK with the given ack handle and data.
 func (s *Session) QueueAck(ackHandle uint32, data []byte) {
 	bf := byteframe.NewByteFrame()
@@ -158,12 +158,16 @@ func (s *Session) QueueAck(ackHandle uint32, data []byte) {
 func (s *Session) sendLoop() {
 	var pkt packet
 	for {
+		var buf []byte
 		if s.closed {
 			return
 		}
 		for len(s.sendPackets) > 0 {
 			pkt = <-s.sendPackets
-			err := s.cryptConn.SendPacket(append(pkt.data, []byte{0x00, 0x10}...))
+			buf = append(buf, pkt.data...)
+		}
+		if len(buf) > 0 {
+			err := s.cryptConn.SendPacket(append(buf, []byte{0x00, 0x10}...))
 			if err != nil {
 				s.logger.Warn("Failed to send packet")
 			}

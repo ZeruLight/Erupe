@@ -82,7 +82,7 @@ func sendServerChatMessage(s *Session, message string) {
 		RawDataPayload: bf.Data(),
 	}
 
-	s.QueueSendMHF(castedBin)
+	s.QueueSendMHFNonBlocking(castedBin)
 }
 
 func parseChatCommand(s *Session, command string) {
@@ -198,7 +198,7 @@ func parseChatCommand(s *Session, command string) {
 				temp.Build(deleteNotif, s.clientContext)
 			}
 			deleteNotif.WriteUint16(uint16(network.MSG_SYS_END))
-			s.QueueSend(deleteNotif.Data())
+			s.QueueSendNonBlocking(deleteNotif.Data())
 			time.Sleep(500 * time.Millisecond)
 			reloadNotif := byteframe.NewByteFrame()
 			for _, session := range s.server.sessions {
@@ -233,7 +233,7 @@ func parseChatCommand(s *Session, command string) {
 				temp.Build(reloadNotif, s.clientContext)
 			}
 			reloadNotif.WriteUint16(uint16(network.MSG_SYS_END))
-			s.QueueSend(reloadNotif.Data())
+			s.QueueSendNonBlocking(reloadNotif.Data())
 		} else {
 			sendDisabledCommandMessage(s, commands["Reload"])
 		}
@@ -381,7 +381,7 @@ func parseChatCommand(s *Session, command string) {
 				payload.WriteInt16(int16(x)) // X
 				payload.WriteInt16(int16(y)) // Y
 				payloadBytes := payload.Data()
-				s.QueueSendMHF(&mhfpacket.MsgSysCastedBinary{
+				s.QueueSendMHFNonBlocking(&mhfpacket.MsgSysCastedBinary{
 					CharID:         s.charID,
 					MessageType:    BinaryMessageTypeState,
 					RawDataPayload: payloadBytes,
@@ -539,7 +539,7 @@ func handleMsgSysCastBinary(s *Session, p mhfpacket.MHFPacket) {
 			char := s.server.FindSessionByCharID(targetID)
 
 			if char != nil {
-				char.QueueSendMHF(resp)
+				char.QueueSendMHFNonBlocking(resp)
 			}
 		}
 	default:

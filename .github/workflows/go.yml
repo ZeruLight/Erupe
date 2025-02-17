@@ -28,7 +28,7 @@ jobs:
       run: env GOOS=linux GOARCH=amd64 go build -v
         
     - name: Upload Linux-amd64 artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: Linux-amd64
         path: |
@@ -43,7 +43,7 @@ jobs:
       run: env GOOS=windows GOARCH=amd64 go build -v
       
     - name: Upload Windows-amd64 artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: Windows-amd64
         path: |

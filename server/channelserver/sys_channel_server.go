@@ -207,6 +207,7 @@ func (s *Server) Start() error {
 
 	go s.acceptClients()
 	go s.manageSessions()
+	go s.invalidateSessions()
 
 	// Start the discord bot for chat integration.
 	if s.erupeConfig.Discord.Enabled && s.discordBot != nil {
@@ -276,6 +277,16 @@ func (s *Server) manageSessions() {
 			s.Unlock()
 		}
 	}
+}
+
+func (s *Server) invalidateSessions() {
+	for _, session := range s.sessions {
+		if time.Now().Add(-30 * time.Second).After(session.lastPacket) {
+			s.logger.Info("Session timeout", zap.String("Name", session.Name))
+			logoutPlayer(session)
+		}
+	}
+	time.Sleep(30 * time.Second)
 }
 
 // BroadcastMHF queues a MHFPacket to be sent to all sessions.

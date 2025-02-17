@@ -178,10 +178,6 @@ func (s *Session) sendLoop() {
 
 func (s *Session) recvLoop() {
 	for {
-		if time.Now().Add(-30 * time.Second).After(s.lastPacket) {
-			logoutPlayer(s)
-			return
-		}
 		if s.closed {
 			logoutPlayer(s)
 			return

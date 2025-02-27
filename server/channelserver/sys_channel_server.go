@@ -280,13 +280,18 @@ func (s *Server) manageSessions() {
 }
 
 func (s *Server) invalidateSessions() {
-	for _, session := range s.sessions {
-		if time.Now().Add(-30 * time.Second).After(session.lastPacket) {
-			s.logger.Info("Session timeout", zap.String("Name", session.Name))
-			logoutPlayer(session)
+	for {
+		if s.isShuttingDown {
+			break
 		}
+		for _, sess := range s.sessions {
+			if time.Now().Sub(sess.lastPacket) > time.Second*time.Duration(30) {
+				s.logger.Info("session timeout", zap.String("Name", sess.Name))
+				logoutPlayer(sess)
+			}
+		}
+		time.Sleep(time.Second * 10)
 	}
-	time.Sleep(30 * time.Second)
 }
 
 // BroadcastMHF queues a MHFPacket to be sent to all sessions.

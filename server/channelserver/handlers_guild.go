@@ -971,14 +971,21 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint8(0)
 		bf.WriteUint8(0)
 
-		bf.WriteBool(!guild.Recruiting)
+		flags := uint8(0)
+		if !guild.Recruiting {
+			flags |= 0x01
+		}
+		//if guild.Suspended {
+		//	flags |= 0x02
+		//}
+		bf.WriteUint8(flags)
 
 		if characterGuildData == nil || characterGuildData.IsApplicant {
-			bf.WriteUint16(0x00)
+			bf.WriteUint16(0)
 		} else if guild.LeaderCharID == s.charID {
-			bf.WriteUint16(0x01)
+			bf.WriteUint16(1)
 		} else {
-			bf.WriteUint16(0x02)
+			bf.WriteUint16(2)
 		}
 
 		bf.WriteUint32(uint32(guild.CreatedAt.Unix()))
@@ -1103,15 +1110,18 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 			}
 		}
 
-		type UnkGuildInfo struct {
-			Unk0 uint8
+		type Activity struct {
+			Pass uint8
 			Unk1 uint8
 			Unk2 uint8
 		}
-		unkGuildInfo := []UnkGuildInfo{}
-		bf.WriteUint8(uint8(len(unkGuildInfo)))
-		for _, info := range unkGuildInfo {
-			bf.WriteUint8(info.Unk0)
+		activity := []Activity{
+			// 1,0,0 = ok
+			// 0,0,0 = ng
+		}
+		bf.WriteUint8(uint8(len(activity)))
+		for _, info := range activity {
+			bf.WriteUint8(info.Pass)
 			bf.WriteUint8(info.Unk1)
 			bf.WriteUint8(info.Unk2)
 		}
@@ -1159,7 +1169,7 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 
 		doAckBufSucceed(s, pkt.AckHandle, bf.Data())
 	} else {
-		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 5))
+		doAckBufSucceed(s, pkt.AckHandle, make([]byte, 4))
 	}
 }
 

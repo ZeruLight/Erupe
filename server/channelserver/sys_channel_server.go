@@ -75,6 +75,7 @@ type Server struct {
 
 	raviente *Raviente
 
+	questCacheLock sync.RWMutex
 	questCacheData map[int][]byte
 	questCacheTime map[int]time.Time
 }

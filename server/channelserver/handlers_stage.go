@@ -59,7 +59,7 @@ func doStageTransfer(s *Session, ackHandle uint32, stageID string) {
 	s.Unlock()
 
 	// Tell the client to cleanup its current stage objects.
-	s.QueueSendMHF(&mhfpacket.MsgSysCleanupObject{})
+	s.QueueSendMHFNonBlocking(&mhfpacket.MsgSysCleanupObject{})
 
 	// Confirm the stage entry.
 	doAckSimpleSucceed(s, ackHandle, []byte{0x00, 0x00, 0x00, 0x00})
@@ -112,9 +112,8 @@ func doStageTransfer(s *Session, ackHandle uint32, stageID string) {
 		s.stage.RUnlock()
 	}
 
-	newNotif.WriteUint16(0x0010) // End it.
 	if len(newNotif.Data()) > 2 {
-		s.QueueSend(newNotif.Data())
+		s.QueueSendNonBlocking(newNotif.Data())
 	}
 }
 
@@ -238,7 +237,7 @@ func handleMsgSysUnlockStage(s *Session, p mhfpacket.MHFPacket) {
 		for charID := range s.reservationStage.reservedClientSlots {
 			session := s.server.FindSessionByCharID(charID)
 			if session != nil {
-				session.QueueSendMHF(&mhfpacket.MsgSysStageDestruct{})
+				session.QueueSendMHFNonBlocking(&mhfpacket.MsgSysStageDestruct{})
 			}
 		}
 

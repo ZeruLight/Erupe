@@ -88,7 +88,7 @@ func updateRights(s *Session) {
 		Rights:              s.courses,
 		UnkSize:             0,
 	}
-	s.QueueSendMHF(update)
+	s.QueueSendMHFNonBlocking(update)
 }
 
 func handleMsgHead(s *Session, p mhfpacket.MHFPacket) {}
@@ -192,7 +192,7 @@ func logoutPlayer(s *Session) {
 			for _, sess := range s.server.sessions {
 				for rSlot := range stage.reservedClientSlots {
 					if sess.charID == rSlot && sess.stage != nil && sess.stage.id[3:5] != "Qs" {
-						sess.QueueSendMHF(&mhfpacket.MsgSysStageDestruct{})
+						sess.QueueSendMHFNonBlocking(&mhfpacket.MsgSysStageDestruct{})
 					}
 				}
 			}

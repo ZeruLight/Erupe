@@ -1105,7 +1105,9 @@ func handleMsgMhfInfoGuild(s *Session, p mhfpacket.MHFPacket) {
 				bf.WriteUint32(applicant.CharID)
 				bf.WriteUint32(0)
 				bf.WriteUint16(applicant.HR)
-				bf.WriteUint16(applicant.GR)
+				if s.server.erupeConfig.RealClientMode >= _config.G10 {
+					bf.WriteUint16(applicant.GR)
+				}
 				ps.Uint8(bf, applicant.Name, true)
 			}
 		}

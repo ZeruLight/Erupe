@@ -174,9 +174,9 @@ func handleMsgMhfReadMercenaryW(s *Session, p mhfpacket.MHFPacket) {
 		bf.WriteUint8(0)
 	}
 
-	var loans uint8
-	temp := byteframe.NewByteFrame()
-	if pkt.Op < 2 {
+	if pkt.Op != 2 && pkt.Op != 5 {
+		var loans uint8
+		temp := byteframe.NewByteFrame()
 		rows, _ := s.server.db.Query("SELECT name, id, pact_id FROM characters WHERE pact_id=(SELECT rasta_id FROM characters WHERE id=$1)", s.charID)
 		for rows.Next() {
 			err := rows.Scan(&name, &cid, &pactID)
@@ -190,23 +190,23 @@ func handleMsgMhfReadMercenaryW(s *Session, p mhfpacket.MHFPacket) {
 			temp.WriteUint32(uint32(TimeAdjusted().Add(time.Hour * 24 * 7).Unix()))
 			temp.WriteBytes(stringsupport.PaddedString(name, 18, true))
 		}
-	}
-	bf.WriteUint8(loans)
-	bf.WriteBytes(temp.Data())
+		bf.WriteUint8(loans)
+		bf.WriteBytes(temp.Data())
 
-	if pkt.Op < 1 {
-		var data []byte
-		var gcp uint32
-		s.server.db.QueryRow("SELECT savemercenary FROM characters WHERE id=$1", s.charID).Scan(&data)
-		s.server.db.QueryRow("SELECT COALESCE(gcp, 0) FROM characters WHERE id=$1", s.charID).Scan(&gcp)
+		if pkt.Op != 1 && pkt.Op != 4 {
+			var data []byte
+			var gcp uint32
+			s.server.db.QueryRow("SELECT savemercenary FROM characters WHERE id=$1", s.charID).Scan(&data)
+			s.server.db.QueryRow("SELECT COALESCE(gcp, 0) FROM characters WHERE id=$1", s.charID).Scan(&gcp)
 
-		if len(data) == 0 {
-			bf.WriteBool(false)
-		} else {
-			bf.WriteBool(true)
-			bf.WriteBytes(data)
+			if len(data) == 0 {
+				bf.WriteBool(false)
+			} else {
+				bf.WriteBool(true)
+				bf.WriteBytes(data)
+			}
+			bf.WriteUint32(gcp)
 		}
-		bf.WriteUint32(gcp)
 	}
 
 	doAckBufSucceed(s, pkt.AckHandle, bf.Data())
